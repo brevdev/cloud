@@ -26,7 +26,7 @@ type Disk struct {
 	MountPath string
 }
 
-type CloudResizeInstanceVolume interface {
+type InstanceVolumeResizer interface {
 	ResizeInstanceVolume(ctx context.Context, args ResizeInstanceVolumeArgs) error
 }
 

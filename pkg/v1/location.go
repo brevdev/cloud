@@ -5,13 +5,7 @@ import (
 	"fmt"
 )
 
-type CloudLocation interface {
-	GetLocations(ctx context.Context, args GetLocationsArgs) ([]Location, error)
-}
-
-type GetLocationsArgs struct {
-	IncludeUnavailable bool
-}
+var All = []string{"all"}
 
 type Location struct {
 	Name        string // basically the id
@@ -24,7 +18,13 @@ type Location struct {
 
 type LocationsFilter []string
 
-var All = []string{"all"}
+type LocationGetter interface {
+	GetLocations(ctx context.Context, args GetLocationsArgs) ([]Location, error)
+}
+
+type GetLocationsArgs struct {
+	IncludeUnavailable bool
+}
 
 func (l LocationsFilter) IsAll() bool {
 	for _, v := range l {
@@ -36,7 +36,7 @@ func (l LocationsFilter) IsAll() bool {
 }
 
 // ValidateGetLocations validates that the CloudLocation implementation returns at least one available location without error.
-func ValidateGetLocations(ctx context.Context, client CloudLocation) error {
+func ValidateGetLocations(ctx context.Context, client LocationGetter) error {
 	locs, err := client.GetLocations(ctx, GetLocationsArgs{})
 	if err != nil {
 		return err

@@ -6,7 +6,7 @@ import (
 )
 
 func WaitForInstanceLifecycleStatus(ctx context.Context,
-	client CloudInstanceReader,
+	client InstanceGetter,
 	instance *Instance,
 	status LifecycleStatus,
 	timeout time.Duration,

@@ -48,6 +48,36 @@ type InstanceType struct {
 	CanModifyFirewallRules          bool
 }
 
+type GPU struct {
+	Count          int32
+	Memory         units.Base2Bytes
+	MemoryDetails  string
+	NetworkDetails string
+	Manufacturer   string
+	Name           string
+	Type           string
+}
+
+type InstanceTypeQuota struct {
+	OnDemand Quota
+	Spot     Quota
+	Reserved Quota
+}
+
+type InstanceTypeGetter interface {
+	GetInstanceTypes(ctx context.Context, args GetInstanceTypeArgs) ([]InstanceType, error)
+}
+
+type GetInstanceTypeArgs struct {
+	Locations              LocationsFilter
+	SupportedArchitectures []string
+	InstanceTypes          []string
+}
+
+type InstanceTypePollTimeGetter interface {
+	GetInstanceTypePollTime() time.Duration
+}
+
 func MakeGenericInstanceTypeID(instanceType InstanceType) InstanceTypeID {
 	if instanceType.ID != "" {
 		return instanceType.ID
@@ -70,37 +100,9 @@ func MakeGenericInstanceTypeIDFromInstance(instance Instance) InstanceTypeID {
 	return InstanceTypeID(fmt.Sprintf("%s-%s-%s", instance.Location, subLoc, instance.InstanceType))
 }
 
-type GPU struct {
-	Count          int32
-	Memory         units.Base2Bytes
-	MemoryDetails  string
-	NetworkDetails string
-	Manufacturer   string
-	Name           string
-	Type           string
-}
-
-type InstanceTypeQuota struct {
-	OnDemand Quota
-	Spot     Quota
-	Reserved Quota
-}
-
-type CloudInstanceType interface {
-	GetInstanceTypes(ctx context.Context, args GetInstanceTypeArgs) ([]InstanceType, error)
-	GetInstanceTypePollTime() time.Duration
-	CloudLocation
-}
-
-type GetInstanceTypeArgs struct {
-	Locations              LocationsFilter
-	SupportedArchitectures []string
-	InstanceTypes          []string
-}
-
 // ValidateGetInstanceTypes validates that the GetInstanceTypes functionality works correctly
 // by testing that filtering by specific instance types returns the expected results
-func ValidateGetInstanceTypes(ctx context.Context, client CloudInstanceType) error { //nolint:funlen,gocyclo // todo refactor
+func ValidateGetInstanceTypes(ctx context.Context, client InstanceTypeGetter) error { //nolint:funlen,gocyclo // todo refactor
 	// Get all instance types first
 	allTypes, err := client.GetInstanceTypes(ctx, GetInstanceTypeArgs{})
 	if err != nil {
@@ -207,7 +209,7 @@ func ValidateGetInstanceTypes(ctx context.Context, client CloudInstanceType) err
 
 // ValidateLocationalInstanceTypes validates that locational filtering works correctly
 // by comparing locational results with all-location results using CloudLocation capabilities
-func ValidateLocationalInstanceTypes(ctx context.Context, client CloudInstanceType) error {
+func ValidateLocationalInstanceTypes(ctx context.Context, client InstanceTypeGetter) error {
 	// Get all-location instance types by requesting from all locations
 	allLocationTypes, err := client.GetInstanceTypes(ctx, GetInstanceTypeArgs{
 		Locations: All,
@@ -278,7 +280,7 @@ func normalizeInstanceTypes(types []InstanceType) []InstanceType {
 
 // ValidateStableInstanceTypeIDs validates that the provided stable instance type IDs are valid and stable
 // This function ensures that stable IDs exist in the current instance types and have required properties
-func ValidateStableInstanceTypeIDs(ctx context.Context, client CloudInstanceType, stableIDs []InstanceTypeID) error {
+func ValidateStableInstanceTypeIDs(ctx context.Context, client InstanceTypeGetter, stableIDs []InstanceTypeID) error {
 	// Get all instance types
 	allTypes, err := client.GetInstanceTypes(ctx, GetInstanceTypeArgs{})
 	if err != nil {
