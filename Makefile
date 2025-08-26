@@ -28,7 +28,7 @@ GOSEC=gosec
 
 # Third party tools
 ARTIFACT_GOLINT=github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-ARTIFACT_GOSEC=github.com/securego/gosec/v2/cmd/gosec@latest
+ARTIFACT_GOSEC=github.com/securego/gosec/v2/cmd/gosec@v2.22.8
 
 # Build flags
 LDFLAGS=-ldflags "-X main.Version=$(shell git describe --tags --always --dirty) -X main.BuildTime=$(shell date -u '+%Y-%m-%d_%H:%M:%S')"
