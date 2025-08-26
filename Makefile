@@ -23,7 +23,12 @@ GOMOD=$(GOCMD) mod
 GOLINT=golangci-lint
 GOVET=$(GOCMD) vet
 GOFMT=gofumpt
+GOINSTALL=$(GOCMD) install
 GOSEC=gosec
+
+# Third party tools
+ARTIFACT_GOLINT=github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+ARTIFACT_GOSEC=github.com/securego/gosec/v2/cmd/gosec@latest
 
 # Build flags
 LDFLAGS=-ldflags "-X main.Version=$(shell git describe --tags --always --dirty) -X main.BuildTime=$(shell date -u '+%Y-%m-%d_%H:%M:%S')"
@@ -104,13 +109,10 @@ bench:
 .PHONY: lint
 lint:
 	@echo "Running linter..."
-	@if command -v $(GOLINT) > /dev/null; then \
-		$(GOLINT) run ./...; \
-	else \
-		echo "golangci-lint not found. Installing..."; \
-		go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest; \
-		$(GOLINT) run ./...; \
+	@if ! command -v $(GOLINT) > /dev/null 2>&1; then \
+		$(GOINSTALL) $(ARTIFACT_GOLINT); \
 	fi
+	$(GOLINT) run ./...
 
 # Run go vet
 .PHONY: vet
@@ -129,8 +131,11 @@ fmt:
 fmt-check:
 	@echo "Checking code formatting..."
 	@if [ "$$($(GOFMT) -l . | wc -l)" -gt 0 ]; then \
+	@files=$$($(GOFMT) -s -l .); \
+	if [ -n "$$files" ]; then \
 		echo "Code is not formatted. Run 'make fmt' to format."; \
 		$(GOFMT) -l .; \
+		echo "$$files"; \
 		exit 1; \
 	else \
 		echo "Code is properly formatted."; \
@@ -140,13 +145,11 @@ fmt-check:
 .PHONY: security
 security:
 	@echo "Running security scan..."
-	@if command -v $(GOSEC) > /dev/null; then \
-		$(GOSEC) ./...; \
-	else \
+	@if ! command -v $(GOSEC) > /dev/null 2>&1; then \
 		echo "gosec not found. Installing..."; \
-		go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest; \
-		$(GOSEC) ./...; \
+		$(GOINSTALL) $(ARTIFACT_GOSEC); \
 	fi
+	$(GOSEC) ./...
 
 # Clean build artifacts
 .PHONY: clean
@@ -167,7 +170,7 @@ deps:
 .PHONY: deps-update
 deps-update:
 	@echo "Updating dependencies..."
-	$(GOMOD) get -u ./...
+	$(GOCMD) get -u ./...
 	$(GOMOD) tidy
 
 # Verify dependencies
@@ -190,8 +193,8 @@ check: lint vet fmt-check test
 .PHONY: install-tools
 install-tools:
 	@echo "Installing development tools..."
-	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-	go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest
+	$(GOINSTALL) $(ARTIFACT_GOLINT)
+	$(GOINSTALL) $(ARTIFACT_GOSEC)
 
 # Show help
 .PHONY: help
