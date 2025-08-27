@@ -50,5 +50,5 @@ func (c *LambdaLabsCredential) GetTenantID() (string, error) {
 
 // MakeClient creates a new Lambda Labs client from this credential
 func (c *LambdaLabsCredential) MakeClient(_ context.Context, _ string) (v1.CloudClient, error) {
-	return NewLambdaLabsClient(c.RefID, c.APIKey), nil
+	return NewLambdaLabsClient(c.RefID, c.APIKey)
 }

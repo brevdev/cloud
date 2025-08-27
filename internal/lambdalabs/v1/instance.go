@@ -238,7 +238,7 @@ func (c *LambdaLabsClient) addSSHKey(ctx context.Context, request openapi.AddSSH
 			return &openapi.AddSSHKey200Response{}, handleAPIError(ctx, resp, err)
 		}
 		return res, nil
-	}, getBackoff())
+	}, c.backoff)
 	if err != nil {
 		return nil, err
 	}
@@ -255,7 +255,7 @@ func (c *LambdaLabsClient) launchInstance(ctx context.Context, request openapi.L
 			return &openapi.LaunchInstance200Response{}, handleAPIError(ctx, resp, err)
 		}
 		return res, nil
-	}, getBackoff())
+	}, c.backoff)
 	if err != nil {
 		return nil, err
 	}
@@ -272,7 +272,7 @@ func (c *LambdaLabsClient) getInstance(ctx context.Context, instanceID string) (
 			return &openapi.GetInstance200Response{}, handleAPIError(ctx, resp, err)
 		}
 		return res, nil
-	}, getBackoff())
+	}, c.backoff)
 	if err != nil {
 		return nil, err
 	}
@@ -289,7 +289,7 @@ func (c *LambdaLabsClient) terminateInstance(ctx context.Context, request openap
 			return &openapi.TerminateInstance200Response{}, handleAPIError(ctx, resp, err)
 		}
 		return res, nil
-	}, getBackoff())
+	}, c.backoff)
 	if err != nil {
 		return nil, err
 	}
@@ -306,7 +306,7 @@ func (c *LambdaLabsClient) listInstances(ctx context.Context) (*openapi.ListInst
 			return &openapi.ListInstances200Response{}, handleAPIError(ctx, resp, err)
 		}
 		return res, nil
-	}, getBackoff())
+	}, c.backoff)
 	if err != nil {
 		return nil, err
 	}
@@ -323,7 +323,7 @@ func (c *LambdaLabsClient) restartInstance(ctx context.Context, request openapi.
 			return &openapi.RestartInstance200Response{}, handleAPIError(ctx, resp, err)
 		}
 		return res, nil
-	}, getBackoff())
+	}, c.backoff)
 	if err != nil {
 		return nil, err
 	}

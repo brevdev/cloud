@@ -19,22 +19,82 @@ type LambdaLabsClient struct {
 	baseURL  string
 	client   *openapi.APIClient
 	location string
+	backoff  backoff.BackOff
 }
 
 var _ v1.CloudClient = &LambdaLabsClient{}
 
+type options struct {
+	baseURL  string
+	client   *openapi.APIClient
+	location string
+	backoff  backoff.BackOff
+}
+
+type Option func(options *options) error
+
+func WithBaseURL(baseURL string) Option {
+	return func(options *options) error {
+		options.baseURL = baseURL
+		return nil
+	}
+}
+
+func WithClient(client *openapi.APIClient) Option {
+	return func(options *options) error {
+		options.client = client
+		return nil
+	}
+}
+
+func WithLocation(location string) Option {
+	return func(options *options) error {
+		options.location = location
+		return nil
+	}
+}
+
+func WithBackoff(backoff backoff.BackOff) Option {
+	return func(options *options) error {
+		options.backoff = backoff
+		return nil
+	}
+}
+
 // NewLambdaLabsClient creates a new Lambda Labs client
-func NewLambdaLabsClient(refID, apiKey string) *LambdaLabsClient {
-	config := openapi.NewConfiguration()
-	config.HTTPClient = http.DefaultClient
-	client := openapi.NewAPIClient(config)
+func NewLambdaLabsClient(refID, apiKey string, opts ...Option) (*LambdaLabsClient, error) {
+	var options options
+	for _, opt := range opts {
+		if err := opt(&options); err != nil {
+			return nil, err
+		}
+	}
+
+	if options.baseURL == "" {
+		options.baseURL = "https://cloud.lambda.ai/api/v1"
+	}
+
+	if options.client == nil {
+		config := openapi.NewConfiguration()
+		config.HTTPClient = http.DefaultClient
+		options.client = openapi.NewAPIClient(config)
+	}
+
+	if options.backoff == nil {
+		bo := backoff.NewExponentialBackOff()
+		bo.InitialInterval = 1000 * time.Millisecond
+		bo.MaxElapsedTime = 120 * time.Second
+		options.backoff = bo
+	}
 
 	return &LambdaLabsClient{
-		refID:   refID,
-		apiKey:  apiKey,
-		baseURL: "https://cloud.lambda.ai/api/v1",
-		client:  client,
-	}
+		refID:    refID,
+		apiKey:   apiKey,
+		baseURL:  options.baseURL,
+		client:   options.client,
+		location: options.location,
+		backoff:  options.backoff,
+	}, nil
 }
 
 // GetAPIType returns the API type for Lambda Labs
@@ -72,11 +132,4 @@ func (c *LambdaLabsClient) makeAuthContext(ctx context.Context) context.Context 
 	return context.WithValue(ctx, openapi.ContextBasicAuth, openapi.BasicAuth{
 		UserName: c.apiKey,
 	})
-}
-
-func getBackoff() backoff.BackOff {
-	bo := backoff.NewExponentialBackOff()
-	bo.InitialInterval = 1000 * time.Millisecond
-	bo.MaxElapsedTime = 120 * time.Second
-	return bo
 }

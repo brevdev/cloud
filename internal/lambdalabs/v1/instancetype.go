@@ -99,7 +99,7 @@ func (c *LambdaLabsClient) getInstanceTypes(ctx context.Context) (*openapi.Insta
 			return &openapi.InstanceTypes200Response{}, handleAPIError(ctx, resp, err)
 		}
 		return res, nil
-	}, getBackoff())
+	}, c.backoff)
 	if err != nil {
 		return nil, err
 	}
