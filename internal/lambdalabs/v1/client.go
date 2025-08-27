@@ -2,12 +2,19 @@ package v1
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 
 	openapi "github.com/brevdev/cloud/internal/lambdalabs/gen/lambdalabs"
 	v1 "github.com/brevdev/cloud/pkg/v1"
 	"github.com/cenkalti/backoff/v4"
+)
+
+const (
+	defaultBaseURL                = "https://cloud.lambda.ai/api/v1"
+	defaultBackoffInitialInterval = 1000 * time.Millisecond
+	defaultBackoffMaxElapsedTime  = 120 * time.Second
 )
 
 // LambdaLabsClient implements the CloudClient interface for Lambda Labs
@@ -33,6 +40,7 @@ type options struct {
 
 type Option func(options *options) error
 
+// WithBaseURL sets the base URL for the Lambda Labs client
 func WithBaseURL(baseURL string) Option {
 	return func(options *options) error {
 		options.baseURL = baseURL
@@ -40,6 +48,7 @@ func WithBaseURL(baseURL string) Option {
 	}
 }
 
+// WithClient sets the OpenAPI HTTP client for the Lambda Labs client
 func WithClient(client *openapi.APIClient) Option {
 	return func(options *options) error {
 		options.client = client
@@ -47,6 +56,7 @@ func WithClient(client *openapi.APIClient) Option {
 	}
 }
 
+// WithLocation sets the location for the Lambda Labs client
 func WithLocation(location string) Option {
 	return func(options *options) error {
 		options.location = location
@@ -54,6 +64,7 @@ func WithLocation(location string) Option {
 	}
 }
 
+// WithBackoff sets the backoff settings used to retry API calls for the Lambda Labs client
 func WithBackoff(backoff backoff.BackOff) Option {
 	return func(options *options) error {
 		options.backoff = backoff
@@ -70,8 +81,12 @@ func NewLambdaLabsClient(refID, apiKey string, opts ...Option) (*LambdaLabsClien
 		}
 	}
 
+	if refID == "" || apiKey == "" {
+		return nil, fmt.Errorf("refID and apiKey are required")
+	}
+
 	if options.baseURL == "" {
-		options.baseURL = "https://cloud.lambda.ai/api/v1"
+		options.baseURL = defaultBaseURL
 	}
 
 	if options.client == nil {
@@ -82,8 +97,8 @@ func NewLambdaLabsClient(refID, apiKey string, opts ...Option) (*LambdaLabsClien
 
 	if options.backoff == nil {
 		bo := backoff.NewExponentialBackOff()
-		bo.InitialInterval = 1000 * time.Millisecond
-		bo.MaxElapsedTime = 120 * time.Second
+		bo.InitialInterval = defaultBackoffInitialInterval
+		bo.MaxElapsedTime = defaultBackoffMaxElapsedTime
 		options.backoff = bo
 	}
 

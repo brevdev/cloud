@@ -5,6 +5,7 @@ go 1.25.0
 require (
 	github.com/alecthomas/units v0.0.0-20240927000941-0f3dac36c52b
 	github.com/bojanz/currency v1.3.1
+	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/gliderlabs/ssh v0.3.8
 	github.com/google/go-cmp v0.7.0
