@@ -73,11 +73,6 @@ func (m *mockCloudInstanceReader) GetInstance(_ context.Context, id CloudProvide
 	return nil, errors.New("instance not found")
 }
 
-func (m *mockCloudInstanceReader) ListInstances(_ context.Context, _ ListInstancesArgs) ([]Instance, error) {
-	// Not used in tests, but required by interface
-	return nil, nil
-}
-
 // setStatusSequence sets up a sequence of statuses that will be returned for an instance
 func (m *mockCloudInstanceReader) setStatusSequence(instanceID CloudProviderInstanceID, sequence []LifecycleStatus) {
 	m.statusSequence[instanceID] = sequence

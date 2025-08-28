@@ -10,7 +10,15 @@ import (
 	"github.com/brevdev/cloud/pkg/ssh"
 )
 
-type CloudMachineImage interface {
+type Image struct {
+	ID           string
+	Architecture string
+	Description  string
+	Name         string
+	CreatedAt    time.Time
+}
+
+type ImageGetter interface {
 	GetImages(ctx context.Context, args GetImageArgs) ([]Image, error)
 }
 
@@ -19,14 +27,6 @@ type GetImageArgs struct {
 	Architectures []string // i386, x86_64, arm64
 	NameFilters   []string // name of the image (wildcard permitted)
 	ImageIDs      []string
-}
-
-type Image struct {
-	ID           string
-	Architecture string
-	Description  string
-	Name         string
-	CreatedAt    time.Time
 }
 
 func ValidateInstanceImage(ctx context.Context, instance Instance, privateKey string) error {

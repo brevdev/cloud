@@ -2,7 +2,7 @@ package v1
 
 import "context"
 
-type CloudQuota interface {
+type InstanceTypeQuotaGetter interface {
 	GetInstanceTypeQuotas(ctx context.Context, args GetInstanceTypeQuotasArgs) (Quota, error)
 }
 

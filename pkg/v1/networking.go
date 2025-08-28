@@ -2,8 +2,12 @@ package v1
 
 import "context"
 
-type CloudModifyFirewall interface {
+type NetworkFirewallModifier interface {
 	AddFirewallRulesToInstance(ctx context.Context, args AddFirewallRulesToInstanceArgs) error
+	RevokeSecurityGroupRules(ctx context.Context, args RevokeSecurityGroupRuleArgs) error
+}
+
+type NetworkSecurityGroupModifier interface {
 	RevokeSecurityGroupRules(ctx context.Context, args RevokeSecurityGroupRuleArgs) error
 }
 

@@ -13,33 +13,51 @@ const (
 
 type CloudProviderID string // aws, gcp, azure, etc.
 
-type CloudAPI interface {
-	GetAPIType() APIType
-	GetCapabilities(ctx context.Context) (Capabilities, error)
-	GetCloudProviderID() CloudProviderID
+type CloudClient interface {
+	CloudCredential
+	ImageManager
+	InstanceManager
+	LocationManager
+	NetworkManager
 }
 
 type CloudCredential interface {
 	MakeClient(ctx context.Context, location string) (CloudClient, error)
 	GetTenantID() (string, error)
 	GetReferenceID() string
-	CloudAPI
+	CloudProvider
 }
 
-type CloudBase interface {
-	CloudCreateTerminateInstance
+type CloudProvider interface {
+	GetAPIType() APIType
+	GetCapabilities(ctx context.Context) (Capabilities, error)
+	GetCloudProviderID() CloudProviderID
 }
 
-type CloudClient interface {
-	CloudCredential
-	CloudBase
-	CloudQuota
-	CloudRebootInstance
-	CloudStopStartInstance
-	CloudResizeInstanceVolume
-	CloudMachineImage
-	CloudChangeInstanceType
-	CloudModifyFirewall
-	CloudInstanceTags
-	UpdateHandler
+type ImageManager interface {
+	ImageGetter
+}
+type InstanceManager interface {
+	InstanceCreator
+	InstanceTerminator
+	InstanceGetter
+	InstanceLister
+	InstanceRebooter
+	InstanceStopStarter
+	InstanceTypeChanger
+	InstanceTagsUpdater
+	InstanceUpdateHandler
+	InstanceTypeGetter
+	InstanceTypePollTimeGetter
+	InstanceTypeQuotaGetter
+	InstanceVolumeResizer
+}
+
+type LocationManager interface {
+	LocationGetter
+}
+
+type NetworkManager interface {
+	NetworkFirewallModifier
+	NetworkSecurityGroupModifier
 }
