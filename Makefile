@@ -195,6 +195,45 @@ install-tools:
 	$(GOINSTALL) $(ARTIFACT_GOLINT)
 	$(GOINSTALL) $(ARTIFACT_GOSEC)
 
+# Generate shadeform client
+generate-shadeform-client:
+	docker run --rm -v "${PWD}:/local" openapitools/openapi-generator-cli:v7.8.0 generate \
+		--additional-properties disallowAdditionalPropertiesIfNotPresent=false \
+		-i https://raw.githubusercontent.com/shadeform/docs/refs/heads/main/openapi.yaml \
+		-g go \
+		--git-user-id brevdev \
+		--git-repo-id cloud \
+		-o /local/internal/gen/shadeform
+	sudo chown -R $(shell id -u):$(shell id -g) internal/gen/shadeform
+	gofmt -s -w internal/gen/shadeform
+	rm -rf internal/gen/shadeform/go.mod internal/gen/shadeform/go.sum
+
+# Generate lambdalabs client
+generate-lambdalabs-client:
+	docker run --rm -v "${PWD}:/local" openapitools/openapi-generator-cli:v7.8.0 generate \
+		--additional-properties disallowAdditionalPropertiesIfNotPresent=false \
+		-i https://cloud.lambdalabs.com/static/api/v1/openapi.yaml \
+		-g go \
+		--git-user-id brevdev \
+		--git-repo-id cloud \
+		-o /local/internal/gen/lambdalabs
+	sudo chown -R $(shell id -u):$(shell id -g) internal/gen/lambdalabs
+	gofmt -s -w internal/gen/lambdalabs
+	rm -rf internal/gen/lambdalabs/go.mod internal/gen/lambdalabs/go.sum
+
+# Generate fluidstack client
+generate-fluidstack-client:
+	docker run --rm -v "${PWD}:/local" openapitools/openapi-generator-cli:v7.8.0 generate \
+		--additional-properties disallowAdditionalPropertiesIfNotPresent=false \
+		-i https://docs.atlas.fluidstack.io/redocusaurus/infrastructure-api.yaml \
+		-g go \
+		--git-user-id brevdev \
+		--git-repo-id cloud \
+		-o /local/internal/gen/fluidstack
+	sudo chown -R $(shell id -u):$(shell id -g) internal/gen/fluidstack
+	gofmt -s -w internal/gen/fluidstack
+	rm -rf internal/gen/fluidstack/go.mod internal/gen/fluidstack/go.sum
+
 # Show help
 .PHONY: help
 help:
