@@ -2,6 +2,7 @@ package v1
 
 import (
 	openapi "github.com/brevdev/cloud/internal/lambdalabs/gen/lambdalabs"
+	"github.com/cenkalti/backoff/v4"
 	"github.com/jarcoal/httpmock"
 )
 
@@ -12,7 +13,10 @@ const (
 
 func setupMockClient() (*LambdaLabsClient, func()) {
 	httpmock.Activate()
-	client := NewLambdaLabsClient("test-ref-id", "test-api-key")
+	client, err := NewLambdaLabsClient("test-ref-id", "test-api-key", WithBackoff(&backoff.StopBackOff{}))
+	if err != nil {
+		panic(err)
+	}
 	return client, httpmock.DeactivateAndReset
 }
 
