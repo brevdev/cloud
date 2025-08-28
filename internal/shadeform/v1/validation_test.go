@@ -2,15 +2,16 @@ package v1
 
 import (
 	"context"
+	"os"
+	"testing"
+	"time"
+
 	openapi "github.com/brevdev/cloud/internal/shadeform/gen/shadeform"
 	"github.com/brevdev/cloud/internal/validation"
 	"github.com/brevdev/cloud/pkg/ssh"
 	v1 "github.com/brevdev/cloud/pkg/v1"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
-	"os"
-	"testing"
-	"time"
 )
 
 func TestValidationFunctions(t *testing.T) {
@@ -44,7 +45,7 @@ func TestInstanceTypeFilter(t *testing.T) {
 	apiKey := getAPIKey()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
-	defer cancel()
+	t.Cleanup(cancel)
 
 	client := NewShadeformClient("validation-test", apiKey)
 	client.WithConfiguration(Configuration{
@@ -102,18 +103,19 @@ func TestInstanceTypeFilter(t *testing.T) {
 			},
 		},
 	})
-
 	if err != nil {
 		t.Fatalf("ValidateCreateInstance failed: %v", err)
 	}
 	require.NotNil(t, instance)
 
 	t.Run("ValidateSSHAccessible", func(t *testing.T) {
+		t.Parallel()
 		err := v1.ValidateInstanceSSHAccessible(ctx, client, instance, ssh.GetTestPrivateKey())
 		require.NoError(t, err, "ValidateSSHAccessible should pass")
 	})
 
 	t.Run("ValidateTerminateInstance", func(t *testing.T) {
+		t.Parallel()
 		err := v1.ValidateTerminateInstance(ctx, client, instance)
 		require.NoError(t, err, "ValidateTerminateInstance should pass")
 	})

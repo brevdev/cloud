@@ -4,20 +4,21 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
+
 	"github.com/alecthomas/units"
 	openapi "github.com/brevdev/cloud/internal/shadeform/gen/shadeform"
 	"github.com/brevdev/cloud/pkg/v1"
 	"github.com/google/uuid"
-	"strings"
 )
 
 const (
 	hostname              = "shadecloud"
 	refIDTagName          = "refID"
-	cloudCredRefIDTagName = "cloudCredRefID"
+	cloudCredRefIDTagName = "cloudCredRefID" //nolint:gosec // not a secret
 )
 
-func (c *ShadeformClient) CreateInstance(ctx context.Context, attrs v1.CreateInstanceAttrs) (*v1.Instance, error) {
+func (c *ShadeformClient) CreateInstance(ctx context.Context, attrs v1.CreateInstanceAttrs) (*v1.Instance, error) { //nolint:gocyclo,funlen // ok
 	authCtx := c.makeAuthContext(ctx)
 
 	// Check if the instance type is allowed by configuration
@@ -38,7 +39,7 @@ func (c *ShadeformClient) CreateInstance(ctx context.Context, attrs v1.CreateIns
 
 	if attrs.PublicKey != "" {
 		var err error
-		sshKeyID, err = c.addSshKey(ctx, keyPairName, attrs.PublicKey)
+		sshKeyID, err = c.addSSHKey(ctx, keyPairName, attrs.PublicKey)
 		if err != nil && !strings.Contains(err.Error(), "name must be unique") {
 			return nil, fmt.Errorf("failed to add SSH key: %w", err)
 		}
@@ -120,7 +121,7 @@ func (c *ShadeformClient) CreateInstance(ctx context.Context, attrs v1.CreateIns
 	return createdInstance, nil
 }
 
-func (c *ShadeformClient) addSshKey(ctx context.Context, keyPairName string, publicKey string) (string, error) {
+func (c *ShadeformClient) addSSHKey(ctx context.Context, keyPairName string, publicKey string) (string, error) {
 	authCtx := c.makeAuthContext(ctx)
 
 	request := openapi.AddSshKeyRequest{
@@ -353,7 +354,7 @@ func (c *ShadeformClient) createTag(key string, value string) (string, error) {
 func (c *ShadeformClient) getTag(shadeformTag string) (string, string, error) {
 	key, value, found := strings.Cut(shadeformTag, "=")
 	if !found {
-		return "", "", errors.New(fmt.Sprintf("tag %v does not conform to the key value tag format", shadeformTag))
+		return "", "", fmt.Errorf("tag %v does not conform to the key value tag format", shadeformTag)
 	}
 	return key, value, nil
 }

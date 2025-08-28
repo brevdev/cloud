@@ -22,7 +22,7 @@ GOGET=$(GOCMD) get
 GOMOD=$(GOCMD) mod
 GOLINT=golangci-lint
 GOVET=$(GOCMD) vet
-GOFMT=gofmt
+GOFMT=gofumpt
 GOSEC=gosec
 
 # Build flags
@@ -122,15 +122,15 @@ vet:
 .PHONY: fmt
 fmt:
 	@echo "Formatting code..."
-	$(GOFMT) -s -w .
+	$(GOFMT) -w .
 
 # Check if code is formatted
 .PHONY: fmt-check
 fmt-check:
 	@echo "Checking code formatting..."
-	@if [ "$$(gofmt -s -l . | wc -l)" -gt 0 ]; then \
+	@if [ "$$($(GOFMT) -l . | wc -l)" -gt 0 ]; then \
 		echo "Code is not formatted. Run 'make fmt' to format."; \
-		gofmt -s -l .; \
+		$(GOFMT) -l .; \
 		exit 1; \
 	else \
 		echo "Code is properly formatted."; \

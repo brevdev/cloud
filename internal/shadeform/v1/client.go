@@ -66,12 +66,11 @@ func (c *ShadeformCredential) MakeClient(_ context.Context, _ string) (v1.CloudC
 // It embeds NotImplCloudClient to handle unsupported features
 type ShadeformClient struct {
 	v1.NotImplCloudClient
-	refID     string
-	apiKey    string
-	baseURL   string
-	projectID string
-	client    *openapi.APIClient
-	config    *Configuration
+	refID   string
+	apiKey  string
+	baseURL string
+	client  *openapi.APIClient
+	config  *Configuration
 }
 
 var _ v1.CloudClient = &ShadeformClient{}

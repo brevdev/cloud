@@ -9,7 +9,6 @@ type Configuration struct {
 }
 
 func (c *Configuration) isAllowed(cloud openapi.Cloud, shadeInstanceType string) bool {
-
 	allowedClouds, found := c.AllowedInstanceTypes[cloud]
 	if !found {
 		return false
