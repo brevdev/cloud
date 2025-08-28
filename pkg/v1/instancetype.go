@@ -15,37 +15,44 @@ import (
 type InstanceTypeID string
 
 type InstanceType struct {
-	ID                              InstanceTypeID // this id should be unique across all regions and stable
-	Location                        string
-	AvailableAzs                    []string
-	SubLocation                     string
-	Type                            string
-	SupportedGPUs                   []GPU
-	SupportedStorage                []Storage
-	ElasticRootVolume               bool
-	SupportedUsageClasses           []string
-	Memory                          units.Base2Bytes
-	MaximumNetworkInterfaces        int32
-	NetworkPerformance              string
-	SupportedNumCores               []int32
-	DefaultCores                    int32
-	VCPU                            int32
-	SupportedArchitectures          []string
-	ClockSpeedInGhz                 float64
-	Quota                           InstanceTypeQuota
-	Stoppable                       bool
-	Rebootable                      bool
-	VariablePrice                   bool
-	Preemptible                     bool
-	IsAvailable                     bool
-	BasePrice                       *currency.Amount
-	SubLocationTypeChangeable       bool
-	IsContainer                     bool
-	UserPrivilegeEscalationDisabled bool
-	NotPrivileged                   bool
-	EstimatedDeployTime             *time.Duration
-	Provider                        string
-	CanModifyFirewallRules          bool
+	ID       InstanceTypeID // this id should be unique across all regions and stable
+	Provider string
+	Type     string
+
+	Location    string
+	SubLocation string
+
+	SupportedGPUs          []GPU
+	SupportedStorage       []Storage
+	SupportedUsageClasses  []string
+	SupportedArchitectures []string
+	SupportedNumCores      []int32
+
+	VCPU            int32
+	Memory          units.Base2Bytes
+	DefaultCores    int32
+	ClockSpeedInGhz float64
+
+	MaximumNetworkInterfaces int32
+	NetworkPerformance       string
+
+	IsAvailable bool
+	Quota       InstanceTypeQuota
+	BasePrice   *currency.Amount
+
+	EstimatedDeployTime *time.Duration
+
+	// capabilities
+	CanModifyFirewallRules          bool // can we modify the firewall rules?
+	IsContainer                     bool // is the instance a container?
+	UserPrivilegeEscalationDisabled bool // can the user escalate privileges? (processes can not be more privileged than initial process)
+	NotPrivileged                   bool // is the instance not privileged? (i.e. no sudo)
+	Stoppable                       bool // can the instance be stopped?
+	Rebootable                      bool // can the instance be rebooted?
+	VariablePrice                   bool // will the price change over time?
+	Preemptible                     bool // can the instance be preempted?
+	ElasticRootVolume               bool // can we change the root volume size? (i.e. can we resize the root volume?)
+	SubLocationTypeChangeable       bool // can we change the instance type to a different type in the same sublocation?
 }
 
 func MakeGenericInstanceTypeID(instanceType InstanceType) InstanceTypeID {
@@ -53,9 +60,6 @@ func MakeGenericInstanceTypeID(instanceType InstanceType) InstanceTypeID {
 		return instanceType.ID
 	}
 	subLoc := noSubLocation
-	if len(instanceType.AvailableAzs) > 0 {
-		subLoc = instanceType.AvailableAzs[0]
-	}
 	return InstanceTypeID(fmt.Sprintf("%s-%s-%s", instanceType.Location, subLoc, instanceType.Type))
 }
 
@@ -175,7 +179,6 @@ func ValidateGetInstanceTypes(ctx context.Context, client CloudInstanceType) err
 	expectedType := firstType
 	expectedType.ID = ""
 	expectedType.SubLocation = ""
-	expectedType.AvailableAzs = nil
 
 	// Find the matching type in filteredTypes by ID (since order is not guaranteed)
 	var actualType InstanceType
@@ -184,7 +187,6 @@ func ValidateGetInstanceTypes(ctx context.Context, client CloudInstanceType) err
 		tmp := t
 		tmp.ID = ""
 		tmp.SubLocation = ""
-		tmp.AvailableAzs = nil
 		if reflect.DeepEqual(expectedType, tmp) {
 			actualType = tmp
 			found = true
@@ -196,7 +198,6 @@ func ValidateGetInstanceTypes(ctx context.Context, client CloudInstanceType) err
 		actualType = filteredTypes[0]
 		actualType.ID = ""
 		actualType.SubLocation = ""
-		actualType.AvailableAzs = nil
 		diff := cmp.Diff(expectedType, actualType)
 		fmt.Printf("Filtered instance type does not match expected type. Diff:\n%s\n", diff)
 		return fmt.Errorf("filtered instance type does not match expected type: expected %+v, got %+v", expectedType, actualType)

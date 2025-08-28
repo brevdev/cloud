@@ -30,6 +30,6 @@ type FirewallRule struct {
 }
 
 type PortMapping struct {
-	FromPort int
-	ToPort   int
+	FromPort int // from port on the private node
+	ToPort   int // to port on the bastion node
 }

@@ -183,49 +183,55 @@ func ValidateMergeInstanceForUpdate(client UpdateHandler, currInst Instance, new
 }
 
 type Instance struct {
-	Name                            string
-	RefID                           string
-	CloudCredRefID                  string // cloudCred used to create the Instance
-	CreatedAt                       time.Time
-	CloudID                         CloudProviderInstanceID
-	IPAllocationID                  *string
-	PublicIP                        string // Public ip is not always returned from create, but will exist when instance is in running state
-	PublicDNS                       string
-	PrivateIP                       string
-	Hostname                        string
-	ImageID                         string
-	InstanceType                    string
-	DiskSize                        units.Base2Bytes
-	VolumeType                      string
-	PubKeyFingerprint               string
-	SSHUser                         string
-	SSHPort                         int
-	Status                          Status
+	Name           string
+	RefID          string
+	CloudCredRefID string // cloudCred used to create the Instance
+	CloudID        CloudProviderInstanceID
+	Tags           Tags
+	CreatedAt      time.Time
+
+	InstanceType   string
+	InstanceTypeID InstanceTypeID
+
+	Location    string
+	SubLocation string
+
+	Status                 Status
+	LastStopTransitionTime *time.Time
+
+	IPAllocationID *string
+	PublicIP       string // Public ip is not always returned from create, but will exist when instance is in running state
+	PublicDNS      string
+	PrivateIP      string
+	Hostname       string
+	// Used to support bastion access to nodes
+	// From private node to bastion
+	// i.e. SSH port 2222 is mapped to 2022 on the Bastion node
+	InternalPortMappings []PortMapping
+
+	VPCID         string
+	SubnetID      string
+	FirewallRules FirewallRules
+
+	ImageID         string
+	DiskSize        units.Base2Bytes
+	VolumeType      string
+	AdditionalDisks []Disk
+
+	SSHUser string
+	SSHPort int
+
+	RetiredAt     *time.Time
+	RetireTimeout *time.Duration
+
+	Spot                            bool
 	MetaEndpointEnabled             bool
 	MetaTagsEnabled                 bool
-	VPCID                           string
-	SubnetID                        string
-	Spot                            bool
-	FirewallRules                   FirewallRules
-	RetiredAt                       *time.Time
-	RetireTimeout                   *time.Duration
-	LastStopTransitionTime          *time.Time
-	Location                        string
-	SubLocation                     string
-	Tags                            Tags
 	Stoppable                       bool
 	Rebootable                      bool
 	IsContainer                     bool
 	UserPrivilegeEscalationDisabled bool
 	NotPrivileged                   bool
-	InstanceTypeID                  InstanceTypeID
-	AdditionalDisks                 []Disk
-
-	// As of 08/26/2024 only used for Launchpad cloud.
-	// Because there is port forwarding from a GPU node to Bastion node,
-	// there is port mappings from the GPU node itself to the Bastion node.
-	// i.e. Verb SSH port 2222 is mapped to 2022 on the Bastion node
-	InternalPortMappings []PortMapping
 }
 
 type Status struct {
