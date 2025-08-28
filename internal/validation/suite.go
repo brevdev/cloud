@@ -5,15 +5,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/brevdev/cloud/pkg/ssh"
-	v1 "github.com/brevdev/cloud/pkg/v1"
+	"github.com/brevdev/cloud"
+	"github.com/brevdev/cloud/internal/ssh"
 	"github.com/stretchr/testify/require"
 )
 
 type ProviderConfig struct {
 	Location   string
-	StableIDs  []v1.InstanceTypeID
-	Credential v1.CloudCredential
+	StableIDs  []cloud.InstanceTypeID
+	Credential cloud.CloudCredential
 }
 
 func RunValidationSuite(t *testing.T, config ProviderConfig) {
@@ -30,22 +30,22 @@ func RunValidationSuite(t *testing.T, config ProviderConfig) {
 	}
 
 	t.Run("ValidateGetLocations", func(t *testing.T) {
-		err := v1.ValidateGetLocations(ctx, client)
+		err := cloud.ValidateGetLocations(ctx, client)
 		require.NoError(t, err, "ValidateGetLocations should pass")
 	})
 
 	t.Run("ValidateGetInstanceTypes", func(t *testing.T) {
-		err := v1.ValidateGetInstanceTypes(ctx, client)
+		err := cloud.ValidateGetInstanceTypes(ctx, client)
 		require.NoError(t, err, "ValidateGetInstanceTypes should pass")
 	})
 
 	t.Run("ValidateRegionalInstanceTypes", func(t *testing.T) {
-		err := v1.ValidateLocationalInstanceTypes(ctx, client)
+		err := cloud.ValidateLocationalInstanceTypes(ctx, client)
 		require.NoError(t, err, "ValidateRegionalInstanceTypes should pass")
 	})
 
 	t.Run("ValidateStableInstanceTypeIDs", func(t *testing.T) {
-		err = v1.ValidateStableInstanceTypeIDs(ctx, client, config.StableIDs)
+		err = cloud.ValidateStableInstanceTypeIDs(ctx, client, config.StableIDs)
 		require.NoError(t, err, "ValidateStableInstanceTypeIDs should pass")
 	})
 }
@@ -65,16 +65,16 @@ func RunInstanceLifecycleValidation(t *testing.T, config ProviderConfig) {
 	capabilities, err := client.GetCapabilities(ctx)
 	require.NoError(t, err)
 
-	types, err := client.GetInstanceTypes(ctx, v1.GetInstanceTypeArgs{})
+	types, err := client.GetInstanceTypes(ctx, cloud.GetInstanceTypeArgs{})
 	require.NoError(t, err)
 	require.NotEmpty(t, types, "Should have instance types")
 
-	locations, err := client.GetLocations(ctx, v1.GetLocationsArgs{})
+	locations, err := client.GetLocations(ctx, cloud.GetLocationsArgs{})
 	require.NoError(t, err)
 	require.NotEmpty(t, locations, "Should have locations")
 
 	t.Run("ValidateCreateInstance", func(t *testing.T) {
-		attrs := v1.CreateInstanceAttrs{}
+		attrs := cloud.CreateInstanceAttrs{}
 		for _, typ := range types {
 			if typ.IsAvailable {
 				attrs.InstanceType = typ.Type
@@ -83,7 +83,7 @@ func RunInstanceLifecycleValidation(t *testing.T, config ProviderConfig) {
 				break
 			}
 		}
-		instance, err := v1.ValidateCreateInstance(ctx, client, attrs)
+		instance, err := cloud.ValidateCreateInstance(ctx, client, attrs)
 		if err != nil {
 			t.Fatalf("ValidateCreateInstance failed: %v", err)
 		}
@@ -96,12 +96,12 @@ func RunInstanceLifecycleValidation(t *testing.T, config ProviderConfig) {
 		}()
 
 		t.Run("ValidateListCreatedInstance", func(t *testing.T) {
-			err := v1.ValidateListCreatedInstance(ctx, client, instance)
+			err := cloud.ValidateListCreatedInstance(ctx, client, instance)
 			require.NoError(t, err, "ValidateListCreatedInstance should pass")
 		})
 
 		t.Run("ValidateSSHAccessible", func(t *testing.T) {
-			err := v1.ValidateInstanceSSHAccessible(ctx, client, instance, ssh.GetTestPrivateKey())
+			err := cloud.ValidateInstanceSSHAccessible(ctx, client, instance, ssh.GetTestPrivateKey())
 			require.NoError(t, err, "ValidateSSHAccessible should pass")
 		})
 
@@ -109,19 +109,19 @@ func RunInstanceLifecycleValidation(t *testing.T, config ProviderConfig) {
 		require.NoError(t, err)
 
 		t.Run("ValidateInstanceImage", func(t *testing.T) {
-			err := v1.ValidateInstanceImage(ctx, *instance, ssh.GetTestPrivateKey())
+			err := cloud.ValidateInstanceImage(ctx, *instance, ssh.GetTestPrivateKey())
 			require.NoError(t, err, "ValidateInstanceImage should pass")
 		})
 
-		if capabilities.IsCapable(v1.CapabilityStopStartInstance) && instance.Stoppable {
+		if capabilities.IsCapable(cloud.CapabilityStopStartInstance) && instance.Stoppable {
 			t.Run("ValidateStopStartInstance", func(t *testing.T) {
-				err := v1.ValidateStopStartInstance(ctx, client, instance)
+				err := cloud.ValidateStopStartInstance(ctx, client, instance)
 				require.NoError(t, err, "ValidateStopStartInstance should pass")
 			})
 		}
 
 		t.Run("ValidateTerminateInstance", func(t *testing.T) {
-			err := v1.ValidateTerminateInstance(ctx, client, instance)
+			err := cloud.ValidateTerminateInstance(ctx, client, instance)
 			require.NoError(t, err, "ValidateTerminateInstance should pass")
 		})
 	})
