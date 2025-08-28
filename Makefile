@@ -130,8 +130,7 @@ fmt:
 .PHONY: fmt-check
 fmt-check:
 	@echo "Checking code formatting..."
-	@if [ "$$($(GOFMT) -l . | wc -l)" -gt 0 ]; then \
-	@files=$$($(GOFMT) -s -l .); \
+	@files=$$($(GOFMT) -l .); \
 	if [ -n "$$files" ]; then \
 		echo "Code is not formatted. Run 'make fmt' to format."; \
 		$(GOFMT) -l .; \
