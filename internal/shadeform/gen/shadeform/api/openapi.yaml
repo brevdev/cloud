@@ -1,0 +1,2735 @@
+openapi: 3.0.0
+info:
+  contact:
+    email: support@shadeform.ai
+    name: Shadeform
+    url: https://www.shadeform.ai
+  description: Shadeform is a single API and platform for deploying and managing cloud
+    GPUs.
+  title: Shadeform API
+  version: 1.0.0
+servers:
+- description: Shadeform Production
+  url: https://api.shadeform.ai/v1
+security:
+- ApiKeyAuth: []
+paths:
+  /instances:
+    get:
+      description: Get active and pending instances.
+      operationId: Instances
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstancesResponse'
+          description: Returns an InstancesResponse object.
+      summary: /instances
+  /instances/types:
+    get:
+      description: Return all the GPU instance types with their corresponding availability
+        and specs.
+      operationId: InstancesTypes
+      parameters:
+      - description: Filter the instance type results by cloud.
+        example: aws
+        explode: true
+        in: query
+        name: cloud
+        required: false
+        schema:
+          type: string
+        style: form
+      - description: Filter the instance type results by region.
+        example: us-east-1a
+        explode: true
+        in: query
+        name: region
+        required: false
+        schema:
+          type: string
+        style: form
+      - description: Filter the instance type results by the number of gpus.
+        example: 1
+        explode: true
+        in: query
+        name: num_gpus
+        required: false
+        schema:
+          type: string
+        style: form
+      - description: Filter the instance type results by gpu type.
+        example: A100_80G
+        explode: true
+        in: query
+        name: gpu_type
+        required: false
+        schema:
+          type: string
+        style: form
+      - description: Filter the instance type results by the shade instance type.
+        example: A100_80G
+        explode: true
+        in: query
+        name: shade_instance_type
+        required: false
+        schema:
+          type: string
+        style: form
+      - description: Filter the instance type results by availability.
+        example: true
+        explode: true
+        in: query
+        name: available
+        required: false
+        schema:
+          type: boolean
+        style: form
+      - description: Sort the order of the instance type results.
+        example: price
+        explode: true
+        in: query
+        name: sort
+        required: false
+        schema:
+          enum:
+          - price
+          type: string
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstanceTypesResponse'
+          description: Returns an InstanceTypesResponse object
+      summary: /instances/types
+  /instances/create:
+    post:
+      description: "Create a new GPU instance. Our create API is designed to be asynchronous,\
+        \ so the response will be a CreateResponse object with a status of \"creating\"\
+        . We then have a process that will pick it up and create it. You can poll\
+        \ the /instances/{id}/info endpoint to check the status of the instance."
+      operationId: InstancesCreate
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRequest'
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateResponse'
+          description: Returns a CreateResponse object
+      summary: /instances/create
+  /instances/{id}/info:
+    get:
+      description: Get details for the specified instance in the url.
+      operationId: InstancesInfo
+      parameters:
+      - description: The instance id
+        example: d290f1ee-6c54-4b01-90e6-d701748f0851
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          minimum: 1
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstanceInfoResponse'
+          description: Return an instance object.
+      summary: "/instances/{id}/info"
+  /instances/{id}/update:
+    post:
+      description: Update mutable details about the instance. Set a value to null
+        to delete it. Omit a value or leave undefined to keep unchanged.
+      operationId: InstancesUpdate
+      parameters:
+      - description: The instance id
+        example: d290f1ee-6c54-4b01-90e6-d701748f0851
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          minimum: 1
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRequest'
+      responses:
+        "200":
+          description: Confirms the update of an instance.
+      summary: "/instances/{id}/update"
+  /instances/{id}/delete:
+    post:
+      description: Delete an instance. Some cloud providers may only allow deletion
+        of an instance after it has moved to the 'active' status.
+      operationId: InstancesDelete
+      parameters:
+      - description: The instance id
+        example: d290f1ee-6c54-4b01-90e6-d701748f0851
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          minimum: 1
+          type: string
+        style: simple
+      responses:
+        "200":
+          description: Confirms the deletion of an instance.
+      summary: "/instances/{id}/delete"
+  /instances/{id}/restart:
+    post:
+      description: "Restart an instance. The status of the instance will stay as 'active'\
+        \ throughout, but you may have to wait a few minutes for the instance to be\
+        \ ready to use again."
+      operationId: InstancesRestart
+      parameters:
+      - description: The instance id
+        example: d290f1ee-6c54-4b01-90e6-d701748f0851
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          minimum: 1
+          type: string
+        style: simple
+      responses:
+        "200":
+          description: Confirms the restart of an instance has been initiated. This
+            does not confirm that the instance restarted successfully.
+      summary: "/instances/{id}/restart"
+  /sshkeys:
+    get:
+      description: Get all SSH Keys for the account.
+      operationId: SshKeys
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SshKeysResponse'
+          description: Returns an SSHKeysResponse object
+      summary: /sshkeys
+  /sshkeys/add:
+    post:
+      description: Add a new SSH Key
+      operationId: SshKeysAdd
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddSshKeyRequest'
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AddSshKeyResponse'
+          description: Returns a AddSshKeyResponse object
+      summary: /sshkeys/add
+  /sshkeys/{id}/delete:
+    post:
+      description: "Delete an ssh key. The Shadeform managed SSH Key, current default\
+        \ ssh key, and in use SSH Keys cannot be deleted."
+      operationId: SshKeysDelete
+      parameters:
+      - description: The ssh key id
+        example: d290f1ee-6c54-4b01-90e6-d701748f0851
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          minimum: 1
+          type: string
+        style: simple
+      responses:
+        "200":
+          description: Confirms the deletion of an ssh key.
+      summary: "/sshkeys/{id}/delete"
+  /sshkeys/{id}/info:
+    get:
+      description: Get details for the specified SSH Key in the url.
+      operationId: SshKeysInfo
+      parameters:
+      - description: The ssh key id
+        example: d290f1ee-6c54-4b01-90e6-d701748f0851
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          minimum: 1
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SshKey'
+          description: Return an SshKey object.
+      summary: "/sshkeys/{id}/info"
+  /sshkeys/{id}/setdefault:
+    post:
+      description: Set the specified SSH Key as the default SSH Key used by Shadeform.
+      operationId: SshKeysSetDefault
+      parameters:
+      - description: The ssh key id
+        example: d290f1ee-6c54-4b01-90e6-d701748f0851
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          minimum: 1
+          type: string
+        style: simple
+      responses:
+        "200":
+          description: Confirms that the specified SSH Key was as set as the default
+            key.
+      summary: "/sshkeys/{id}/setdefault"
+  /volumes:
+    get:
+      description: Get all storage volumes for the account.
+      operationId: Volumes
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VolumesResponse'
+          description: Returns an VolumesResponse object
+      summary: /volumes
+  /volumes/create:
+    post:
+      description: Create a new storage volume
+      operationId: VolumesCreate
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateVolumeRequest'
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateVolumeResponse'
+          description: Returns a CreateVolumeResponse object
+      summary: /volumes/create
+  /volumes/{id}/delete:
+    post:
+      description: Delete a storage volume.
+      operationId: VolumesDelete
+      parameters:
+      - description: The volume id.
+        example: d290f1ee-6c54-4b01-90e6-d701748f0851
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          minimum: 1
+          type: string
+        style: simple
+      responses:
+        "200":
+          description: Confirms the deletion of the specified storage volume.
+      summary: "/volumes/{id}/delete"
+  /volumes/{id}/info:
+    get:
+      description: Get details for the specified storage volume.
+      operationId: VolumesInfo
+      parameters:
+      - description: The volume id.
+        example: d290f1ee-6c54-4b01-90e6-d701748f0851
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          minimum: 1
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Volume'
+          description: Return a volume object.
+      summary: "/volumes/{id}/info"
+  /volumes/types:
+    get:
+      description: Get list of supported storage volumes.
+      operationId: VolumesTypes
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VolumesTypesResponse'
+          description: Returns an VolumesTypesResponse object.
+      summary: /volumes/types
+  /templates:
+    get:
+      description: List all templates created by the user
+      operationId: Templates
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemplatesResponse'
+          description: Returns a list of templates
+      summary: /templates
+  /templates/featured:
+    get:
+      description: List featured templates
+      operationId: TemplatesFeatured
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemplatesResponse'
+          description: Returns a list of featured templates
+      summary: /templates/featured
+  /templates/{template_id}/info:
+    get:
+      description: Get information about a specific template
+      operationId: TemplatesInfo
+      parameters:
+      - description: The template ID
+        explode: false
+        in: path
+        name: template_id
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Template'
+          description: Returns template information
+      summary: "/templates/{template_id}/info"
+  /templates/save:
+    post:
+      description: Create a new template
+      operationId: TemplatesSave
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TemplateSaveRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemplateCreateResponse'
+          description: Returns a TemplateCreateResponse object
+      summary: /templates/save
+  /templates/{template_id}/update:
+    post:
+      description: Update an existing template
+      operationId: TemplatesUpdate
+      parameters:
+      - description: The template ID
+        explode: false
+        in: path
+        name: template_id
+        required: true
+        schema:
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TemplateSaveRequest'
+        required: true
+      responses:
+        "200":
+          description: Template updated successfully
+      summary: "/templates/{template_id}/update"
+  /templates/{template_id}/delete:
+    post:
+      description: Delete a template
+      operationId: TemplatesDelete
+      parameters:
+      - description: The template ID
+        explode: false
+        in: path
+        name: template_id
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          description: Template deleted successfully
+      summary: "/templates/{template_id}/delete"
+components:
+  schemas:
+    InstanceTypesResponse:
+      description: Response of /instances/types
+      example:
+        instance_types:
+        - cloud: hyperstack
+          hourly_price: 210
+          deployment_type: vm
+          boot_time:
+            max_boot_in_sec: 300
+            min_boot_in_sec: 180
+          configuration:
+            nvlink: true
+            num_gpus: 1
+            gpu_type: A100
+            memory_in_gb: 12
+            vram_per_gpu_in_gb: 48
+            vcpus: 6
+            storage_in_gb: 256
+            interconnect: pcie
+            os_options:
+            - ubuntu22.04_cuda12.2_shade_os
+            - ubuntu20.04_cuda12.0_shade_os
+          cloud_instance_type: gpu_1x_a6000
+          availability:
+          - region: us-central-1
+            available: true
+            display_name: "US, Wichita, KS"
+          - region: us-central-2
+            available: false
+            display_name: "US, Wichita, KS"
+          shade_instance_type: A6000
+        - cloud: hyperstack
+          hourly_price: 210
+          deployment_type: vm
+          boot_time:
+            max_boot_in_sec: 300
+            min_boot_in_sec: 180
+          configuration:
+            nvlink: true
+            num_gpus: 1
+            gpu_type: A100
+            memory_in_gb: 12
+            vram_per_gpu_in_gb: 48
+            vcpus: 6
+            storage_in_gb: 256
+            interconnect: pcie
+            os_options:
+            - ubuntu22.04_cuda12.2_shade_os
+            - ubuntu20.04_cuda12.0_shade_os
+          cloud_instance_type: gpu_1x_a6000
+          availability:
+          - region: us-central-1
+            available: true
+            display_name: "US, Wichita, KS"
+          - region: us-central-2
+            available: false
+            display_name: "US, Wichita, KS"
+          shade_instance_type: A6000
+      properties:
+        instance_types:
+          items:
+            $ref: '#/components/schemas/InstanceType'
+          type: array
+      required:
+      - instance_types
+      type: object
+    InstanceType:
+      description: Information about a specific instance type
+      example:
+        cloud: hyperstack
+        hourly_price: 210
+        deployment_type: vm
+        boot_time:
+          max_boot_in_sec: 300
+          min_boot_in_sec: 180
+        configuration:
+          nvlink: true
+          num_gpus: 1
+          gpu_type: A100
+          memory_in_gb: 12
+          vram_per_gpu_in_gb: 48
+          vcpus: 6
+          storage_in_gb: 256
+          interconnect: pcie
+          os_options:
+          - ubuntu22.04_cuda12.2_shade_os
+          - ubuntu20.04_cuda12.0_shade_os
+        cloud_instance_type: gpu_1x_a6000
+        availability:
+        - region: us-central-1
+          available: true
+          display_name: "US, Wichita, KS"
+        - region: us-central-2
+          available: false
+          display_name: "US, Wichita, KS"
+        shade_instance_type: A6000
+      properties:
+        cloud:
+          $ref: '#/components/schemas/Cloud'
+        shade_instance_type:
+          description: "The Shadeform standardized instance type. See this [explanation](/getting-started/concepts#shade-instance-type-and-cloud-instance-type)\
+            \ for more details."
+          example: A6000
+          type: string
+        cloud_instance_type:
+          description: "The instance type for the underlying cloud provider. See this\
+            \ [explanation](/getting-started/concepts#shade-instance-type-and-cloud-instance-type)\
+            \ for more details."
+          example: gpu_1x_a6000
+          type: string
+        configuration:
+          $ref: '#/components/schemas/InstanceTypeConfiguration'
+        hourly_price:
+          description: The hourly price of the instance in cents.
+          example: 210
+          type: integer
+        deployment_type:
+          description: "Whether the instance is a \"vm\" (virtual machine), a \"container\"\
+            \ (docker container), or \"baremetal\" (bare metal server)."
+          example: vm
+          type: string
+        availability:
+          example:
+          - region: us-central-1
+            available: true
+            display_name: "US, Wichita, KS"
+          - region: us-central-2
+            available: false
+            display_name: "US, Wichita, KS"
+          items:
+            $ref: '#/components/schemas/Availability'
+          type: array
+        boot_time:
+          $ref: '#/components/schemas/BootTime'
+      required:
+      - availability
+      - cloud
+      - cloud_instance_type
+      - configuration
+      - deployment_type
+      - hourly_price
+      - shade_instance_type
+      type: object
+    InstancesResponse:
+      example:
+        instances:
+        - ssh_port: 22
+          configuration:
+            nvlink: true
+            os: ubuntu_22_shade_os
+            num_gpus: 1
+            gpu_type: A100
+            memory_in_gb: 12
+            vram_per_gpu_in_gb: 48
+            vcpus: 6
+            storage_in_gb: 256
+            interconnect: pcie
+          launch_configuration:
+            docker_configuration:
+              args: --model mistralai/Mistral-7B-v0.1
+              shared_memory_in_gb: 8
+              image: vllm/vllm-openai:latest
+              port_mappings:
+              - container_port: 8000
+                host_port: 80
+              - container_port: 8000
+                host_port: 80
+              registry_credentials:
+                password: password
+                username: username
+              envs:
+              - name: HUGGING_FACE_HUB_TOKEN
+                value: hugging_face_api_token
+              - name: HUGGING_FACE_HUB_TOKEN
+                value: hugging_face_api_token
+              volume_mounts:
+              - host_path: "~/.cache/huggingface"
+                container_path: /root/.cache/huggingface
+              - host_path: "~/.cache/huggingface"
+                container_path: /root/.cache/huggingface
+            script_configuration:
+              base64_script: IyEvYmluL2Jhc2gKCiMgRW5kbGVzcyBsb29wCndoaWxlIHRydWUKZG8KICAgICMgRmV0Y2ggYSBjYXQgZmFjdCB3aXRoIGEgbWF4aW11bSBsZW5ndGggb2YgMTQwIGNoYXJhY3RlcnMKICAgIGN1cmwgLS1uby1wcm9ncmVzcy1tZXRlciBodHRwczovL2NhdGZhY3QubmluamEvZmFjdD9tYXhfbGVuZ3RoPTE0MAoKICAgICMgUHJpbnQgYSBuZXdsaW5lIGZvciByZWFkYWJpbGl0eQogICAgZWNobwoKICAgICMgU2xlZXAgZm9yIDMgc2Vjb25kcyBiZWZvcmUgdGhlIG5leHQgaXRlcmF0aW9uCiAgICBzbGVlcCAzCmRvbmUKCgo=
+            type: docker
+          cloud_instance_type: gpu_1x_a6000
+          ip: 1.0.0.1
+          created_at: 2016-08-29T09:12:33.001Z
+          cloud_assigned_id: 13b057d7-e266-4869-985f-760fe75a78b3
+          deleted_at: 2016-08-29T09:12:33.001Z
+          shade_cloud: true
+          shade_instance_type: A6000
+          tags:
+          - tag1
+          - tag1
+          cloud: hyperstack
+          hourly_price: 210
+          cost_estimate: "103.4"
+          boot_time:
+            max_boot_in_sec: 300
+            min_boot_in_sec: 180
+          port_mappings:
+          - external_port: 80
+            internal_port: 8000
+          - external_port: 80
+            internal_port: 8000
+          name: cool-gpu-server
+          id: d290f1ee-6c54-4b01-90e6-d701748f0851
+          region: canada-1
+          active_at: 2016-08-29T09:12:33.001Z
+          status_details: downloading
+          ssh_user: shadeform
+          status: active
+        - ssh_port: 22
+          configuration:
+            nvlink: true
+            os: ubuntu_22_shade_os
+            num_gpus: 1
+            gpu_type: A100
+            memory_in_gb: 12
+            vram_per_gpu_in_gb: 48
+            vcpus: 6
+            storage_in_gb: 256
+            interconnect: pcie
+          launch_configuration:
+            docker_configuration:
+              args: --model mistralai/Mistral-7B-v0.1
+              shared_memory_in_gb: 8
+              image: vllm/vllm-openai:latest
+              port_mappings:
+              - container_port: 8000
+                host_port: 80
+              - container_port: 8000
+                host_port: 80
+              registry_credentials:
+                password: password
+                username: username
+              envs:
+              - name: HUGGING_FACE_HUB_TOKEN
+                value: hugging_face_api_token
+              - name: HUGGING_FACE_HUB_TOKEN
+                value: hugging_face_api_token
+              volume_mounts:
+              - host_path: "~/.cache/huggingface"
+                container_path: /root/.cache/huggingface
+              - host_path: "~/.cache/huggingface"
+                container_path: /root/.cache/huggingface
+            script_configuration:
+              base64_script: IyEvYmluL2Jhc2gKCiMgRW5kbGVzcyBsb29wCndoaWxlIHRydWUKZG8KICAgICMgRmV0Y2ggYSBjYXQgZmFjdCB3aXRoIGEgbWF4aW11bSBsZW5ndGggb2YgMTQwIGNoYXJhY3RlcnMKICAgIGN1cmwgLS1uby1wcm9ncmVzcy1tZXRlciBodHRwczovL2NhdGZhY3QubmluamEvZmFjdD9tYXhfbGVuZ3RoPTE0MAoKICAgICMgUHJpbnQgYSBuZXdsaW5lIGZvciByZWFkYWJpbGl0eQogICAgZWNobwoKICAgICMgU2xlZXAgZm9yIDMgc2Vjb25kcyBiZWZvcmUgdGhlIG5leHQgaXRlcmF0aW9uCiAgICBzbGVlcCAzCmRvbmUKCgo=
+            type: docker
+          cloud_instance_type: gpu_1x_a6000
+          ip: 1.0.0.1
+          created_at: 2016-08-29T09:12:33.001Z
+          cloud_assigned_id: 13b057d7-e266-4869-985f-760fe75a78b3
+          deleted_at: 2016-08-29T09:12:33.001Z
+          shade_cloud: true
+          shade_instance_type: A6000
+          tags:
+          - tag1
+          - tag1
+          cloud: hyperstack
+          hourly_price: 210
+          cost_estimate: "103.4"
+          boot_time:
+            max_boot_in_sec: 300
+            min_boot_in_sec: 180
+          port_mappings:
+          - external_port: 80
+            internal_port: 8000
+          - external_port: 80
+            internal_port: 8000
+          name: cool-gpu-server
+          id: d290f1ee-6c54-4b01-90e6-d701748f0851
+          region: canada-1
+          active_at: 2016-08-29T09:12:33.001Z
+          status_details: downloading
+          ssh_user: shadeform
+          status: active
+      properties:
+        instances:
+          items:
+            $ref: '#/components/schemas/Instance'
+          type: array
+      required:
+      - instances
+      type: object
+    Instance:
+      example:
+        ssh_port: 22
+        configuration:
+          nvlink: true
+          os: ubuntu_22_shade_os
+          num_gpus: 1
+          gpu_type: A100
+          memory_in_gb: 12
+          vram_per_gpu_in_gb: 48
+          vcpus: 6
+          storage_in_gb: 256
+          interconnect: pcie
+        launch_configuration:
+          docker_configuration:
+            args: --model mistralai/Mistral-7B-v0.1
+            shared_memory_in_gb: 8
+            image: vllm/vllm-openai:latest
+            port_mappings:
+            - container_port: 8000
+              host_port: 80
+            - container_port: 8000
+              host_port: 80
+            registry_credentials:
+              password: password
+              username: username
+            envs:
+            - name: HUGGING_FACE_HUB_TOKEN
+              value: hugging_face_api_token
+            - name: HUGGING_FACE_HUB_TOKEN
+              value: hugging_face_api_token
+            volume_mounts:
+            - host_path: "~/.cache/huggingface"
+              container_path: /root/.cache/huggingface
+            - host_path: "~/.cache/huggingface"
+              container_path: /root/.cache/huggingface
+          script_configuration:
+            base64_script: IyEvYmluL2Jhc2gKCiMgRW5kbGVzcyBsb29wCndoaWxlIHRydWUKZG8KICAgICMgRmV0Y2ggYSBjYXQgZmFjdCB3aXRoIGEgbWF4aW11bSBsZW5ndGggb2YgMTQwIGNoYXJhY3RlcnMKICAgIGN1cmwgLS1uby1wcm9ncmVzcy1tZXRlciBodHRwczovL2NhdGZhY3QubmluamEvZmFjdD9tYXhfbGVuZ3RoPTE0MAoKICAgICMgUHJpbnQgYSBuZXdsaW5lIGZvciByZWFkYWJpbGl0eQogICAgZWNobwoKICAgICMgU2xlZXAgZm9yIDMgc2Vjb25kcyBiZWZvcmUgdGhlIG5leHQgaXRlcmF0aW9uCiAgICBzbGVlcCAzCmRvbmUKCgo=
+          type: docker
+        cloud_instance_type: gpu_1x_a6000
+        ip: 1.0.0.1
+        created_at: 2016-08-29T09:12:33.001Z
+        cloud_assigned_id: 13b057d7-e266-4869-985f-760fe75a78b3
+        deleted_at: 2016-08-29T09:12:33.001Z
+        shade_cloud: true
+        shade_instance_type: A6000
+        tags:
+        - tag1
+        - tag1
+        cloud: hyperstack
+        hourly_price: 210
+        cost_estimate: "103.4"
+        boot_time:
+          max_boot_in_sec: 300
+          min_boot_in_sec: 180
+        port_mappings:
+        - external_port: 80
+          internal_port: 8000
+        - external_port: 80
+          internal_port: 8000
+        name: cool-gpu-server
+        id: d290f1ee-6c54-4b01-90e6-d701748f0851
+        region: canada-1
+        active_at: 2016-08-29T09:12:33.001Z
+        status_details: downloading
+        ssh_user: shadeform
+        status: active
+      properties:
+        id:
+          description: "The unique identifier for the instance. Used in the instances\
+            \ for the /instances/{id}/info and /instances/{id}/delete APIs."
+          example: d290f1ee-6c54-4b01-90e6-d701748f0851
+          format: uuid
+          type: string
+        cloud:
+          $ref: '#/components/schemas/Cloud'
+        region:
+          description: Specifies the region.
+          example: canada-1
+          type: string
+        shade_instance_type:
+          description: "The Shadeform standardized instance type. See this [explanation](/getting-started/concepts#shade-instance-type-and-cloud-instance-type)\
+            \ for more details."
+          example: A6000
+          type: string
+        cloud_instance_type:
+          description: "The instance type for the underlying cloud provider. See this\
+            \ [explanation](/getting-started/concepts#shade-instance-type-and-cloud-instance-type)\
+            \ for more details."
+          example: gpu_1x_a6000
+          type: string
+        cloud_assigned_id:
+          description: The unique identifier of the instance issued by the underlying
+            cloud provider.
+          example: 13b057d7-e266-4869-985f-760fe75a78b3
+          type: string
+        shade_cloud:
+          description: "Specifies if the instance is launched in [Shade Cloud](/getting-started/concepts#shade-cloud)\
+            \ or in a linked cloud account."
+          example: true
+          type: boolean
+        name:
+          description: The name of the instance
+          example: cool-gpu-server
+          type: string
+        configuration:
+          $ref: '#/components/schemas/Instance_configuration'
+        ip:
+          description: "The public IP address of the instance. In select cases, it\
+            \ may also be the DNS."
+          example: 1.0.0.1
+          type: string
+        ssh_user:
+          description: The SSH user used to SSH into the instance.
+          example: shadeform
+          type: string
+        ssh_port:
+          description: "The SSH port of the instance. In most cases, this will be\
+            \ port 22 but for some clouds, this may be a different port."
+          example: 22
+          type: integer
+        status:
+          $ref: '#/components/schemas/Status'
+        status_details:
+          description: Additional context for the status
+          example: downloading
+          type: string
+        cost_estimate:
+          description: "The cost incurred by the instance. This only the cost via\
+            \ Shadeform. If the instance is deployed in your own cloud account, then\
+            \ all billing is through your cloud provider."
+          example: "103.4"
+          type: string
+        hourly_price:
+          description: The hourly price of the instance in cents.
+          example: 210
+          type: integer
+        launch_configuration:
+          $ref: '#/components/schemas/LaunchConfiguration'
+        tags:
+          description: "Add custom, searchable tags to instances."
+          items:
+            $ref: '#/components/schemas/Tag'
+          type: array
+        port_mappings:
+          description: List of port mappings on an instance that a Cloud Provider
+            might have automatically set up.
+          items:
+            $ref: '#/components/schemas/InstancePortMappings'
+          type: array
+        active_at:
+          description: The timestamp of when the instance was active in UTC.
+          example: 2016-08-29T09:12:33.001Z
+          format: date-time
+          type: string
+        created_at:
+          description: The timestamp of when the instance was created in UTC.
+          example: 2016-08-29T09:12:33.001Z
+          format: date-time
+          type: string
+        deleted_at:
+          description: The timestamp of when the instance was deleted in UTC.
+          example: 2016-08-29T09:12:33.001Z
+          format: date-time
+          type: string
+        boot_time:
+          $ref: '#/components/schemas/BootTime'
+      required:
+      - cloud
+      - cloud_assigned_id
+      - cloud_instance_type
+      - configuration
+      - cost_estimate
+      - created_at
+      - deleted_at
+      - id
+      - ip
+      - name
+      - region
+      - shade_cloud
+      - shade_instance_type
+      - ssh_port
+      - ssh_user
+      - status
+      type: object
+    InstanceInfoResponse:
+      example:
+        configuration:
+          nvlink: true
+          os: ubuntu_22_shade_os
+          num_gpus: 1
+          gpu_type: A100
+          memory_in_gb: 12
+          vram_per_gpu_in_gb: 48
+          vcpus: 6
+          storage_in_gb: 256
+          interconnect: pcie
+        cloud_instance_type: gpu_1x_a6000
+        auto_delete:
+          spend_threshold: "3.14"
+          date_threshold: 2006-01-02T15:04:05-07:00
+        envs:
+        - name: HUGGING_FACE_HUB_TOKEN
+          value: hugging_face_api_token
+        - name: HUGGING_FACE_HUB_TOKEN
+          value: hugging_face_api_token
+        created_at: 2016-08-29T09:12:33.001Z
+        cloud_assigned_id: 13b057d7-e266-4869-985f-760fe75a78b3
+        shade_instance_type: A6000
+        cloud: hyperstack
+        hourly_price: 210
+        cost_estimate: "103.4"
+        alert:
+          spend_threshold: "3.14"
+          date_threshold: 2006-01-02T15:04:05-07:00
+        ssh_key_id: 78a0dd5a-dbb1-4568-b55c-5e7e0a8b0c40
+        port_mappings:
+        - external_port: 80
+          internal_port: 8000
+        - external_port: 80
+          internal_port: 8000
+        id: d290f1ee-6c54-4b01-90e6-d701748f0851
+        status_details: downloading
+        ssh_user: shadeform
+        volume_mount:
+          auto: true
+        ssh_port: 22
+        launch_configuration:
+          docker_configuration:
+            args: --model mistralai/Mistral-7B-v0.1
+            shared_memory_in_gb: 8
+            image: vllm/vllm-openai:latest
+            port_mappings:
+            - container_port: 8000
+              host_port: 80
+            - container_port: 8000
+              host_port: 80
+            registry_credentials:
+              password: password
+              username: username
+            envs:
+            - name: HUGGING_FACE_HUB_TOKEN
+              value: hugging_face_api_token
+            - name: HUGGING_FACE_HUB_TOKEN
+              value: hugging_face_api_token
+            volume_mounts:
+            - host_path: "~/.cache/huggingface"
+              container_path: /root/.cache/huggingface
+            - host_path: "~/.cache/huggingface"
+              container_path: /root/.cache/huggingface
+          script_configuration:
+            base64_script: IyEvYmluL2Jhc2gKCiMgRW5kbGVzcyBsb29wCndoaWxlIHRydWUKZG8KICAgICMgRmV0Y2ggYSBjYXQgZmFjdCB3aXRoIGEgbWF4aW11bSBsZW5ndGggb2YgMTQwIGNoYXJhY3RlcnMKICAgIGN1cmwgLS1uby1wcm9ncmVzcy1tZXRlciBodHRwczovL2NhdGZhY3QubmluamEvZmFjdD9tYXhfbGVuZ3RoPTE0MAoKICAgICMgUHJpbnQgYSBuZXdsaW5lIGZvciByZWFkYWJpbGl0eQogICAgZWNobwoKICAgICMgU2xlZXAgZm9yIDMgc2Vjb25kcyBiZWZvcmUgdGhlIG5leHQgaXRlcmF0aW9uCiAgICBzbGVlcCAzCmRvbmUKCgo=
+          type: docker
+        ip: 1.0.0.1
+        volume_ids:
+        - 78a0dd5a-dbb1-4568-b55c-5e7e0a8b0c40
+        - 78a0dd5a-dbb1-4568-b55c-5e7e0a8b0c40
+        deleted_at: 2016-08-29T09:12:33.001Z
+        shade_cloud: true
+        tags:
+        - tag1
+        - tag1
+        boot_time:
+          max_boot_in_sec: 300
+          min_boot_in_sec: 180
+        name: cool-gpu-server
+        region: canada-1
+        active_at: 2016-08-29T09:12:33.001Z
+        status: active
+      properties:
+        id:
+          description: "The unique identifier for the instance. Used in the instances\
+            \ for the /instances/{id}/info and /instances/{id}/delete APIs."
+          example: d290f1ee-6c54-4b01-90e6-d701748f0851
+          format: uuid
+          type: string
+        cloud:
+          $ref: '#/components/schemas/Cloud'
+        region:
+          description: Specifies the region.
+          example: canada-1
+          type: string
+        shade_instance_type:
+          description: "The Shadeform standardized instance type. See this [explanation](/getting-started/concepts#shade-instance-type-and-cloud-instance-type)\
+            \ for more details."
+          example: A6000
+          type: string
+        cloud_instance_type:
+          description: "The instance type for the underlying cloud provider. See this\
+            \ [explanation](/getting-started/concepts#shade-instance-type-and-cloud-instance-type)\
+            \ for more details."
+          example: gpu_1x_a6000
+          type: string
+        cloud_assigned_id:
+          description: The unique identifier of the instance issued by the underlying
+            cloud provider.
+          example: 13b057d7-e266-4869-985f-760fe75a78b3
+          type: string
+        shade_cloud:
+          description: "Specifies if the instance is launched in [Shade Cloud](/getting-started/concepts#shade-cloud)\
+            \ or in a linked cloud account."
+          example: true
+          type: boolean
+        name:
+          description: The name of the instance
+          example: cool-gpu-server
+          type: string
+        configuration:
+          $ref: '#/components/schemas/Instance_configuration'
+        ip:
+          description: "The public IP address of the instance. In select cases, it\
+            \ may also be the DNS."
+          example: 1.0.0.1
+          type: string
+        ssh_user:
+          description: The SSH user used to SSH into the instance.
+          example: shadeform
+          type: string
+        ssh_port:
+          description: "The SSH port of the instance. In most cases, this will be\
+            \ port 22 but for some clouds, this may be a different port."
+          example: 22
+          type: integer
+        status:
+          $ref: '#/components/schemas/Status'
+        status_details:
+          description: Additional context for the status
+          example: downloading
+          type: string
+        cost_estimate:
+          description: "The cost incurred by the instance. This only the cost via\
+            \ Shadeform. If the instance is deployed in your own cloud account, then\
+            \ all billing is through your cloud provider."
+          example: "103.4"
+          type: string
+        hourly_price:
+          description: The hourly price of the instance in cents.
+          example: 210
+          type: integer
+        volume_ids:
+          description: List of volume IDs to be mounted. Currently only supports 1
+            volume at a time.
+          items:
+            $ref: '#/components/schemas/VolumeID'
+          type: array
+        ssh_key_id:
+          description: The ID of the SSH Key.
+          example: 78a0dd5a-dbb1-4568-b55c-5e7e0a8b0c40
+          type: string
+        launch_configuration:
+          $ref: '#/components/schemas/LaunchConfiguration'
+        auto_delete:
+          $ref: '#/components/schemas/AutoDelete'
+        alert:
+          $ref: '#/components/schemas/Alert'
+        volume_mount:
+          $ref: '#/components/schemas/VolumeMount'
+        tags:
+          description: "Add custom, searchable tags to instances."
+          items:
+            $ref: '#/components/schemas/Tag'
+          type: array
+        envs:
+          description: List of environment variable name and values to automatically
+            add to the instance
+          items:
+            $ref: '#/components/schemas/Env'
+          type: array
+        port_mappings:
+          description: List of port mappings on an instance that a Cloud Provider
+            might have automatically set up.
+          items:
+            $ref: '#/components/schemas/InstancePortMappings'
+          type: array
+        active_at:
+          description: The timestamp of when the instance was active in UTC.
+          example: 2016-08-29T09:12:33.001Z
+          format: date-time
+          type: string
+        created_at:
+          description: The timestamp of when the instance was created in UTC.
+          example: 2016-08-29T09:12:33.001Z
+          format: date-time
+          type: string
+        deleted_at:
+          description: The timestamp of when the instance was deleted in UTC.
+          example: 2016-08-29T09:12:33.001Z
+          format: date-time
+          type: string
+        boot_time:
+          $ref: '#/components/schemas/BootTime'
+      required:
+      - cloud
+      - cloud_assigned_id
+      - cloud_instance_type
+      - configuration
+      - cost_estimate
+      - created_at
+      - deleted_at
+      - id
+      - ip
+      - name
+      - region
+      - shade_cloud
+      - shade_instance_type
+      - ssh_port
+      - ssh_user
+      - status
+      type: object
+    InstanceTypeConfiguration:
+      example:
+        nvlink: true
+        num_gpus: 1
+        gpu_type: A100
+        memory_in_gb: 12
+        vram_per_gpu_in_gb: 48
+        vcpus: 6
+        storage_in_gb: 256
+        interconnect: pcie
+        os_options:
+        - ubuntu22.04_cuda12.2_shade_os
+        - ubuntu20.04_cuda12.0_shade_os
+      properties:
+        memory_in_gb:
+          description: The amount of memory for the instance in gigabytes. Note that
+            this is not VRAM which is determined by GPU type and the number of GPUs.
+          example: 12
+          type: integer
+        storage_in_gb:
+          description: "The amount of storage for the instance. If this storage is\
+            \ too low for the instance type, please email support@shadeform.ai as\
+            \ the storage may be adjustable."
+          example: 256
+          type: integer
+        vcpus:
+          description: The number of vCPUs for the instance.
+          example: 6
+          type: integer
+        num_gpus:
+          description: The number of GPUs for the instance.
+          example: 1
+          type: integer
+        gpu_type:
+          description: The type of GPU for the instance.
+          example: A100
+          type: string
+        interconnect:
+          description: The type of GPU interconnect.
+          example: pcie
+          type: string
+        nvlink:
+          description: If the instance has NVLink
+          example: true
+          type: boolean
+        vram_per_gpu_in_gb:
+          description: The video memory per GPU for the instance in gigabytes.
+          example: 48
+          type: integer
+        os_options:
+          description: The list of available operating systems for the instance.
+          example:
+          - ubuntu22.04_cuda12.2_shade_os
+          - ubuntu20.04_cuda12.0_shade_os
+          items:
+            type: string
+          type: array
+      required:
+      - gpu_type
+      - interconnect
+      - memory_in_gb
+      - num_gpus
+      - os_options
+      - storage_in_gb
+      - vcpus
+      - vram_per_gpu_in_gb
+      type: object
+    InstanceConfiguration:
+      properties:
+        memory_in_gb:
+          description: The amount of memory for the instance in gigabytes. Note that
+            this is not VRAM which is determined by GPU type and the number of GPUs.
+          example: 12
+          type: integer
+        storage_in_gb:
+          description: "The amount of storage for the instance. If this storage is\
+            \ too low for the instance type, please email support@shadeform.ai as\
+            \ the storage may be adjustable."
+          example: 256
+          type: integer
+        vcpus:
+          description: The number of vCPUs for the instance.
+          example: 6
+          type: integer
+        num_gpus:
+          description: The number of GPUs for the instance.
+          example: 1
+          type: integer
+        gpu_type:
+          description: The type of GPU for the instance.
+          example: A100
+          type: string
+        interconnect:
+          description: The type of GPU interconnect.
+          example: pcie
+          type: string
+        nvlink:
+          description: If the instance has NVLink
+          example: true
+          type: boolean
+        vram_per_gpu_in_gb:
+          description: The video memory per GPU for the instance in gigabytes.
+          example: 48
+          type: integer
+      required:
+      - gpu_type
+      - interconnect
+      - memory_in_gb
+      - num_gpus
+      - os
+      - storage_in_gb
+      - vcpus
+      - vram_per_gpu_in_gb
+      type: object
+    Availability:
+      properties:
+        region:
+          description: Specifies the region.
+          example: canada-1
+          type: string
+        available:
+          description: Indicate whether the instance is available in the region.
+          example: true
+          type: boolean
+        display_name:
+          description: The display name of the region
+          example: "Toronto, Canana"
+          type: string
+      required:
+      - available
+      - display_name
+      - region
+      type: object
+    BootTime:
+      example:
+        max_boot_in_sec: 300
+        min_boot_in_sec: 180
+      properties:
+        min_boot_in_sec:
+          description: boot time minimum estimate
+          example: 180
+          type: integer
+        max_boot_in_sec:
+          description: boot time maximum estimate
+          example: 300
+          type: integer
+      type: object
+    CreateRequest:
+      example:
+        volume_mount:
+          auto: true
+        os: ubuntu22.04_cuda12.2_shade_os
+        launch_configuration:
+          docker_configuration:
+            args: --model mistralai/Mistral-7B-v0.1
+            shared_memory_in_gb: 8
+            image: vllm/vllm-openai:latest
+            port_mappings:
+            - container_port: 8000
+              host_port: 80
+            - container_port: 8000
+              host_port: 80
+            registry_credentials:
+              password: password
+              username: username
+            envs:
+            - name: HUGGING_FACE_HUB_TOKEN
+              value: hugging_face_api_token
+            - name: HUGGING_FACE_HUB_TOKEN
+              value: hugging_face_api_token
+            volume_mounts:
+            - host_path: "~/.cache/huggingface"
+              container_path: /root/.cache/huggingface
+            - host_path: "~/.cache/huggingface"
+              container_path: /root/.cache/huggingface
+          script_configuration:
+            base64_script: IyEvYmluL2Jhc2gKCiMgRW5kbGVzcyBsb29wCndoaWxlIHRydWUKZG8KICAgICMgRmV0Y2ggYSBjYXQgZmFjdCB3aXRoIGEgbWF4aW11bSBsZW5ndGggb2YgMTQwIGNoYXJhY3RlcnMKICAgIGN1cmwgLS1uby1wcm9ncmVzcy1tZXRlciBodHRwczovL2NhdGZhY3QubmluamEvZmFjdD9tYXhfbGVuZ3RoPTE0MAoKICAgICMgUHJpbnQgYSBuZXdsaW5lIGZvciByZWFkYWJpbGl0eQogICAgZWNobwoKICAgICMgU2xlZXAgZm9yIDMgc2Vjb25kcyBiZWZvcmUgdGhlIG5leHQgaXRlcmF0aW9uCiAgICBzbGVlcCAzCmRvbmUKCgo=
+          type: docker
+        auto_delete:
+          spend_threshold: "3.14"
+          date_threshold: 2006-01-02T15:04:05-07:00
+        volume_ids:
+        - 78a0dd5a-dbb1-4568-b55c-5e7e0a8b0c40
+        - 78a0dd5a-dbb1-4568-b55c-5e7e0a8b0c40
+        envs:
+        - name: HUGGING_FACE_HUB_TOKEN
+          value: hugging_face_api_token
+        - name: HUGGING_FACE_HUB_TOKEN
+          value: hugging_face_api_token
+        shade_cloud: true
+        shade_instance_type: A6000
+        tags:
+        - tag1
+        - tag1
+        cloud: hyperstack
+        alert:
+          spend_threshold: "3.14"
+          date_threshold: 2006-01-02T15:04:05-07:00
+        ssh_key_id: 78a0dd5a-dbb1-4568-b55c-5e7e0a8b0c40
+        name: cool-gpu-server
+        template_id: template-123
+        region: canada-1
+      properties:
+        cloud:
+          $ref: '#/components/schemas/Cloud'
+        region:
+          description: Specifies the region.
+          example: canada-1
+          type: string
+        shade_instance_type:
+          description: "The Shadeform standardized instance type. See this [explanation](/getting-started/concepts#shade-instance-type-and-cloud-instance-type)\
+            \ for more details."
+          example: A6000
+          type: string
+        shade_cloud:
+          description: "Specifies if the instance is launched in [Shade Cloud](/getting-started/concepts#shade-cloud)\
+            \ or in a linked cloud account."
+          example: true
+          type: boolean
+        name:
+          description: The name of the instance
+          example: cool-gpu-server
+          type: string
+        os:
+          description: The operating system of the instance.
+          example: ubuntu22.04_cuda12.2_shade_os
+          type: string
+        template_id:
+          description: The ID of the template to use for this instance
+          example: template-123
+          type: string
+        launch_configuration:
+          $ref: '#/components/schemas/LaunchConfiguration'
+        volume_ids:
+          description: List of volume IDs to be mounted. Currently only supports 1
+            volume at a time.
+          items:
+            $ref: '#/components/schemas/VolumeID'
+          type: array
+        ssh_key_id:
+          description: The ID of the SSH Key.
+          example: 78a0dd5a-dbb1-4568-b55c-5e7e0a8b0c40
+          type: string
+        auto_delete:
+          $ref: '#/components/schemas/AutoDelete'
+        alert:
+          $ref: '#/components/schemas/Alert'
+        volume_mount:
+          $ref: '#/components/schemas/VolumeMount'
+        tags:
+          description: "Add custom, searchable tags to instances."
+          items:
+            $ref: '#/components/schemas/Tag'
+          type: array
+        envs:
+          description: List of environment variable name and values to automatically
+            add to the instance
+          items:
+            $ref: '#/components/schemas/Env'
+          type: array
+      required:
+      - cloud
+      - name
+      - region
+      - shade_cloud
+      - shade_instance_type
+      type: object
+    UpdateRequest:
+      example:
+        alert:
+          spend_threshold: "3.14"
+          date_threshold: 2006-01-02T15:04:05-07:00
+        name: cool-gpu-server
+        auto_delete:
+          spend_threshold: "3.14"
+          date_threshold: 2006-01-02T15:04:05-07:00
+        tags:
+        - tag1
+        - tag1
+      properties:
+        name:
+          description: The name of the instance
+          example: cool-gpu-server
+          type: string
+        auto_delete:
+          $ref: '#/components/schemas/AutoDelete'
+        alert:
+          $ref: '#/components/schemas/Alert'
+        tags:
+          description: "Add custom, searchable tags to instances."
+          items:
+            $ref: '#/components/schemas/Tag'
+          type: array
+      type: object
+    LaunchConfiguration:
+      description: Defines automatic actions after the instance becomes active.
+      example:
+        docker_configuration:
+          args: --model mistralai/Mistral-7B-v0.1
+          shared_memory_in_gb: 8
+          image: vllm/vllm-openai:latest
+          port_mappings:
+          - container_port: 8000
+            host_port: 80
+          - container_port: 8000
+            host_port: 80
+          registry_credentials:
+            password: password
+            username: username
+          envs:
+          - name: HUGGING_FACE_HUB_TOKEN
+            value: hugging_face_api_token
+          - name: HUGGING_FACE_HUB_TOKEN
+            value: hugging_face_api_token
+          volume_mounts:
+          - host_path: "~/.cache/huggingface"
+            container_path: /root/.cache/huggingface
+          - host_path: "~/.cache/huggingface"
+            container_path: /root/.cache/huggingface
+        script_configuration:
+          base64_script: IyEvYmluL2Jhc2gKCiMgRW5kbGVzcyBsb29wCndoaWxlIHRydWUKZG8KICAgICMgRmV0Y2ggYSBjYXQgZmFjdCB3aXRoIGEgbWF4aW11bSBsZW5ndGggb2YgMTQwIGNoYXJhY3RlcnMKICAgIGN1cmwgLS1uby1wcm9ncmVzcy1tZXRlciBodHRwczovL2NhdGZhY3QubmluamEvZmFjdD9tYXhfbGVuZ3RoPTE0MAoKICAgICMgUHJpbnQgYSBuZXdsaW5lIGZvciByZWFkYWJpbGl0eQogICAgZWNobwoKICAgICMgU2xlZXAgZm9yIDMgc2Vjb25kcyBiZWZvcmUgdGhlIG5leHQgaXRlcmF0aW9uCiAgICBzbGVlcCAzCmRvbmUKCgo=
+        type: docker
+      properties:
+        type:
+          description: "Specifies the type of launch configuration. See [Launch Configuration](/getting-started/concepts#launch-configuration)\
+            \ for more details."
+          enum:
+          - docker
+          - script
+          example: docker
+          type: string
+        docker_configuration:
+          $ref: '#/components/schemas/DockerConfiguration'
+        script_configuration:
+          $ref: '#/components/schemas/ScriptConfiguration'
+      required:
+      - type
+      type: object
+    DockerConfiguration:
+      description: "May only be used if launch_configuration.type is 'docker'. Use\
+        \ docker_configuration to automatically pull and run a docker image. See this\
+        \ [tutorial](/guides/dockercontainers) for examples."
+      example:
+        args: --model mistralai/Mistral-7B-v0.1
+        shared_memory_in_gb: 8
+        image: vllm/vllm-openai:latest
+        port_mappings:
+        - container_port: 8000
+          host_port: 80
+        - container_port: 8000
+          host_port: 80
+        registry_credentials:
+          password: password
+          username: username
+        envs:
+        - name: HUGGING_FACE_HUB_TOKEN
+          value: hugging_face_api_token
+        - name: HUGGING_FACE_HUB_TOKEN
+          value: hugging_face_api_token
+        volume_mounts:
+        - host_path: "~/.cache/huggingface"
+          container_path: /root/.cache/huggingface
+        - host_path: "~/.cache/huggingface"
+          container_path: /root/.cache/huggingface
+      properties:
+        image:
+          description: Specifies the docker image to be pulled and run on the instance
+            at startup.
+          example: vllm/vllm-openai:latest
+          type: string
+        args:
+          description: Specifies the container arguments passed into the image at
+            runtime.
+          example: --model mistralai/Mistral-7B-v0.1
+          type: string
+        shared_memory_in_gb:
+          description: "Describes the amount of shared memory allocated for the container.\
+            \ Equivalent to using the --shm-size flag in the docker cli. If shared_memory_in_gb\
+            \ is not specified, then the container will use the host namespace which\
+            \ is the equivalent of --ipc=host."
+          example: 8
+          type: integer
+        envs:
+          description: List of environment variable name-value pairs that will be
+            passed to the docker container.
+          items:
+            $ref: '#/components/schemas/Env'
+          type: array
+        port_mappings:
+          description: List of port mappings between the host instance and the docker
+            container. Equivalent of -p flag for docker run command.
+          items:
+            $ref: '#/components/schemas/PortMappings'
+          type: array
+        volume_mounts:
+          description: List of volume mounts between the host instance and the docker
+            container. Equivalent of -v flag for docker run command.
+          items:
+            $ref: '#/components/schemas/VolumeMounts'
+          type: array
+        registry_credentials:
+          $ref: '#/components/schemas/RegistryCredentials'
+      required:
+      - image
+      type: object
+    RegistryCredentials:
+      example:
+        password: password
+        username: username
+      properties:
+        username:
+          description: The username for the docker registry.
+          example: username
+          type: string
+        password:
+          description: The password for the docker registry.
+          example: password
+          type: string
+      type: object
+    ScriptConfiguration:
+      description: "May only be used if launch_configuration.type is 'script'. Configures\
+        \ a startup script to be run automatically after the instance is active. See\
+        \ this [tutorial]/guides/startupscript) for examples."
+      example:
+        base64_script: IyEvYmluL2Jhc2gKCiMgRW5kbGVzcyBsb29wCndoaWxlIHRydWUKZG8KICAgICMgRmV0Y2ggYSBjYXQgZmFjdCB3aXRoIGEgbWF4aW11bSBsZW5ndGggb2YgMTQwIGNoYXJhY3RlcnMKICAgIGN1cmwgLS1uby1wcm9ncmVzcy1tZXRlciBodHRwczovL2NhdGZhY3QubmluamEvZmFjdD9tYXhfbGVuZ3RoPTE0MAoKICAgICMgUHJpbnQgYSBuZXdsaW5lIGZvciByZWFkYWJpbGl0eQogICAgZWNobwoKICAgICMgU2xlZXAgZm9yIDMgc2Vjb25kcyBiZWZvcmUgdGhlIG5leHQgaXRlcmF0aW9uCiAgICBzbGVlcCAzCmRvbmUKCgo=
+      properties:
+        base64_script:
+          description: A startup script that is base64 encoded.
+          example: IyEvYmluL2Jhc2gKCiMgRW5kbGVzcyBsb29wCndoaWxlIHRydWUKZG8KICAgICMgRmV0Y2ggYSBjYXQgZmFjdCB3aXRoIGEgbWF4aW11bSBsZW5ndGggb2YgMTQwIGNoYXJhY3RlcnMKICAgIGN1cmwgLS1uby1wcm9ncmVzcy1tZXRlciBodHRwczovL2NhdGZhY3QubmluamEvZmFjdD9tYXhfbGVuZ3RoPTE0MAoKICAgICMgUHJpbnQgYSBuZXdsaW5lIGZvciByZWFkYWJpbGl0eQogICAgZWNobwoKICAgICMgU2xlZXAgZm9yIDMgc2Vjb25kcyBiZWZvcmUgdGhlIG5leHQgaXRlcmF0aW9uCiAgICBzbGVlcCAzCmRvbmUKCgo=
+          type: string
+      required:
+      - base64_script
+      type: object
+    Env:
+      description: Environment variables for the container image.
+      example:
+        name: HUGGING_FACE_HUB_TOKEN
+        value: hugging_face_api_token
+      properties:
+        name:
+          description: Name of the environment variable
+          example: HUGGING_FACE_HUB_TOKEN
+          type: string
+        value:
+          description: Value of the environment variable
+          example: hugging_face_api_token
+          type: string
+      required:
+      - name
+      - value
+      type: object
+    PortMappings:
+      description: Maps the public instance port to a port on the container.
+      example:
+        container_port: 8000
+        host_port: 80
+      properties:
+        host_port:
+          description: Port of the host.
+          example: 80
+          type: integer
+        container_port:
+          description: Port of the container.
+          example: 8000
+          type: integer
+      required:
+      - container_port
+      - host_port
+      type: object
+    VolumeMounts:
+      description: Mounts the host volume to a container file path.
+      example:
+        host_path: "~/.cache/huggingface"
+        container_path: /root/.cache/huggingface
+      properties:
+        host_path:
+          description: Filepath of the host.
+          example: "~/.cache/huggingface"
+          type: string
+        container_path:
+          description: Filepath of the container.
+          example: /root/.cache/huggingface
+          type: string
+      required:
+      - container_path
+      - host_path
+      type: object
+    CreateResponse:
+      description: Response of the /instances/create API call
+      example:
+        id: d290f1ee-6c54-4b01-90e6-d701748f0851
+      properties:
+        id:
+          description: "The unique identifier for the instance. Used in the instances\
+            \ for the /instances/{id}/info and /instances/{id}/delete APIs."
+          example: d290f1ee-6c54-4b01-90e6-d701748f0851
+          format: uuid
+          type: string
+      required:
+      - id
+      type: object
+    Cloud:
+      description: "Specifies the underlying cloud provider. See this [explanation](/getting-started/concepts#cloud-cloud-provider)\
+        \ for more details."
+      enum:
+      - lambdalabs
+      - paperspace
+      - vultr
+      - datacrunch
+      - latitude
+      - massedcompute
+      - imwt
+      - hyperstack
+      - nebius
+      - crusoe
+      - denvr
+      - digitalocean
+      - tcm
+      - hotaisle
+      - cudo
+      - scaleway
+      - evergreen
+      - excesssupply
+      - voltagepark
+      - boostrun
+      - ionstream
+      - whitefiber
+      - horizon
+      - fpt
+      - hydra
+      - amaya
+      example: hyperstack
+      type: string
+    Region:
+      description: Specifies the region.
+      example: canada-1
+      type: string
+    Id:
+      description: "The unique identifier for the instance. Used in the instances\
+        \ for the /instances/{id}/info and /instances/{id}/delete APIs."
+      example: d290f1ee-6c54-4b01-90e6-d701748f0851
+      format: uuid
+      type: string
+    CloudAssignedId:
+      description: The unique identifier of the instance issued by the underlying
+        cloud provider.
+      example: 13b057d7-e266-4869-985f-760fe75a78b3
+      type: string
+    Name:
+      description: The name of the instance
+      example: cool-gpu-server
+      type: string
+    ShadeInstanceType:
+      description: "The Shadeform standardized instance type. See this [explanation](/getting-started/concepts#shade-instance-type-and-cloud-instance-type)\
+        \ for more details."
+      example: A6000
+      type: string
+    ShadeCloud:
+      description: "Specifies if the instance is launched in [Shade Cloud](/getting-started/concepts#shade-cloud)\
+        \ or in a linked cloud account."
+      example: true
+      type: boolean
+    CloudInstanceType:
+      description: "The instance type for the underlying cloud provider. See this\
+        \ [explanation](/getting-started/concepts#shade-instance-type-and-cloud-instance-type)\
+        \ for more details."
+      example: gpu_1x_a6000
+      type: string
+    HourlyPrice:
+      description: The hourly price of the instance in cents.
+      example: 210
+      type: integer
+    DeploymentType:
+      description: "Whether the instance is a \"vm\" (virtual machine), a \"container\"\
+        \ (docker container), or \"baremetal\" (bare metal server)."
+      example: vm
+      type: string
+    Ip:
+      description: "The public IP address of the instance. In select cases, it may\
+        \ also be the DNS."
+      example: 1.0.0.1
+      type: string
+    SshUser:
+      description: The SSH user used to SSH into the instance.
+      example: shadeform
+      type: string
+    SshPort:
+      description: "The SSH port of the instance. In most cases, this will be port\
+        \ 22 but for some clouds, this may be a different port."
+      example: 22
+      type: integer
+    Status:
+      description: The status of the instance.
+      enum:
+      - creating
+      - pending_provider
+      - pending
+      - active
+      - deleted
+      example: active
+      type: string
+    StatusDetails:
+      description: Additional context for the status
+      example: downloading
+      type: string
+    CostEstimate:
+      description: "The cost incurred by the instance. This only the cost via Shadeform.\
+        \ If the instance is deployed in your own cloud account, then all billing\
+        \ is through your cloud provider."
+      example: "103.4"
+      type: string
+    ActiveAt:
+      description: The timestamp of when the instance was active in UTC.
+      example: 2016-08-29T09:12:33.001Z
+      format: date-time
+      type: string
+    CreatedAt:
+      description: The timestamp of when the instance was created in UTC.
+      example: 2016-08-29T09:12:33.001Z
+      format: date-time
+      type: string
+    DeletedAt:
+      description: The timestamp of when the instance was deleted in UTC.
+      example: 2016-08-29T09:12:33.001Z
+      format: date-time
+      type: string
+    SshKeysResponse:
+      example:
+        ssh_keys:
+        - public_key: ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAklOUpkDHrfHY17SbrmTIpNLTGK9Tjom/BWDSU
+            GPl+nafzlHDTYW7hdI4yZ5ew18JH4JW9jbhUFrviQzM7xlELEVf4h9lFX5QVkbPppSwg0cda3
+            Pbv7kOdJ/MTyBlWXFCR+HAo3FXRitBqxiX1nKhXpHAZsMciLq8V6RjsNAQwdsdMFvSlVK/7XA
+            t3FaoJoAsncM1Q9x5+3V0Ww68/eIFmb1zuUFljQJKprrX88XypNDvjYNby6vw/Pb0rwert/En
+            mZ+AW4OZPnTPI89ZPmVMLuayrD2cE86Z/il8b+gw3r3+1nKatmIkjn2so1d01QraTlMqVSsbx
+            NrRFi9wrf+M7Q== schacon@mylaptop.local
+          name: My ssh key
+          id: 78a0dd5a-dbb1-4568-b55c-5e7e0a8b0c40
+          is_default: false
+        - public_key: ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAklOUpkDHrfHY17SbrmTIpNLTGK9Tjom/BWDSU
+            GPl+nafzlHDTYW7hdI4yZ5ew18JH4JW9jbhUFrviQzM7xlELEVf4h9lFX5QVkbPppSwg0cda3
+            Pbv7kOdJ/MTyBlWXFCR+HAo3FXRitBqxiX1nKhXpHAZsMciLq8V6RjsNAQwdsdMFvSlVK/7XA
+            t3FaoJoAsncM1Q9x5+3V0Ww68/eIFmb1zuUFljQJKprrX88XypNDvjYNby6vw/Pb0rwert/En
+            mZ+AW4OZPnTPI89ZPmVMLuayrD2cE86Z/il8b+gw3r3+1nKatmIkjn2so1d01QraTlMqVSsbx
+            NrRFi9wrf+M7Q== schacon@mylaptop.local
+          name: My ssh key
+          id: 78a0dd5a-dbb1-4568-b55c-5e7e0a8b0c40
+          is_default: false
+      properties:
+        ssh_keys:
+          items:
+            $ref: '#/components/schemas/SshKey'
+          type: array
+      required:
+      - ssh_keys
+      type: object
+    SshKey:
+      example:
+        public_key: ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAklOUpkDHrfHY17SbrmTIpNLTGK9Tjom/BWDSU
+          GPl+nafzlHDTYW7hdI4yZ5ew18JH4JW9jbhUFrviQzM7xlELEVf4h9lFX5QVkbPppSwg0cda3
+          Pbv7kOdJ/MTyBlWXFCR+HAo3FXRitBqxiX1nKhXpHAZsMciLq8V6RjsNAQwdsdMFvSlVK/7XA
+          t3FaoJoAsncM1Q9x5+3V0Ww68/eIFmb1zuUFljQJKprrX88XypNDvjYNby6vw/Pb0rwert/En
+          mZ+AW4OZPnTPI89ZPmVMLuayrD2cE86Z/il8b+gw3r3+1nKatmIkjn2so1d01QraTlMqVSsbx
+          NrRFi9wrf+M7Q== schacon@mylaptop.local
+        name: My ssh key
+        id: 78a0dd5a-dbb1-4568-b55c-5e7e0a8b0c40
+        is_default: false
+      properties:
+        id:
+          description: The ID of the SSH Key.
+          example: 78a0dd5a-dbb1-4568-b55c-5e7e0a8b0c40
+          type: string
+        name:
+          description: The name of the SSH Key.
+          example: My ssh key
+          type: string
+        public_key:
+          description: The public key.
+          example: ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAklOUpkDHrfHY17SbrmTIpNLTGK9Tjom/BWDSU
+            GPl+nafzlHDTYW7hdI4yZ5ew18JH4JW9jbhUFrviQzM7xlELEVf4h9lFX5QVkbPppSwg0cda3
+            Pbv7kOdJ/MTyBlWXFCR+HAo3FXRitBqxiX1nKhXpHAZsMciLq8V6RjsNAQwdsdMFvSlVK/7XA
+            t3FaoJoAsncM1Q9x5+3V0Ww68/eIFmb1zuUFljQJKprrX88XypNDvjYNby6vw/Pb0rwert/En
+            mZ+AW4OZPnTPI89ZPmVMLuayrD2cE86Z/il8b+gw3r3+1nKatmIkjn2so1d01QraTlMqVSsbx
+            NrRFi9wrf+M7Q== schacon@mylaptop.local
+          type: string
+        is_default:
+          description: Indicates the default key.
+          example: false
+          type: boolean
+      required:
+      - id
+      - is_default
+      - name
+      - public_key
+      type: object
+    AddSshKeyRequest:
+      example:
+        public_key: ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAklOUpkDHrfHY17SbrmTIpNLTGK9Tjom/BWDSU
+          GPl+nafzlHDTYW7hdI4yZ5ew18JH4JW9jbhUFrviQzM7xlELEVf4h9lFX5QVkbPppSwg0cda3
+          Pbv7kOdJ/MTyBlWXFCR+HAo3FXRitBqxiX1nKhXpHAZsMciLq8V6RjsNAQwdsdMFvSlVK/7XA
+          t3FaoJoAsncM1Q9x5+3V0Ww68/eIFmb1zuUFljQJKprrX88XypNDvjYNby6vw/Pb0rwert/En
+          mZ+AW4OZPnTPI89ZPmVMLuayrD2cE86Z/il8b+gw3r3+1nKatmIkjn2so1d01QraTlMqVSsbx
+          NrRFi9wrf+M7Q== schacon@mylaptop.local
+        name: My ssh key
+      properties:
+        name:
+          description: The name of the SSH Key.
+          example: My ssh key
+          type: string
+        public_key:
+          description: The public key.
+          example: ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAklOUpkDHrfHY17SbrmTIpNLTGK9Tjom/BWDSU
+            GPl+nafzlHDTYW7hdI4yZ5ew18JH4JW9jbhUFrviQzM7xlELEVf4h9lFX5QVkbPppSwg0cda3
+            Pbv7kOdJ/MTyBlWXFCR+HAo3FXRitBqxiX1nKhXpHAZsMciLq8V6RjsNAQwdsdMFvSlVK/7XA
+            t3FaoJoAsncM1Q9x5+3V0Ww68/eIFmb1zuUFljQJKprrX88XypNDvjYNby6vw/Pb0rwert/En
+            mZ+AW4OZPnTPI89ZPmVMLuayrD2cE86Z/il8b+gw3r3+1nKatmIkjn2so1d01QraTlMqVSsbx
+            NrRFi9wrf+M7Q== schacon@mylaptop.local
+          type: string
+      required:
+      - name
+      - public_key
+      type: object
+    AddSshKeyResponse:
+      example:
+        id: 78a0dd5a-dbb1-4568-b55c-5e7e0a8b0c40
+      properties:
+        id:
+          description: The ID of the SSH Key.
+          example: 78a0dd5a-dbb1-4568-b55c-5e7e0a8b0c40
+          type: string
+      required:
+      - id
+      type: object
+    SshKeyID:
+      description: The ID of the SSH Key.
+      example: 78a0dd5a-dbb1-4568-b55c-5e7e0a8b0c40
+      type: string
+    AutoDelete:
+      description: Set a date or spend threshold to automatically delete the instance
+      example:
+        spend_threshold: "3.14"
+        date_threshold: 2006-01-02T15:04:05-07:00
+      properties:
+        date_threshold:
+          description: RFC3339 date string
+          example: 2006-01-02T15:04:05-07:00
+          type: string
+        spend_threshold:
+          description: Valid decimal representation of a dollar amount
+          example: "3.14"
+          type: string
+      type: object
+    InstancePortMappings:
+      description: List of port mappings on an instance that a Cloud Provider might
+        have automatically set up.
+      example:
+        external_port: 80
+        internal_port: 8000
+      properties:
+        internal_port:
+          example: 8000
+          type: integer
+        external_port:
+          example: 80
+          type: integer
+      type: object
+    Alert:
+      description: Set a date or spend threshold to receive an email alert
+      example:
+        spend_threshold: "3.14"
+        date_threshold: 2006-01-02T15:04:05-07:00
+      properties:
+        date_threshold:
+          description: RFC3339 date string
+          example: 2006-01-02T15:04:05-07:00
+          type: string
+        spend_threshold:
+          description: Valid decimal representation of a dollar amount
+          example: "3.14"
+          type: string
+      type: object
+    DateThreshold:
+      description: RFC3339 date string
+      example: 2006-01-02T15:04:05-07:00
+      type: string
+    SpendThreshold:
+      description: Valid decimal representation of a dollar amount
+      example: "3.14"
+      type: string
+    VolumeMount:
+      description: Settings for mounting volumes onto file systems
+      example:
+        auto: true
+      properties:
+        auto:
+          description: Set to true to automatically mount unmounted disks to a default
+            filesystem.
+          type: boolean
+      type: object
+    SshKeyName:
+      description: The name of the SSH Key.
+      example: My ssh key
+      type: string
+    PublicKey:
+      description: The public key.
+      example: ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAklOUpkDHrfHY17SbrmTIpNLTGK9Tjom/BWDSU
+        GPl+nafzlHDTYW7hdI4yZ5ew18JH4JW9jbhUFrviQzM7xlELEVf4h9lFX5QVkbPppSwg0cda3
+        Pbv7kOdJ/MTyBlWXFCR+HAo3FXRitBqxiX1nKhXpHAZsMciLq8V6RjsNAQwdsdMFvSlVK/7XA
+        t3FaoJoAsncM1Q9x5+3V0Ww68/eIFmb1zuUFljQJKprrX88XypNDvjYNby6vw/Pb0rwert/En
+        mZ+AW4OZPnTPI89ZPmVMLuayrD2cE86Z/il8b+gw3r3+1nKatmIkjn2so1d01QraTlMqVSsbx
+        NrRFi9wrf+M7Q== schacon@mylaptop.local
+      type: string
+    IsDefault:
+      description: Indicates the default key.
+      example: false
+      type: boolean
+    Tag:
+      description: Tag for searching and grouping
+      example: tag1
+      type: string
+    VolumesResponse:
+      example:
+        volumes:
+        - cloud: hyperstack
+          fixed_size: true
+          cost_estimate: "103.4"
+          supports_multi_mount: true
+          mounted_by: 13b057d7-e266-4869-985f-760fe75a78b3
+          name: My storage volume
+          id: 78a0dd5a-dbb1-4568-b55c-5e7e0a8b0c40
+          cloud_assigned_id: 13b057d7-e266-4869-985f-760fe75a78b3
+          region: canada-1
+          size_in_gb: 100
+        - cloud: hyperstack
+          fixed_size: true
+          cost_estimate: "103.4"
+          supports_multi_mount: true
+          mounted_by: 13b057d7-e266-4869-985f-760fe75a78b3
+          name: My storage volume
+          id: 78a0dd5a-dbb1-4568-b55c-5e7e0a8b0c40
+          cloud_assigned_id: 13b057d7-e266-4869-985f-760fe75a78b3
+          region: canada-1
+          size_in_gb: 100
+      properties:
+        volumes:
+          items:
+            $ref: '#/components/schemas/Volume'
+          type: array
+      required:
+      - volumes
+      type: object
+    CreateVolumeRequest:
+      example:
+        cloud: hyperstack
+        name: My storage volume
+        region: canada-1
+        size_in_gb: 100
+      properties:
+        cloud:
+          $ref: '#/components/schemas/Cloud'
+        region:
+          description: Specifies the region.
+          example: canada-1
+          type: string
+        size_in_gb:
+          description: Storage volume size in GB
+          example: 100
+          type: integer
+        name:
+          description: The name of the storage volume.
+          example: My storage volume
+          type: string
+      required:
+      - cloud
+      - name
+      - region
+      - size_in_gb
+      type: object
+    CreateVolumeResponse:
+      example:
+        id: 78a0dd5a-dbb1-4568-b55c-5e7e0a8b0c40
+      properties:
+        id:
+          description: The ID of the storage volume.
+          example: 78a0dd5a-dbb1-4568-b55c-5e7e0a8b0c40
+          type: string
+      required:
+      - id
+      type: object
+    VolumesTypesResponse:
+      example:
+        volume_types:
+        - cloud: hyperstack
+          fixed_size: true
+          supports_multi_mount: true
+          price_per_gb_per_hour: "0.0001"
+          region: canada-1
+        - cloud: hyperstack
+          fixed_size: true
+          supports_multi_mount: true
+          price_per_gb_per_hour: "0.0001"
+          region: canada-1
+      properties:
+        volume_types:
+          items:
+            $ref: '#/components/schemas/VolumeTypes_inner'
+          type: array
+      required:
+      - volume_types
+      type: object
+    Volume:
+      example:
+        cloud: hyperstack
+        fixed_size: true
+        cost_estimate: "103.4"
+        supports_multi_mount: true
+        mounted_by: 13b057d7-e266-4869-985f-760fe75a78b3
+        name: My storage volume
+        id: 78a0dd5a-dbb1-4568-b55c-5e7e0a8b0c40
+        cloud_assigned_id: 13b057d7-e266-4869-985f-760fe75a78b3
+        region: canada-1
+        size_in_gb: 100
+      properties:
+        id:
+          description: The ID of the storage volume.
+          example: 78a0dd5a-dbb1-4568-b55c-5e7e0a8b0c40
+          type: string
+        cloud:
+          $ref: '#/components/schemas/Cloud'
+        cloud_assigned_id:
+          description: The unique identifier of the storage volume issued by the underlying
+            cloud provider.
+          example: 13b057d7-e266-4869-985f-760fe75a78b3
+          type: string
+        region:
+          description: Specifies the region.
+          example: canada-1
+          type: string
+        name:
+          description: The name of the storage volume.
+          example: My storage volume
+          type: string
+        fixed_size:
+          description: Denotes whether the volume is fixed in size or elastically
+            scaling.
+          example: true
+          type: boolean
+        size_in_gb:
+          description: Storage volume size in GB
+          example: 100
+          type: integer
+        cost_estimate:
+          description: "The cost incurred by the instance. This only the cost via\
+            \ Shadeform. If the instance is deployed in your own cloud account, then\
+            \ all billing is through your cloud provider."
+          example: "103.4"
+          type: string
+        supports_multi_mount:
+          description: Denotes whether the volume supports multiple instances mounting
+            to it at the same time.
+          example: true
+          type: boolean
+        mounted_by:
+          description: The ID of the instance that is currently mounting the volume.
+          example: 13b057d7-e266-4869-985f-760fe75a78b3
+          type: string
+      required:
+      - cloud
+      - cloud_assigned_id
+      - cost_estimate
+      - fixed_size
+      - id
+      - mounted_by
+      - name
+      - region
+      - size_in_gb
+      - supports_multi_mount
+      type: object
+    VolumeID:
+      description: The ID of the storage volume.
+      example: 78a0dd5a-dbb1-4568-b55c-5e7e0a8b0c40
+      type: string
+    VolumeName:
+      description: The name of the storage volume.
+      example: My storage volume
+      type: string
+    VolumeCloudAssignedId:
+      description: The unique identifier of the storage volume issued by the underlying
+        cloud provider.
+      example: 13b057d7-e266-4869-985f-760fe75a78b3
+      type: string
+    VolumeFixedSize:
+      description: Denotes whether the volume is fixed in size or elastically scaling.
+      example: true
+      type: boolean
+    VolumeSizeInGB:
+      description: Storage volume size in GB
+      example: 100
+      type: integer
+    VolumeCostEstimate:
+      description: Cost incurred by the storage volume
+      example: "12.01"
+      type: string
+    VolumeSupportsMultiMount:
+      description: Denotes whether the volume supports multiple instances mounting
+        to it at the same time.
+      example: true
+      type: boolean
+    VolumeMountedBy:
+      description: The ID of the instance that is currently mounting the volume.
+      example: 13b057d7-e266-4869-985f-760fe75a78b3
+      type: string
+    VolumePricePerGBPerHour:
+      description: Price of the specified volume type per GB per hour
+      example: "0.0001"
+      type: string
+    VolumeTypes:
+      items:
+        $ref: '#/components/schemas/VolumeTypes_inner'
+      type: array
+    Template:
+      example:
+        volume_mount:
+          auto: true
+        author: John Doe
+        launch_configuration:
+          docker_configuration:
+            args: --model mistralai/Mistral-7B-v0.1
+            shared_memory_in_gb: 8
+            image: vllm/vllm-openai:latest
+            port_mappings:
+            - container_port: 8000
+              host_port: 80
+            - container_port: 8000
+              host_port: 80
+            registry_credentials:
+              password: password
+              username: username
+            envs:
+            - name: HUGGING_FACE_HUB_TOKEN
+              value: hugging_face_api_token
+            - name: HUGGING_FACE_HUB_TOKEN
+              value: hugging_face_api_token
+            volume_mounts:
+            - host_path: "~/.cache/huggingface"
+              container_path: /root/.cache/huggingface
+            - host_path: "~/.cache/huggingface"
+              container_path: /root/.cache/huggingface
+          script_configuration:
+            base64_script: IyEvYmluL2Jhc2gKCiMgRW5kbGVzcyBsb29wCndoaWxlIHRydWUKZG8KICAgICMgRmV0Y2ggYSBjYXQgZmFjdCB3aXRoIGEgbWF4aW11bSBsZW5ndGggb2YgMTQwIGNoYXJhY3RlcnMKICAgIGN1cmwgLS1uby1wcm9ncmVzcy1tZXRlciBodHRwczovL2NhdGZhY3QubmluamEvZmFjdD9tYXhfbGVuZ3RoPTE0MAoKICAgICMgUHJpbnQgYSBuZXdsaW5lIGZvciByZWFkYWJpbGl0eQogICAgZWNobwoKICAgICMgU2xlZXAgZm9yIDMgc2Vjb25kcyBiZWZvcmUgdGhlIG5leHQgaXRlcmF0aW9uCiAgICBzbGVlcCAzCmRvbmUKCgo=
+          type: docker
+        auto_delete:
+          spend_threshold: "3.14"
+          date_threshold: 2006-01-02T15:04:05-07:00
+        description: A template for running vLLM
+        envs:
+        - name: HUGGING_FACE_HUB_TOKEN
+          value: hugging_face_api_token
+        - name: HUGGING_FACE_HUB_TOKEN
+          value: hugging_face_api_token
+        networking:
+          ufw_rules:
+          - port: "80"
+            proto: tcp
+            rule: allow
+            to_ip: 10.0.0.0/8
+            from_ip: 192.168.1.0/24
+          - port: "80"
+            proto: tcp
+            rule: allow
+            to_ip: 10.0.0.0/8
+            from_ip: 192.168.1.0/24
+        tags:
+        - tag1
+        - tag1
+        public: true
+        alert:
+          spend_threshold: "3.14"
+          date_threshold: 2006-01-02T15:04:05-07:00
+        name: My AwesomeTemplate
+        logo: https://example.com/logo.png
+        id: d290f1ee-6c54-4b01-90e6-d701748f0851
+      properties:
+        id:
+          description: "Unique identifier for the template, generated by Shadeform"
+          example: d290f1ee-6c54-4b01-90e6-d701748f0851
+          type: string
+        name:
+          description: Name of the template
+          example: My AwesomeTemplate
+          type: string
+        description:
+          description: Description of the template
+          example: A template for running vLLM
+          type: string
+        author:
+          description: Author of the template
+          example: John Doe
+          type: string
+        logo:
+          description: URL to the template's logo
+          example: https://example.com/logo.png
+          type: string
+        public:
+          description: Whether the template is publicly available
+          example: true
+          type: boolean
+        launch_configuration:
+          $ref: '#/components/schemas/LaunchConfiguration'
+        auto_delete:
+          $ref: '#/components/schemas/AutoDelete'
+        alert:
+          $ref: '#/components/schemas/Alert'
+        volume_mount:
+          $ref: '#/components/schemas/VolumeMount'
+        tags:
+          description: "Add custom, searchable tags to instances."
+          items:
+            $ref: '#/components/schemas/Tag'
+          type: array
+        envs:
+          description: List of environment variable name and values to automatically
+            add to the instance
+          items:
+            $ref: '#/components/schemas/Env'
+          type: array
+        networking:
+          $ref: '#/components/schemas/Networking'
+      required:
+      - id
+      - name
+      type: object
+    TemplatesResponse:
+      example:
+        templates:
+        - volume_mount:
+            auto: true
+          author: John Doe
+          launch_configuration:
+            docker_configuration:
+              args: --model mistralai/Mistral-7B-v0.1
+              shared_memory_in_gb: 8
+              image: vllm/vllm-openai:latest
+              port_mappings:
+              - container_port: 8000
+                host_port: 80
+              - container_port: 8000
+                host_port: 80
+              registry_credentials:
+                password: password
+                username: username
+              envs:
+              - name: HUGGING_FACE_HUB_TOKEN
+                value: hugging_face_api_token
+              - name: HUGGING_FACE_HUB_TOKEN
+                value: hugging_face_api_token
+              volume_mounts:
+              - host_path: "~/.cache/huggingface"
+                container_path: /root/.cache/huggingface
+              - host_path: "~/.cache/huggingface"
+                container_path: /root/.cache/huggingface
+            script_configuration:
+              base64_script: IyEvYmluL2Jhc2gKCiMgRW5kbGVzcyBsb29wCndoaWxlIHRydWUKZG8KICAgICMgRmV0Y2ggYSBjYXQgZmFjdCB3aXRoIGEgbWF4aW11bSBsZW5ndGggb2YgMTQwIGNoYXJhY3RlcnMKICAgIGN1cmwgLS1uby1wcm9ncmVzcy1tZXRlciBodHRwczovL2NhdGZhY3QubmluamEvZmFjdD9tYXhfbGVuZ3RoPTE0MAoKICAgICMgUHJpbnQgYSBuZXdsaW5lIGZvciByZWFkYWJpbGl0eQogICAgZWNobwoKICAgICMgU2xlZXAgZm9yIDMgc2Vjb25kcyBiZWZvcmUgdGhlIG5leHQgaXRlcmF0aW9uCiAgICBzbGVlcCAzCmRvbmUKCgo=
+            type: docker
+          auto_delete:
+            spend_threshold: "3.14"
+            date_threshold: 2006-01-02T15:04:05-07:00
+          description: A template for running vLLM
+          envs:
+          - name: HUGGING_FACE_HUB_TOKEN
+            value: hugging_face_api_token
+          - name: HUGGING_FACE_HUB_TOKEN
+            value: hugging_face_api_token
+          networking:
+            ufw_rules:
+            - port: "80"
+              proto: tcp
+              rule: allow
+              to_ip: 10.0.0.0/8
+              from_ip: 192.168.1.0/24
+            - port: "80"
+              proto: tcp
+              rule: allow
+              to_ip: 10.0.0.0/8
+              from_ip: 192.168.1.0/24
+          tags:
+          - tag1
+          - tag1
+          public: true
+          alert:
+            spend_threshold: "3.14"
+            date_threshold: 2006-01-02T15:04:05-07:00
+          name: My AwesomeTemplate
+          logo: https://example.com/logo.png
+          id: d290f1ee-6c54-4b01-90e6-d701748f0851
+        - volume_mount:
+            auto: true
+          author: John Doe
+          launch_configuration:
+            docker_configuration:
+              args: --model mistralai/Mistral-7B-v0.1
+              shared_memory_in_gb: 8
+              image: vllm/vllm-openai:latest
+              port_mappings:
+              - container_port: 8000
+                host_port: 80
+              - container_port: 8000
+                host_port: 80
+              registry_credentials:
+                password: password
+                username: username
+              envs:
+              - name: HUGGING_FACE_HUB_TOKEN
+                value: hugging_face_api_token
+              - name: HUGGING_FACE_HUB_TOKEN
+                value: hugging_face_api_token
+              volume_mounts:
+              - host_path: "~/.cache/huggingface"
+                container_path: /root/.cache/huggingface
+              - host_path: "~/.cache/huggingface"
+                container_path: /root/.cache/huggingface
+            script_configuration:
+              base64_script: IyEvYmluL2Jhc2gKCiMgRW5kbGVzcyBsb29wCndoaWxlIHRydWUKZG8KICAgICMgRmV0Y2ggYSBjYXQgZmFjdCB3aXRoIGEgbWF4aW11bSBsZW5ndGggb2YgMTQwIGNoYXJhY3RlcnMKICAgIGN1cmwgLS1uby1wcm9ncmVzcy1tZXRlciBodHRwczovL2NhdGZhY3QubmluamEvZmFjdD9tYXhfbGVuZ3RoPTE0MAoKICAgICMgUHJpbnQgYSBuZXdsaW5lIGZvciByZWFkYWJpbGl0eQogICAgZWNobwoKICAgICMgU2xlZXAgZm9yIDMgc2Vjb25kcyBiZWZvcmUgdGhlIG5leHQgaXRlcmF0aW9uCiAgICBzbGVlcCAzCmRvbmUKCgo=
+            type: docker
+          auto_delete:
+            spend_threshold: "3.14"
+            date_threshold: 2006-01-02T15:04:05-07:00
+          description: A template for running vLLM
+          envs:
+          - name: HUGGING_FACE_HUB_TOKEN
+            value: hugging_face_api_token
+          - name: HUGGING_FACE_HUB_TOKEN
+            value: hugging_face_api_token
+          networking:
+            ufw_rules:
+            - port: "80"
+              proto: tcp
+              rule: allow
+              to_ip: 10.0.0.0/8
+              from_ip: 192.168.1.0/24
+            - port: "80"
+              proto: tcp
+              rule: allow
+              to_ip: 10.0.0.0/8
+              from_ip: 192.168.1.0/24
+          tags:
+          - tag1
+          - tag1
+          public: true
+          alert:
+            spend_threshold: "3.14"
+            date_threshold: 2006-01-02T15:04:05-07:00
+          name: My AwesomeTemplate
+          logo: https://example.com/logo.png
+          id: d290f1ee-6c54-4b01-90e6-d701748f0851
+      properties:
+        templates:
+          items:
+            $ref: '#/components/schemas/Template'
+          type: array
+      required:
+      - templates
+      type: object
+    FeaturedTemplate:
+      properties:
+        name:
+          description: Name of the featured template
+          example: Featured Template
+          type: string
+        description:
+          description: Description of the featured template
+          example: A featured template for ML workloads
+          type: string
+        public:
+          description: Whether the template is publicly available
+          example: true
+          type: boolean
+        launch_configuration:
+          description: Configuration for launching the instance
+          type: object
+        auto_delete:
+          description: Auto-deletion configuration
+          type: object
+        alert:
+          description: Alert configuration
+          type: object
+        volume_mount:
+          description: Volume mount configuration
+          type: object
+        tags:
+          description: Tags associated with the template
+          example:
+          - ml
+          - pytorch
+          items:
+            type: string
+          type: array
+        envs:
+          description: Environment variables for the template
+          items:
+            $ref: '#/components/schemas/Env'
+          type: array
+        networking:
+          $ref: '#/components/schemas/Networking'
+      required:
+      - description
+      - name
+      - public
+      type: object
+    FeaturedTemplatesResponse:
+      properties:
+        templates:
+          items:
+            $ref: '#/components/schemas/FeaturedTemplate'
+          type: array
+      required:
+      - templates
+      type: object
+    TemplateSaveRequest:
+      example:
+        volume_mount:
+          auto: true
+        public: true
+        alert:
+          spend_threshold: "3.14"
+          date_threshold: 2006-01-02T15:04:05-07:00
+        launch_configuration:
+          docker_configuration:
+            args: --model mistralai/Mistral-7B-v0.1
+            shared_memory_in_gb: 8
+            image: vllm/vllm-openai:latest
+            port_mappings:
+            - container_port: 8000
+              host_port: 80
+            - container_port: 8000
+              host_port: 80
+            registry_credentials:
+              password: password
+              username: username
+            envs:
+            - name: HUGGING_FACE_HUB_TOKEN
+              value: hugging_face_api_token
+            - name: HUGGING_FACE_HUB_TOKEN
+              value: hugging_face_api_token
+            volume_mounts:
+            - host_path: "~/.cache/huggingface"
+              container_path: /root/.cache/huggingface
+            - host_path: "~/.cache/huggingface"
+              container_path: /root/.cache/huggingface
+          script_configuration:
+            base64_script: IyEvYmluL2Jhc2gKCiMgRW5kbGVzcyBsb29wCndoaWxlIHRydWUKZG8KICAgICMgRmV0Y2ggYSBjYXQgZmFjdCB3aXRoIGEgbWF4aW11bSBsZW5ndGggb2YgMTQwIGNoYXJhY3RlcnMKICAgIGN1cmwgLS1uby1wcm9ncmVzcy1tZXRlciBodHRwczovL2NhdGZhY3QubmluamEvZmFjdD9tYXhfbGVuZ3RoPTE0MAoKICAgICMgUHJpbnQgYSBuZXdsaW5lIGZvciByZWFkYWJpbGl0eQogICAgZWNobwoKICAgICMgU2xlZXAgZm9yIDMgc2Vjb25kcyBiZWZvcmUgdGhlIG5leHQgaXRlcmF0aW9uCiAgICBzbGVlcCAzCmRvbmUKCgo=
+          type: docker
+        name: My Template
+        auto_delete:
+          spend_threshold: "3.14"
+          date_threshold: 2006-01-02T15:04:05-07:00
+        description: A template for ML workloads
+        envs:
+        - name: HUGGING_FACE_HUB_TOKEN
+          value: hugging_face_api_token
+        - name: HUGGING_FACE_HUB_TOKEN
+          value: hugging_face_api_token
+        networking:
+          ufw_rules:
+          - port: "80"
+            proto: tcp
+            rule: allow
+            to_ip: 10.0.0.0/8
+            from_ip: 192.168.1.0/24
+          - port: "80"
+            proto: tcp
+            rule: allow
+            to_ip: 10.0.0.0/8
+            from_ip: 192.168.1.0/24
+        tags:
+        - ml
+        - pytorch
+      properties:
+        name:
+          description: Name of the template
+          example: My Template
+          type: string
+        description:
+          description: Description of the template
+          example: A template for ML workloads
+          type: string
+        public:
+          description: Whether the template is publicly available
+          example: true
+          type: boolean
+        launch_configuration:
+          $ref: '#/components/schemas/LaunchConfiguration'
+        auto_delete:
+          $ref: '#/components/schemas/AutoDelete'
+        alert:
+          $ref: '#/components/schemas/Alert'
+        volume_mount:
+          $ref: '#/components/schemas/VolumeMount'
+        tags:
+          description: Tags associated with the template
+          example:
+          - ml
+          - pytorch
+          items:
+            type: string
+          type: array
+        envs:
+          description: Environment variables for the template
+          items:
+            $ref: '#/components/schemas/Env'
+          type: array
+        networking:
+          $ref: '#/components/schemas/Networking'
+      required:
+      - name
+      type: object
+    Networking:
+      description: Network configuration including firewall rules
+      example:
+        ufw_rules:
+        - port: "80"
+          proto: tcp
+          rule: allow
+          to_ip: 10.0.0.0/8
+          from_ip: 192.168.1.0/24
+        - port: "80"
+          proto: tcp
+          rule: allow
+          to_ip: 10.0.0.0/8
+          from_ip: 192.168.1.0/24
+      properties:
+        ufw_rules:
+          description: List of UFW (Uncomplicated Firewall) rules
+          items:
+            $ref: '#/components/schemas/UfwRule'
+          type: array
+      type: object
+    UfwRule:
+      description: Uncomplicated Firewall rule configuration
+      example:
+        port: "80"
+        proto: tcp
+        rule: allow
+        to_ip: 10.0.0.0/8
+        from_ip: 192.168.1.0/24
+      properties:
+        rule:
+          description: The UFW rule action
+          example: allow
+          type: string
+        from_ip:
+          description: Source IP address or CIDR range
+          example: 192.168.1.0/24
+          nullable: true
+          type: string
+        to_ip:
+          description: Destination IP address or CIDR range
+          example: 10.0.0.0/8
+          nullable: true
+          type: string
+        port:
+          description: Port number or range (e.g. '80' or '8000:8999')
+          example: "80"
+          nullable: true
+          type: string
+        proto:
+          description: "Protocol (e.g. tcp, udp)"
+          example: tcp
+          nullable: true
+          type: string
+      type: object
+    TemplateCreateResponse:
+      description: Response of the /templates/save API call
+      example:
+        id: d290f1ee-6c54-4b01-90e6-d701748f0851
+      properties:
+        id:
+          description: "The unique identifier for the instance. Used in the instances\
+            \ for the /instances/{id}/info and /instances/{id}/delete APIs."
+          example: d290f1ee-6c54-4b01-90e6-d701748f0851
+          format: uuid
+          type: string
+      required:
+      - id
+      type: object
+    Instance_configuration:
+      allOf:
+      - $ref: '#/components/schemas/InstanceConfiguration'
+      - properties:
+          os:
+            description: The operating system of the instance.
+            example: ubuntu_22_shade_os
+            type: string
+        required:
+        - os
+        type: object
+      example:
+        nvlink: true
+        os: ubuntu_22_shade_os
+        num_gpus: 1
+        gpu_type: A100
+        memory_in_gb: 12
+        vram_per_gpu_in_gb: 48
+        vcpus: 6
+        storage_in_gb: 256
+        interconnect: pcie
+    VolumeTypes_inner:
+      example:
+        cloud: hyperstack
+        fixed_size: true
+        supports_multi_mount: true
+        price_per_gb_per_hour: "0.0001"
+        region: canada-1
+      properties:
+        cloud:
+          $ref: '#/components/schemas/Cloud'
+        region:
+          description: Specifies the region.
+          example: canada-1
+          type: string
+        supports_multi_mount:
+          description: Denotes whether the volume supports multiple instances mounting
+            to it at the same time.
+          example: true
+          type: boolean
+        fixed_size:
+          description: Denotes whether the volume is fixed in size or elastically
+            scaling.
+          example: true
+          type: boolean
+        price_per_gb_per_hour:
+          description: Price of the specified volume type per GB per hour
+          example: "0.0001"
+          type: string
+      required:
+      - cloud
+      - fixed_size
+      - price_per_gb_per_hour
+      - region
+      - supports_multi_mount
+      type: object
+  securitySchemes:
+    ApiKeyAuth:
+      in: header
+      name: X-API-KEY
+      type: apiKey

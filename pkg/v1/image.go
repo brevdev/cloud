@@ -131,7 +131,7 @@ func validateHomeDirectory(ctx context.Context, sshClient *ssh.Client, sshUser s
 			return "", fmt.Errorf("expected ubuntu user home directory to contain /home/ubuntu, got: %s", homeDir)
 		}
 	} else {
-		if !strings.Contains(homeDir, "/root") {
+		if !strings.Contains(homeDir, "/root") && !strings.Contains(homeDir, fmt.Sprintf("/home/%v", sshUser)) {
 			return "", fmt.Errorf("expected non-ubuntu user home directory to contain /root, got: %s", homeDir)
 		}
 	}

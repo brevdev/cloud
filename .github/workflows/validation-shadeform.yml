@@ -1,0 +1,59 @@
+name: Shadeform Validation Tests
+
+on:
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+  # Allow manual triggering
+  pull_request:
+    paths:
+      - 'internal/shadeform/**'
+      - 'internal/validation/**'
+      - 'pkg/v1/**'
+    branches: [ main ]
+
+jobs:
+  shadeform-validation:
+    name: Shadeform Provider Validation
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.23.0'
+
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Install dependencies
+        run: make deps
+
+      - name: Run Shadeform validation tests
+        env:
+          SHADEFORM_API_KEY: ${{ secrets.SHADEFORM_API_KEY }}
+          TEST_PRIVATE_KEY_BASE64: ${{ secrets.TEST_PRIVATE_KEY_BASE64 }}
+          TEST_PUBLIC_KEY_BASE64: ${{ secrets.TEST_PUBLIC_KEY_BASE64 }}
+          VALIDATION_TEST: true
+        run: |
+          cd internal/shadeform
+          go test -v -short=false -timeout=30m ./...
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: shadeform-validation-results
+          path: |
+            internal/shadeform/coverage.out
