@@ -19,12 +19,10 @@ import (
 )
 
 func Test_openapi_DefaultAPIService(t *testing.T) {
-
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
 
 	t.Run("Test DefaultAPIService AddSSHKey", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		resp, httpRes, err := apiClient.DefaultAPI.AddSSHKey(context.Background()).Execute()
@@ -32,11 +30,9 @@ func Test_openapi_DefaultAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test DefaultAPIService DeleteSSHKey", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		var id string
@@ -45,11 +41,9 @@ func Test_openapi_DefaultAPIService(t *testing.T) {
 
 		require.Nil(t, err)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test DefaultAPIService GetInstance", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		var id string
@@ -59,11 +53,9 @@ func Test_openapi_DefaultAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test DefaultAPIService InstanceTypes", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		resp, httpRes, err := apiClient.DefaultAPI.InstanceTypes(context.Background()).Execute()
@@ -71,11 +63,9 @@ func Test_openapi_DefaultAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test DefaultAPIService LaunchInstance", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		resp, httpRes, err := apiClient.DefaultAPI.LaunchInstance(context.Background()).Execute()
@@ -83,11 +73,9 @@ func Test_openapi_DefaultAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test DefaultAPIService ListFileSystems", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		resp, httpRes, err := apiClient.DefaultAPI.ListFileSystems(context.Background()).Execute()
@@ -95,11 +83,9 @@ func Test_openapi_DefaultAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test DefaultAPIService ListInstances", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		resp, httpRes, err := apiClient.DefaultAPI.ListInstances(context.Background()).Execute()
@@ -107,11 +93,9 @@ func Test_openapi_DefaultAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test DefaultAPIService ListSSHKeys", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		resp, httpRes, err := apiClient.DefaultAPI.ListSSHKeys(context.Background()).Execute()
@@ -119,11 +103,9 @@ func Test_openapi_DefaultAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test DefaultAPIService RestartInstance", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		resp, httpRes, err := apiClient.DefaultAPI.RestartInstance(context.Background()).Execute()
@@ -131,11 +113,9 @@ func Test_openapi_DefaultAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test DefaultAPIService TerminateInstance", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		resp, httpRes, err := apiClient.DefaultAPI.TerminateInstance(context.Background()).Execute()
@@ -143,7 +123,5 @@ func Test_openapi_DefaultAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
-
 }

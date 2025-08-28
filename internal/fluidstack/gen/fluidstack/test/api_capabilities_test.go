@@ -11,19 +11,18 @@ package openapi
 
 import (
 	"context"
+	"testing"
+
 	openapiclient "github.com/brevdev/cloud/internal/fluidstack/gen/fluidstack"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func Test_openapi_CapabilitiesAPIService(t *testing.T) {
-
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
 
 	t.Run("Test CapabilitiesAPIService ListCapabilities", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		resp, httpRes, err := apiClient.CapabilitiesAPI.ListCapabilities(context.Background()).Execute()
@@ -31,7 +30,5 @@ func Test_openapi_CapabilitiesAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
-
 }

@@ -11,19 +11,18 @@ package openapi
 
 import (
 	"context"
+	"testing"
+
 	openapiclient "github.com/brevdev/cloud/internal/fluidstack/gen/fluidstack"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func Test_openapi_KubernetesAPIService(t *testing.T) {
-
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
 
 	t.Run("Test KubernetesAPIService CreateKubernetesCluster", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		resp, httpRes, err := apiClient.KubernetesAPI.CreateKubernetesCluster(context.Background()).Execute()
@@ -31,11 +30,9 @@ func Test_openapi_KubernetesAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test KubernetesAPIService CreateKubernetesNodePool", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		var clusterId string
@@ -45,11 +42,9 @@ func Test_openapi_KubernetesAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test KubernetesAPIService DeleteKubernetesCluster", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		var id string
@@ -58,11 +53,9 @@ func Test_openapi_KubernetesAPIService(t *testing.T) {
 
 		require.Nil(t, err)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test KubernetesAPIService DeleteKubernetesNodePool", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		var clusterId string
@@ -72,11 +65,9 @@ func Test_openapi_KubernetesAPIService(t *testing.T) {
 
 		require.Nil(t, err)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test KubernetesAPIService GetKubernetesCluster", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		var id string
@@ -86,11 +77,9 @@ func Test_openapi_KubernetesAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test KubernetesAPIService GetKubernetesClusterCredentials", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		var clusterId string
@@ -100,11 +89,9 @@ func Test_openapi_KubernetesAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test KubernetesAPIService GetKubernetesNodePool", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		var clusterId string
@@ -115,11 +102,9 @@ func Test_openapi_KubernetesAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test KubernetesAPIService ListKubernetesClusters", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		resp, httpRes, err := apiClient.KubernetesAPI.ListKubernetesClusters(context.Background()).Execute()
@@ -127,11 +112,9 @@ func Test_openapi_KubernetesAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test KubernetesAPIService ListKubernetesNodePools", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		var clusterId string
@@ -141,7 +124,5 @@ func Test_openapi_KubernetesAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
-
 }

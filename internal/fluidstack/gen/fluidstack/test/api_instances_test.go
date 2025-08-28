@@ -11,19 +11,18 @@ package openapi
 
 import (
 	"context"
+	"testing"
+
 	openapiclient "github.com/brevdev/cloud/internal/fluidstack/gen/fluidstack"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func Test_openapi_InstancesAPIService(t *testing.T) {
-
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
 
 	t.Run("Test InstancesAPIService CreateInstance", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		resp, httpRes, err := apiClient.InstancesAPI.CreateInstance(context.Background()).Execute()
@@ -31,11 +30,9 @@ func Test_openapi_InstancesAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test InstancesAPIService DeleteInstance", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		var id string
@@ -44,11 +41,9 @@ func Test_openapi_InstancesAPIService(t *testing.T) {
 
 		require.Nil(t, err)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test InstancesAPIService GetInstance", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		var id string
@@ -58,11 +53,9 @@ func Test_openapi_InstancesAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test InstancesAPIService ListInstances", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		resp, httpRes, err := apiClient.InstancesAPI.ListInstances(context.Background()).Execute()
@@ -70,11 +63,9 @@ func Test_openapi_InstancesAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test InstancesAPIService StartInstance", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		var id string
@@ -83,11 +74,9 @@ func Test_openapi_InstancesAPIService(t *testing.T) {
 
 		require.Nil(t, err)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test InstancesAPIService StopInstance", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		var id string
@@ -96,7 +85,5 @@ func Test_openapi_InstancesAPIService(t *testing.T) {
 
 		require.Nil(t, err)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
-
 }

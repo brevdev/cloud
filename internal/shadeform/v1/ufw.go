@@ -3,6 +3,7 @@ package v1
 import (
 	"encoding/base64"
 	"fmt"
+
 	v1 "github.com/brevdev/cloud/pkg/v1"
 )
 
@@ -31,7 +32,7 @@ func (c *ShadeformClient) GenerateFirewallScript(firewallRules v1.FirewallRules)
 
 	script := ""
 	for _, command := range commands {
-		script = script + fmt.Sprintf("%v\n", command)
+		script += fmt.Sprintf("%v\n", command)
 	}
 
 	encoded := base64.StdEncoding.EncodeToString([]byte(script))

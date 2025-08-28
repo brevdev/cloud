@@ -4,10 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/alecthomas/units"
-	"github.com/bojanz/currency"
 	"strings"
 	"time"
+
+	"github.com/alecthomas/units"
+	"github.com/bojanz/currency"
 
 	openapi "github.com/brevdev/cloud/internal/shadeform/gen/shadeform"
 
@@ -102,7 +103,6 @@ func (c *ShadeformClient) GetLocations(ctx context.Context, _ v1.GetLocationsArg
 
 // isInstanceTypeAllowed - determines if an instance type is allowed based on configuration
 func (c *ShadeformClient) isInstanceTypeAllowed(instanceType string) bool {
-
 	// By default, everything is allowed
 	if c.config == nil || c.config.AllowedInstanceTypes == nil {
 		return true
