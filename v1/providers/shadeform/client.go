@@ -15,7 +15,7 @@ const CloudProviderID = "shadeform"
 // ShadeformCredential implements the CloudCredential interface for Shadeform
 type ShadeformCredential struct {
 	RefID  string
-	APIKey string
+	APIKey string `json:"api_key"`
 }
 
 var _ v1.CloudCredential = &ShadeformCredential{}
