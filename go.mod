@@ -1,4 +1,4 @@
-module github.com/brevdev/cloud
+module github.com/brevdev/sdk
 
 go 1.25.0
 

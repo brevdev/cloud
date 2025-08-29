@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/brevdev/cloud"
-	"github.com/brevdev/cloud/internal/ssh"
+	"github.com/brevdev/sdk/cloud"
+	"github.com/brevdev/sdk/internal/ssh"
 	"github.com/stretchr/testify/require"
 )
 
