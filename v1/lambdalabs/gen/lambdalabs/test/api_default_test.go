@@ -13,7 +13,7 @@ import (
 	"context"
 	"testing"
 
-	openapiclient "github.com/brevdev/cloud/internal/lambdalabs/gen/lambdalabs"
+	openapiclient "github.com/brevdev/cloud/v1/lambdalabs/gen/lambdalabs"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
