@@ -8,9 +8,9 @@ on:
   # Allow manual triggering
   pull_request:
     paths:
-      - 'internal/shadeform/**'
+      - 'v1/providers/shadeform/**'
       - 'internal/validation/**'
-      - 'pkg/v1/**'
+      - 'v1/**'
     branches: [ main ]
 
 jobs:
@@ -47,7 +47,7 @@ jobs:
           TEST_PUBLIC_KEY_BASE64: ${{ secrets.TEST_PUBLIC_KEY_BASE64 }}
           VALIDATION_TEST: true
         run: |
-          cd internal/shadeform
+          cd v1/providers/shadeform
           go test -v -short=false -timeout=30m ./...
 
       - name: Upload test results
@@ -56,4 +56,4 @@ jobs:
         with:
           name: shadeform-validation-results
           path: |
-            internal/shadeform/coverage.out
+            v1/providers/shadeform/coverage.out
