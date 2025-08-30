@@ -169,6 +169,13 @@ func (c *ShadeformClient) convertShadeformInstanceTypeToV1InstanceType(shadeform
 					Type:           shadeformInstanceType.Configuration.GpuType,
 				},
 			},
+			SupportedStorage: []v1.Storage{ // TODO: add storage
+				{
+					Type: "ssd",
+					Count: 1,
+					Size:  units.GiB * units.Base2Bytes(shadeformInstanceType.Configuration.StorageInGb),
+				},
+			},
 			BasePrice:   basePrice,
 			IsAvailable: region.Available,
 			Location:    region.Region,
