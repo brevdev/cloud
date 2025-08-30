@@ -8,9 +8,9 @@ on:
     # Allow manual triggering
   pull_request:
     paths:
-      - 'internal/lambdalabs/**'
+      - 'v1/providers/lambdalabs/**'
       - 'internal/validation/**'
-      - 'pkg/v1/**'
+      - 'v1/**'
     branches: [ main ]
 
 jobs:
@@ -47,7 +47,7 @@ jobs:
         TEST_PUBLIC_KEY_BASE64: ${{ secrets.TEST_PUBLIC_KEY_BASE64 }}
         VALIDATION_TEST: true
       run: |
-        cd internal/lambdalabs
+        cd v1/providers/lambdalabs
         go test -v -short=false -timeout=30m ./...
         
     - name: Upload test results
@@ -56,4 +56,4 @@ jobs:
       with:
         name: lambdalabs-validation-results
         path: |
-          internal/lambdalabs/coverage.out
+          v1/providers/lambdalabs/coverage.out
