@@ -164,7 +164,7 @@ func (c *ShadeformClient) convertShadeformInstanceTypeToV1InstanceType(shadeform
 					Memory:         units.Base2Bytes(shadeformInstanceType.Configuration.VramPerGpuInGb) * units.GiB,
 					MemoryDetails:  "",
 					NetworkDetails: "",
-					Manufacturer:   "",
+					Manufacturer:   "NVIDIA", // TODO: add manufacturer
 					Name:           shadeformInstanceType.Configuration.GpuType,
 					Type:           shadeformInstanceType.Configuration.GpuType,
 				},
