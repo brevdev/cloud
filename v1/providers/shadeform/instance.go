@@ -2,9 +2,14 @@ package v1
 
 import (
 	"context"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"strings"
+
+	"golang.org/x/crypto/ssh"
 
 	"github.com/alecthomas/units"
 	v1 "github.com/brevdev/cloud/v1"
@@ -124,9 +129,14 @@ func (c *ShadeformClient) CreateInstance(ctx context.Context, attrs v1.CreateIns
 func (c *ShadeformClient) addSSHKey(ctx context.Context, keyPairName string, publicKey string) (string, error) {
 	authCtx := c.makeAuthContext(ctx)
 
+	key, err := convertPEMKeyToOpenSSH(publicKey)
+	if err != nil {
+		return "", fmt.Errorf("failed to convert PEM key to RSA key: %w", err)
+	}
+
 	request := openapi.AddSshKeyRequest{
 		Name:      keyPairName,
-		PublicKey: publicKey,
+		PublicKey: key,
 	}
 
 	resp, httpResp, err := c.client.DefaultAPI.SshKeysAdd(authCtx).AddSshKeyRequest(request).Execute()
@@ -142,6 +152,33 @@ func (c *ShadeformClient) addSSHKey(ctx context.Context, keyPairName string, pub
 	}
 
 	return resp.Id, nil
+}
+
+func convertPEMKeyToOpenSSH(pemKey string) (string, error) {
+	// Decode PEM
+	block, _ := pem.Decode([]byte(pemKey))
+	if block == nil {
+		return "", fmt.Errorf("failed to decode PEM key")
+	}
+
+	// Parse into rsa.PublicKey
+	pubAny, err := x509.ParsePKIXPublicKey(block.Bytes)
+	if err != nil {
+		return "", fmt.Errorf("parse error: %w", err)
+	}
+
+	pub, ok := pubAny.(*rsa.PublicKey)
+	if !ok {
+		return "", fmt.Errorf("not an RSA public key")
+	}
+
+	// Convert to OpenSSH format
+	sshPub, err := ssh.NewPublicKey(pub)
+	if err != nil {
+		return "", fmt.Errorf("ssh key error: %w", err)
+	}
+
+	return string(ssh.MarshalAuthorizedKey(sshPub)), nil
 }
 
 func (c *ShadeformClient) GetInstance(ctx context.Context, instanceID v1.CloudProviderInstanceID) (*v1.Instance, error) {

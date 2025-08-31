@@ -154,7 +154,7 @@ func (c *ShadeformClient) convertShadeformInstanceTypeToV1InstanceType(shadeform
 
 	for _, region := range shadeformInstanceType.Availability {
 		instanceTypes = append(instanceTypes, v1.InstanceType{
-			// ID:     v1.InstanceTypeID(c.getInstanceTypeID(instanceType, region.Region)), // TODO: ID format is very particular within devplane, and will be generated automatically if omitted here
+			ID:     v1.InstanceTypeID(c.getInstanceTypeID(instanceType, region.Region)),
 			Type:   instanceType,
 			VCPU:   shadeformInstanceType.Configuration.Vcpus,
 			Memory: units.Base2Bytes(shadeformInstanceType.Configuration.MemoryInGb) * units.GiB,
@@ -171,7 +171,7 @@ func (c *ShadeformClient) convertShadeformInstanceTypeToV1InstanceType(shadeform
 			},
 			SupportedStorage: []v1.Storage{ // TODO: add storage
 				{
-					Type: "ssd",
+					Type:  "ssd",
 					Count: 1,
 					Size:  units.GiB * units.Base2Bytes(shadeformInstanceType.Configuration.StorageInGb),
 				},
