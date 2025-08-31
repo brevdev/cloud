@@ -211,12 +211,12 @@ func (c *ShadeformClient) RebootInstance(_ context.Context, _ v1.CloudProviderIn
 	return v1.ErrNotImplemented
 }
 
-func (c *ShadeformClient) MergeInstanceForUpdate(currInst v1.Instance, _ v1.Instance) v1.Instance {
-	return currInst
+func (c *ShadeformClient) MergeInstanceForUpdate(_ v1.Instance, newInstance v1.Instance) v1.Instance {
+	return newInstance
 }
 
-func (c *ShadeformClient) MergeInstanceTypeForUpdate(currIt v1.InstanceType, _ v1.InstanceType) v1.InstanceType {
-	return currIt
+func (c *ShadeformClient) MergeInstanceTypeForUpdate(_ v1.InstanceType, newInstanceType v1.InstanceType) v1.InstanceType {
+	return newInstanceType
 }
 
 func (c *ShadeformClient) getLifecycleStatus(status string) v1.LifecycleStatus {
