@@ -261,16 +261,17 @@ func (c *ShadeformClient) convertInstanceInfoResponseToV1Instance(instanceInfo o
 	delete(tags, cloudCredRefIDTagName)
 
 	instance := &v1.Instance{
-		Name:         instanceInfo.Name,
-		CreatedAt:    instanceInfo.CreatedAt,
-		CloudID:      v1.CloudProviderInstanceID(instanceInfo.Id),
-		PublicIP:     instanceInfo.Ip,
-		Hostname:     hostname,
-		ImageID:      instanceInfo.Configuration.Os,
-		InstanceType: instanceType,
-		DiskSize:     units.Base2Bytes(instanceInfo.Configuration.StorageInGb) * units.GiB,
-		SSHUser:      instanceInfo.SshUser,
-		SSHPort:      int(instanceInfo.SshPort),
+		Name:           instanceInfo.Name,
+		CreatedAt:      instanceInfo.CreatedAt,
+		CloudID:        v1.CloudProviderInstanceID(instanceInfo.Id),
+		PublicIP:       instanceInfo.Ip,
+		Hostname:       hostname,
+		ImageID:        instanceInfo.Configuration.Os,
+		InstanceType:   instanceType,
+		InstanceTypeID: v1.InstanceTypeID(c.getInstanceTypeID(instanceType, instanceInfo.Region)),
+		DiskSize:       units.Base2Bytes(instanceInfo.Configuration.StorageInGb) * units.GiB,
+		SSHUser:        instanceInfo.SshUser,
+		SSHPort:        int(instanceInfo.SshPort),
 		Status: v1.Status{
 			LifecycleStatus: lifeCycleStatus,
 		},
