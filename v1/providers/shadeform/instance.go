@@ -136,7 +136,8 @@ func (c *ShadeformClient) addSSHKey(ctx context.Context, keyPairName string, pub
 		defer func() { _ = httpResp.Body.Close() }()
 	}
 	if err != nil {
-		return "", fmt.Errorf("failed to add SSH Key: %w", err)
+		httpMessage, _ := io.ReadAll(httpResp.Body)
+		return "", fmt.Errorf("failed to add SSH Key: %w, %s", err, string(httpMessage))
 	}
 
 	if resp == nil {
