@@ -90,6 +90,7 @@ func (c *LambdaLabsClient) TerminateInstance(ctx context.Context, instanceID v1.
 		InstanceIds: []string{string(instanceID)},
 	}
 
+	// TODO: since "createInstance" also creates an SSH key, we should consider cleaning up the key pair here
 	_, err := c.terminateInstance(ctx, request)
 	if err != nil {
 		return fmt.Errorf("failed to terminate instance: %w", err)
