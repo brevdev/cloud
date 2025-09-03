@@ -1,5 +1,4 @@
 .gitignore
-.openapi-generator-ignore
 .travis.yml
 README.md
 api/openapi.yaml
@@ -97,5 +96,4 @@ model_volume_types_inner.go
 model_volumes_response.go
 model_volumes_types_response.go
 response.go
-test/api_default_test.go
 utils.go

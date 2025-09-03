@@ -37,6 +37,8 @@ type InstanceConfiguration struct {
 	Nvlink *bool `json:"nvlink,omitempty"`
 	// The video memory per GPU for the instance in gigabytes.
 	VramPerGpuInGb int32 `json:"vram_per_gpu_in_gb"`
+	// The manufacturer of the gpu
+	GpuManufacturer string `json:"gpu_manufacturer"`
 	// The operating system of the instance.
 	Os                   string `json:"os"`
 	AdditionalProperties map[string]interface{}
@@ -48,7 +50,7 @@ type _InstanceConfiguration InstanceConfiguration
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewInstanceConfiguration(memoryInGb int32, storageInGb int32, vcpus int32, numGpus int32, gpuType string, interconnect string, vramPerGpuInGb int32, os string) *InstanceConfiguration {
+func NewInstanceConfiguration(memoryInGb int32, storageInGb int32, vcpus int32, numGpus int32, gpuType string, interconnect string, vramPerGpuInGb int32, gpuManufacturer string, os string) *InstanceConfiguration {
 	this := InstanceConfiguration{}
 	this.MemoryInGb = memoryInGb
 	this.StorageInGb = storageInGb
@@ -57,6 +59,7 @@ func NewInstanceConfiguration(memoryInGb int32, storageInGb int32, vcpus int32, 
 	this.GpuType = gpuType
 	this.Interconnect = interconnect
 	this.VramPerGpuInGb = vramPerGpuInGb
+	this.GpuManufacturer = gpuManufacturer
 	this.Os = os
 	return &this
 }
@@ -269,6 +272,30 @@ func (o *InstanceConfiguration) SetVramPerGpuInGb(v int32) {
 	o.VramPerGpuInGb = v
 }
 
+// GetGpuManufacturer returns the GpuManufacturer field value
+func (o *InstanceConfiguration) GetGpuManufacturer() string {
+	if o == nil {
+		var ret string
+		return ret
+	}
+
+	return o.GpuManufacturer
+}
+
+// GetGpuManufacturerOk returns a tuple with the GpuManufacturer field value
+// and a boolean to check if the value has been set.
+func (o *InstanceConfiguration) GetGpuManufacturerOk() (*string, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.GpuManufacturer, true
+}
+
+// SetGpuManufacturer sets field value
+func (o *InstanceConfiguration) SetGpuManufacturer(v string) {
+	o.GpuManufacturer = v
+}
+
 // GetOs returns the Os field value
 func (o *InstanceConfiguration) GetOs() string {
 	if o == nil {
@@ -313,6 +340,7 @@ func (o InstanceConfiguration) ToMap() (map[string]interface{}, error) {
 		toSerialize["nvlink"] = o.Nvlink
 	}
 	toSerialize["vram_per_gpu_in_gb"] = o.VramPerGpuInGb
+	toSerialize["gpu_manufacturer"] = o.GpuManufacturer
 	toSerialize["os"] = o.Os
 
 	for key, value := range o.AdditionalProperties {
@@ -334,6 +362,7 @@ func (o *InstanceConfiguration) UnmarshalJSON(data []byte) (err error) {
 		"gpu_type",
 		"interconnect",
 		"vram_per_gpu_in_gb",
+		"gpu_manufacturer",
 		"os",
 	}
 
@@ -372,6 +401,7 @@ func (o *InstanceConfiguration) UnmarshalJSON(data []byte) (err error) {
 		delete(additionalProperties, "interconnect")
 		delete(additionalProperties, "nvlink")
 		delete(additionalProperties, "vram_per_gpu_in_gb")
+		delete(additionalProperties, "gpu_manufacturer")
 		delete(additionalProperties, "os")
 		o.AdditionalProperties = additionalProperties
 	}
