@@ -12,13 +12,14 @@ Name | Type | Description | Notes
 **Interconnect** | **string** | The type of GPU interconnect. | 
 **Nvlink** | Pointer to **bool** | If the instance has NVLink | [optional] 
 **VramPerGpuInGb** | **int32** | The video memory per GPU for the instance in gigabytes. | 
+**GpuManufacturer** | **string** | The manufacturer of the gpu | 
 **Os** | **string** | The operating system of the instance. | 
 
 ## Methods
 
 ### NewInstanceConfiguration
 
-`func NewInstanceConfiguration(memoryInGb int32, storageInGb int32, vcpus int32, numGpus int32, gpuType string, interconnect string, vramPerGpuInGb int32, os string, ) *InstanceConfiguration`
+`func NewInstanceConfiguration(memoryInGb int32, storageInGb int32, vcpus int32, numGpus int32, gpuType string, interconnect string, vramPerGpuInGb int32, gpuManufacturer string, os string, ) *InstanceConfiguration`
 
 NewInstanceConfiguration instantiates a new InstanceConfiguration object
 This constructor will assign default values to properties that have it defined,
@@ -196,6 +197,26 @@ and a boolean to check if the value has been set.
 `func (o *InstanceConfiguration) SetVramPerGpuInGb(v int32)`
 
 SetVramPerGpuInGb sets VramPerGpuInGb field to given value.
+
+
+### GetGpuManufacturer
+
+`func (o *InstanceConfiguration) GetGpuManufacturer() string`
+
+GetGpuManufacturer returns the GpuManufacturer field if non-nil, zero value otherwise.
+
+### GetGpuManufacturerOk
+
+`func (o *InstanceConfiguration) GetGpuManufacturerOk() (*string, bool)`
+
+GetGpuManufacturerOk returns a tuple with the GpuManufacturer field if it's non-nil, zero value otherwise
+and a boolean to check if the value has been set.
+
+### SetGpuManufacturer
+
+`func (o *InstanceConfiguration) SetGpuManufacturer(v string)`
+
+SetGpuManufacturer sets GpuManufacturer field to given value.
 
 
 ### GetOs

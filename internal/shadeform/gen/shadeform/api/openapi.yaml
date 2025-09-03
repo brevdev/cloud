@@ -514,6 +514,7 @@ components:
             vcpus: 6
             storage_in_gb: 256
             interconnect: pcie
+            gpu_manufacturer: nvidia
             os_options:
             - ubuntu22.04_cuda12.2_shade_os
             - ubuntu20.04_cuda12.0_shade_os
@@ -541,6 +542,7 @@ components:
             vcpus: 6
             storage_in_gb: 256
             interconnect: pcie
+            gpu_manufacturer: nvidia
             os_options:
             - ubuntu22.04_cuda12.2_shade_os
             - ubuntu20.04_cuda12.0_shade_os
@@ -579,6 +581,7 @@ components:
           vcpus: 6
           storage_in_gb: 256
           interconnect: pcie
+          gpu_manufacturer: nvidia
           os_options:
           - ubuntu22.04_cuda12.2_shade_os
           - ubuntu20.04_cuda12.0_shade_os
@@ -652,6 +655,7 @@ components:
             vcpus: 6
             storage_in_gb: 256
             interconnect: pcie
+            gpu_manufacturer: nvidia
           launch_configuration:
             docker_configuration:
               args: --model mistralai/Mistral-7B-v0.1
@@ -717,6 +721,7 @@ components:
             vcpus: 6
             storage_in_gb: 256
             interconnect: pcie
+            gpu_manufacturer: nvidia
           launch_configuration:
             docker_configuration:
               args: --model mistralai/Mistral-7B-v0.1
@@ -792,6 +797,7 @@ components:
           vcpus: 6
           storage_in_gb: 256
           interconnect: pcie
+          gpu_manufacturer: nvidia
         launch_configuration:
           docker_configuration:
             args: --model mistralai/Mistral-7B-v0.1
@@ -976,6 +982,7 @@ components:
           vcpus: 6
           storage_in_gb: 256
           interconnect: pcie
+          gpu_manufacturer: nvidia
         cloud_instance_type: gpu_1x_a6000
         auto_delete:
           spend_threshold: "3.14"
@@ -1198,6 +1205,7 @@ components:
         vcpus: 6
         storage_in_gb: 256
         interconnect: pcie
+        gpu_manufacturer: nvidia
         os_options:
         - ubuntu22.04_cuda12.2_shade_os
         - ubuntu20.04_cuda12.0_shade_os
@@ -1245,7 +1253,12 @@ components:
           items:
             type: string
           type: array
+        gpu_manufacturer:
+          description: The manufacturer of the gpu
+          example: nvidia
+          type: string
       required:
+      - gpu_manufacturer
       - gpu_type
       - interconnect
       - memory_in_gb
@@ -1292,7 +1305,12 @@ components:
           description: The video memory per GPU for the instance in gigabytes.
           example: 48
           type: integer
+        gpu_manufacturer:
+          description: The manufacturer of the gpu
+          example: nvidia
+          type: string
       required:
+      - gpu_manufacturer
       - gpu_type
       - interconnect
       - memory_in_gb
@@ -2693,6 +2711,7 @@ components:
         vcpus: 6
         storage_in_gb: 256
         interconnect: pcie
+        gpu_manufacturer: nvidia
     VolumeTypes_inner:
       example:
         cloud: hyperstack
