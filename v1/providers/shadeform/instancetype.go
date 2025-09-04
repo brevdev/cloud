@@ -152,6 +152,8 @@ func (c *ShadeformClient) convertShadeformInstanceTypeToV1InstanceType(shadeform
 		return nil, err
 	}
 
+	gpuName := shadeformGPUTypeToBrevGPUName(shadeformInstanceType.Configuration.GpuType)
+
 	for _, region := range shadeformInstanceType.Availability {
 		instanceTypes = append(instanceTypes, v1.InstanceType{
 			ID:     v1.InstanceTypeID(c.getInstanceTypeID(instanceType, region.Region)),
@@ -162,24 +164,25 @@ func (c *ShadeformClient) convertShadeformInstanceTypeToV1InstanceType(shadeform
 				{
 					Count:          shadeformInstanceType.Configuration.NumGpus,
 					Memory:         units.Base2Bytes(shadeformInstanceType.Configuration.VramPerGpuInGb) * units.GiB,
-					MemoryDetails:  "",
-					NetworkDetails: "",
-					Manufacturer:   "NVIDIA", // TODO: add manufacturer
-					Name:           shadeformInstanceType.Configuration.GpuType,
+					MemoryDetails:  "", // TODO: add memory details
+					NetworkDetails: shadeformInstanceType.Configuration.Interconnect,
+					Manufacturer:   shadeformInstanceType.Configuration.GpuManufacturer,
+					Name:           gpuName,
 					Type:           shadeformInstanceType.Configuration.GpuType,
 				},
 			},
-			SupportedStorage: []v1.Storage{ // TODO: add storage
+			SupportedStorage: []v1.Storage{ // TODO: add storage (look in configuration)
 				{
 					Type:  "ssd",
 					Count: 1,
-					Size:  units.GiB * units.Base2Bytes(shadeformInstanceType.Configuration.StorageInGb),
+					Size:  units.Base2Bytes(shadeformInstanceType.Configuration.StorageInGb) * units.GiB,
 				},
 			},
 			BasePrice:   basePrice,
 			IsAvailable: region.Available,
 			Location:    region.Region,
-			Provider:    CloudProviderID,
+			Provider:    string(shadeformInstanceType.Cloud),
+			CloudBroker: CloudProviderID,
 		})
 	}
 
@@ -194,4 +197,13 @@ func convertHourlyPriceToAmount(hourlyPrice int32) (*currency.Amount, error) {
 		return nil, err
 	}
 	return &amount, nil
+}
+
+func shadeformGPUTypeToBrevGPUName(gpuType string) string {
+	// Shadeform may include a memory size as a suffix. This must be cleaned up before
+	// being used as a name.
+	// e.g. A100_80GB -> A100, H100_40GB -> H100
+
+	gpuType = strings.Split(gpuType, "_")[0]
+	return gpuType
 }

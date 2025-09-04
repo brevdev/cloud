@@ -45,6 +45,7 @@ type InstanceType struct {
 	NotPrivileged                   bool
 	EstimatedDeployTime             *time.Duration
 	Provider                        string
+	CloudBroker                     string
 	CanModifyFirewallRules          bool
 }
 
