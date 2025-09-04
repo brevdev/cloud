@@ -107,5 +107,6 @@ func convertFluidStackInstanceTypeToV1InstanceType(location string, fsInstanceTy
 		IsAvailable:   isAvailable,
 		Location:      location,
 		Provider:      CloudProviderID,
+		Cloud:         CloudProviderID,
 	}
 }

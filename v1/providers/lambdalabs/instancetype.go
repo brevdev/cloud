@@ -196,7 +196,8 @@ func convertLambdaLabsInstanceTypeToV1InstanceType(location string, instType ope
 		Rebootable:               true,
 		IsAvailable:              isAvailable,
 		BasePrice:                &amount,
-		Provider:                 string(CloudProviderID),
+		Provider:                 CloudProviderID,
+		Cloud:                    CloudProviderID,
 	}
 	it.ID = v1.MakeGenericInstanceTypeID(it)
 	return it, nil
