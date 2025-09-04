@@ -45,7 +45,7 @@ type InstanceType struct {
 	NotPrivileged                   bool
 	EstimatedDeployTime             *time.Duration
 	Provider                        string
-	CloudBroker                     string
+	Cloud                           string
 	CanModifyFirewallRules          bool
 }
 
@@ -74,8 +74,8 @@ func MakeGenericInstanceTypeIDFromInstance(instance Instance) InstanceTypeID {
 type GPU struct {
 	Count          int32
 	Memory         units.Base2Bytes
-	MemoryDetails  string
-	NetworkDetails string
+	MemoryDetails  string // "", "HBM", "GDDR", "DDR", etc.
+	NetworkDetails string // "PCIe", "SXM4", "SXM5", etc.
 	Manufacturer   string
 	Name           string
 	Type           string

@@ -181,8 +181,8 @@ func (c *ShadeformClient) convertShadeformInstanceTypeToV1InstanceType(shadeform
 			BasePrice:   basePrice,
 			IsAvailable: region.Available,
 			Location:    region.Region,
-			Provider:    string(shadeformInstanceType.Cloud),
-			CloudBroker: CloudProviderID,
+			Provider:    CloudProviderID,
+			Cloud:       string(shadeformInstanceType.Cloud),
 		})
 	}
 
