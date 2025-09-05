@@ -34,7 +34,7 @@ func TestLambdaLabsClient_GetInstanceTypes_Success(t *testing.T) {
 	assert.True(t, a10Type.IsAvailable)
 	assert.Len(t, a10Type.SupportedGPUs, 1)
 	assert.Equal(t, int32(1), a10Type.SupportedGPUs[0].Count)
-	assert.Equal(t, "NVIDIA", a10Type.SupportedGPUs[0].Manufacturer)
+	assert.Equal(t, v1.ManufacturerNVIDIA, a10Type.SupportedGPUs[0].Manufacturer)
 	assert.Equal(t, "A10", a10Type.SupportedGPUs[0].Name)
 }
 
@@ -141,7 +141,7 @@ func TestConvertLambdaLabsInstanceTypeToV1InstanceType(t *testing.T) {
 
 	gpu := v1InstanceType.SupportedGPUs[0]
 	assert.Equal(t, int32(1), gpu.Count)
-	assert.Equal(t, "NVIDIA", gpu.Manufacturer)
+	assert.Equal(t, v1.ManufacturerNVIDIA, gpu.Manufacturer)
 	assert.Equal(t, "NVIDIA A10", gpu.Name)
 	assert.Equal(t, "NVIDIA A10", gpu.Type)
 	assert.Equal(t, units.Base2Bytes(24*1024*1024*1024), gpu.Memory)
@@ -172,7 +172,7 @@ func TestParseGPUFromDescription(t *testing.T) {
 			description: "1x H100 (80 GB SXM5)",
 			expected: v1.GPU{
 				Count:          1,
-				Manufacturer:   "NVIDIA",
+				Manufacturer:   v1.ManufacturerNVIDIA,
 				Name:           "H100",
 				Type:           "H100.SXM5",
 				Memory:         80 * 1024 * 1024 * 1024,
@@ -184,7 +184,7 @@ func TestParseGPUFromDescription(t *testing.T) {
 			description: "8x Tesla V100 (16 GB)",
 			expected: v1.GPU{
 				Count:         8,
-				Manufacturer:  "NVIDIA",
+				Manufacturer:  v1.ManufacturerNVIDIA,
 				Name:          "V100",
 				Type:          "V100",
 				Memory:        16 * 1024 * 1024 * 1024,
