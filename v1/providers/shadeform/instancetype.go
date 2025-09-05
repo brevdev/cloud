@@ -233,14 +233,12 @@ func shadeformGPUTypeToBrevGPUName(gpuType string) string {
 }
 
 func shadeformCloud(cloud openapi.Cloud) string {
-	shadeformCloud := string(cloud)
-
 	// Shadeform will return the cloud as "excesssupply" if the instance type is retrieved
 	// from cloud partners and not a direct cloud provider. In this case, we should just return
 	// the Shadeform Cloud Provider ID.
-	if strings.EqualFold(shadeformCloud, string(openapi.EXCESSSUPPLY)) {
+	if cloud == openapi.EXCESSSUPPLY {
 		return CloudProviderID
 	}
 
-	return shadeformCloud
+	return string(cloud)
 }
