@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -44,8 +45,11 @@ func (c *ShadeformClient) GetInstanceTypes(ctx context.Context, args v1.GetInsta
 		if err != nil {
 			return nil, err
 		}
-		// Filter the list down to the instance types that are allowed by the configuration filter
+		// Filter the list down to the instance types that are allowed by the configuration filter and the args
 		for _, singleInstanceType := range instanceTypesFromShadeformInstanceType {
+			if !isSelectedByArgs(singleInstanceType, args) {
+				continue
+			}
 			if c.isInstanceTypeAllowed(singleInstanceType.Type) {
 				instanceTypes = append(instanceTypes, singleInstanceType)
 			}
@@ -53,6 +57,24 @@ func (c *ShadeformClient) GetInstanceTypes(ctx context.Context, args v1.GetInsta
 	}
 
 	return instanceTypes, nil
+}
+
+func isSelectedByArgs(instanceType v1.InstanceType, args v1.GetInstanceTypeArgs) bool {
+	if len(args.GPUManufacterers) > 0 {
+		if len(instanceType.SupportedGPUs) == 0 {
+			return false
+		}
+
+		// For each supported GPU, check to see if the manufacture matches the args. The supported GPUs
+		// must be a full subset of the args value.
+		for _, supportedGPU := range instanceType.SupportedGPUs {
+			if !slices.Contains(args.GPUManufacterers, supportedGPU.Manufacturer) {
+				return false
+			}
+		}
+	}
+
+	return true
 }
 
 func (c *ShadeformClient) GetInstanceTypePollTime() time.Duration {
@@ -153,6 +175,7 @@ func (c *ShadeformClient) convertShadeformInstanceTypeToV1InstanceType(shadeform
 	}
 
 	gpuName := shadeformGPUTypeToBrevGPUName(shadeformInstanceType.Configuration.GpuType)
+	gpuManufacturer := v1.GetManufacturer(shadeformInstanceType.Configuration.GpuManufacturer)
 
 	for _, region := range shadeformInstanceType.Availability {
 		instanceTypes = append(instanceTypes, v1.InstanceType{
@@ -164,9 +187,9 @@ func (c *ShadeformClient) convertShadeformInstanceTypeToV1InstanceType(shadeform
 				{
 					Count:          shadeformInstanceType.Configuration.NumGpus,
 					Memory:         units.Base2Bytes(shadeformInstanceType.Configuration.VramPerGpuInGb) * units.GiB,
-					MemoryDetails:  "", // TODO: add memory details
+					MemoryDetails:  "",
 					NetworkDetails: shadeformInstanceType.Configuration.Interconnect,
-					Manufacturer:   shadeformInstanceType.Configuration.GpuManufacturer,
+					Manufacturer:   gpuManufacturer,
 					Name:           gpuName,
 					Type:           shadeformInstanceType.Configuration.GpuType,
 				},

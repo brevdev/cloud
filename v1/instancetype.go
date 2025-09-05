@@ -5,12 +5,32 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/alecthomas/units"
 	"github.com/bojanz/currency"
 	"github.com/google/go-cmp/cmp"
 )
+
+type Manufacturer string
+
+const (
+	ManufacturerNVIDIA  Manufacturer = "NVIDIA"
+	ManufacturerIntel   Manufacturer = "Intel"
+	ManufacturerUnknown Manufacturer = "unknown"
+)
+
+func GetManufacturer(manufacturer string) Manufacturer {
+	switch strings.ToLower(manufacturer) {
+	case "nvidia":
+		return ManufacturerNVIDIA
+	case "intel":
+		return ManufacturerIntel
+	default:
+		return ManufacturerUnknown
+	}
+}
 
 type InstanceTypeID string
 
@@ -76,7 +96,7 @@ type GPU struct {
 	Memory         units.Base2Bytes
 	MemoryDetails  string // "", "HBM", "GDDR", "DDR", etc.
 	NetworkDetails string // "PCIe", "SXM4", "SXM5", etc.
-	Manufacturer   string
+	Manufacturer   Manufacturer
 	Name           string
 	Type           string
 }
@@ -97,6 +117,7 @@ type GetInstanceTypeArgs struct {
 	Locations              LocationsFilter
 	SupportedArchitectures []string
 	InstanceTypes          []string
+	GPUManufacterers       []Manufacturer
 }
 
 // ValidateGetInstanceTypes validates that the GetInstanceTypes functionality works correctly
