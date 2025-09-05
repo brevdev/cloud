@@ -18,7 +18,6 @@ import (
 const (
 	UsdCurrentCode = "USD"
 	AllRegions     = "all"
-	excessSupply   = "excesssupply"
 )
 
 // TODO: We need to apply a filter to specifically limit the integration and api to selected clouds and shade instance types
@@ -239,7 +238,7 @@ func shadeformCloud(cloud openapi.Cloud) string {
 	// Shadeform will return the cloud as "excesssupply" if the instance type is retrieved
 	// from cloud partners and not a direct cloud provider. In this case, we should just return
 	// the Shadeform Cloud Provider ID.
-	if strings.EqualFold(shadeformCloud, excessSupply) {
+	if strings.EqualFold(shadeformCloud, string(openapi.EXCESSSUPPLY)) {
 		return CloudProviderID
 	}
 
