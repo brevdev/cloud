@@ -176,6 +176,7 @@ func (c *ShadeformClient) convertShadeformInstanceTypeToV1InstanceType(shadeform
 
 	gpuName := shadeformGPUTypeToBrevGPUName(shadeformInstanceType.Configuration.GpuType)
 	gpuManufacturer := v1.GetManufacturer(shadeformInstanceType.Configuration.GpuManufacturer)
+	cloud := shadeformCloud(shadeformInstanceType.Cloud)
 
 	for _, region := range shadeformInstanceType.Availability {
 		instanceTypes = append(instanceTypes, v1.InstanceType{
@@ -205,7 +206,7 @@ func (c *ShadeformClient) convertShadeformInstanceTypeToV1InstanceType(shadeform
 			IsAvailable: region.Available,
 			Location:    region.Region,
 			Provider:    CloudProviderID,
-			Cloud:       string(shadeformInstanceType.Cloud),
+			Cloud:       cloud,
 		})
 	}
 
@@ -229,4 +230,15 @@ func shadeformGPUTypeToBrevGPUName(gpuType string) string {
 
 	gpuType = strings.Split(gpuType, "_")[0]
 	return gpuType
+}
+
+func shadeformCloud(cloud openapi.Cloud) string {
+	// Shadeform will return the cloud as "excesssupply" if the instance type is retrieved
+	// from cloud partners and not a direct cloud provider. In this case, we should just return
+	// the Shadeform Cloud Provider ID.
+	if cloud == openapi.EXCESSSUPPLY {
+		return CloudProviderID
+	}
+
+	return string(cloud)
 }
