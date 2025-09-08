@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"slices"
 	"strings"
 	"time"
 
@@ -19,6 +20,13 @@ const (
 	ManufacturerNVIDIA  Manufacturer = "NVIDIA"
 	ManufacturerIntel   Manufacturer = "Intel"
 	ManufacturerUnknown Manufacturer = "unknown"
+)
+
+type Architecture string
+
+const (
+	ArchitectureX86_64 Architecture = "x86_64"
+	ArchitectureARM64  Architecture = "arm64"
 )
 
 func GetManufacturer(manufacturer string) Manufacturer {
@@ -50,7 +58,7 @@ type InstanceType struct {
 	SupportedNumCores               []int32
 	DefaultCores                    int32
 	VCPU                            int32
-	SupportedArchitectures          []string
+	SupportedArchitectures          []Architecture
 	ClockSpeedInGhz                 float64
 	Quota                           InstanceTypeQuota
 	Stoppable                       bool
@@ -114,10 +122,67 @@ type CloudInstanceType interface {
 }
 
 type GetInstanceTypeArgs struct {
-	Locations              LocationsFilter
-	SupportedArchitectures []string
-	InstanceTypes          []string
-	GPUManufacterers       []Manufacturer
+	Locations          LocationsFilter
+	InstanceTypes      []string
+	GPUManufacterers   *GPUManufacturerFilter // nil means all GPU manufacturers are allowed
+	CloudFilter        *CloudFilter           // nil means all clouds are allowed
+	ArchitectureFilter *ArchitectureFilter    // nil means all architectures are allowed
+}
+
+type GPUManufacturerFilter struct {
+	// If IncludeGPUManufacturers is provided, only the GPU manufacturers in the list will be included
+	IncludeGPUManufacturers []Manufacturer
+
+	// If ExcludeGPUManufacturers is provided, the GPU manufacturers in the list will be excluded
+	ExcludeGPUManufacturers []Manufacturer
+}
+
+func (f *GPUManufacturerFilter) IsAllowed(manufacturer Manufacturer) bool {
+	if f.IncludeGPUManufacturers != nil && !slices.Contains(f.IncludeGPUManufacturers, manufacturer) {
+		return false
+	}
+	if f.ExcludeGPUManufacturers != nil && slices.Contains(f.ExcludeGPUManufacturers, manufacturer) {
+		return false
+	}
+	return true
+}
+
+// CloudFilter allows for filtering of instance types by cloud.
+type CloudFilter struct {
+	// If IncludeClouds is provided, only the clouds in the list will be included
+	IncludeClouds []string
+
+	// If ExcludeClouds is provided, the clouds in the list will be excluded
+	ExcludeClouds []string
+}
+
+func (f *CloudFilter) IsAllowed(cloud string) bool {
+	if f.IncludeClouds != nil && !slices.Contains(f.IncludeClouds, cloud) {
+		return false
+	}
+	if f.ExcludeClouds != nil && slices.Contains(f.ExcludeClouds, cloud) {
+		return false
+	}
+	return true
+}
+
+// ArchitectureFilter allows for filtering of instance types by architecture.
+type ArchitectureFilter struct {
+	// If IncludeArchitectures is provided, only the architectures in the list will be included
+	IncludeArchitectures []Architecture
+
+	// If ExcludeArchitectures is provided, the architectures in the list will be excluded
+	ExcludeArchitectures []Architecture
+}
+
+func (f *ArchitectureFilter) IsAllowed(architecture Architecture) bool {
+	if f.IncludeArchitectures != nil && !slices.Contains(f.IncludeArchitectures, architecture) {
+		return false
+	}
+	if f.ExcludeArchitectures != nil && slices.Contains(f.ExcludeArchitectures, architecture) {
+		return false
+	}
+	return true
 }
 
 // ValidateGetInstanceTypes validates that the GetInstanceTypes functionality works correctly
