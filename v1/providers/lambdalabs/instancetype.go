@@ -70,10 +70,10 @@ func (c *LambdaLabsClient) GetInstanceTypes(ctx context.Context, args v1.GetInst
 		})
 	}
 
-	if len(args.SupportedArchitectures) > 0 {
+	if args.ArchitectureFilter != nil {
 		instanceTypesFlattened = collections.Filter(instanceTypesFlattened, func(instanceType v1.InstanceType) bool {
-			for _, arch := range args.SupportedArchitectures {
-				if collections.ListContains(instanceType.SupportedArchitectures, arch) {
+			for _, arch := range instanceType.SupportedArchitectures {
+				if args.ArchitectureFilter.IsAllowed(arch) {
 					return true
 				}
 			}
@@ -190,7 +190,7 @@ func convertLambdaLabsInstanceTypeToV1InstanceType(location string, instType ope
 		SupportedNumCores:        []int32{},
 		DefaultCores:             0,
 		VCPU:                     instType.Specs.Vcpus,
-		SupportedArchitectures:   []string{"x86_64"},
+		SupportedArchitectures:   []v1.Architecture{v1.ArchitectureX86_64},
 		ClockSpeedInGhz:          0,
 		Stoppable:                false,
 		Rebootable:               true,

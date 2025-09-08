@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"slices"
 	"strings"
 	"time"
 
@@ -60,15 +59,23 @@ func (c *ShadeformClient) GetInstanceTypes(ctx context.Context, args v1.GetInsta
 }
 
 func isSelectedByArgs(instanceType v1.InstanceType, args v1.GetInstanceTypeArgs) bool {
-	if len(args.GPUManufacterers) > 0 {
-		if len(instanceType.SupportedGPUs) == 0 {
+	if args.GPUManufactererFilter != nil {
+		for _, supportedGPU := range instanceType.SupportedGPUs {
+			if !args.GPUManufactererFilter.IsAllowed(supportedGPU.Manufacturer) {
+				return false
+			}
+		}
+	}
+
+	if args.CloudFilter != nil {
+		if !args.CloudFilter.IsAllowed(instanceType.Cloud) {
 			return false
 		}
+	}
 
-		// For each supported GPU, check to see if the manufacture matches the args. The supported GPUs
-		// must be a full subset of the args value.
-		for _, supportedGPU := range instanceType.SupportedGPUs {
-			if !slices.Contains(args.GPUManufacterers, supportedGPU.Manufacturer) {
+	if args.ArchitectureFilter != nil {
+		for _, architecture := range instanceType.SupportedArchitectures {
+			if !args.ArchitectureFilter.IsAllowed(architecture) {
 				return false
 			}
 		}
@@ -177,6 +184,7 @@ func (c *ShadeformClient) convertShadeformInstanceTypeToV1InstanceType(shadeform
 	gpuName := shadeformGPUTypeToBrevGPUName(shadeformInstanceType.Configuration.GpuType)
 	gpuManufacturer := v1.GetManufacturer(shadeformInstanceType.Configuration.GpuManufacturer)
 	cloud := shadeformCloud(shadeformInstanceType.Cloud)
+	architecture := shadeformArchitecture(gpuName)
 
 	for _, region := range shadeformInstanceType.Availability {
 		instanceTypes = append(instanceTypes, v1.InstanceType{
@@ -202,11 +210,12 @@ func (c *ShadeformClient) convertShadeformInstanceTypeToV1InstanceType(shadeform
 					Size:  units.Base2Bytes(shadeformInstanceType.Configuration.StorageInGb) * units.GiB,
 				},
 			},
-			BasePrice:   basePrice,
-			IsAvailable: region.Available,
-			Location:    region.Region,
-			Provider:    CloudProviderID,
-			Cloud:       cloud,
+			SupportedArchitectures: []v1.Architecture{architecture},
+			BasePrice:              basePrice,
+			IsAvailable:            region.Available,
+			Location:               region.Region,
+			Provider:               CloudProviderID,
+			Cloud:                  cloud,
 		})
 	}
 
@@ -227,7 +236,6 @@ func shadeformGPUTypeToBrevGPUName(gpuType string) string {
 	// Shadeform may include a memory size as a suffix. This must be cleaned up before
 	// being used as a name.
 	// e.g. A100_80GB -> A100, H100_40GB -> H100
-
 	gpuType = strings.Split(gpuType, "_")[0]
 	return gpuType
 }
@@ -241,4 +249,12 @@ func shadeformCloud(cloud openapi.Cloud) string {
 	}
 
 	return string(cloud)
+}
+
+func shadeformArchitecture(gpuName string) v1.Architecture {
+	// Shadeform currently does not specify the architecture, so we need to infer it from the GPU name.
+	if strings.HasPrefix(gpuName, "GH") || strings.HasPrefix(gpuName, "GB") {
+		return v1.ArchitectureARM64
+	}
+	return v1.ArchitectureX86_64
 }
