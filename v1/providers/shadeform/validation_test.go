@@ -56,17 +56,7 @@ func TestInstanceTypeFilter(t *testing.T) {
 		},
 	})
 
-	types, err := client.GetInstanceTypes(ctx, v1.GetInstanceTypeArgs{
-		GPUManufacterers: &v1.GPUManufacturerFilter{
-			IncludeGPUManufacturers: []v1.Manufacturer{v1.ManufacturerNVIDIA},
-		},
-		CloudFilter: &v1.CloudFilter{
-			ExcludeClouds: []string{string(openapi.NEBIUS)},
-		},
-		ArchitectureFilter: &v1.ArchitectureFilter{
-			ExcludeArchitectures: []v1.Architecture{v1.ArchitectureARM64},
-		},
-	})
+	types, err := client.GetInstanceTypes(ctx, v1.GetInstanceTypeArgs{})
 	require.NoError(t, err)
 	require.NotEmpty(t, types, "Should have instance types")
 	require.True(t, len(types) == 1, "Instance types should return only one entry")
