@@ -22,13 +22,6 @@ const (
 	ManufacturerUnknown Manufacturer = "unknown"
 )
 
-type Architecture string
-
-const (
-	ArchitectureX86_64 Architecture = "x86_64"
-	ArchitectureARM64  Architecture = "arm64"
-)
-
 func GetManufacturer(manufacturer string) Manufacturer {
 	switch strings.ToLower(manufacturer) {
 	case "nvidia":
@@ -37,6 +30,25 @@ func GetManufacturer(manufacturer string) Manufacturer {
 		return ManufacturerIntel
 	default:
 		return ManufacturerUnknown
+	}
+}
+
+type Architecture string
+
+const (
+	ArchitectureX86_64  Architecture = "x86_64"
+	ArchitectureARM64   Architecture = "arm64"
+	ArchitectureUnknown Architecture = "unknown"
+)
+
+func GetArchitecture(architecture string) Architecture {
+	switch strings.ToLower(architecture) {
+	case "x86_64":
+		return ArchitectureX86_64
+	case "arm64":
+		return ArchitectureARM64
+	default:
+		return ArchitectureUnknown
 	}
 }
 
