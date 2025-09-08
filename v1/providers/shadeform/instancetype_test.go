@@ -48,13 +48,13 @@ func TestIsSelectedByArgs(t *testing.T) {
 		{
 			name:          "include only nvidia manufacturer",
 			instanceTypes: all,
-			args:          v1.GetInstanceTypeArgs{GPUManufacterers: &v1.GPUManufacturerFilter{IncludeGPUManufacturers: []v1.Manufacturer{v1.ManufacturerNVIDIA}}},
+			args:          v1.GetInstanceTypeArgs{GPUManufactererFilter: &v1.GPUManufacturerFilter{IncludeGPUManufacturers: []v1.Manufacturer{v1.ManufacturerNVIDIA}}},
 			want:          []v1.InstanceType{x8664nvidiaaws, x8664nvidiagcp, arm64nvidiaaws, arm64nvidiagcp},
 		},
 		{
 			name:          "exclude nvidia manufacturer",
 			instanceTypes: all,
-			args:          v1.GetInstanceTypeArgs{GPUManufacterers: &v1.GPUManufacturerFilter{ExcludeGPUManufacturers: []v1.Manufacturer{v1.ManufacturerNVIDIA}}},
+			args:          v1.GetInstanceTypeArgs{GPUManufactererFilter: &v1.GPUManufacturerFilter{ExcludeGPUManufacturers: []v1.Manufacturer{v1.ManufacturerNVIDIA}}},
 			want:          []v1.InstanceType{x8664intelaws, x8664intelgcp, arm64intelaws, arm64intelgcp},
 		},
 		{
@@ -73,9 +73,9 @@ func TestIsSelectedByArgs(t *testing.T) {
 			name:          "include only aws cloud, exclude arm64 architecture, include nvidia manufacturer",
 			instanceTypes: all,
 			args: v1.GetInstanceTypeArgs{
-				CloudFilter:        &v1.CloudFilter{IncludeClouds: []string{"aws"}},
-				ArchitectureFilter: &v1.ArchitectureFilter{ExcludeArchitectures: []v1.Architecture{v1.ArchitectureARM64}},
-				GPUManufacterers:   &v1.GPUManufacturerFilter{IncludeGPUManufacturers: []v1.Manufacturer{v1.ManufacturerNVIDIA}},
+				CloudFilter:           &v1.CloudFilter{IncludeClouds: []string{"aws"}},
+				ArchitectureFilter:    &v1.ArchitectureFilter{ExcludeArchitectures: []v1.Architecture{v1.ArchitectureARM64}},
+				GPUManufactererFilter: &v1.GPUManufacturerFilter{IncludeGPUManufacturers: []v1.Manufacturer{v1.ManufacturerNVIDIA}},
 			},
 			want: []v1.InstanceType{x8664nvidiaaws},
 		},

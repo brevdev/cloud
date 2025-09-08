@@ -59,9 +59,9 @@ func (c *ShadeformClient) GetInstanceTypes(ctx context.Context, args v1.GetInsta
 }
 
 func isSelectedByArgs(instanceType v1.InstanceType, args v1.GetInstanceTypeArgs) bool {
-	if args.GPUManufacterers != nil {
+	if args.GPUManufactererFilter != nil {
 		for _, supportedGPU := range instanceType.SupportedGPUs {
-			if !args.GPUManufacterers.IsAllowed(supportedGPU.Manufacturer) {
+			if !args.GPUManufactererFilter.IsAllowed(supportedGPU.Manufacturer) {
 				return false
 			}
 		}

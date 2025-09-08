@@ -122,11 +122,11 @@ type CloudInstanceType interface {
 }
 
 type GetInstanceTypeArgs struct {
-	Locations          LocationsFilter
-	InstanceTypes      []string
-	GPUManufacterers   *GPUManufacturerFilter // nil means all GPU manufacturers are allowed
-	CloudFilter        *CloudFilter           // nil means all clouds are allowed
-	ArchitectureFilter *ArchitectureFilter    // nil means all architectures are allowed
+	Locations             LocationsFilter
+	InstanceTypes         []string
+	GPUManufactererFilter *GPUManufacturerFilter // nil means all GPU manufacturers are allowed
+	CloudFilter           *CloudFilter           // nil means all clouds are allowed
+	ArchitectureFilter    *ArchitectureFilter    // nil means all architectures are allowed
 }
 
 type GPUManufacturerFilter struct {
