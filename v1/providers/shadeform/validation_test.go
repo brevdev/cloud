@@ -48,13 +48,13 @@ func TestInstanceTypeFilter(t *testing.T) {
 	t.Cleanup(cancel)
 
 	client := NewShadeformClient("validation-test", apiKey)
-	// client.WithConfiguration(Configuration{
-	// 	AllowedInstanceTypes: map[openapi.Cloud]map[string]bool{
-	// 		openapi.DATACRUNCH: {
-	// 			"B200": true,
-	// 		},
-	// 	},
-	// })
+	client.WithConfiguration(Configuration{
+		AllowedInstanceTypes: map[openapi.Cloud]map[string]bool{
+			openapi.DATACRUNCH: {
+				"B200": true,
+			},
+		},
+	})
 
 	types, err := client.GetInstanceTypes(ctx, v1.GetInstanceTypeArgs{
 		GPUManufacterers: &v1.GPUManufacturerFilter{
