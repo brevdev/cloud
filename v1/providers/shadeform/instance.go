@@ -17,6 +17,8 @@ const (
 	hostname              = "shadecloud"
 	refIDTagName          = "refID"
 	cloudCredRefIDTagName = "cloudCredRefID" //nolint:gosec // not a secret
+	instanceNameFormat    = "%v_%v"
+	instanceNameSeparator = "_"
 )
 
 func (c *ShadeformClient) CreateInstance(ctx context.Context, attrs v1.CreateInstanceAttrs) (*v1.Instance, error) { //nolint:gocyclo,funlen // ok
@@ -88,7 +90,7 @@ func (c *ShadeformClient) CreateInstance(ctx context.Context, attrs v1.CreateIns
 		Cloud:             *cloudEnum,
 		Region:            region,
 		ShadeInstanceType: shadeInstanceType,
-		Name:              attrs.Name,
+		Name:              c.getInstanceNameForShadeform(attrs.RefID, attrs.Name),
 		ShadeCloud:        true,
 		Tags:              tags,
 		SshKeyId:          &sshKeyID,
@@ -121,6 +123,19 @@ func (c *ShadeformClient) CreateInstance(ctx context.Context, attrs v1.CreateIns
 	}
 
 	return createdInstance, nil
+}
+
+func (c *ShadeformClient) getInstanceNameForShadeform(refID string, providedName string) string {
+	return fmt.Sprintf(instanceNameFormat, refID, providedName)
+}
+
+func (c *ShadeformClient) getProvidedInstanceName(shadeformInstanceName string) string {
+	before, after, found := strings.Cut(shadeformInstanceName, instanceNameSeparator)
+	if found {
+		return after
+	} else {
+		return before
+	}
 }
 
 func (c *ShadeformClient) addSSHKey(ctx context.Context, keyPairName string, publicKey string) (string, error) {
@@ -261,7 +276,7 @@ func (c *ShadeformClient) convertInstanceInfoResponseToV1Instance(instanceInfo o
 	delete(tags, cloudCredRefIDTagName)
 
 	instance := &v1.Instance{
-		Name:           instanceInfo.Name,
+		Name:           c.getProvidedInstanceName(instanceInfo.Name),
 		CreatedAt:      instanceInfo.CreatedAt,
 		CloudID:        v1.CloudProviderInstanceID(instanceInfo.Id),
 		PublicIP:       instanceInfo.Ip,
