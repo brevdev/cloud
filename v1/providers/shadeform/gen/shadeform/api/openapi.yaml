@@ -1805,6 +1805,7 @@ components:
       - pending
       - active
       - deleted
+      - error
       example: active
       type: string
     StatusDetails:

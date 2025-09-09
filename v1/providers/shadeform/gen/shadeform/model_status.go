@@ -26,6 +26,7 @@ const (
 	PENDING          Status = "pending"
 	ACTIVE           Status = "active"
 	DELETED          Status = "deleted"
+	ERROR            Status = "error"
 )
 
 // All allowed values of Status enum
@@ -35,6 +36,7 @@ var AllowedStatusEnumValues = []Status{
 	"pending",
 	"active",
 	"deleted",
+	"error",
 }
 
 func (v *Status) UnmarshalJSON(src []byte) error {
