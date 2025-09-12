@@ -126,3 +126,19 @@ func (c notImplCloudClient) MergeInstanceTypeForUpdate(_, i InstanceType) Instan
 func (c notImplCloudClient) GetMaxCreateRequestsPerMinute() int {
 	return 10
 }
+
+func (c notImplCloudClient) CreateVPC(_ context.Context, _ CreateVPCArgs) (*VPC, error) {
+	return nil, ErrNotImplemented
+}
+
+func (c notImplCloudClient) DeleteVPC(_ context.Context, _ DeleteVPCArgs) error {
+	return ErrNotImplemented
+}
+
+func (c notImplCloudClient) CreatePublicSubnet(_ context.Context, _ CreatePublicSubnetArgs) (*Subnet, error) {
+	return nil, ErrNotImplemented
+}
+
+func (c notImplCloudClient) CreatePrivateSubnet(_ context.Context, _ CreatePrivateSubnetArgs) (*Subnet, error) {
+	return nil, ErrNotImplemented
+}
