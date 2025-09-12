@@ -126,3 +126,47 @@ func (c notImplCloudClient) MergeInstanceTypeForUpdate(_, i InstanceType) Instan
 func (c notImplCloudClient) GetMaxCreateRequestsPerMinute() int {
 	return 10
 }
+
+func (c notImplCloudClient) CreateVPC(_ context.Context, _ CreateVPCArgs) (*VPC, error) {
+	return nil, ErrNotImplemented
+}
+
+func (c notImplCloudClient) GetVPC(_ context.Context, _ GetVPCArgs) (*VPC, error) {
+	return nil, ErrNotImplemented
+}
+
+func (c notImplCloudClient) DeleteVPC(_ context.Context, _ DeleteVPCArgs) error {
+	return ErrNotImplemented
+}
+
+func (c notImplCloudClient) CreateCluster(_ context.Context, _ CreateClusterArgs) (*Cluster, error) {
+	return nil, ErrNotImplemented
+}
+
+func (c notImplCloudClient) GetCluster(_ context.Context, _ GetClusterArgs) (*Cluster, error) {
+	return nil, ErrNotImplemented
+}
+
+func (c notImplCloudClient) SetClusterUser(_ context.Context, _ SetClusterUserArgs) (*ClusterUser, error) {
+	return nil, ErrNotImplemented
+}
+
+func (c notImplCloudClient) CreateNodeGroup(_ context.Context, _ CreateNodeGroupArgs) (*NodeGroup, error) {
+	return nil, ErrNotImplemented
+}
+
+func (c notImplCloudClient) GetNodeGroup(_ context.Context, _ GetNodeGroupArgs) (*NodeGroup, error) {
+	return nil, ErrNotImplemented
+}
+
+func (c notImplCloudClient) ModifyNodeGroup(_ context.Context, _ ModifyNodeGroupArgs) error {
+	return ErrNotImplemented
+}
+
+func (c notImplCloudClient) DeleteNodeGroup(_ context.Context, _ DeleteNodeGroupArgs) error {
+	return ErrNotImplemented
+}
+
+func (c notImplCloudClient) DeleteCluster(_ context.Context, _ DeleteClusterArgs) error {
+	return ErrNotImplemented
+}

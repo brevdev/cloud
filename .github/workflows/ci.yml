@@ -31,8 +31,13 @@ jobs:
     - name: Install dependencies
       run: make deps
       
-    - name: Run checks (lint, vet, fmt-check, test)
-      run: make check
+    - name: golangci-lint
+      uses: golangci/golangci-lint-action@v8
+      with:
+        version: v2.6.0
+
+    - name: Run checks (vet, fmt-check, test)
+      run: make vet fmt-check test
       
     # Note: Validation tests with real cloud providers run in separate workflows
     # See .github/workflows/validation-*.yml for provider-specific validation tests

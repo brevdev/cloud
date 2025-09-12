@@ -51,7 +51,7 @@ func (c *FluidStackClient) GetLocations(ctx context.Context, _ v1.GetLocationsAr
 	}
 
 	var locations []v1.Location
-	if resp != nil {
+	if len(resp) > 0 {
 		for _, capacity := range resp {
 			location := v1.Location{
 				Name:        capacity.Name,
