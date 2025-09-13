@@ -27,6 +27,9 @@ type VPC struct {
 
 	// The IPv4 network range for the VPC, in CIDR notation. For example, "10.0.0.0/16".
 	CidrBlock string
+
+	// The status of the VPC.
+	Status VPCStatus
 }
 
 type Subnet struct {
@@ -49,13 +52,24 @@ type Subnet struct {
 	CidrBlock string
 }
 
+type SubnetType string
+
+const (
+	SubnetTypePublic  SubnetType = "public"
+	SubnetTypePrivate SubnetType = "private"
+)
+
+type VPCStatus string
+
+const (
+	VPCStatusAvailable VPCStatus = "available"
+	VPCStatusPending   VPCStatus = "pending"
+)
+
 type CloudMaintainVPC interface {
 	CreateVPC(ctx context.Context, args CreateVPCArgs) (*VPC, error)
 	GetVPC(ctx context.Context, args GetVPCArgs) (*VPC, error)
 	DeleteVPC(ctx context.Context, args DeleteVPCArgs) error
-	CreatePublicSubnet(ctx context.Context, args CreatePublicSubnetArgs) (*Subnet, error)
-	CreatePrivateSubnet(ctx context.Context, args CreatePrivateSubnetArgs) (*Subnet, error)
-	DeleteSubnet(ctx context.Context, args DeleteSubnetArgs) error
 }
 
 type CreateVPCArgs struct {
@@ -63,6 +77,13 @@ type CreateVPCArgs struct {
 	RefID     string
 	Location  string
 	CidrBlock string
+	Subnets   []CreateSubnetArgs
+}
+
+type CreateSubnetArgs struct {
+	Name      string
+	CidrBlock string
+	Type      SubnetType
 }
 
 type GetVPCArgs struct {
@@ -73,20 +94,4 @@ type GetVPCArgs struct {
 
 type DeleteVPCArgs struct {
 	VPC *VPC
-}
-
-type CreatePublicSubnetArgs struct {
-	VPC       *VPC
-	CidrBlock string
-	Location  string
-}
-
-type CreatePrivateSubnetArgs struct {
-	VPC       *VPC
-	CidrBlock string
-	Location  string
-}
-
-type DeleteSubnetArgs struct {
-	Subnet *Subnet
 }

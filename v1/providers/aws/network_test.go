@@ -9,6 +9,29 @@ import (
 	v1 "github.com/brevdev/cloud/v1"
 )
 
+func TestDeleteVPC(t *testing.T) {
+	// get env var
+	accessKeyID := os.Getenv("AWS_ACCESS_KEY_ID")
+	secretAccessKey := os.Getenv("AWS_SECRET_ACCESS_KEY")
+
+	awsClient, err := NewAWSClient("test", accessKeyID, secretAccessKey)
+	if err != nil {
+		t.Fatalf("failed to create AWS client: %v", err)
+	}
+
+	err = awsClient.DeleteVPC(context.Background(), v1.DeleteVPCArgs{
+		VPC: &v1.VPC{
+			CloudID:  "vpc-0b4e2176e45300c81",
+			Location: "eu-west-1",
+		},
+	})
+	if err != nil {
+		t.Fatalf("failed to delete VPC: %v", err)
+	}
+
+	fmt.Println("VPC deleted")
+}
+
 func TestCreateVPC(t *testing.T) {
 	// get env var
 	accessKeyID := os.Getenv("AWS_ACCESS_KEY_ID")
@@ -19,11 +42,19 @@ func TestCreateVPC(t *testing.T) {
 		t.Fatalf("failed to create AWS client: %v", err)
 	}
 
+	location := "eu-west-1"
+
 	vpc, err := awsClient.CreateVPC(context.Background(), v1.CreateVPCArgs{
 		Name:      "cloud-sdk-test",
 		RefID:     "cloud-sdk-test",
-		Location:  "us-east-1",
+		Location:  location,
 		CidrBlock: "10.0.0.0/16",
+		Subnets: []v1.CreateSubnetArgs{
+			{Name: "cloud-sdk-test-public-1", CidrBlock: "10.0.0.0/24", Type: v1.SubnetTypePublic},
+			{Name: "cloud-sdk-test-private-1", CidrBlock: "10.0.1.0/24", Type: v1.SubnetTypePrivate},
+			{Name: "cloud-sdk-test-public-2", CidrBlock: "10.0.2.0/24", Type: v1.SubnetTypePublic},
+			{Name: "cloud-sdk-test-private-2", CidrBlock: "10.0.3.0/24", Type: v1.SubnetTypePrivate},
+		},
 	})
 	if err != nil {
 		t.Fatalf("failed to create VPC: %v", err)
@@ -41,7 +72,7 @@ func TestCreateVPC(t *testing.T) {
 	err = awsClient.DeleteVPC(context.Background(), v1.DeleteVPCArgs{
 		VPC: &v1.VPC{
 			CloudID:  vpc.CloudID,
-			Location: "us-east-1",
+			Location: location,
 		},
 	})
 	if err != nil {
