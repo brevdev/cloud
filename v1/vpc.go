@@ -30,6 +30,9 @@ type VPC struct {
 
 	// The status of the VPC.
 	Status VPCStatus
+
+	// The subnets associated with the VPC.
+	Subnets []Subnet
 }
 
 type Subnet struct {
@@ -50,6 +53,9 @@ type Subnet struct {
 
 	// The IPv4 network range for the subnet, in CIDR notation. For example, "10.0.0.0/24".
 	CidrBlock string
+
+	// The type of the subnet.
+	Type SubnetType
 }
 
 type SubnetType string
@@ -81,7 +87,6 @@ type CreateVPCArgs struct {
 }
 
 type CreateSubnetArgs struct {
-	Name      string
 	CidrBlock string
 	Type      SubnetType
 }

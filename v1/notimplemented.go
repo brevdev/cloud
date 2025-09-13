@@ -131,6 +131,10 @@ func (c notImplCloudClient) CreateVPC(_ context.Context, _ CreateVPCArgs) (*VPC,
 	return nil, ErrNotImplemented
 }
 
+func (c notImplCloudClient) GetVPC(_ context.Context, _ GetVPCArgs) (*VPC, error) {
+	return nil, ErrNotImplemented
+}
+
 func (c notImplCloudClient) DeleteVPC(_ context.Context, _ DeleteVPCArgs) error {
 	return ErrNotImplemented
 }

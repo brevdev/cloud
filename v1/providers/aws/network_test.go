@@ -50,10 +50,10 @@ func TestCreateVPC(t *testing.T) {
 		Location:  location,
 		CidrBlock: "10.0.0.0/16",
 		Subnets: []v1.CreateSubnetArgs{
-			{Name: "cloud-sdk-test-public-1", CidrBlock: "10.0.0.0/24", Type: v1.SubnetTypePublic},
-			{Name: "cloud-sdk-test-private-1", CidrBlock: "10.0.1.0/24", Type: v1.SubnetTypePrivate},
-			{Name: "cloud-sdk-test-public-2", CidrBlock: "10.0.2.0/24", Type: v1.SubnetTypePublic},
-			{Name: "cloud-sdk-test-private-2", CidrBlock: "10.0.3.0/24", Type: v1.SubnetTypePrivate},
+			{CidrBlock: "10.0.0.0/24", Type: v1.SubnetTypePublic},
+			{CidrBlock: "10.0.1.0/24", Type: v1.SubnetTypePrivate},
+			{CidrBlock: "10.0.2.0/24", Type: v1.SubnetTypePublic},
+			{CidrBlock: "10.0.3.0/24", Type: v1.SubnetTypePrivate},
 		},
 	})
 	if err != nil {
@@ -67,7 +67,6 @@ func TestCreateVPC(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get VPC: %v", err)
 	}
-	fmt.Println("VPC retrieved")
 
 	err = awsClient.DeleteVPC(context.Background(), v1.DeleteVPCArgs{
 		VPC: &v1.VPC{
@@ -78,6 +77,4 @@ func TestCreateVPC(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to delete VPC: %v", err)
 	}
-
-	fmt.Println("VPC deleted")
 }

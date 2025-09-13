@@ -16,6 +16,7 @@ const (
 	tagBrevRefID      = "brev-ref-id"
 	tagBrevVPCID      = "brev-vpc-id"
 	tagBrevSubnetType = "brev-subnet-type"
+	tagBrevCloudSDK   = "brev-cloud-sdk"
 
 	natGatewayDeleteWaitInterval = 10 * time.Second
 	natGatewayCreateWaitInterval = 10 * time.Second
@@ -71,6 +72,7 @@ func createVPC(ctx context.Context, awsClient *ec2.Client, name string, cidrBloc
 	tags := makeTags(map[string]string{
 		"Name":       name,
 		tagBrevRefID: brevRefID,
+		"CreatedBy":  tagBrevCloudSDK,
 	})
 
 	input := &ec2.CreateVpcInput{
@@ -125,6 +127,7 @@ func createInternetGateway(ctx context.Context, awsClient *ec2.Client, vpc *type
 	tags := makeTags(map[string]string{
 		"Name":       fmt.Sprintf("%s-public", *vpc.VpcId),
 		tagBrevVPCID: *vpc.VpcId,
+		"CreatedBy":  tagBrevCloudSDK,
 	})
 
 	createInput := &ec2.CreateInternetGatewayInput{
@@ -208,8 +211,10 @@ func createCompleteVPC(ctx context.Context, awsClient *ec2.Client, args v1.Creat
 
 func createPublicSubnet(ctx context.Context, awsClient *ec2.Client, vpc *types.Vpc, args v1.CreateSubnetArgs) (*types.Subnet, error) {
 	tags := makeTags(map[string]string{
+		"Name":            fmt.Sprintf("%s-public", *vpc.VpcId),
 		tagBrevVPCID:      *vpc.VpcId,
 		tagBrevSubnetType: string(args.Type),
+		"CreatedBy":       tagBrevCloudSDK,
 	})
 	input := &ec2.CreateSubnetInput{
 		VpcId:     vpc.VpcId,
@@ -280,6 +285,7 @@ func getOrCreatePublicRouteTable(ctx context.Context, awsClient *ec2.Client, vpc
 	tags := makeTags(map[string]string{
 		"Name":       rtNameTag,
 		tagBrevVPCID: *vpc.VpcId,
+		"CreatedBy":  tagBrevCloudSDK,
 	})
 	input := &ec2.CreateRouteTableInput{
 		VpcId: aws.String(*vpc.VpcId),
@@ -348,7 +354,8 @@ func getOrCreateInternetGateway(ctx context.Context, awsClient *ec2.Client, vpc 
 
 	// If there is no internet gateway, create one
 	tags := makeTags(map[string]string{
-		"Name": igwNameTag,
+		"Name":      igwNameTag,
+		"CreatedBy": tagBrevCloudSDK,
 	})
 	input := &ec2.CreateInternetGatewayInput{
 		TagSpecifications: []types.TagSpecification{
@@ -368,8 +375,10 @@ func getOrCreateInternetGateway(ctx context.Context, awsClient *ec2.Client, vpc 
 
 func createPrivateSubnet(ctx context.Context, awsClient *ec2.Client, vpc *types.Vpc, natGatewaySubnet *types.Subnet, args v1.CreateSubnetArgs) (*types.Subnet, error) {
 	subnetTags := makeTags(map[string]string{
+		"Name":            fmt.Sprintf("%s-private", *vpc.VpcId),
 		tagBrevVPCID:      *vpc.VpcId,
 		tagBrevSubnetType: string(args.Type),
+		"CreatedBy":       tagBrevCloudSDK,
 	})
 	createSubnetInput := &ec2.CreateSubnetInput{
 		VpcId:            vpc.VpcId,
@@ -397,6 +406,7 @@ func createPrivateSubnet(ctx context.Context, awsClient *ec2.Client, vpc *types.
 	routeTableTags := makeTags(map[string]string{
 		"Name":       fmt.Sprintf("%s-private", *vpc.VpcId),
 		tagBrevVPCID: *vpc.VpcId,
+		"CreatedBy":  tagBrevCloudSDK,
 	})
 	createRouteTableInput := &ec2.CreateRouteTableInput{
 		VpcId: aws.String(*vpc.VpcId),
@@ -449,6 +459,7 @@ func createNatGateway(ctx context.Context, awsClient *ec2.Client, vpc *types.Vpc
 	natGatewayTags := makeTags(map[string]string{
 		"Name":       fmt.Sprintf("%s-nat", *vpc.VpcId),
 		tagBrevVPCID: *vpc.VpcId,
+		"CreatedBy":  tagBrevCloudSDK,
 	})
 	createNatGatewayInput := &ec2.CreateNatGatewayInput{
 		SubnetId:     subnet.SubnetId,
@@ -497,14 +508,14 @@ func (c *AWSClient) GetVPC(ctx context.Context, args v1.GetVPCArgs) (*v1.VPC, er
 		return nil, err
 	}
 
-	nameTag := ""
-	refIDTag := ""
+	brevVPCName := ""
+	brevRefID := ""
 	for _, tag := range awsVPC.Tags {
 		if *tag.Key == "Name" {
-			nameTag = *tag.Value
+			brevVPCName = *tag.Value
 		}
 		if *tag.Key == tagBrevRefID {
-			refIDTag = *tag.Value
+			brevRefID = *tag.Value
 		}
 	}
 
@@ -513,9 +524,14 @@ func (c *AWSClient) GetVPC(ctx context.Context, args v1.GetVPCArgs) (*v1.VPC, er
 		return nil, err
 	}
 
+	subnets, err := getVPCSubnets(ctx, awsClient, awsVPC)
+	if err != nil {
+		return nil, err
+	}
+
 	return &v1.VPC{
-		RefID:          refIDTag,
-		Name:           nameTag,
+		RefID:          brevRefID,
+		Name:           brevVPCName,
 		Location:       args.Location,
 		CloudID:        *awsVPC.VpcId,
 		CloudCredRefID: c.GetReferenceID(),
@@ -523,6 +539,7 @@ func (c *AWSClient) GetVPC(ctx context.Context, args v1.GetVPCArgs) (*v1.VPC, er
 		Cloud:          CloudProviderID,
 		CidrBlock:      *awsVPC.CidrBlock,
 		Status:         status,
+		Subnets:        subnets,
 	}, nil
 }
 
@@ -584,6 +601,42 @@ func getVPCStatus(ctx context.Context, awsClient *ec2.Client, awsVPC *types.Vpc)
 	}
 
 	return v1.VPCStatusAvailable, nil
+}
+
+func getVPCSubnets(ctx context.Context, awsClient *ec2.Client, awsVPC *types.Vpc) ([]v1.Subnet, error) {
+	describeSubnetsOutput, err := awsClient.DescribeSubnets(ctx, &ec2.DescribeSubnetsInput{
+		Filters: []types.Filter{
+			{
+				Name:   aws.String("vpc-id"),
+				Values: []string{*awsVPC.VpcId},
+			},
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	subnets := make([]v1.Subnet, 0)
+	for _, subnet := range describeSubnetsOutput.Subnets {
+		var subnetType v1.SubnetType
+
+		// Get subnet type tag
+		for _, tag := range subnet.Tags {
+			if *tag.Key == tagBrevSubnetType {
+				subnetType = v1.SubnetType(*tag.Value)
+				break
+			}
+		}
+
+		subnets = append(subnets, v1.Subnet{
+			CloudID:   *subnet.SubnetId,
+			VPCID:     *awsVPC.VpcId,
+			Location:  *subnet.AvailabilityZone,
+			CidrBlock: *subnet.CidrBlock,
+			Type:      subnetType,
+		})
+	}
+	return subnets, nil
 }
 
 func (c *AWSClient) DeleteVPC(ctx context.Context, args v1.DeleteVPCArgs) error {
