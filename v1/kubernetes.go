@@ -62,6 +62,7 @@ const (
 
 type CreateClusterArgs struct {
 	Name              string
+	RefID             string
 	VPCID             string
 	SubnetIDs         []string
 	KubernetesVersion string

@@ -5,21 +5,11 @@ import (
 	"fmt"
 	"time"
 
-	v1 "github.com/brevdev/cloud/v1"
-
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
-)
 
-const (
-	tagBrevRefID      = "brev-ref-id"
-	tagBrevVPCID      = "brev-vpc-id"
-	tagBrevSubnetType = "brev-subnet-type"
-	tagBrevCloudSDK   = "brev-cloud-sdk"
-
-	natGatewayDeleteWaitInterval = 10 * time.Second
-	natGatewayCreateWaitInterval = 10 * time.Second
+	v1 "github.com/brevdev/cloud/v1"
 )
 
 func (c *AWSClient) CreateVPC(ctx context.Context, args v1.CreateVPCArgs) (*v1.VPC, error) {
@@ -69,7 +59,7 @@ func filterSubnetArgs(subnets []v1.CreateSubnetArgs, subnetType v1.SubnetType) [
 }
 
 func createVPC(ctx context.Context, awsClient *ec2.Client, name string, cidrBlock string, brevRefID string) (*types.Vpc, error) {
-	tags := makeTags(map[string]string{
+	tags := makeEC2Tags(map[string]string{
 		"Name":       name,
 		tagBrevRefID: brevRefID,
 		"CreatedBy":  tagBrevCloudSDK,
@@ -124,7 +114,7 @@ func enableVPCDNSHostnames(ctx context.Context, awsClient *ec2.Client, vpc *type
 }
 
 func createInternetGateway(ctx context.Context, awsClient *ec2.Client, vpc *types.Vpc) (*types.InternetGateway, error) {
-	tags := makeTags(map[string]string{
+	tags := makeEC2Tags(map[string]string{
 		"Name":       fmt.Sprintf("%s-public", *vpc.VpcId),
 		tagBrevVPCID: *vpc.VpcId,
 		"CreatedBy":  tagBrevCloudSDK,
@@ -210,7 +200,7 @@ func createCompleteVPC(ctx context.Context, awsClient *ec2.Client, args v1.Creat
 }
 
 func createPublicSubnet(ctx context.Context, awsClient *ec2.Client, vpc *types.Vpc, args v1.CreateSubnetArgs) (*types.Subnet, error) {
-	tags := makeTags(map[string]string{
+	tags := makeEC2Tags(map[string]string{
 		"Name":            fmt.Sprintf("%s-public", *vpc.VpcId),
 		tagBrevVPCID:      *vpc.VpcId,
 		tagBrevSubnetType: string(args.Type),
@@ -282,7 +272,7 @@ func getOrCreatePublicRouteTable(ctx context.Context, awsClient *ec2.Client, vpc
 	}
 
 	// If there is no public route table, create one
-	tags := makeTags(map[string]string{
+	tags := makeEC2Tags(map[string]string{
 		"Name":       rtNameTag,
 		tagBrevVPCID: *vpc.VpcId,
 		"CreatedBy":  tagBrevCloudSDK,
@@ -353,7 +343,7 @@ func getOrCreateInternetGateway(ctx context.Context, awsClient *ec2.Client, vpc 
 	}
 
 	// If there is no internet gateway, create one
-	tags := makeTags(map[string]string{
+	tags := makeEC2Tags(map[string]string{
 		"Name":      igwNameTag,
 		"CreatedBy": tagBrevCloudSDK,
 	})
@@ -374,7 +364,7 @@ func getOrCreateInternetGateway(ctx context.Context, awsClient *ec2.Client, vpc 
 }
 
 func createPrivateSubnet(ctx context.Context, awsClient *ec2.Client, vpc *types.Vpc, natGatewaySubnet *types.Subnet, args v1.CreateSubnetArgs) (*types.Subnet, error) {
-	subnetTags := makeTags(map[string]string{
+	subnetTags := makeEC2Tags(map[string]string{
 		"Name":            fmt.Sprintf("%s-private", *vpc.VpcId),
 		tagBrevVPCID:      *vpc.VpcId,
 		tagBrevSubnetType: string(args.Type),
@@ -403,7 +393,7 @@ func createPrivateSubnet(ctx context.Context, awsClient *ec2.Client, vpc *types.
 	}
 
 	// Create a private route table
-	routeTableTags := makeTags(map[string]string{
+	routeTableTags := makeEC2Tags(map[string]string{
 		"Name":       fmt.Sprintf("%s-private", *vpc.VpcId),
 		tagBrevVPCID: *vpc.VpcId,
 		"CreatedBy":  tagBrevCloudSDK,
@@ -456,7 +446,7 @@ func createNatGateway(ctx context.Context, awsClient *ec2.Client, vpc *types.Vpc
 	}
 
 	// Create the NAT Gateway in the provided subnet
-	natGatewayTags := makeTags(map[string]string{
+	natGatewayTags := makeEC2Tags(map[string]string{
 		"Name":       fmt.Sprintf("%s-nat", *vpc.VpcId),
 		tagBrevVPCID: *vpc.VpcId,
 		"CreatedBy":  tagBrevCloudSDK,
@@ -479,19 +469,15 @@ func createNatGateway(ctx context.Context, awsClient *ec2.Client, vpc *types.Vpc
 	natGateway := createNatGatewayOutput.NatGateway
 
 	// Wait for the NAT Gateway to be available
-	for {
-		describeNatGatewaysOutput, err := awsClient.DescribeNatGateways(ctx, &ec2.DescribeNatGatewaysInput{
-			NatGatewayIds: []string{*natGateway.NatGatewayId},
-		})
-		if err != nil {
-			return nil, err
-		}
-
-		if describeNatGatewaysOutput.NatGateways[0].State == types.NatGatewayStateAvailable {
-			break
-		}
-
-		time.Sleep(natGatewayCreateWaitInterval)
+	w := ec2.NewNatGatewayAvailableWaiter(awsClient, func(o *ec2.NatGatewayAvailableWaiterOptions) {
+		o.MaxDelay = 10 * time.Second
+		o.MinDelay = 10 * time.Second
+	})
+	err = w.Wait(ctx, &ec2.DescribeNatGatewaysInput{
+		NatGatewayIds: []string{*natGateway.NatGatewayId},
+	}, 10*time.Minute)
+	if err != nil {
+		return nil, err
 	}
 
 	return natGateway, nil
@@ -713,17 +699,15 @@ func deleteNATGateways(ctx context.Context, awsClient *ec2.Client, vpcID string)
 		}
 
 		// Wait until the NAT Gateway is deleted
-		for {
-			describeNatGatewaysOutput, err = awsClient.DescribeNatGateways(ctx, &ec2.DescribeNatGatewaysInput{
-				NatGatewayIds: []string{*natGateway.NatGatewayId},
-			})
-			if err != nil {
-				return err
-			}
-			if describeNatGatewaysOutput.NatGateways[0].State == types.NatGatewayStateDeleted {
-				break
-			}
-			time.Sleep(natGatewayDeleteWaitInterval)
+		w := ec2.NewNatGatewayDeletedWaiter(awsClient, func(o *ec2.NatGatewayDeletedWaiterOptions) {
+			o.MaxDelay = 10 * time.Second
+			o.MinDelay = 10 * time.Second
+		})
+		err = w.Wait(ctx, &ec2.DescribeNatGatewaysInput{
+			NatGatewayIds: []string{*natGateway.NatGatewayId},
+		}, 10*time.Minute)
+		if err != nil {
+			return err
 		}
 
 		// Release the Elastic IP address
@@ -833,7 +817,7 @@ func deleteRouteTables(ctx context.Context, awsClient *ec2.Client, vpcID string)
 	return nil
 }
 
-func makeTags(tags map[string]string) []types.Tag {
+func makeEC2Tags(tags map[string]string) []types.Tag {
 	awsTags := make([]types.Tag, 0, len(tags))
 	for key, value := range tags {
 		awsTags = append(awsTags, types.Tag{Key: aws.String(key), Value: aws.String(value)})
