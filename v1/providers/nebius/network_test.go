@@ -25,12 +25,12 @@ func TestCreateVPC(t *testing.T) {
 		Name:      "cloud-sdk-test",
 		RefID:     "cloud-sdk-test",
 		Location:  "eu-north1",
-		CidrBlock: "10.0.0.0/16",
+		CidrBlock: "172.16.0.0/16",
 		Subnets: []v1.CreateSubnetArgs{
-			{CidrBlock: "10.0.0.0/24", Type: v1.SubnetTypePublic},
-			{CidrBlock: "10.0.1.0/24", Type: v1.SubnetTypePrivate},
-			{CidrBlock: "10.0.2.0/24", Type: v1.SubnetTypePublic},
-			{CidrBlock: "10.0.3.0/24", Type: v1.SubnetTypePrivate},
+			{CidrBlock: "172.16.0.0/24", Type: v1.SubnetTypePublic},
+			{CidrBlock: "172.16.1.0/24", Type: v1.SubnetTypePrivate},
+			{CidrBlock: "172.16.2.0/24", Type: v1.SubnetTypePublic},
+			{CidrBlock: "172.16.3.0/24", Type: v1.SubnetTypePrivate},
 		},
 	})
 	if err != nil {
@@ -53,7 +53,7 @@ func TestGetVPC(t *testing.T) {
 	}
 
 	vpc, err := nebiusClient.GetVPC(context.Background(), v1.GetVPCArgs{
-		CloudID: "vpcnetwork-e00g39sp5rk783qf2q",
+		RefID: "cloud-sdk-test",
 	})
 	if err != nil {
 		t.Fatalf("failed to get VPC: %v", err)
