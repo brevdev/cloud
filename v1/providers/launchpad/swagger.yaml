@@ -1,0 +1,714 @@
+openapi: 3.0.0
+info:
+  title: Vast.ai API
+  version: 1.0.0
+security:
+  - VastAPIKey: []
+servers:
+  - url: 'https://console.vast.ai/api/v0'
+paths:
+  /bundles/:
+    post:
+      summary: >-
+        Search for available GPUs to rent. Default options available for any
+        parameter are gt, gte, lt, lte, and eq. Multiple options can be used
+        simultaneously per filter.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InstanceSearch'
+            examples:
+              example:
+                value:
+                  verified:
+                    eq: true
+                  external:
+                    eq: false
+                  rentable:
+                    eq: true
+                  compute_cap:
+                    gt: 600
+                  disk_space:
+                    gt: 10000
+                  order:
+                    - - score
+                      - desc
+                  type: on-demand
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OfferResponse'
+    get:
+      summary: >-
+        Search for available GPUs to rent using an encoded JSON string. It uses
+        the same parameters and comparison strings as the post request
+      parameters:
+        - in: query
+          name: q
+          schema:
+            type: string
+          required: true
+          description: JSON encoded string of search params
+          example: >-
+            {"verified": {"eq": true}, "external": {"eq": false}, "rentable":
+            {"eq": true}, "compute_cap": {"gt": "600"}, "disk_space": {"gt":
+            "10000"}, "order": [["score", "desc"]], "type": "on-demand"}
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OfferResponse'
+  /instances/:
+    get:
+      summary: Retrieve a list of instances owned by a user
+      responses:
+        '200':
+          description: An array of instance objects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GetInstancesResponse'
+  /asks/{id}/:
+    put:
+      summary: Create an instance given the ID of a machine
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: The ID of the instance we want to rent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateInstanceRequest'
+            examples:
+              example:
+                value:
+                  client_id: me
+                  image: >-
+                    pytorch/pytorch:latest
+                  env:
+                    '-p 8888:80': '1'
+                  disk: 100
+                  onstart: sed -i '/^PS1=/d' ~/.bashrc && source ~/.bashrc && ./run.sh
+                  runtype: ssh ssh_direc ssh_proxy
+                  use_jupyter_lab: true
+      responses:
+        '200':
+          description: Instance successfully created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateInstanceResponse'
+  /instances/{id}/:
+    delete:
+      summary: Delete an instance by its ID
+      parameters: 
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: ID of instance to delete
+      responses:
+        '200':
+          description: Instance Deleted Successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteInstanceResponse'
+components:
+  schemas:
+    OfferResponse:
+      type: object
+      properties:
+        offers:
+          type: array
+          items:
+            $ref: '#/components/schemas/Offer'
+    DeleteInstanceResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: Indicates if the instance deletion was successful
+    CreateInstanceResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: Indicates if the instance creation was successful
+        new_contract:
+          type: number
+          description: ID of the new contract
+    CreateInstanceRequest:
+      type: object
+      properties:
+        client_id:
+          type: string
+          description: The client creating the instance.
+        image:
+          type: string
+          description: Docker container image to launch.
+        env:
+          type: object
+          additionalProperties:
+            type: string
+          description: Environment variables and port mapping options.
+        price:
+          type: number
+          description: Per machine bid price in $/hour.
+        disk:
+          type: number
+          description: Size of local disk partition in GB.
+        label:
+          type: string
+          description: Label to set on the instance.
+        onstart:
+          type: string
+          description: Filename to use as onstart script.
+        runtype:
+          type: string
+          description: Type of instance to launch.
+        image_login:
+          type: string
+          description: Docker login arguments for private repo authentication.
+        python_utf8:
+          type: boolean
+          description: >-
+            Workaround for images with locale problems set Python's locale to
+            C.UTF-8.
+        lang_utf8:
+          type: boolean
+          description: >-
+            Workaround for images with locale problems install and generate
+            locales before instance launch, and set locale to C.UTF-8.
+        use_jupyter_lab:
+          type: boolean
+          description: 'For runtype ''jupyter'', launch instance with Jupyter Lab.'
+        jupyter_dir:
+          type: string
+          description: >-
+            For runtype 'jupyter', directory in instance to use to launch
+            Jupyter.
+        create_from:
+          type: string
+          description: Existing instance ID to use as a basis for the new instance.
+        force:
+          type: boolean
+          description: Skip sanity checks when creating from an existing instance.
+    Port:
+      type: object
+      properties:
+        HostIp:
+          type: string
+        HostPort:
+          type: string
+      required:
+        - HostIp
+        - HostPort
+    Ports:
+      type: object
+      additionalProperties:
+        type: array
+        items:
+          $ref: '#/components/schemas/Port'
+    GetInstancesResponse:
+      type: object
+      properties:
+        is_bid:
+          type: boolean
+        inet_up_billed:
+          type: string
+          nullable: true
+        inet_down_billed:
+          type: string
+          nullable: true
+        external:
+          type: boolean
+        webpage:
+          type: string
+          nullable: true
+        logo:
+          type: string
+        rentable:
+          type: boolean
+        compute_cap:
+          type: number
+        credit_balance:
+          type: number
+          nullable: true
+        credit_discount:
+          type: number
+          nullable: true
+        credit_discount_max:
+          type: number
+        driver_version:
+          type: string
+        cuda_max_good:
+          type: number
+        machine_id:
+          type: number
+        hosting_type:
+          type: string
+          nullable: true
+        public_ipaddr:
+          type: string
+        geolocation:
+          type: string
+        flops_per_dphtotal:
+          type: number
+        dlperf_per_dphtotal:
+          type: number
+        reliability2:
+          type: number
+        host_run_time:
+          type: number
+        client_run_time:
+          type: number
+        host_id:
+          type: number
+        id:
+          type: number
+        bundle_id:
+          type: number
+        num_gpus:
+          type: number
+        total_flops:
+          type: number
+        min_bid:
+          type: number
+        dph_base:
+          type: number
+        dph_total:
+          type: number
+        gpu_name:
+          type: string
+        gpu_ram:
+          type: number
+        gpu_totalram:
+          type: number
+        vram_costperhour:
+          type: number
+        gpu_display_active:
+          type: boolean
+        gpu_mem_bw:
+          type: number
+        bw_nvlink:
+          type: number
+        direct_port_count:
+          type: number
+        gpu_lanes:
+          type: number
+        pcie_bw:
+          type: number
+        pci_gen:
+          type: number
+        dlperf:
+          type: number
+        cpu_name:
+          type: string
+        mobo_name:
+          type: string
+        cpu_ram:
+          type: number
+        cpu_cores:
+          type: number
+        cpu_cores_effective:
+          type: number
+        gpu_frac:
+          type: number
+        has_avx:
+          type: number
+        disk_space:
+          type: number
+        disk_name:
+          type: string
+        disk_bw:
+          type: number
+        inet_up:
+          type: number
+        inet_down:
+          type: number
+        start_date:
+          type: number
+        end_date:
+          type: number
+        duration:
+          type: number
+        storage_cost:
+          type: number
+        inet_up_cost:
+          type: number
+        inet_down_cost:
+          type: number
+        storage_total_cost:
+          type: number
+        os_version:
+          type: string
+        verification:
+          type: string
+        static_ip:
+          type: boolean
+        score:
+          type: number
+        cpu_arch:
+          type: string
+        ssh_idx:
+          type: string
+        ssh_host:
+          type: string
+        ssh_port:
+          type: number
+        actual_status:
+          type: string
+          nullable: true
+        intended_status:
+          type: string
+        cur_state:
+          type: string
+        next_state:
+          type: string
+        template_hash_id:
+          type: string
+        image_uuid:
+          type: string
+        image_args:
+          type: array
+          items:
+            type: string
+        image_runtype:
+          type: string
+        extra_env:
+          type: array
+          items:
+            type: array
+            items:
+              type: string
+        onstart:
+          type: string
+        label:
+          type: string
+          nullable: true
+        jupyter_token:
+          type: string
+        status_msg:
+          type: string
+          nullable: true
+        gpu_util:
+          type: number
+          nullable: true
+        disk_util:
+          type: number
+        disk_usage:
+          type: number
+        gpu_temp:
+          type: number
+          nullable: true
+        local_ipaddrs:
+          type: string
+        direct_port_end:
+          type: number
+        direct_port_start:
+          type: number
+        cpu_util:
+          type: number
+        mem_usage:
+          type: number
+          nullable: true
+        mem_limit:
+          type: number
+          nullable: true
+        vmem_usage:
+          type: number
+          nullable: true
+        machine_dir_ssh_port:
+          type: number
+        ports:
+          $ref: '#/components/schemas/Ports'
+    InstanceSearch:
+      type: object
+      properties:
+        verified:
+          $ref: '#/components/schemas/BooleanFilter'
+        compute_cap:
+          $ref: '#/components/schemas/NumericFilter'
+        disk_space:
+          $ref: '#/components/schemas/NumericFilter'
+        order:
+          type: array
+          items:
+            type: array
+            items:
+              type: string
+        type:
+          type: string
+        bw_nvlink:
+          $ref: '#/components/schemas/NumericFilter'
+        cpu_cores:
+          $ref: '#/components/schemas/NumericFilter'
+        cpu_cores_effective:
+          $ref: '#/components/schemas/NumericFilter'
+        cpu_ram:
+          $ref: '#/components/schemas/NumericFilter'
+        cuda_vers:
+          $ref: '#/components/schemas/NumericFilter'
+        direct_port_count:
+          $ref: '#/components/schemas/NumericFilter'
+        disk_bw:
+          $ref: '#/components/schemas/NumericFilter'
+        dlperf:
+          $ref: '#/components/schemas/NumericFilter'
+        dlperf_usd:
+          $ref: '#/components/schemas/NumericFilter'
+        dph:
+          $ref: '#/components/schemas/NumericFilter'
+        driver_version:
+          type: string
+        duration:
+          $ref: '#/components/schemas/NumericFilter'
+        external:
+          $ref: '#/components/schemas/BooleanFilter'
+        flops_usd:
+          $ref: '#/components/schemas/NumericFilter'
+        gpu_mem_bw:
+          $ref: '#/components/schemas/NumericFilter'
+        gpu_name:
+          type: string
+        gpu_ram:
+          $ref: '#/components/schemas/NumericFilter'
+        gpu_frac:
+          $ref: '#/components/schemas/NumericFilter'
+        has_avx:
+          $ref: '#/components/schemas/BooleanFilter'
+        id:
+          $ref: '#/components/schemas/NumericFilter'
+        inet_down:
+          $ref: '#/components/schemas/NumericFilter'
+        inet_down_cost:
+          $ref: '#/components/schemas/NumericFilter'
+        inet_up:
+          $ref: '#/components/schemas/NumericFilter'
+        inet_up_cost:
+          $ref: '#/components/schemas/NumericFilter'
+        machine_id:
+          $ref: '#/components/schemas/NumericFilter'
+        min_bid:
+          $ref: '#/components/schemas/NumericFilter'
+        num_gpus:
+          $ref: '#/components/schemas/NumericFilter'
+        pci_gen:
+          $ref: '#/components/schemas/NumericFilter'
+        pcie_bw:
+          $ref: '#/components/schemas/NumericFilter'
+        reliability:
+          $ref: '#/components/schemas/NumericFilter'
+        rentable:
+          $ref: '#/components/schemas/BooleanFilter'
+        rented:
+          $ref: '#/components/schemas/BooleanFilter'
+        storage_cost:
+          $ref: '#/components/schemas/NumericFilter'
+        total_flops:
+          $ref: '#/components/schemas/NumericFilter'
+    BooleanFilter:
+      type: object
+      properties:
+        eq:
+          type: boolean
+    NumericFilter:
+      type: object
+      description: >
+        A filter object that must contain at least one of the following
+        properties: `gt`, `gte`, `lt`, `lte`. 
+
+        The `eq` property is a boolean indicating equality. At least one
+        property is required.
+      properties:
+        gt:
+          type: number
+        gte:
+          type: number
+        lt:
+          type: number
+        lte:
+          type: number
+        eq:
+          type: boolean
+    Offer:
+      type: object
+      properties:
+        id:
+          type: number
+        ask_contract_id:
+          type: number
+        bundle_id:
+          type: number
+        bundled_results:
+          type: number
+          nullable: true
+        bw_nvlink:
+          type: number
+        compute_cap:
+          type: number
+        cpu_arch:
+          type: string
+        cpu_cores:
+          type: number
+        cpu_cores_effective:
+          type: number
+        cpu_ghz:
+          type: number
+        cpu_name:
+          type: string
+        cpu_ram:
+          type: number
+        credit_discount_max:
+          type: number
+        cuda_max_good:
+          type: number
+        direct_port_count:
+          type: number
+        disk_bw:
+          type: number
+        disk_name:
+          type: string
+        disk_space:
+          type: number  
+        dlperf:
+          type: number
+        dlperf_per_dphtotal:
+          type: number
+        dph_base:
+          type: number
+        dph_total:
+          type: number
+        driver_version:
+          type: string
+        driver_vers:
+          type: number
+        duration:
+          type: number
+        end_date:
+          type: number
+        external:
+          type: string
+          nullable: true
+        flops_per_dphtotal:
+          type: number
+        geolocation:
+          type: string
+        geolocode:
+          type: number
+        gpu_arch:
+          type: string
+        gpu_display_active:
+          type: boolean
+        gpu_frac:
+          type: number
+        gpu_ids:
+          type: array
+          items:
+            type: integer
+        gpu_lanes:
+          type: number
+        gpu_mem_bw:
+          type: number
+        gpu_name:
+          type: string
+        gpu_ram:
+          type: number
+        gpu_total_ram:
+          type: number
+        has_avx: 
+          type: number
+        host_id:
+          type: number
+        hosting_type:
+          type: number
+        hostname:
+          type: string
+          nullable: true
+        inet_down:
+          type: number
+        inet_down_cost:
+          type: number
+        inet_up:
+          type: number
+        inet_up_cost:
+          type: number
+        is_bid:
+          type: boolean
+        logo:
+          type: string
+        machine_id:
+          type: number
+        min_bid:
+          type: number
+        mobo_name:
+          type: string
+        num_gpus:
+          type: number
+        os_version: 
+          type: string
+        pci_gen:
+          type: number
+        pcie_bw:
+          type: number
+        public_ipaddr:
+          type: string
+        reliability:
+          type: number
+        reliability_mult:
+          type: number
+        rentable:
+          type: boolean
+        rented: 
+          type: boolean
+        score:
+          type: number
+        start_date:
+          type: number
+        static_ip: 
+          type: boolean
+        storage_cost:
+          type: number
+        storage_total_cost:
+          type: number
+        total_flops:
+          type: number
+        verification:
+          type: string
+        vericode:
+          type: number
+        vram_costperhour:
+          type: number
+        webpage:
+          type: string
+          nullable: true
+        rn:
+          type: number
+        reliability2:
+          type: number
+        discount_rate:
+          type: number
+        discounted_hourly:
+          type: number
+        discounted_dph_total:
+          type: number
+  securitySchemes:
+    VastAPIKey:
+      type: http
+      scheme: bearer

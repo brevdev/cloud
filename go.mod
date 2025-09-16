@@ -10,12 +10,15 @@ require (
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/gliderlabs/ssh v0.3.8
+	github.com/go-ozzo/ozzo-validation/v4 v4.3.0
 	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0
 	github.com/jarcoal/httpmock v1.4.0
 	github.com/nebius/gosdk v0.0.0-20250826102719-940ad1dfb5de
+	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.11.0
 	golang.org/x/crypto v0.41.0
+	gopkg.in/validator.v2 v2.0.1
 )
 
 require (

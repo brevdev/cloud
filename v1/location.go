@@ -3,6 +3,7 @@ package v1
 import (
 	"context"
 	"fmt"
+	"slices"
 )
 
 type CloudLocation interface {
@@ -26,13 +27,20 @@ type LocationsFilter []string
 
 var All = []string{"all"}
 
-func (l LocationsFilter) IsAll() bool {
-	for _, v := range l {
+func (f LocationsFilter) IsAll() bool {
+	for _, v := range f {
 		if v == "*" || v == "all" {
 			return true
 		}
 	}
 	return false
+}
+
+func (f LocationsFilter) IsAllowed(location string) bool {
+	if f.IsAll() {
+		return true
+	}
+	return slices.Contains(f, location)
 }
 
 // ValidateGetLocations validates that the CloudLocation implementation returns at least one available location without error.
