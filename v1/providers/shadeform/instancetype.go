@@ -186,6 +186,23 @@ func (c *ShadeformClient) convertShadeformInstanceTypeToV1InstanceType(shadeform
 	cloud := shadeformCloud(shadeformInstanceType.Cloud)
 	architecture := shadeformArchitecture(gpuName)
 
+	var estimatedDeployTime *time.Duration
+	if shadeformInstanceType.BootTime != nil {
+		minSec := shadeformInstanceType.BootTime.MinBootInSec
+		maxSec := shadeformInstanceType.BootTime.MaxBootInSec
+		if minSec != nil && maxSec != nil { //nolint:gocritic // if else fine
+			avg := (*minSec + *maxSec) / 2
+			avgDuration := time.Duration(avg) * time.Second
+			estimatedDeployTime = &avgDuration
+		} else if minSec != nil {
+			d := time.Duration(*minSec) * time.Second
+			estimatedDeployTime = &d
+		} else if maxSec != nil {
+			d := time.Duration(*maxSec) * time.Second
+			estimatedDeployTime = &d
+		}
+	}
+
 	for _, region := range shadeformInstanceType.Availability {
 		instanceTypes = append(instanceTypes, v1.InstanceType{
 			ID:     v1.InstanceTypeID(c.getInstanceTypeID(instanceType, region.Region)),
@@ -216,6 +233,7 @@ func (c *ShadeformClient) convertShadeformInstanceTypeToV1InstanceType(shadeform
 			Location:               region.Region,
 			Provider:               CloudProviderID,
 			Cloud:                  cloud,
+			EstimatedDeployTime:    estimatedDeployTime,
 		})
 	}
 
