@@ -170,22 +170,7 @@ func (c *ShadeformClient) getShadeformCloudAndInstanceType(instanceType string) 
 	return shadeformCloud, shadeformInstanceType, nil
 }
 
-// convertShadeformInstanceTypeToV1InstanceTypes - converts a shadeform returned instance type to a specific instance type and region of availability
-func (c *ShadeformClient) convertShadeformInstanceTypeToV1InstanceType(shadeformInstanceType openapi.InstanceType) ([]v1.InstanceType, error) {
-	instanceType := c.getInstanceType(string(shadeformInstanceType.Cloud), shadeformInstanceType.ShadeInstanceType)
-
-	instanceTypes := []v1.InstanceType{}
-
-	basePrice, err := convertHourlyPriceToAmount(shadeformInstanceType.HourlyPrice)
-	if err != nil {
-		return nil, err
-	}
-
-	gpuName := shadeformGPUTypeToBrevGPUName(shadeformInstanceType.Configuration.GpuType)
-	gpuManufacturer := v1.GetManufacturer(shadeformInstanceType.Configuration.GpuManufacturer)
-	cloud := shadeformCloud(shadeformInstanceType.Cloud)
-	architecture := shadeformArchitecture(gpuName)
-
+func (c *ShadeformClient) getEstimatedDeployTime(shadeformInstanceType openapi.InstanceType) *time.Duration {
 	var estimatedDeployTime *time.Duration
 	if shadeformInstanceType.BootTime != nil {
 		minSec := shadeformInstanceType.BootTime.MinBootInSec
@@ -202,6 +187,26 @@ func (c *ShadeformClient) convertShadeformInstanceTypeToV1InstanceType(shadeform
 			estimatedDeployTime = &d
 		}
 	}
+	return estimatedDeployTime
+}
+
+// convertShadeformInstanceTypeToV1InstanceTypes - converts a shadeform returned instance type to a specific instance type and region of availability
+func (c *ShadeformClient) convertShadeformInstanceTypeToV1InstanceType(shadeformInstanceType openapi.InstanceType) ([]v1.InstanceType, error) {
+	instanceType := c.getInstanceType(string(shadeformInstanceType.Cloud), shadeformInstanceType.ShadeInstanceType)
+
+	instanceTypes := []v1.InstanceType{}
+
+	basePrice, err := convertHourlyPriceToAmount(shadeformInstanceType.HourlyPrice)
+	if err != nil {
+		return nil, err
+	}
+
+	gpuName := shadeformGPUTypeToBrevGPUName(shadeformInstanceType.Configuration.GpuType)
+	gpuManufacturer := v1.GetManufacturer(shadeformInstanceType.Configuration.GpuManufacturer)
+	cloud := shadeformCloud(shadeformInstanceType.Cloud)
+	architecture := shadeformArchitecture(gpuName)
+
+	estimatedDeployTime := c.getEstimatedDeployTime(shadeformInstanceType)
 
 	for _, region := range shadeformInstanceType.Availability {
 		instanceTypes = append(instanceTypes, v1.InstanceType{
