@@ -40,7 +40,6 @@ func TestInstanceLifecycleValidation(t *testing.T) {
 }
 
 func TestInstanceTypeFilter(t *testing.T) {
-	t.Parallel()
 	checkSkip(t)
 	apiKey := getAPIKey()
 
@@ -109,13 +108,11 @@ func TestInstanceTypeFilter(t *testing.T) {
 	require.NotNil(t, instance)
 
 	t.Run("ValidateSSHAccessible", func(t *testing.T) {
-		t.Parallel()
 		err := v1.ValidateInstanceSSHAccessible(ctx, client, instance, ssh.GetTestPrivateKey())
 		require.NoError(t, err, "ValidateSSHAccessible should pass")
 	})
 
 	t.Run("ValidateTerminateInstance", func(t *testing.T) {
-		t.Parallel()
 		err := v1.ValidateTerminateInstance(ctx, client, instance)
 		require.NoError(t, err, "ValidateTerminateInstance should pass")
 	})
