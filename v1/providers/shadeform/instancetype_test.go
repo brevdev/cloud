@@ -2,8 +2,10 @@ package v1
 
 import (
 	"testing"
+	"time"
 
 	v1 "github.com/brevdev/cloud/v1"
+	openapi "github.com/brevdev/cloud/v1/providers/shadeform/gen/shadeform"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -92,6 +94,112 @@ func TestIsSelectedByArgs(t *testing.T) {
 				}
 			}
 			assert.ElementsMatch(t, tt.want, selectedInstanceTypes)
+		})
+	}
+}
+
+func TestGetEstimatedDeployTime(t *testing.T) {
+	t.Parallel()
+
+	// Helper function to create int32 pointers
+	int32Ptr := func(v int32) *int32 {
+		return &v
+	}
+
+	// Helper function to create time.Duration pointers
+	durationPtr := func(d time.Duration) *time.Duration {
+		return &d
+	}
+
+	cases := []struct {
+		name                    string
+		shadeformInstanceType   openapi.InstanceType
+		expectedEstimatedDeploy *time.Duration
+	}{
+		{
+			name: "both min and max boot times provided - should return average",
+			shadeformInstanceType: openapi.InstanceType{
+				BootTime: &openapi.BootTime{
+					MinBootInSec: int32Ptr(60),  // 1 minute
+					MaxBootInSec: int32Ptr(180), // 3 minutes
+				},
+			},
+			expectedEstimatedDeploy: durationPtr(120 * time.Second), // 2 minutes average
+		},
+		{
+			name: "only min boot time provided - should return min",
+			shadeformInstanceType: openapi.InstanceType{
+				BootTime: &openapi.BootTime{
+					MinBootInSec: int32Ptr(90), // 1.5 minutes
+					MaxBootInSec: nil,
+				},
+			},
+			expectedEstimatedDeploy: durationPtr(90 * time.Second),
+		},
+		{
+			name: "only max boot time provided - should return max",
+			shadeformInstanceType: openapi.InstanceType{
+				BootTime: &openapi.BootTime{
+					MinBootInSec: nil,
+					MaxBootInSec: int32Ptr(300), // 5 minutes
+				},
+			},
+			expectedEstimatedDeploy: durationPtr(300 * time.Second),
+		},
+		{
+			name: "boot time with both values nil - should return nil",
+			shadeformInstanceType: openapi.InstanceType{
+				BootTime: &openapi.BootTime{
+					MinBootInSec: nil,
+					MaxBootInSec: nil,
+				},
+			},
+			expectedEstimatedDeploy: nil,
+		},
+		{
+			name: "no boot time provided - should return nil",
+			shadeformInstanceType: openapi.InstanceType{
+				BootTime: nil,
+			},
+			expectedEstimatedDeploy: nil,
+		},
+		{
+			name: "zero values for min and max - should return zero duration",
+			shadeformInstanceType: openapi.InstanceType{
+				BootTime: &openapi.BootTime{
+					MinBootInSec: int32Ptr(0),
+					MaxBootInSec: int32Ptr(0),
+				},
+			},
+			expectedEstimatedDeploy: durationPtr(0 * time.Second),
+		},
+		{
+			name: "large values for min and max - should handle correctly",
+			shadeformInstanceType: openapi.InstanceType{
+				BootTime: &openapi.BootTime{
+					MinBootInSec: int32Ptr(3600), // 1 hour
+					MaxBootInSec: int32Ptr(7200), // 2 hours
+				},
+			},
+			expectedEstimatedDeploy: durationPtr(5400 * time.Second), // 1.5 hours average
+		},
+	}
+
+	// Create a client instance to test the method
+	client := &ShadeformClient{}
+
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			result := client.getEstimatedDeployTime(tt.shadeformInstanceType)
+
+			if tt.expectedEstimatedDeploy == nil {
+				assert.Nil(t, result)
+			} else {
+				assert.NotNil(t, result)
+				assert.Equal(t, *tt.expectedEstimatedDeploy, *result)
+			}
 		})
 	}
 }

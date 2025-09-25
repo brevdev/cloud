@@ -170,6 +170,30 @@ func (c *ShadeformClient) getShadeformCloudAndInstanceType(instanceType string) 
 	return shadeformCloud, shadeformInstanceType, nil
 }
 
+func (c *ShadeformClient) getEstimatedDeployTime(shadeformInstanceType openapi.InstanceType) *time.Duration {
+	bootTime := shadeformInstanceType.BootTime
+	if bootTime == nil {
+		return nil
+	}
+
+	minSec := bootTime.MinBootInSec
+	maxSec := bootTime.MaxBootInSec
+
+	var estimatedDeployTime *time.Duration
+	if minSec != nil && maxSec != nil { //nolint:gocritic // if else fine
+		avg := (*minSec + *maxSec) / 2
+		avgDuration := time.Duration(avg) * time.Second
+		estimatedDeployTime = &avgDuration
+	} else if minSec != nil {
+		d := time.Duration(*minSec) * time.Second
+		estimatedDeployTime = &d
+	} else if maxSec != nil {
+		d := time.Duration(*maxSec) * time.Second
+		estimatedDeployTime = &d
+	}
+	return estimatedDeployTime
+}
+
 // convertShadeformInstanceTypeToV1InstanceTypes - converts a shadeform returned instance type to a specific instance type and region of availability
 func (c *ShadeformClient) convertShadeformInstanceTypeToV1InstanceType(shadeformInstanceType openapi.InstanceType) ([]v1.InstanceType, error) {
 	instanceType := c.getInstanceType(string(shadeformInstanceType.Cloud), shadeformInstanceType.ShadeInstanceType)
@@ -185,6 +209,8 @@ func (c *ShadeformClient) convertShadeformInstanceTypeToV1InstanceType(shadeform
 	gpuManufacturer := v1.GetManufacturer(shadeformInstanceType.Configuration.GpuManufacturer)
 	cloud := shadeformCloud(shadeformInstanceType.Cloud)
 	architecture := shadeformArchitecture(gpuName)
+
+	estimatedDeployTime := c.getEstimatedDeployTime(shadeformInstanceType)
 
 	for _, region := range shadeformInstanceType.Availability {
 		instanceTypes = append(instanceTypes, v1.InstanceType{
@@ -216,6 +242,7 @@ func (c *ShadeformClient) convertShadeformInstanceTypeToV1InstanceType(shadeform
 			Location:               region.Region,
 			Provider:               CloudProviderID,
 			Cloud:                  cloud,
+			EstimatedDeployTime:    estimatedDeployTime,
 		})
 	}
 
