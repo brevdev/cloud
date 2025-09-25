@@ -171,21 +171,25 @@ func (c *ShadeformClient) getShadeformCloudAndInstanceType(instanceType string) 
 }
 
 func (c *ShadeformClient) getEstimatedDeployTime(shadeformInstanceType openapi.InstanceType) *time.Duration {
+	bootTime := shadeformInstanceType.BootTime
+	if bootTime == nil {
+		return nil
+	}
+
+	minSec := bootTime.MinBootInSec
+	maxSec := bootTime.MaxBootInSec
+
 	var estimatedDeployTime *time.Duration
-	if shadeformInstanceType.BootTime != nil {
-		minSec := shadeformInstanceType.BootTime.MinBootInSec
-		maxSec := shadeformInstanceType.BootTime.MaxBootInSec
-		if minSec != nil && maxSec != nil { //nolint:gocritic // if else fine
-			avg := (*minSec + *maxSec) / 2
-			avgDuration := time.Duration(avg) * time.Second
-			estimatedDeployTime = &avgDuration
-		} else if minSec != nil {
-			d := time.Duration(*minSec) * time.Second
-			estimatedDeployTime = &d
-		} else if maxSec != nil {
-			d := time.Duration(*maxSec) * time.Second
-			estimatedDeployTime = &d
-		}
+	if minSec != nil && maxSec != nil { //nolint:gocritic // if else fine
+		avg := (*minSec + *maxSec) / 2
+		avgDuration := time.Duration(avg) * time.Second
+		estimatedDeployTime = &avgDuration
+	} else if minSec != nil {
+		d := time.Duration(*minSec) * time.Second
+		estimatedDeployTime = &d
+	} else if maxSec != nil {
+		d := time.Duration(*maxSec) * time.Second
+		estimatedDeployTime = &d
 	}
 	return estimatedDeployTime
 }
