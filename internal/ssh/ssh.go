@@ -31,7 +31,7 @@ func ConnectToHost(ctx context.Context, config ConnectionConfig) (*Client, error
 		dial:       d.DialContext,
 		privateKey: config.PrivKey,
 	}
-	fmt.Printf("local_ip: %s, public_ip: %s\n", localIP, publicIP)
+	fmt.Printf("local_ip: %s, public_ip: %s\n", localIP, publicIP) // TODO: use logger
 	err := sshClient.Connect(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect: %w", err)
@@ -242,19 +242,19 @@ func StartTestSSHServer(options TestSSHServerOptions) (func() error, error) {
 		authorizedKey := gossh.MarshalAuthorizedKey(s.PublicKey())
 		_, err := io.WriteString(s, fmt.Sprintf("public key used by %s:\n", s.User())) // writes to client output
 		if err != nil {
-			fmt.Println(err)
+			fmt.Println(err) // TODO: use logger
 		}
 		_, err = s.Write(authorizedKey)
 		if err != nil {
-			fmt.Println(err)
+			fmt.Println(err) // TODO: use logger
 		}
 		_, err = s.Write([]byte(s.RawCommand()))
 		if err != nil {
-			fmt.Println(err)
+			fmt.Println(err) // TODO: use logger
 		}
 		err = s.Exit(options.ExitCode)
 		if err != nil {
-			fmt.Println(err)
+			fmt.Println(err) // TODO: use logger
 		}
 	}
 
@@ -275,7 +275,7 @@ func StartTestSSHServer(options TestSSHServerOptions) (func() error, error) {
 	go func() {
 		err1 := server.ListenAndServe()
 		if err1 != nil {
-			fmt.Println(err1)
+			fmt.Println(err1) // TODO: use logger
 		}
 	}()
 	time.Sleep(100 * time.Millisecond)
@@ -377,7 +377,7 @@ func TrySSHConnect(ctx context.Context, c ConnectionConfig, options WaitForSSHOp
 	defer func() {
 		if closeErr := con.Close(); closeErr != nil {
 			// Log close error but don't return it as it's not the primary error
-			fmt.Printf("warning: failed to close SSH connection: %v\n", closeErr)
+			fmt.Printf("warning: failed to close SSH connection: %v\n", closeErr) // TODO: use logger
 		}
 	}()
 	_, _, err = con.RunCommand(ctx, options.CheckCmd)

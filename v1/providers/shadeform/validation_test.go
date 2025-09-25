@@ -40,7 +40,6 @@ func TestInstanceLifecycleValidation(t *testing.T) {
 }
 
 func TestInstanceTypeFilter(t *testing.T) {
-	t.Parallel()
 	checkSkip(t)
 	apiKey := getAPIKey()
 
@@ -50,8 +49,8 @@ func TestInstanceTypeFilter(t *testing.T) {
 	client := NewShadeformClient("validation-test", apiKey)
 	client.WithConfiguration(Configuration{
 		AllowedInstanceTypes: map[openapi.Cloud]map[string]bool{
-			openapi.DATACRUNCH: {
-				"B200": true,
+			openapi.HYPERSTACK: {
+				"A4000": true,
 			},
 		},
 	})
@@ -60,7 +59,7 @@ func TestInstanceTypeFilter(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, types, "Should have instance types")
 	require.True(t, len(types) == 1, "Instance types should return only one entry")
-	require.True(t, types[0].Type == "datacrunch_B200", "returned instance type does not match expectations")
+	require.True(t, types[0].Type == "hyperstack_A4000", "returned instance type does not match expectations")
 
 	if !types[0].IsAvailable {
 		return
@@ -109,13 +108,11 @@ func TestInstanceTypeFilter(t *testing.T) {
 	require.NotNil(t, instance)
 
 	t.Run("ValidateSSHAccessible", func(t *testing.T) {
-		t.Parallel()
 		err := v1.ValidateInstanceSSHAccessible(ctx, client, instance, ssh.GetTestPrivateKey())
 		require.NoError(t, err, "ValidateSSHAccessible should pass")
 	})
 
 	t.Run("ValidateTerminateInstance", func(t *testing.T) {
-		t.Parallel()
 		err := v1.ValidateTerminateInstance(ctx, client, instance)
 		require.NoError(t, err, "ValidateTerminateInstance should pass")
 	})
