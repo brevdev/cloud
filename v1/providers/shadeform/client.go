@@ -71,21 +71,37 @@ type ShadeformClient struct {
 	baseURL string
 	client  *openapi.APIClient
 	config  *Configuration
+	logger  v1.Logger
 }
 
 var _ v1.CloudClient = &ShadeformClient{}
 
-func NewShadeformClient(refID, apiKey string) *ShadeformClient {
+type ShadeformClientOption func(c *ShadeformClient)
+
+func WithLogger(logger v1.Logger) ShadeformClientOption {
+	return func(c *ShadeformClient) {
+		c.logger = logger
+	}
+}
+
+func NewShadeformClient(refID, apiKey string, opts ...ShadeformClientOption) *ShadeformClient {
 	config := openapi.NewConfiguration()
 	config.HTTPClient = http.DefaultClient
 	client := openapi.NewAPIClient(config)
 
-	return &ShadeformClient{
+	shadeformClient := &ShadeformClient{
 		refID:   refID,
 		apiKey:  apiKey,
 		baseURL: "https://api.shadeform.ai/v1",
 		client:  client,
+		logger:  &v1.NoopLogger{},
 	}
+
+	for _, opt := range opts {
+		opt(shadeformClient)
+	}
+
+	return shadeformClient
 }
 
 func (c *ShadeformClient) WithConfiguration(config Configuration) *ShadeformClient {
