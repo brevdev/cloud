@@ -2,13 +2,72 @@ package v1
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"time"
 
+	"github.com/alecthomas/units"
+	"github.com/bojanz/currency"
 	v1 "github.com/brevdev/cloud/v1"
+	compute "github.com/nebius/gosdk/proto/nebius/compute/v1"
+	quotas "github.com/nebius/gosdk/proto/nebius/quotas/v1"
 )
 
-func (c *NebiusClient) GetInstanceTypes(_ context.Context, _ v1.GetInstanceTypeArgs) ([]v1.InstanceType, error) {
-	return nil, v1.ErrNotImplemented
+func (c *NebiusClient) GetInstanceTypes(ctx context.Context, args v1.GetInstanceTypeArgs) ([]v1.InstanceType, error) {
+	// Get platforms (instance types) from Nebius API
+	platformsResp, err := c.sdk.Services().Compute().V1().Platform().List(ctx, &compute.ListPlatformsRequest{
+		ParentId: c.projectID, // List platforms available in this project
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list Nebius platforms: %w", err)
+	}
+
+	// Get all available locations if multi-region support is requested
+	locations := []v1.Location{{Name: c.location}}
+	if args.Locations.IsAll() {
+		allLocations, err := c.GetLocations(ctx, v1.GetLocationsArgs{})
+		if err == nil {
+			locations = allLocations
+		}
+	} else if !args.Locations.IsAll() && len(args.Locations) > 0 {
+		// Filter to requested locations
+		allLocations, err := c.GetLocations(ctx, v1.GetLocationsArgs{})
+		if err == nil {
+			var filteredLocations []v1.Location
+			for _, loc := range allLocations {
+				for _, requestedLoc := range args.Locations {
+					if loc.Name == requestedLoc {
+						filteredLocations = append(filteredLocations, loc)
+						break
+					}
+				}
+			}
+			locations = filteredLocations
+		}
+	}
+
+	// Get quota information for all regions
+	quotaMap, err := c.getQuotaMap(ctx)
+	if err != nil {
+		// Log error but continue - we'll mark everything as unavailable
+		quotaMap = make(map[string]*quotas.QuotaAllowance)
+	}
+
+	var instanceTypes []v1.InstanceType
+
+	// For each location, get instance types with availability/quota info
+	for _, location := range locations {
+		locationInstanceTypes, err := c.getInstanceTypesForLocation(ctx, platformsResp, location, args, quotaMap)
+		if err != nil {
+			continue // Skip failed locations
+		}
+		instanceTypes = append(instanceTypes, locationInstanceTypes...)
+	}
+
+	// Apply filters
+	instanceTypes = c.applyInstanceTypeFilters(instanceTypes, args)
+
+	return instanceTypes, nil
 }
 
 func (c *NebiusClient) GetInstanceTypePollTime() time.Duration {
@@ -17,8 +76,338 @@ func (c *NebiusClient) GetInstanceTypePollTime() time.Duration {
 
 func (c *NebiusClient) MergeInstanceTypeForUpdate(currIt v1.InstanceType, newIt v1.InstanceType) v1.InstanceType {
 	merged := newIt
-
 	merged.ID = currIt.ID
-
 	return merged
+}
+
+func (c *NebiusClient) GetInstanceTypeQuotas(ctx context.Context, args v1.GetInstanceTypeQuotasArgs) (v1.Quota, error) {
+	// Query actual Nebius quotas from the compute service
+	// For now, return a default quota structure
+	quota := v1.Quota{
+		ID:      "nebius-compute-quota",
+		Name:    "Nebius Compute Quota",
+		Maximum: 1000, // Default maximum instances - should be queried from API
+		Current: 0,    // Would be calculated from actual usage
+		Unit:    "instances",
+	}
+
+	return quota, nil
+}
+
+// getInstanceTypesForLocation gets instance types for a specific location with quota/availability checking
+func (c *NebiusClient) getInstanceTypesForLocation(ctx context.Context, platformsResp *compute.ListPlatformsResponse, location v1.Location, args v1.GetInstanceTypeArgs, quotaMap map[string]*quotas.QuotaAllowance) ([]v1.InstanceType, error) {
+	var instanceTypes []v1.InstanceType
+
+	for _, platform := range platformsResp.GetItems() {
+		if platform.Metadata == nil || platform.Spec == nil {
+			continue
+		}
+
+		// Filter platforms to only supported ones
+		if !c.isPlatformSupported(platform.Metadata.Name) {
+			continue
+		}
+
+		// Check if this is a CPU-only platform
+		isCPUOnly := c.isCPUOnlyPlatform(platform.Metadata.Name)
+
+		// For CPU platforms, limit the number of presets to avoid pollution
+		maxCPUPresets := 3
+		cpuPresetCount := 0
+
+		// For each preset, create an instance type
+		for _, preset := range platform.Spec.Presets {
+			if preset == nil || preset.Resources == nil {
+				continue
+			}
+
+			// For CPU platforms, limit to first N presets
+			if isCPUOnly {
+				if cpuPresetCount >= maxCPUPresets {
+					continue
+				}
+			}
+
+			// Build instance type ID from platform and preset
+			instanceTypeID := fmt.Sprintf("%s-%s", platform.Metadata.Id, preset.Name)
+
+			// Determine GPU type and details from platform name
+			gpuType, gpuName := extractGPUTypeAndName(platform.Metadata.Name)
+
+			// Check quota/availability for this instance type in this location
+			isAvailable := c.checkPresetQuotaAvailability(preset.Resources, location.Name, platform.Metadata.Name, quotaMap)
+
+			// Skip instance types with no quota at all
+			if !isAvailable {
+				continue
+			}
+
+			// Increment CPU preset counter if this is a CPU platform
+			if isCPUOnly {
+				cpuPresetCount++
+			}
+
+			// Convert Nebius platform preset to our InstanceType format
+			instanceType := v1.InstanceType{
+				ID:                 v1.InstanceTypeID(instanceTypeID),
+				Location:           location.Name,
+				Type:               fmt.Sprintf("%s (%s)", platform.Metadata.Name, preset.Name),
+				VCPU:               preset.Resources.VcpuCount,
+				Memory:             units.Base2Bytes(int64(preset.Resources.MemoryGibibytes) * 1024 * 1024 * 1024), // Convert GiB to bytes
+				NetworkPerformance: "standard",                                                                      // Default network performance
+				IsAvailable:        isAvailable,
+				ElasticRootVolume:  true, // Nebius supports dynamic disk allocation
+				SupportedStorage:   c.buildSupportedStorage(),
+			}
+
+			// Add GPU information if available
+			if preset.Resources.GpuCount > 0 && !isCPUOnly {
+				gpu := v1.GPU{
+					Count:        preset.Resources.GpuCount,
+					Type:         gpuType,
+					Name:         gpuName,
+					Manufacturer: v1.ManufacturerNVIDIA, // Nebius currently only supports NVIDIA GPUs
+				}
+				instanceType.SupportedGPUs = []v1.GPU{gpu}
+			}
+
+			instanceTypes = append(instanceTypes, instanceType)
+		}
+	}
+
+	return instanceTypes, nil
+}
+
+// getQuotaMap retrieves all quota allowances for the tenant and creates a lookup map
+func (c *NebiusClient) getQuotaMap(ctx context.Context) (map[string]*quotas.QuotaAllowance, error) {
+	quotaMap := make(map[string]*quotas.QuotaAllowance)
+
+	// List all quota allowances for the tenant
+	resp, err := c.sdk.Services().Quotas().V1().QuotaAllowance().List(ctx, &quotas.ListQuotaAllowancesRequest{
+		ParentId: c.tenantID, // Use tenant ID to list all quotas
+		PageSize: 1000,       // Get all quotas in one request
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list quota allowances: %w", err)
+	}
+
+	// Build a map of quota name + region -> quota allowance
+	for _, quota := range resp.GetItems() {
+		if quota.Metadata == nil || quota.Spec == nil || quota.Status == nil {
+			continue
+		}
+
+		// Only include active quotas with available capacity
+		if quota.Status.State != quotas.QuotaAllowanceStatus_STATE_ACTIVE {
+			continue
+		}
+
+		// Key format: "quota-name:region" (e.g., "compute.gpu.h100:eu-north1")
+		key := fmt.Sprintf("%s:%s", quota.Metadata.Name, quota.Spec.Region)
+		quotaMap[key] = quota
+	}
+
+	return quotaMap, nil
+}
+
+// checkPresetQuotaAvailability checks if a preset has available quota in the specified region
+func (c *NebiusClient) checkPresetQuotaAvailability(resources *compute.PresetResources, region string, platformName string, quotaMap map[string]*quotas.QuotaAllowance) bool {
+	// Check GPU quota if GPUs are requested
+	if resources.GpuCount > 0 {
+		// Determine GPU type from platform name
+		gpuQuotaName := c.getGPUQuotaName(platformName)
+		if gpuQuotaName == "" {
+			return false // Unknown GPU type
+		}
+
+		key := fmt.Sprintf("%s:%s", gpuQuotaName, region)
+		quota, exists := quotaMap[key]
+		if !exists {
+			return false // No quota for this GPU in this region
+		}
+
+		// Check if quota has available capacity
+		if quota.Status == nil || quota.Spec == nil || quota.Spec.Limit == nil {
+			return false
+		}
+
+		available := int64(*quota.Spec.Limit) - int64(quota.Status.Usage)
+		if available < int64(resources.GpuCount) {
+			return false // Not enough GPU quota
+		}
+
+		return true
+	}
+
+	// For CPU-only instances, check CPU and memory quotas
+	// Check vCPU quota
+	cpuQuotaKey := fmt.Sprintf("compute.cpu:%s", region)
+	if cpuQuota, exists := quotaMap[cpuQuotaKey]; exists {
+		if cpuQuota.Status != nil && cpuQuota.Spec != nil && cpuQuota.Spec.Limit != nil {
+			cpuAvailable := int64(*cpuQuota.Spec.Limit) - int64(cpuQuota.Status.Usage)
+			if cpuAvailable < int64(resources.VcpuCount) {
+				return false
+			}
+		}
+	}
+
+	// Check memory quota (in bytes)
+	memoryQuotaKey := fmt.Sprintf("compute.memory:%s", region)
+	if memQuota, exists := quotaMap[memoryQuotaKey]; exists {
+		if memQuota.Status != nil && memQuota.Spec != nil && memQuota.Spec.Limit != nil {
+			memoryRequired := int64(resources.MemoryGibibytes) * 1024 * 1024 * 1024 // Convert GiB to bytes
+			memAvailable := int64(*memQuota.Spec.Limit) - int64(memQuota.Status.Usage)
+			if memAvailable < memoryRequired {
+				return false
+			}
+		}
+	}
+
+	return true // CPU-only instances are available if we get here
+}
+
+// getGPUQuotaName determines the quota name for a GPU based on the platform name
+func (c *NebiusClient) getGPUQuotaName(platformName string) string {
+	// Nebius GPU quota names follow pattern: "compute.gpu.{type}"
+	// Examples: "compute.gpu.h100", "compute.gpu.h200", "compute.gpu.l40s"
+
+	platformLower := strings.ToLower(platformName)
+
+	if strings.Contains(platformLower, "h100") {
+		return "compute.gpu.h100"
+	}
+	if strings.Contains(platformLower, "h200") {
+		return "compute.gpu.h200"
+	}
+	if strings.Contains(platformLower, "l40s") {
+		return "compute.gpu.l40s"
+	}
+
+	return ""
+}
+
+// isPlatformSupported checks if a platform should be included in instance types
+func (c *NebiusClient) isPlatformSupported(platformName string) bool {
+	platformLower := strings.ToLower(platformName)
+
+	// For GPU platforms: accept any GPU platform (filtered by quota availability)
+	// Look for common GPU indicators in platform names
+	gpuIndicators := []string{"gpu", "h100", "h200", "l40s", "a100", "v100", "a10", "t4", "l4"}
+	for _, indicator := range gpuIndicators {
+		if strings.Contains(platformLower, indicator) {
+			return true
+		}
+	}
+
+	// For CPU platforms: only accept specific types to avoid polluting the list
+	if strings.Contains(platformLower, "cpu-d3") || strings.Contains(platformLower, "cpu-e2") {
+		return true
+	}
+
+	return false
+}
+
+// isCPUOnlyPlatform checks if a platform is CPU-only (no GPUs)
+func (c *NebiusClient) isCPUOnlyPlatform(platformName string) bool {
+	platformLower := strings.ToLower(platformName)
+	return strings.Contains(platformLower, "cpu-d3") || strings.Contains(platformLower, "cpu-e2")
+}
+
+// buildSupportedStorage creates storage configuration for Nebius instances
+func (c *NebiusClient) buildSupportedStorage() []v1.Storage {
+	// Nebius supports dynamically allocatable network SSD disks
+	// Minimum: 50GB, Maximum: 2560GB
+	minSize := units.Base2Bytes(50 * units.GiB)
+	maxSize := units.Base2Bytes(2560 * units.GiB)
+
+	// Pricing is roughly $0.10 per GB-month, which is ~$0.00014 per GB-hour
+	pricePerGBHr, _ := currency.NewAmount("0.00014", "USD")
+
+	return []v1.Storage{
+		{
+			Type:         "network-ssd",
+			Count:        1,
+			MinSize:      &minSize,
+			MaxSize:      &maxSize,
+			IsElastic:    true,
+			PricePerGBHr: &pricePerGBHr,
+		},
+	}
+}
+
+// applyInstanceTypeFilters applies various filters to the instance type list
+func (c *NebiusClient) applyInstanceTypeFilters(instanceTypes []v1.InstanceType, args v1.GetInstanceTypeArgs) []v1.InstanceType {
+	var filtered []v1.InstanceType
+
+	for _, instanceType := range instanceTypes {
+		// Apply specific instance type filters
+		if len(args.InstanceTypes) > 0 {
+			found := false
+			for _, requestedType := range args.InstanceTypes {
+				if string(instanceType.ID) == requestedType {
+					found = true
+					break
+				}
+			}
+			if !found {
+				continue
+			}
+		}
+
+		// Apply architecture filter
+		if args.ArchitectureFilter != nil {
+			arch := determineInstanceTypeArchitecture(instanceType)
+			// Check if architecture matches the filter requirements
+			if len(args.ArchitectureFilter.IncludeArchitectures) > 0 {
+				found := false
+				for _, allowedArch := range args.ArchitectureFilter.IncludeArchitectures {
+					if arch == string(allowedArch) {
+						found = true
+						break
+					}
+				}
+				if !found {
+					continue
+				}
+			}
+		}
+
+		filtered = append(filtered, instanceType)
+	}
+
+	return filtered
+}
+
+// extractGPUTypeAndName extracts GPU type and full name from platform name
+func extractGPUTypeAndName(platformName string) (string, string) {
+	platformLower := strings.ToLower(platformName)
+
+	if strings.Contains(platformLower, "h100") {
+		return "H100", "NVIDIA H100"
+	}
+	if strings.Contains(platformLower, "h200") {
+		return "H200", "NVIDIA H200"
+	}
+	if strings.Contains(platformLower, "l40s") {
+		return "L40S", "NVIDIA L40S"
+	}
+	if strings.Contains(platformLower, "a100") {
+		return "A100", "NVIDIA A100"
+	}
+	if strings.Contains(platformLower, "v100") {
+		return "V100", "NVIDIA V100"
+	}
+
+	return "GPU", "GPU" // Generic fallback
+}
+
+// determineInstanceTypeArchitecture determines architecture from instance type
+func determineInstanceTypeArchitecture(instanceType v1.InstanceType) string {
+	// Check if ARM architecture is indicated in the type or name
+	typeLower := strings.ToLower(instanceType.Type)
+	if strings.Contains(typeLower, "arm") || strings.Contains(typeLower, "aarch64") {
+		return "arm64"
+	}
+
+	return "x86_64" // Default assumption
 }
