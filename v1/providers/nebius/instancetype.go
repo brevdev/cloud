@@ -22,15 +22,12 @@ func (c *NebiusClient) GetInstanceTypes(ctx context.Context, args v1.GetInstance
 		return nil, fmt.Errorf("failed to list Nebius platforms: %w", err)
 	}
 
-	// Get all available locations if multi-region support is requested
-	locations := []v1.Location{{Name: c.location}}
-	if args.Locations.IsAll() {
-		allLocations, err := c.GetLocations(ctx, v1.GetLocationsArgs{})
-		if err == nil {
-			locations = allLocations
-		}
-	} else if !args.Locations.IsAll() && len(args.Locations) > 0 {
-		// Filter to requested locations
+	// Get all available locations for quota-aware enumeration
+	// Default behavior: check ALL regions to show all available quota
+	var locations []v1.Location
+	
+	if len(args.Locations) > 0 && !args.Locations.IsAll() {
+		// User requested specific locations - filter to those
 		allLocations, err := c.GetLocations(ctx, v1.GetLocationsArgs{})
 		if err == nil {
 			var filteredLocations []v1.Location
@@ -43,6 +40,19 @@ func (c *NebiusClient) GetInstanceTypes(ctx context.Context, args v1.GetInstance
 				}
 			}
 			locations = filteredLocations
+		} else {
+			// Fallback to client's configured location if we can't get all locations
+			locations = []v1.Location{{Name: c.location}}
+		}
+	} else {
+		// Default behavior: enumerate ALL regions for quota-aware discovery
+		// This shows users all instance types they have quota for, regardless of region
+		allLocations, err := c.GetLocations(ctx, v1.GetLocationsArgs{})
+		if err == nil {
+			locations = allLocations
+		} else {
+			// Fallback to client's configured location if we can't get all locations
+			locations = []v1.Location{{Name: c.location}}
 		}
 	}
 
@@ -202,7 +212,7 @@ func (c *NebiusClient) getQuotaMap(ctx context.Context) (map[string]*quotas.Quot
 			continue
 		}
 
-		// Key format: "quota-name:region" (e.g., "compute.gpu.h100:eu-north1")
+		// Key format: "quota-name:region" (e.g., "compute.instance.gpu.h100:eu-north1")
 		key := fmt.Sprintf("%s:%s", quota.Metadata.Name, quota.Spec.Region)
 		quotaMap[key] = quota
 	}
@@ -240,8 +250,8 @@ func (c *NebiusClient) checkPresetQuotaAvailability(resources *compute.PresetRes
 	}
 
 	// For CPU-only instances, check CPU and memory quotas
-	// Check vCPU quota
-	cpuQuotaKey := fmt.Sprintf("compute.cpu:%s", region)
+	// Nebius uses "compute.instance.non-gpu.vcpu" for CPU quota (not "compute.cpu")
+	cpuQuotaKey := fmt.Sprintf("compute.instance.non-gpu.vcpu:%s", region)
 	if cpuQuota, exists := quotaMap[cpuQuotaKey]; exists {
 		if cpuQuota.Status != nil && cpuQuota.Spec != nil && cpuQuota.Spec.Limit != nil {
 			cpuAvailable := int64(*cpuQuota.Spec.Limit) - int64(cpuQuota.Status.Usage)
@@ -251,8 +261,8 @@ func (c *NebiusClient) checkPresetQuotaAvailability(resources *compute.PresetRes
 		}
 	}
 
-	// Check memory quota (in bytes)
-	memoryQuotaKey := fmt.Sprintf("compute.memory:%s", region)
+	// Check memory quota - Nebius uses "compute.instance.non-gpu.memory"
+	memoryQuotaKey := fmt.Sprintf("compute.instance.non-gpu.memory:%s", region)
 	if memQuota, exists := quotaMap[memoryQuotaKey]; exists {
 		if memQuota.Status != nil && memQuota.Spec != nil && memQuota.Spec.Limit != nil {
 			memoryRequired := int64(resources.MemoryGibibytes) * 1024 * 1024 * 1024 // Convert GiB to bytes
@@ -268,19 +278,28 @@ func (c *NebiusClient) checkPresetQuotaAvailability(resources *compute.PresetRes
 
 // getGPUQuotaName determines the quota name for a GPU based on the platform name
 func (c *NebiusClient) getGPUQuotaName(platformName string) string {
-	// Nebius GPU quota names follow pattern: "compute.gpu.{type}"
-	// Examples: "compute.gpu.h100", "compute.gpu.h200", "compute.gpu.l40s"
+	// Nebius GPU quota names follow pattern: "compute.instance.gpu.{type}"
+	// Examples: "compute.instance.gpu.h100", "compute.instance.gpu.h200", "compute.instance.gpu.l40s"
 
 	platformLower := strings.ToLower(platformName)
 
 	if strings.Contains(platformLower, "h100") {
-		return "compute.gpu.h100"
+		return "compute.instance.gpu.h100"
 	}
 	if strings.Contains(platformLower, "h200") {
-		return "compute.gpu.h200"
+		return "compute.instance.gpu.h200"
 	}
 	if strings.Contains(platformLower, "l40s") {
-		return "compute.gpu.l40s"
+		return "compute.instance.gpu.l40s"
+	}
+	if strings.Contains(platformLower, "a100") {
+		return "compute.instance.gpu.a100"
+	}
+	if strings.Contains(platformLower, "v100") {
+		return "compute.instance.gpu.v100"
+	}
+	if strings.Contains(platformLower, "b200") {
+		return "compute.instance.gpu.b200"
 	}
 
 	return ""
