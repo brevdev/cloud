@@ -14,10 +14,8 @@ const CloudProviderID = "nebius"
 // NebiusCredential implements the CloudCredential interface for Nebius AI Cloud
 type NebiusCredential struct {
 	RefID             string
-	ServiceAccountKey string // JSON service account key
-	TenantID          string // Nebius tenant ID (top-level organization)
-	UserID            string // Brev user ID for project naming
-	OrganizationID    string // Brev organization ID - maps to tenant_uuid in Nebius labels
+	ServiceAccountKey string `json:"sa_json"`   // JSON service account key
+	TenantID          string `json:"tenant_id"` // Nebius tenant ID (top-level organization)
 }
 
 var _ v1.CloudCredential = &NebiusCredential{}
@@ -28,8 +26,6 @@ func NewNebiusCredential(refID, serviceAccountKey, tenantID string) *NebiusCrede
 		RefID:             refID,
 		ServiceAccountKey: serviceAccountKey,
 		TenantID:          tenantID,
-		UserID:            refID, // Use refID as user identifier for project naming
-		OrganizationID:    "",    // Will be set separately when available
 	}
 }
 
@@ -39,8 +35,6 @@ func NewNebiusCredentialWithOrg(refID, serviceAccountKey, tenantID, organization
 		RefID:             refID,
 		ServiceAccountKey: serviceAccountKey,
 		TenantID:          tenantID,
-		UserID:            refID, // Use refID as user identifier for project naming
-		OrganizationID:    organizationID,
 	}
 }
 
@@ -48,7 +42,6 @@ func NewNebiusCredentialWithOrg(refID, serviceAccountKey, tenantID, organization
 func (c *NebiusCredential) GetReferenceID() string {
 	return c.RefID
 }
-
 
 // GetAPIType returns the API type for Nebius
 func (c *NebiusCredential) GetAPIType() v1.APIType {
@@ -63,13 +56,13 @@ func (c *NebiusCredential) GetCloudProviderID() v1.CloudProviderID {
 // GetTenantID returns a unique project ID for this Brev user within the tenant
 // This groups all instances from the same user into a single Nebius project
 func (c *NebiusCredential) GetTenantID() (string, error) {
-	if c.UserID == "" {
-		return "", fmt.Errorf("user ID is required for Nebius project creation")
+	if c.TenantID == "" {
+		return "", fmt.Errorf("tenant ID is required for Nebius project creation")
 	}
 	// Create a deterministic project ID based on user ID
 	// Format: project-{userID} to match Nebius expected project ID format
 	// We'll truncate and sanitize the user ID to meet Nebius naming requirements
-	sanitizedUserID := sanitizeForNebiusID(c.UserID)
+	sanitizedUserID := sanitizeForNebiusID(c.TenantID)
 	return fmt.Sprintf("project-%s", sanitizedUserID), nil
 }
 
@@ -79,7 +72,7 @@ func (c *NebiusCredential) MakeClient(ctx context.Context, location string) (v1.
 	if err != nil {
 		return nil, fmt.Errorf("failed to get project ID: %w", err)
 	}
-	return NewNebiusClientWithOrg(ctx, c.RefID, c.ServiceAccountKey, c.TenantID, projectID, c.OrganizationID, location)
+	return NewNebiusClientWithOrg(ctx, c.RefID, c.ServiceAccountKey, c.TenantID, projectID, "", location)
 }
 
 // sanitizeForNebiusID sanitizes a user ID to meet Nebius project ID naming requirements

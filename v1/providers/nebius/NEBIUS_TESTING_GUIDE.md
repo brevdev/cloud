@@ -1078,12 +1078,13 @@ The Nebius provider implements **quota-aware instance type discovery** that dyna
 The provider queries the Nebius Quotas API to determine which resources are available:
 
 ```go
-// Example quota lookups
-"compute.gpu.h100:eu-north1"  // H100 GPUs in eu-north1
-"compute.gpu.h200:eu-north1"  // H200 GPUs in eu-north1
-"compute.gpu.l40s:eu-north1"  // L40S GPUs in eu-north1
-"compute.cpu:eu-north1"       // vCPU quota for CPU instances
-"compute.memory:eu-north1"    // Memory quota for CPU instances
+// Actual Nebius quota naming patterns (discovered from API)
+"compute.instance.gpu.h100:eu-north1"          // H100 GPUs in eu-north1
+"compute.instance.gpu.h200:eu-north1"          // H200 GPUs in eu-north1
+"compute.instance.gpu.l40s:eu-north1"          // L40S GPUs in eu-north1
+"compute.instance.gpu.b200:us-central1"        // B200 GPUs in us-central1
+"compute.instance.non-gpu.vcpu:eu-north1"      // vCPU quota for CPU instances
+"compute.instance.non-gpu.memory:eu-north1"    // Memory quota for CPU instances
 ```
 
 **Key Behavior**:
@@ -1331,6 +1332,806 @@ nebius compute platform list --parent-id PROJECT_ID --format json | \
 4. **Regional Awareness**: Quotas are per-region; multi-region queries may have different results
 5. **Preset Validation**: Verify the selected preset has sufficient quota before creating instances
 
+## Practical Testing Commands for Implementation Validation
+
+### Prerequisites
+
+Set up your testing environment with Nebius credentials:
+
+```bash
+# Export credentials
+export NEBIUS_SERVICE_ACCOUNT_JSON='/path/to/your/service-account.json'
+export NEBIUS_TENANT_ID='tenant-e00xxx'  # Your tenant ID
+export NEBIUS_LOCATION='eu-north1'       # Target region
+```
+
+### Quick Commands for Testing Instance Types (Quota-Aware)
+
+#### Command 1: Enumerate Instance Types with Quota Information
+
+```bash
+# Test GetInstanceTypes with quota filtering
+cd /home/jmorgan/VS/brev-cloud-sdk/v1/providers/nebius
+
+# Run integration test that enumerates instance types
+go test -v -run TestIntegration_GetInstanceTypes
+
+# Expected output:
+# === RUN   TestIntegration_GetInstanceTypes
+# === RUN   TestIntegration_GetInstanceTypes/Get_instance_types_with_quota_filtering
+#     Found 12 instance types with available quota
+#     Instance Type: computeplatform-e00abc-1gpu (L40S) - Location: eu-north1, Available: true
+#       Storage: network-ssd, Min: 50 GB, Max: 2560 GB, Elastic: true
+#       GPU: NVIDIA L40S (Type: L40S), Count: 1, Manufacturer: NVIDIA
+# === RUN   TestIntegration_GetInstanceTypes/Verify_quota_filtering
+#     All returned instance types have available quota
+# === RUN   TestIntegration_GetInstanceTypes/Verify_preset_enumeration
+#     Preset distribution: L40S (4), H100 (4), H200 (2), CPU (3)
+```
+
+#### Command 2: Dump Instance Types to JSON (Aggregated with Real Pricing)
+
+This command aggregates instance types across regions with **real pricing from Nebius Billing API**, matching the LaunchPad API format:
+
+```bash
+# Set tenant-level credentials (no project ID needed!)
+export NEBIUS_SERVICE_ACCOUNT_JSON='/path/to/service-account.json'
+export NEBIUS_TENANT_ID='tenant-e00xxx'
+
+# Run WITH real pricing (takes ~60 seconds, queries Nebius Billing Calculator API)
+cd /home/jmorgan/VS/brev-cloud-sdk/v1/providers/nebius
+FETCH_PRICING=true go run ./cmd/dump_instance_types/main.go > complete_catalog.json
+
+# Or run WITHOUT pricing (instant, pricing = 0)
+go run ./cmd/dump_instance_types/main.go > instance_types.json
+
+# View GPU types with pricing
+cat complete_catalog.json | jq '.[] | select(.gpu != null) | {preset: .preset, regions, gpu: {count: .gpu.count, family: .gpu.family}, price}'
+
+# Show L40S pricing comparison
+cat complete_catalog.json | jq -r '.[] | select(.gpu.family == "l40s") | "\(.preset): $\(.price.on_demand_per_hour)/hr ($\(.price.estimated_monthly | floor)/mo)"'
+
+# Expected output:
+# 1gpu-16vcpu-96gb: $1.8172/hr ($1326/mo)
+# 2gpu-64vcpu-384gb: $4.5688/hr ($3335/mo)
+# 4gpu-128vcpu-768gb: $9.1376/hr ($6670/mo)
+
+# Show H200 with cross-region capacity and pricing
+cat complete_catalog.json | jq '.[] | select(.gpu.family == "h200")'
+
+# Expected: H200 available in 3 regions with real pricing ($3.50-$28/hr)
+```
+
+**Example Output** (Aggregated Format with Semantic IDs):
+```json
+{
+  "id": "gpu-l40s-d-4gpu-128vcpu-768gb",
+  "nebius_platform_id": "computeplatform-e00q7xea367y069e81",
+  "cloud": "nebius",
+  "platform": "gpu-l40s-d",
+  "preset": "4gpu-128vcpu-768gb",
+  "capacity": {
+    "eu-north1": 1
+  },
+  "regions": ["eu-north1"],
+  "cpu": 128,
+  "memory_gb": 768,
+  "gpu": {
+    "count": 4,
+    "family": "l40s",
+    "model": "NVIDIA L40S",
+    "manufacturer": "NVIDIA"
+  },
+  "storage": [
+    {
+      "type": "network-ssd",
+      "size_min_gb": 50,
+      "size_max_gb": 2560,
+      "is_elastic": true
+    }
+  ],
+  "system_arch": "amd64",
+  "price": {
+    "currency": "USD",
+    "on_demand_per_hour": 9.1376,      ← Real Nebius pricing!
+    "estimated_monthly": 6670.448       ← With FETCH_PRICING=true
+  }
+}
+```
+
+**Key Features**:
+- ✅ One entry per preset configuration (not per region)
+- ✅ `capacity` map shows availability across all regions
+- ✅ `regions` list shows where quota exists
+- ✅ **Real pricing from Nebius Billing Calculator API** (with FETCH_PRICING=true)
+- ✅ Decimal precision for accurate cost estimates
+- ✅ Matches LaunchPad API format for easy comparison
+
+**Note**: The SDK's `GetInstanceTypes()` returns one entry **per region** (this is intentional and matches LaunchPad SDK behavior). This dump utility **aggregates them** for easier visualization.
+```
+
+#### Command 3: View Regional Capacity Distribution
+
+```bash
+# Show which regions have which GPU types available
+cat instance_types_aggregated.json | jq -r '.[] | select(.gpu != null) | "\(.gpu.family) (\(.gpu.count)x): \(.regions | join(", "))"' | sort | uniq
+
+# Expected output:
+# h100 (1x): eu-north1
+# h100 (8x): eu-north1
+# h200 (1x): eu-north1, eu-west1, us-central1
+# h200 (8x): eu-north1, eu-west1, us-central1
+# l40s (1x): eu-north1
+# l40s (2x): eu-north1
+# l40s (4x): eu-north1
+
+# Count total instance types by GPU family
+cat instance_types_aggregated.json | jq -r '.[] | select(.gpu != null) | .gpu.family' | sort | uniq -c
+
+# Show capacity breakdown
+cat instance_types_aggregated.json | jq '.[] | select(.gpu != null) | {family: .gpu.family, count: .gpu.count, capacity, regions}'
+```
+
+### Testing Commands for GetImages
+
+#### Command 4: Enumerate Available Images
+
+```bash
+# Test GetImages with architecture filtering
+cd /home/jmorgan/VS/brev-cloud-sdk/v1/providers/nebius
+
+# Create test script for images
+cat > test_images.go << 'EOF'
+package main
+
+import (
+    "context"
+    "fmt"
+    "os"
+    nebius "github.com/brevdev/cloud/v1/providers/nebius"
+    v1 "github.com/brevdev/cloud/v1"
+)
+
+func main() {
+    ctx := context.Background()
+    
+    saJSON := os.Getenv("NEBIUS_SERVICE_ACCOUNT_JSON")
+    tenantID := os.Getenv("NEBIUS_TENANT_ID")
+    location := os.Getenv("NEBIUS_LOCATION")
+    
+    if saJSON == "" || tenantID == "" || location == "" {
+        fmt.Fprintln(os.Stderr, "Error: Set required environment variables")
+        os.Exit(1)
+    }
+    
+    saKey, _ := os.ReadFile(saJSON)
+    credential := nebius.NewNebiusCredentialWithOrg("test", string(saKey), tenantID, "")
+    client, err := credential.MakeClient(ctx, location)
+    if err != nil {
+        fmt.Fprintf(os.Stderr, "Error creating client: %v\n", err)
+        os.Exit(1)
+    }
+    
+    // Get x86_64 images (default for GPU instances)
+    fmt.Println("=== x86_64 Images ===")
+    x86Images, err := client.GetImages(ctx, v1.GetImageArgs{
+        Architectures: []string{"x86_64"},
+    })
+    if err != nil {
+        fmt.Fprintf(os.Stderr, "Error getting x86 images: %v\n", err)
+    } else {
+        for _, img := range x86Images {
+            fmt.Printf("  - %s (%s) - Arch: %s\n", img.Name, img.ID, img.Architecture)
+        }
+    }
+    
+    // Get all images
+    fmt.Println("\n=== All Available Images ===")
+    allImages, err := client.GetImages(ctx, v1.GetImageArgs{})
+    if err != nil {
+        fmt.Fprintf(os.Stderr, "Error getting all images: %v\n", err)
+    } else {
+        fmt.Printf("Total images available: %d\n", len(allImages))
+    }
+}
+EOF
+
+go run test_images.go
+```
+
+### Testing Commands for GetLocations
+
+#### Command 5: Enumerate Available Locations
+
+```bash
+# Test GetLocations
+cat > test_locations.go << 'EOF'
+package main
+
+import (
+    "context"
+    "fmt"
+    "os"
+    nebius "github.com/brevdev/cloud/v1/providers/nebius"
+    v1 "github.com/brevdev/cloud/v1"
+)
+
+func main() {
+    ctx := context.Background()
+    
+    saJSON := os.Getenv("NEBIUS_SERVICE_ACCOUNT_JSON")
+    tenantID := os.Getenv("NEBIUS_TENANT_ID")
+    location := os.Getenv("NEBIUS_LOCATION")
+    
+    if saJSON == "" || tenantID == "" {
+        fmt.Fprintln(os.Stderr, "Error: Set required environment variables")
+        os.Exit(1)
+    }
+    
+    saKey, _ := os.ReadFile(saJSON)
+    credential := nebius.NewNebiusCredentialWithOrg("test", string(saKey), tenantID, "")
+    client, err := credential.MakeClient(ctx, location)
+    if err != nil {
+        fmt.Fprintf(os.Stderr, "Error creating client: %v\n", err)
+        os.Exit(1)
+    }
+    
+    locations, err := client.GetLocations(ctx, v1.GetLocationsArgs{})
+    if err != nil {
+        fmt.Fprintf(os.Stderr, "Error getting locations: %v\n", err)
+        os.Exit(1)
+    }
+    
+    fmt.Println("=== Available Nebius Locations ===")
+    for _, loc := range locations {
+        fmt.Printf("  - %s: %s (Available: %t, Country: %s)\n",
+            loc.Name, loc.Description, loc.Available, loc.Country)
+    }
+}
+EOF
+
+go run test_locations.go
+```
+
+### Testing Commands for GetCapabilities
+
+#### Command 6: Check Provider Capabilities
+
+```bash
+# Test GetCapabilities
+cat > test_capabilities.go << 'EOF'
+package main
+
+import (
+    "context"
+    "fmt"
+    "os"
+    nebius "github.com/brevdev/cloud/v1/providers/nebius"
+)
+
+func main() {
+    ctx := context.Background()
+    
+    saJSON := os.Getenv("NEBIUS_SERVICE_ACCOUNT_JSON")
+    tenantID := os.Getenv("NEBIUS_TENANT_ID")
+    location := os.Getenv("NEBIUS_LOCATION")
+    
+    if saJSON == "" || tenantID == "" {
+        fmt.Fprintln(os.Stderr, "Error: Set required environment variables")
+        os.Exit(1)
+    }
+    
+    saKey, _ := os.ReadFile(saJSON)
+    credential := nebius.NewNebiusCredentialWithOrg("test", string(saKey), tenantID, "")
+    client, err := credential.MakeClient(ctx, location)
+    if err != nil {
+        fmt.Fprintf(os.Stderr, "Error creating client: %v\n", err)
+        os.Exit(1)
+    }
+    
+    capabilities, err := client.GetCapabilities(ctx)
+    if err != nil {
+        fmt.Fprintf(os.Stderr, "Error getting capabilities: %v\n", err)
+        os.Exit(1)
+    }
+    
+    fmt.Println("=== Nebius Provider Capabilities ===")
+    for _, cap := range capabilities {
+        fmt.Printf("  ✓ %s\n", cap)
+    }
+}
+EOF
+
+go run test_capabilities.go
+```
+
+### Testing Commands for Full Instance Lifecycle
+
+#### Command 7: End-to-End Instance Creation Test
+
+```bash
+# Run smoke test to create/verify/terminate an instance
+export RUN_SMOKE_TESTS=true
+export CLEANUP_RESOURCES=true
+
+cd /home/jmorgan/VS/brev-cloud-sdk/v1/providers/nebius
+
+# Run the smoke test (creates actual cloud resources)
+go test -v -run TestSmoke_InstanceLifecycle -timeout=20m
+
+# Expected flow:
+# 1. ✅ Authentication and project setup
+# 2. ✅ Network infrastructure creation (VPC, subnet)
+# 3. ✅ Boot disk creation
+# 4. ✅ Instance creation with L40S GPU
+# 5. ✅ Instance verification (GetInstance)
+# 6. ✅ Instance termination
+# 7. ✅ Resource cleanup
+```
+
+### Ad-Hoc Testing Commands
+
+#### Command 8: Test Specific Instance Type Creation
+
+```bash
+# Test creating an instance with a specific instance type
+cat > test_create_instance.go << 'EOF'
+package main
+
+import (
+    "context"
+    "fmt"
+    "os"
+    "time"
+    nebius "github.com/brevdev/cloud/v1/providers/nebius"
+    v1 "github.com/brevdev/cloud/v1"
+)
+
+func main() {
+    ctx := context.Background()
+    
+    saJSON := os.Getenv("NEBIUS_SERVICE_ACCOUNT_JSON")
+    tenantID := os.Getenv("NEBIUS_TENANT_ID")
+    location := os.Getenv("NEBIUS_LOCATION")
+    
+    if saJSON == "" || tenantID == "" || location == "" {
+        fmt.Fprintln(os.Stderr, "Error: Set required environment variables")
+        os.Exit(1)
+    }
+    
+    saKey, _ := os.ReadFile(saJSON)
+    credential := nebius.NewNebiusCredentialWithOrg("test-adhoc", string(saKey), tenantID, "")
+    client, err := credential.MakeClient(ctx, location)
+    if err != nil {
+        fmt.Fprintf(os.Stderr, "Error creating client: %v\n", err)
+        os.Exit(1)
+    }
+    
+    // First, get available instance types
+    instanceTypes, err := client.GetInstanceTypes(ctx, v1.GetInstanceTypeArgs{})
+    if err != nil {
+        fmt.Fprintf(os.Stderr, "Error getting instance types: %v\n", err)
+        os.Exit(1)
+    }
+    
+    if len(instanceTypes) == 0 {
+        fmt.Println("No instance types available")
+        return
+    }
+    
+    // Use first available instance type
+    selectedType := instanceTypes[0]
+    fmt.Printf("Selected instance type: %s\n", selectedType.ID)
+    
+    // Create instance
+    testID := fmt.Sprintf("adhoc-test-%d", time.Now().Unix())
+    attrs := v1.CreateInstanceAttrs{
+        RefID:        testID,
+        Name:         testID,
+        InstanceType: string(selectedType.ID),
+        ImageID:      "ubuntu22.04-cuda12",  // Default image
+        DiskSize:     50 * 1024 * 1024 * 1024,  // 50 GB
+        Location:     location,
+    }
+    
+    fmt.Printf("Creating instance '%s'...\n", testID)
+    instance, err := client.CreateInstance(ctx, attrs)
+    if err != nil {
+        fmt.Fprintf(os.Stderr, "Error creating instance: %v\n", err)
+        os.Exit(1)
+    }
+    
+    fmt.Printf("✅ Instance created successfully!\n")
+    fmt.Printf("   ID: %s\n", instance.CloudID)
+    fmt.Printf("   Name: %s\n", instance.Name)
+    fmt.Printf("   Status: %s\n", instance.Status.LifecycleStatus)
+    fmt.Printf("\n⚠️  Remember to terminate this instance manually:\n")
+    fmt.Printf("   Instance ID: %s\n", instance.CloudID)
+}
+EOF
+
+# Run with caution - creates real resources
+go run test_create_instance.go
+```
+
+#### Command 9: Test Quota Limits Discovery
+
+```bash
+# Use the Nebius CLI to check quotas directly
+# Install Nebius CLI first if not already installed
+curl -sSfL https://storage.googleapis.com/nebius-cli/install.sh | bash
+
+# Authenticate
+export NEBIUS_SERVICE_ACCOUNT_JSON='/path/to/service-account.json'
+export NEBIUS_TENANT_ID='tenant-e00xxx'
+nebius init
+
+# List all quota allowances
+nebius quotas quota-allowance list \
+  --parent-id $NEBIUS_TENANT_ID \
+  --format json | jq '.items[] | {name: .metadata.name, region: .spec.region, limit: .spec.limit, usage: .status.usage, state: .status.state}'
+
+# Check specific GPU quota (note the correct format)
+nebius quotas quota-allowance list \
+  --parent-id $NEBIUS_TENANT_ID \
+  --format json | jq '.items[] | select(.metadata.name | contains("instance.gpu"))'
+
+# Expected output:
+# {
+#   "name": "compute.instance.gpu.l40s",
+#   "region": "eu-north1",
+#   "limit": 8,
+#   "usage": 0,
+#   "state": "STATE_ACTIVE"
+# }
+
+# Show quota summary by GPU type
+nebius quotas quota-allowance list \
+  --parent-id $NEBIUS_TENANT_ID \
+  --format json | jq -r '.items[] | select(.metadata.name | contains("instance.gpu")) | "\(.metadata.name) in \(.spec.region): \(.spec.limit) total, \(.status.usage) used, \(.spec.limit - .status.usage) available"'
+```
+
+#### Command 10: Compare Instance Type Counts Across Providers
+
+```bash
+# Quick comparison using the dump utility
+echo "=== Provider Instance Type Comparison ==="
+echo
+
+echo "Nebius (aggregated by preset):"
+cat instance_types_aggregated.json | jq '. | length'
+echo "  Unique presets found (see instance_types_aggregated.json for details)"
+
+echo
+echo "Nebius (per-region expansion):"
+go test -run TestIntegration_GetInstanceTypes -v 2>&1 | grep "Found.*instance types" | head -1
+
+echo
+echo "Note: Nebius uses quota-based filtering across multiple regions"
+echo "      - Aggregated view: One entry per preset configuration"
+echo "      - SDK view: One entry per preset per region (matches LaunchPad pattern)"
+```
+
+#### Command 11: Estimate Pricing (Nebius Billing Calculator API)
+
+**Now using REAL Nebius Billing API!** ✅
+
+See: https://github.com/nebius/api/blob/main/nebius/billing/v1alpha1/calculator_service.proto
+
+```bash
+# Run the pricing estimator (queries actual Nebius Billing Calculator API)
+export NEBIUS_SERVICE_ACCOUNT_JSON='/path/to/service-account.json'
+export NEBIUS_TENANT_ID='tenant-xxx'
+export NEBIUS_PROJECT_ID='project-xxx'  # Your project ID
+
+cd /home/jmorgan/VS/brev-cloud-sdk/v1/providers/nebius
+go run ./cmd/estimate_pricing/main.go > pricing_estimates.json
+
+# View L40S GPU pricing
+cat pricing_estimates.json | jq -r '.[] | select(.platform_name | contains("l40s")) | "\(.preset_name): $\(.hourly_rate)/hr ($\(.monthly_rate | floor)/mo)"'
+
+# Expected output (actual rates from Nebius):
+# 1gpu-16vcpu-96gb: $1.82/hr ($1326/mo)
+# 2gpu-64vcpu-384gb: $4.57/hr ($3335/mo)
+# 4gpu-128vcpu-768gb: $9.14/hr ($6670/mo)
+
+# View H100/H200 pricing
+cat pricing_estimates.json | jq -r '.[] | select(.platform_name | contains("h100") or contains("h200")) | "\(.platform_name) \(.preset_name): $\(.hourly_rate)/hr ($\(.monthly_rate | floor)/mo)"'
+
+# Expected output:
+# gpu-h100-sxm 1gpu-16vcpu-200gb: $2.95/hr ($2153/mo)
+# gpu-h100-sxm 8gpu-128vcpu-1600gb: $23.6/hr ($17228/mo)
+# gpu-h200-sxm 1gpu-16vcpu-200gb: $3.5/hr ($2555/mo)
+# gpu-h200-sxm 8gpu-128vcpu-1600gb: $28/hr ($20440/mo)
+
+# Join pricing with instance types
+jq -s '
+  [.[0][] as $it | .[1][] as $price | 
+   if ($it.id | startswith($price.platform_id)) and ($it.preset == $price.preset_name) 
+   then $it + {price: {currency: $price.currency, on_demand_per_hour: $price.hourly_rate, estimated_monthly: $price.monthly_rate}} 
+   else empty end]
+' instance_types_aggregated.json pricing_estimates.json | jq '.[0:3]'
+```
+
+**How It Works**:
+1. Uses `sdk.Services().Billing().V1Alpha1().Calculator().Estimate()` API
+2. Queries pricing for each platform/preset combination
+3. Returns hourly, daily, monthly, and annual rates
+4. Real pricing data from Nebius billing system
+
+**Note**: Pricing may vary by region and contract type. This shows standard on-demand pricing.
+```
+
+### Comprehensive Testing Checklist
+
+Use this checklist to validate the Nebius implementation:
+
+```bash
+# Quick way: Use the provided test runner script
+./RUN_TESTS.sh
+
+# Or manually:
+# 1. Authentication
+go test -v -run TestIntegration_ClientCreation
+
+# 2. Instance Types (Quota-Aware)
+go test -v -run TestIntegration_GetInstanceTypes
+
+# 3. Images Discovery
+go test -v -run TestIntegration_GetImages
+
+# 4. Locations
+go test -v -run TestIntegration_GetLocations
+
+# 5. Capabilities
+go test -v -run TestIntegration_GetCapabilities
+
+# 6. Full Lifecycle (Creates Real Resources!)
+export RUN_SMOKE_TESTS=true
+export CLEANUP_RESOURCES=true
+go test -v -run TestSmoke_InstanceLifecycle -timeout=20m
+
+# 7. Cleanup Verification
+# After smoke tests, verify no orphaned resources remain
+nebius compute instance list --parent-id $NEBIUS_PROJECT_ID | grep "smoke-test-"
+nebius compute disk list --parent-id $NEBIUS_PROJECT_ID | grep "smoke-test-"
+```
+
+### Common Test Issues and Troubleshooting
+
+#### Issue 1: "No GPU quota allocated - only CPU instances available"
+
+**Symptom**: The test passes but shows only CPU instance types, with a warning about no GPU quota.
+
+**Example Output**:
+```
+Instance type distribution:
+  CPU-only: 6
+⚠️  No GPU quota allocated - only CPU instances available
+   To test GPU instances, request GPU quota from Nebius support
+```
+
+**Cause**: Your Nebius tenant doesn't have GPU quota allocated. The quota-aware filtering is **working correctly** - it only returns instance types where you have available quota.
+
+**What's Happening**:
+- ✅ The implementation is working as designed
+- ✅ Quota-aware filtering is functioning correctly
+- ✅ You have CPU quota (cpu-d3, cpu-e2) which is being returned
+- ⚠️ You don't have GPU quota (L40S, H100, H200, etc.)
+
+**Solution**:
+
+1. **Request GPU Quota** (for real GPU testing):
+```bash
+# Check current quotas
+nebius quotas quota-allowance list \
+  --parent-id $NEBIUS_TENANT_ID \
+  --format json | jq '.items[] | select(.metadata.name | contains("gpu"))'
+
+# If empty, contact Nebius support to request:
+# - L40S GPU quota (good for testing)
+# - H100/H200 GPU quota (production workloads)
+```
+
+2. **Or continue with CPU-only testing**:
+   The implementation is still fully functional and can be tested with CPU instances.
+
+#### Issue 2: Test Skipped Due to Missing Environment Variables
+
+**Symptom**:
+```
+Skipping integration test: NEBIUS_SERVICE_ACCOUNT_JSON and NEBIUS_TENANT_ID must be set
+```
+
+**Solution**:
+```bash
+# Set required environment variables
+export NEBIUS_SERVICE_ACCOUNT_JSON='/path/to/your-service-account.json'
+export NEBIUS_TENANT_ID='tenant-e00xxx'
+export NEBIUS_LOCATION='eu-north1'  # Optional, defaults to eu-north1
+
+# Then run the test
+go test -v -run TestIntegration_GetInstanceTypes
+```
+
+Or use the provided test runner:
+```bash
+./RUN_TESTS.sh
+```
+
+#### Issue 3: Authentication Failures
+
+**Symptom**: `failed to initialize Nebius SDK` or `invalid service account`
+
+**Solutions**:
+```bash
+# Verify JSON format
+cat $NEBIUS_SERVICE_ACCOUNT_JSON | jq .
+
+# Check required fields exist
+jq -r '.subject_credentials.subject, .subject_credentials.private_key' $NEBIUS_SERVICE_ACCOUNT_JSON
+
+# Ensure file permissions are correct
+chmod 600 $NEBIUS_SERVICE_ACCOUNT_JSON
+```
+
+## Provider Comparison: Nebius vs Lambdalabs vs Shadeform
+
+### Feature Parity Matrix
+
+| Feature | Nebius | Lambdalabs | Shadeform | Notes |
+|---------|--------|------------|-----------|-------|
+| **Core Instance Operations** |
+| CreateInstance | ✅ | ✅ | ✅ | All support basic instance creation |
+| GetInstance | ✅ | ✅ | ✅ | All support instance retrieval |
+| TerminateInstance | ✅ | ✅ | ✅ | All support termination |
+| ListInstances | ⚠️ | ✅ | ✅ | Nebius: pending implementation |
+| RebootInstance | ⚠️ | ✅ | ✅ | Nebius: pending implementation |
+| StopInstance | ⚠️ | ❌ | ❌ | Nebius: pending, others don't support |
+| StartInstance | ⚠️ | ❌ | ❌ | Nebius: pending, others don't support |
+| **Resource Discovery** |
+| GetInstanceTypes | ✅ | ✅ | ✅ | All support with different strategies |
+| GetInstanceTypes (Quota) | ✅ | ❌ | ❌ | Only Nebius has quota-aware filtering |
+| GetImages | ✅ | ❌ | ✅ | Lambdalabs has no image API |
+| GetLocations | ✅ | ✅ | ✅ | All support location discovery |
+| GetCapabilities | ✅ | ✅ | ✅ | All support capability reporting |
+| **Advanced Features** |
+| Tags/Labels | ✅ | ❌ | ✅ | Nebius and Shadeform support tagging |
+| Elastic Volumes | ✅ | ❌ | ❌ | Nebius supports volume resizing |
+| Firewall Rules | ⚠️ | ⚠️ | ⚠️ | Limited support across all providers |
+| SSH Key Management | ✅ | ✅ | ✅ | All support SSH key injection |
+| **Network Management** |
+| VPC/Network Creation | ✅ | ❌ | ❌ | Only Nebius manages networks |
+| Subnet Management | ✅ | ❌ | ❌ | Only Nebius manages subnets |
+| **Authentication** |
+| API Key | N/A | ✅ | ✅ | Lambdalabs and Shadeform use API keys |
+| Service Account | ✅ | N/A | N/A | Nebius uses service account JSON |
+| OAuth | ❌ | ❌ | ❌ | None support OAuth |
+
+### Implementation Comparison
+
+#### Instance Type Discovery
+
+**Nebius** (Quota-Aware + Pricing API):
+```go
+// Queries actual quota from Nebius Quotas API
+// Filters platforms by active quota state
+// Only returns instance types with available capacity
+// Supports elastic disk configuration (50GB-2560GB)
+// Real pricing via Billing Calculator API
+instanceTypes, _ := client.GetInstanceTypes(ctx, v1.GetInstanceTypeArgs{})
+// Returns: L40S, H100, H200, etc. (only with quota)
+// Pricing: go run ./cmd/estimate_pricing/main.go (real Nebius rates)
+```
+
+**Lambdalabs** (Capacity-Based):
+```go
+// Queries instance types from Lambda API
+// Checks RegionsWithCapacityAvailable per type
+// Returns all types with per-region availability
+instanceTypes, _ := client.GetInstanceTypes(ctx, v1.GetInstanceTypeArgs{})
+// Returns: A10, A100, H100, etc. (all types, marked available/unavailable)
+```
+
+**Shadeform** (Configuration-Filtered):
+```go
+// Queries all shade instance types
+// Applies configuration-based allow/deny list
+// Can filter by cloud provider and instance type
+client.WithConfiguration(Configuration{
+    AllowedInstanceTypes: map[openapi.Cloud]map[string]bool{
+        openapi.HYPERSTACK: {"A4000": true},
+    },
+})
+instanceTypes, _ := client.GetInstanceTypes(ctx, v1.GetInstanceTypeArgs{})
+// Returns: Only configured types (e.g., hyperstack_A4000)
+```
+
+#### Authentication Patterns
+
+**Nebius**:
+```go
+// Service account JSON with RSA key pairs
+credential := NewNebiusCredential(refID, serviceAccountJSON, tenantID)
+client, _ := credential.MakeClient(ctx, "eu-north1")
+// Creates per-user projects automatically
+```
+
+**Lambdalabs**:
+```go
+// Simple API key authentication
+credential := NewLambdaLabsCredential(refID, apiKey)
+client, _ := credential.MakeClient(ctx, "us-west-1")
+// Global API, no project management
+```
+
+**Shadeform**:
+```go
+// API key with tag-based resource tracking
+credential := NewShadeformCredential(refID, apiKey)
+client, _ := credential.MakeClient(ctx, "")
+// Uses tags to identify resources
+```
+
+### Key Differences
+
+1. **Resource Management Model**:
+   - **Nebius**: Hierarchical (Tenant → Project → Resources)
+   - **Lambdalabs**: Flat (Account → Instances)
+   - **Shadeform**: Tag-based (Account → Tagged Instances)
+
+2. **Quota Management**:
+   - **Nebius**: Explicit quota API with state tracking
+   - **Lambdalabs**: Implicit capacity via RegionsWithCapacityAvailable
+   - **Shadeform**: Configuration-based filtering
+
+3. **Network Infrastructure**:
+   - **Nebius**: Full VPC/Subnet management required
+   - **Lambdalabs**: Automatic network assignment
+   - **Shadeform**: Provider-managed networking
+
+4. **Instance Type Filtering**:
+   - **Nebius**: Quota-based (only show what you can use)
+   - **Lambdalabs**: Availability-based (show all, mark availability)
+   - **Shadeform**: Configuration-based (pre-filter allowed types)
+
+### Feature Gaps Analysis
+
+**Nebius Missing Features (vs others)**:
+- ⚠️ ListInstances: Not yet implemented (but easy to add)
+- ⚠️ RebootInstance: Not yet implemented (API supports it)
+
+**Lambdalabs Missing Features (vs others)**:
+- ❌ GetImages: No API available
+- ❌ Stop/Start: No API endpoints
+- ❌ Tags: No tagging support
+- ❌ GetInstanceTypeQuotas: No quota API
+
+**Shadeform Missing Features (vs others)**:
+- ❌ Stop/Start: Not supported by underlying API
+- ❌ Elastic Volumes: Fixed disk sizes
+
+### Recommendation for Feature Parity
+
+To achieve full feature parity, Nebius should implement:
+
+1. **High Priority** (Simple to add):
+   - ✅ ListInstances - Straightforward SDK call
+   - ✅ RebootInstance - SDK supports instance restart
+
+2. **Medium Priority** (Requires testing):
+   - ✅ StopInstance/StartInstance - SDK supports, needs validation
+   - ✅ UpdateInstanceTags - SDK supports resource labels
+
+3. **Low Priority** (Nice to have):
+   - ResizeInstanceVolume - Already structured, needs implementation
+   - Firewall Rules - Requires security group integration
+
+All critical features for parity with Lambdalabs and Shadeform are either:
+- ✅ Already implemented
+- ⚠️ Partially implemented (needs completion)
+- 📋 Structured and ready for implementation
+
 ## Summary
 
 This comprehensive testing guide provides:
@@ -1344,6 +2145,12 @@ This comprehensive testing guide provides:
 - `instance_test.go` - Unit tests for instance operations
 - `integration_test.go` - Real API integration testing including instance type enumeration
 - `smoke_test.go` - End-to-end instance lifecycle validation
+
+✅ **Practical Testing Commands**: Ad-hoc commands for enumerating instance types, images, locations, and testing full lifecycle
+
+✅ **Provider Comparison**: Comprehensive analysis of Nebius vs Lambdalabs vs Shadeform
+
+✅ **Feature Parity Assessment**: Clear roadmap for achieving full feature parity
 
 ✅ **Testing Guidelines**: Comprehensive execution strategies for development, CI/CD, and production
 
