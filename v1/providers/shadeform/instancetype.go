@@ -85,7 +85,7 @@ func isSelectedByArgs(instanceType v1.InstanceType, args v1.GetInstanceTypeArgs)
 }
 
 func (c *ShadeformClient) GetInstanceTypePollTime() time.Duration {
-	return 5 * time.Minute
+	return 1 * time.Minute
 }
 
 func (c *ShadeformClient) GetLocations(ctx context.Context, _ v1.GetLocationsArgs) ([]v1.Location, error) {

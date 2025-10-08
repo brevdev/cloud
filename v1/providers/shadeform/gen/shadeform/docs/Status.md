@@ -11,9 +11,11 @@
 
 * `ACTIVE` (value: `"active"`)
 
-* `DELETED` (value: `"deleted"`)
-
 * `ERROR` (value: `"error"`)
+
+* `DELETING` (value: `"deleting"`)
+
+* `DELETED` (value: `"deleted"`)
 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)

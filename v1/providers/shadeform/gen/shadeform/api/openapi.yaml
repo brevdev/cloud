@@ -16,7 +16,8 @@ security:
 paths:
   /instances:
     get:
-      description: Get active and pending instances.
+      description: "Get all non deleted instances. Note: instances in the \"deleting\"\
+        \ status will also show up here."
       operationId: Instances
       responses:
         "200":
@@ -127,7 +128,7 @@ paths:
       summary: /instances/create
   /instances/{id}/info:
     get:
-      description: Get details for the specified instance in the url.
+      description: "Get details for the specified, non deleted, instance in the url."
       operationId: InstancesInfo
       parameters:
       - description: The instance id
@@ -175,8 +176,9 @@ paths:
       summary: "/instances/{id}/update"
   /instances/{id}/delete:
     post:
-      description: Delete an instance. Some cloud providers may only allow deletion
-        of an instance after it has moved to the 'active' status.
+      description: "This will move the instance to the 'deleting' status while the\
+        \ instance is being deleted. Once the instance has entered the 'deleting'\
+        \ status, the account will no longer be billed for the instance."
       operationId: InstancesDelete
       parameters:
       - description: The instance id
@@ -1804,8 +1806,9 @@ components:
       - pending_provider
       - pending
       - active
-      - deleted
       - error
+      - deleting
+      - deleted
       example: active
       type: string
     StatusDetails:
