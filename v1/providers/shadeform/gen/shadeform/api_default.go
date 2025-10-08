@@ -35,7 +35,7 @@ func (r ApiInstancesRequest) Execute() (*InstancesResponse, *http.Response, erro
 /*
 Instances /instances
 
-Get active and pending instances.
+Get all non deleted instances. Note: instances in the "deleting" status will also show up here.
 
 	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
 	@return ApiInstancesRequest
@@ -272,7 +272,7 @@ func (r ApiInstancesDeleteRequest) Execute() (*http.Response, error) {
 /*
 InstancesDelete /instances/{id}/delete
 
-Delete an instance. Some cloud providers may only allow deletion of an instance after it has moved to the 'active' status.
+This will move the instance to the 'deleting' status while the instance is being deleted. Once the instance has entered the 'deleting' status, the account will no longer be billed for the instance.
 
 	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
 	@param id The instance id
@@ -378,7 +378,7 @@ func (r ApiInstancesInfoRequest) Execute() (*InstanceInfoResponse, *http.Respons
 /*
 InstancesInfo /instances/{id}/info
 
-Get details for the specified instance in the url.
+Get details for the specified, non deleted, instance in the url.
 
 	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
 	@param id The instance id
