@@ -8,9 +8,9 @@ import (
 
 	"github.com/alecthomas/units"
 	v1 "github.com/brevdev/cloud/v1"
+	common "github.com/nebius/gosdk/proto/nebius/common/v1"
 	compute "github.com/nebius/gosdk/proto/nebius/compute/v1"
 	vpc "github.com/nebius/gosdk/proto/nebius/vpc/v1"
-	common "github.com/nebius/gosdk/proto/nebius/common/v1"
 )
 
 func (c *NebiusClient) CreateInstance(ctx context.Context, attrs v1.CreateInstanceAttrs) (*v1.Instance, error) {
@@ -109,7 +109,7 @@ func (c *NebiusClient) CreateInstance(ctx context.Context, attrs v1.CreateInstan
 		ImageID:        attrs.ImageID,
 		DiskSize:       attrs.DiskSize,
 		Tags:           attrs.Tags,
-		CloudID:        v1.CloudProviderInstanceID(instanceID), // Use actual instance ID
+		CloudID:        v1.CloudProviderInstanceID(instanceID),                // Use actual instance ID
 		Status:         v1.Status{LifecycleStatus: v1.LifecycleStatusRunning}, // Instance should be running after successful operation
 	}
 
@@ -259,8 +259,6 @@ func (c *NebiusClient) AddFirewallRulesToInstance(ctx context.Context, args v1.A
 func (c *NebiusClient) RevokeSecurityGroupRules(ctx context.Context, args v1.RevokeSecurityGroupRuleArgs) error {
 	return fmt.Errorf("nebius security group rules management not yet implemented: %w", v1.ErrNotImplemented)
 }
-
-
 
 func (c *NebiusClient) GetMaxCreateRequestsPerMinute() int {
 	return 10
@@ -607,8 +605,11 @@ func (c *NebiusClient) getPublicImagesParent() string {
 }
 
 // parseInstanceType parses an instance type ID to extract platform and preset
-// Format: {platform-id}-{preset-name}
-// Example: computeplatform-e00caqbn6nysa972yq-4vcpu-16gb
+// NEW Format: nebius-{region}-{gpu-type}-{preset} or nebius-{region}-cpu-{preset}
+// Examples:
+//
+//	nebius-eu-north1-l40s-4gpu-96vcpu-768gb
+//	nebius-eu-north1-cpu-4vcpu-16gb
 func (c *NebiusClient) parseInstanceType(ctx context.Context, instanceTypeID string) (platform string, preset string, err error) {
 	// Get the compute platforms to find the correct platform and preset
 	platformsResp, err := c.sdk.Services().Compute().V1().Platform().List(ctx, &compute.ListPlatformsRequest{
@@ -618,7 +619,66 @@ func (c *NebiusClient) parseInstanceType(ctx context.Context, instanceTypeID str
 		return "", "", fmt.Errorf("failed to list platforms: %w", err)
 	}
 
-	// Parse the instance type ID: find the platform that is a prefix of the instance type
+	// Parse the NEW instance type ID format: nebius-{region}-{gpu-type}-{preset}
+	// Split by "-" and extract components
+	parts := strings.Split(instanceTypeID, "-")
+	if len(parts) >= 4 && parts[0] == "nebius" {
+		// Format: nebius-{region}-{gpu-type}-{preset-parts...}
+		// Example: nebius-eu-north1-l40s-4gpu-96vcpu-768gb
+		//          parts[0]=nebius, parts[1]=eu, parts[2]=north1, parts[3]=l40s, parts[4+]=preset
+
+		// Find where the preset starts (after region and gpu-type)
+		// Region could be multi-part (eu-north1) so we need to find the GPU type or "cpu"
+		var gpuType string
+		var presetStartIdx int
+
+		// Look for GPU type indicators or "cpu"
+		for i := 1; i < len(parts); i++ {
+			partLower := strings.ToLower(parts[i])
+			// Check if this part is a known GPU type or "cpu"
+			if partLower == "cpu" || partLower == "l40s" || partLower == "h100" ||
+				partLower == "h200" || partLower == "a100" || partLower == "v100" ||
+				partLower == "b200" || partLower == "a10" || partLower == "t4" || partLower == "l4" {
+				gpuType = partLower
+				presetStartIdx = i + 1
+				break
+			}
+		}
+
+		if presetStartIdx > 0 && presetStartIdx < len(parts) {
+			// Reconstruct the preset name from remaining parts
+			presetName := strings.Join(parts[presetStartIdx:], "-")
+
+			// Now find the matching platform based on GPU type
+			for _, p := range platformsResp.GetItems() {
+				if p.Metadata == nil || p.Spec == nil {
+					continue
+				}
+
+				platformNameLower := strings.ToLower(p.Metadata.Name)
+
+				// Match platform by GPU type
+				if (gpuType == "cpu" && strings.Contains(platformNameLower, "cpu")) ||
+					(gpuType != "cpu" && strings.Contains(platformNameLower, gpuType)) {
+
+					// Verify the preset exists in this platform
+					for _, preset := range p.Spec.Presets {
+						if preset != nil && preset.Name == presetName {
+							return p.Metadata.Name, preset.Name, nil
+						}
+					}
+
+					// If preset not found, use first preset as fallback
+					if len(p.Spec.Presets) > 0 && p.Spec.Presets[0] != nil {
+						return p.Metadata.Name, p.Spec.Presets[0].Name, nil
+					}
+				}
+			}
+		}
+	}
+
+	// OLD Format fallback: {platform-id}-{preset}
+	// This handles any legacy instance type IDs that might still exist
 	for _, platform := range platformsResp.GetItems() {
 		if platform.Metadata == nil || platform.Spec == nil {
 			continue
@@ -647,8 +707,8 @@ func (c *NebiusClient) parseInstanceType(ctx context.Context, instanceTypeID str
 	}
 
 	// Fallback: try to find any platform that contains parts of the instance type
-	parts := strings.Split(instanceTypeID, "-")
-	if len(parts) >= 3 { // computeplatform-xxx-preset
+	legacyParts := strings.Split(instanceTypeID, "-")
+	if len(legacyParts) >= 3 { // computeplatform-xxx-preset
 		for _, platform := range platformsResp.GetItems() {
 			if platform.Metadata == nil || platform.Spec == nil {
 				continue
@@ -656,7 +716,7 @@ func (c *NebiusClient) parseInstanceType(ctx context.Context, instanceTypeID str
 
 			// Check if any part of the instance type matches this platform
 			platformID := platform.Metadata.Id
-			for _, part := range parts {
+			for _, part := range legacyParts {
 				if strings.Contains(platformID, part) {
 					// Use first available preset
 					if len(platform.Spec.Presets) > 0 && platform.Spec.Presets[0] != nil {
@@ -790,9 +850,9 @@ func (c *NebiusClient) cleanupOrphanedBootDisks(ctx context.Context, testID stri
 
 		// Check if this disk belongs to our smoke test
 		if strings.Contains(disk.Metadata.Name, testID) ||
-		   (disk.Metadata.Labels != nil &&
-			(disk.Metadata.Labels["test-id"] == testID ||
-			 disk.Metadata.Labels["created-by"] == "brev-cloud-sdk")) {
+			(disk.Metadata.Labels != nil &&
+				(disk.Metadata.Labels["test-id"] == testID ||
+					disk.Metadata.Labels["created-by"] == "brev-cloud-sdk")) {
 
 			// Delete this orphaned disk
 			err := c.deleteBootDisk(ctx, disk.Metadata.Id)

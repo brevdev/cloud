@@ -9,6 +9,8 @@ import (
 	"github.com/alecthomas/units"
 	"github.com/bojanz/currency"
 	v1 "github.com/brevdev/cloud/v1"
+	billing "github.com/nebius/gosdk/proto/nebius/billing/v1alpha1"
+	common "github.com/nebius/gosdk/proto/nebius/common/v1"
 	compute "github.com/nebius/gosdk/proto/nebius/compute/v1"
 	quotas "github.com/nebius/gosdk/proto/nebius/quotas/v1"
 )
@@ -25,7 +27,7 @@ func (c *NebiusClient) GetInstanceTypes(ctx context.Context, args v1.GetInstance
 	// Get all available locations for quota-aware enumeration
 	// Default behavior: check ALL regions to show all available quota
 	var locations []v1.Location
-	
+
 	if len(args.Locations) > 0 && !args.Locations.IsAll() {
 		// User requested specific locations - filter to those
 		allLocations, err := c.GetLocations(ctx, v1.GetLocationsArgs{})
@@ -138,9 +140,6 @@ func (c *NebiusClient) getInstanceTypesForLocation(ctx context.Context, platform
 				}
 			}
 
-			// Build instance type ID from platform and preset
-			instanceTypeID := fmt.Sprintf("%s-%s", platform.Metadata.Id, preset.Name)
-
 			// Determine GPU type and details from platform name
 			gpuType, gpuName := extractGPUTypeAndName(platform.Metadata.Name)
 
@@ -157,6 +156,19 @@ func (c *NebiusClient) getInstanceTypesForLocation(ctx context.Context, platform
 				cpuPresetCount++
 			}
 
+			// Build new instance type ID format: nebius-{region}-{gpu-type}-{preset}
+			// Examples:
+			//   nebius-eu-north1-l40s-4gpu-96vcpu-768gb
+			//   nebius-us-central1-h100-8gpu-128vcpu-1600gb
+			//   nebius-eu-north1-cpu-4vcpu-16gb
+			var instanceTypeID string
+			if isCPUOnly {
+				instanceTypeID = fmt.Sprintf("nebius-%s-cpu-%s", location.Name, preset.Name)
+			} else {
+				gpuTypeSlug := strings.ToLower(gpuType)
+				instanceTypeID = fmt.Sprintf("nebius-%s-%s-%s", location.Name, gpuTypeSlug, preset.Name)
+			}
+
 			// Convert Nebius platform preset to our InstanceType format
 			instanceType := v1.InstanceType{
 				ID:                 v1.InstanceTypeID(instanceTypeID),
@@ -164,7 +176,7 @@ func (c *NebiusClient) getInstanceTypesForLocation(ctx context.Context, platform
 				Type:               fmt.Sprintf("%s (%s)", platform.Metadata.Name, preset.Name),
 				VCPU:               preset.Resources.VcpuCount,
 				Memory:             units.Base2Bytes(int64(preset.Resources.MemoryGibibytes) * 1024 * 1024 * 1024), // Convert GiB to bytes
-				NetworkPerformance: "standard",                                                                      // Default network performance
+				NetworkPerformance: "standard",                                                                     // Default network performance
 				IsAvailable:        isAvailable,
 				ElasticRootVolume:  true, // Nebius supports dynamic disk allocation
 				SupportedStorage:   c.buildSupportedStorage(),
@@ -179,6 +191,12 @@ func (c *NebiusClient) getInstanceTypesForLocation(ctx context.Context, platform
 					Manufacturer: v1.ManufacturerNVIDIA, // Nebius currently only supports NVIDIA GPUs
 				}
 				instanceType.SupportedGPUs = []v1.GPU{gpu}
+			}
+
+			// Enrich with pricing information from Nebius Billing API
+			pricing := c.getPricingForInstanceType(ctx, platform.Metadata.Name, preset.Name, location.Name)
+			if pricing != nil {
+				instanceType.BasePrice = pricing
 			}
 
 			instanceTypes = append(instanceTypes, instanceType)
@@ -429,4 +447,59 @@ func determineInstanceTypeArchitecture(instanceType v1.InstanceType) string {
 	}
 
 	return "x86_64" // Default assumption
+}
+
+// getPricingForInstanceType fetches real pricing from Nebius Billing Calculator API
+// Returns nil if pricing cannot be fetched (non-critical failure)
+func (c *NebiusClient) getPricingForInstanceType(ctx context.Context, platformName, presetName, region string) *currency.Amount {
+	// Build minimal instance spec for pricing estimation
+	req := &billing.EstimateRequest{
+		ResourceSpec: &billing.ResourceSpec{
+			ResourceSpec: &billing.ResourceSpec_ComputeInstanceSpec{
+				ComputeInstanceSpec: &compute.CreateInstanceRequest{
+					Metadata: &common.ResourceMetadata{
+						ParentId: c.projectID,
+						Name:     "pricing-estimate",
+					},
+					Spec: &compute.InstanceSpec{
+						Resources: &compute.ResourcesSpec{
+							Platform: platformName,
+							Size: &compute.ResourcesSpec_Preset{
+								Preset: presetName,
+							},
+						},
+					},
+				},
+			},
+		},
+		OfferTypes: []billing.OfferType{
+			billing.OfferType_OFFER_TYPE_UNSPECIFIED, // On-demand pricing
+		},
+	}
+
+	// Query Nebius Billing Calculator API
+	resp, err := c.sdk.Services().Billing().V1Alpha1().Calculator().Estimate(ctx, req)
+	if err != nil {
+		// Non-critical failure - pricing is optional enrichment
+		// Log error but don't fail the entire GetInstanceTypes call
+		return nil
+	}
+
+	// Extract hourly cost
+	if resp.HourlyCost == nil || resp.HourlyCost.GetGeneral() == nil || resp.HourlyCost.GetGeneral().Total == nil {
+		return nil
+	}
+
+	costStr := resp.HourlyCost.GetGeneral().Total.Cost
+	if costStr == "" {
+		return nil
+	}
+
+	// Parse cost string to currency.Amount
+	amount, err := currency.NewAmount(costStr, "USD")
+	if err != nil {
+		return nil
+	}
+
+	return &amount
 }

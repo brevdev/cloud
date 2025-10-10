@@ -5,14 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 
 	v1 "github.com/brevdev/cloud/v1"
 	"github.com/nebius/gosdk"
 	"github.com/nebius/gosdk/auth"
-	common "github.com/nebius/gosdk/proto/nebius/common/v1"
 	iam "github.com/nebius/gosdk/proto/nebius/iam/v1"
 )
-
 
 // It embeds NotImplCloudClient to handle unsupported features
 type NebiusClient struct {
@@ -70,6 +69,18 @@ func NewNebiusClientWithOrg(ctx context.Context, refID, serviceAccountKey, tenan
 		return nil, fmt.Errorf("failed to initialize Nebius SDK: %w", err)
 	}
 
+	// Determine projectID: use provided ID, or find first available project, or use tenant ID
+	if projectID == "" {
+		// Try to find an existing project in the tenant for this region
+		foundProjectID, err := findProjectForRegion(ctx, sdk, tenantID, location)
+		if err == nil && foundProjectID != "" {
+			projectID = foundProjectID
+		} else {
+			// Fallback: try default-project-{region} naming pattern
+			projectID = fmt.Sprintf("default-project-%s", location)
+		}
+	}
+
 	client := &NebiusClient{
 		refID:             refID,
 		serviceAccountKey: serviceAccountKey,
@@ -80,12 +91,58 @@ func NewNebiusClientWithOrg(ctx context.Context, refID, serviceAccountKey, tenan
 		sdk:               sdk,
 	}
 
-	// Ensure the user's project exists (create if needed)
-	if err := client.ensureProjectExists(ctx); err != nil {
-		return nil, fmt.Errorf("failed to ensure project exists: %w", err)
+	return client, nil
+}
+
+// findProjectForRegion attempts to find an existing project for the given region
+// Priority:
+// 1. Project named "default-project-{region}" or "default-{region}"
+// 2. First project with region in the name
+// 3. First available project
+func findProjectForRegion(ctx context.Context, sdk *gosdk.SDK, tenantID, region string) (string, error) {
+	pageSize := int64(1000)
+	projectsResp, err := sdk.Services().IAM().V1().Project().List(ctx, &iam.ListProjectsRequest{
+		ParentId: tenantID,
+		PageSize: &pageSize,
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to list projects: %w", err)
 	}
 
-	return client, nil
+	projects := projectsResp.GetItems()
+	if len(projects) == 0 {
+		return "", fmt.Errorf("no projects found in tenant %s", tenantID)
+	}
+
+	// Priority 1: Look for default-project-{region} or default-{region}
+	preferredNames := []string{
+		fmt.Sprintf("default-project-%s", region),
+		fmt.Sprintf("default-%s", region),
+		"default",
+	}
+
+	for _, preferredName := range preferredNames {
+		for _, project := range projects {
+			if project.Metadata != nil && strings.EqualFold(project.Metadata.Name, preferredName) {
+				return project.Metadata.Id, nil
+			}
+		}
+	}
+
+	// Priority 2: Look for any project with region in the name
+	regionLower := strings.ToLower(region)
+	for _, project := range projects {
+		if project.Metadata != nil && strings.Contains(strings.ToLower(project.Metadata.Name), regionLower) {
+			return project.Metadata.Id, nil
+		}
+	}
+
+	// Priority 3: Return first available project
+	if projects[0].Metadata != nil {
+		return projects[0].Metadata.Id, nil
+	}
+
+	return "", fmt.Errorf("no suitable project found")
 }
 
 // GetAPIType returns the API type for Nebius
@@ -99,6 +156,8 @@ func (c *NebiusClient) GetCloudProviderID() v1.CloudProviderID {
 }
 
 // MakeClient creates a new client instance for a different location
+
+// FIXME for b64 decode on cred JSON
 func (c *NebiusClient) MakeClient(ctx context.Context, location string) (v1.CloudClient, error) {
 	return NewNebiusClient(ctx, c.refID, c.serviceAccountKey, c.tenantID, c.projectID, location)
 }
@@ -112,100 +171,3 @@ func (c *NebiusClient) GetTenantID() (string, error) {
 func (c *NebiusClient) GetReferenceID() string {
 	return c.refID
 }
-
-// ensureProjectExists creates a Nebius project for this user if it doesn't exist
-func (c *NebiusClient) ensureProjectExists(ctx context.Context) error {
-	// First, try to find existing project by name pattern
-	existingProjectID, err := c.findExistingProject(ctx)
-	if err == nil && existingProjectID != "" {
-		// Update our project ID to use the existing project
-		c.projectID = existingProjectID
-		return nil
-	}
-
-	// Try to get the project by ID to see if it exists
-	_, err = c.sdk.Services().IAM().V1().Project().Get(ctx, &iam.GetProjectRequest{
-		Id: c.projectID,
-	})
-	if err != nil {
-		// Check if the error is "not found", then create the project
-		if isNotFoundError(err) {
-			// Project doesn't exist, create it
-			return c.createProject(ctx)
-		}
-		// Some other error occurred
-		return fmt.Errorf("failed to check if project exists: %w", err)
-	}
-
-	// Project exists, we're good
-	return nil
-}
-
-// createProject creates a new project within the tenant
-func (c *NebiusClient) createProject(ctx context.Context) error {
-	labels := map[string]string{
-		"created-by":     "brev-cloud-sdk",
-		"brev-user":      c.refID,
-		"project-type":   "user-instances",
-	}
-
-	// Add organization ID if available (correlates to Brev Organization)
-	if c.organizationID != "" {
-		labels["tenant-uuid"] = c.organizationID // Maps to tenant_uuid in Terraform
-		labels["brev-organization"] = c.organizationID
-	}
-
-	createReq := &iam.CreateProjectRequest{
-		Metadata: &common.ResourceMetadata{
-			ParentId: c.tenantID,
-			Name:     fmt.Sprintf("brev-user-%s", c.refID),
-			Labels:   labels,
-		},
-		// Spec: &iam.ProjectSpec{
-		//	// Add any specific project configuration if needed
-		// },
-	}
-
-	operation, err := c.sdk.Services().IAM().V1().Project().Create(ctx, createReq)
-	if err != nil {
-		// Check if project already exists (this is OK)
-		if isAlreadyExistsError(err) {
-			return nil // Project already exists, we're good
-		}
-		return fmt.Errorf("failed to create project: %w", err)
-	}
-
-	// Wait for project creation to complete
-	finalOp, err := operation.Wait(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to wait for project creation: %w", err)
-	}
-
-	if !finalOp.Successful() {
-		return fmt.Errorf("project creation failed: %v", finalOp.Status())
-	}
-
-	return nil
-}
-
-// findExistingProject finds an existing project by looking for the expected name pattern
-func (c *NebiusClient) findExistingProject(ctx context.Context) (string, error) {
-	expectedName := fmt.Sprintf("brev-user-%s", c.refID)
-
-	resp, err := c.sdk.Services().IAM().V1().Project().List(ctx, &iam.ListProjectsRequest{
-		ParentId: c.tenantID,
-	})
-	if err != nil {
-		return "", err
-	}
-
-	// Look for project with matching name
-	for _, project := range resp.GetItems() {
-		if project.Metadata != nil && project.Metadata.Name == expectedName {
-			return project.Metadata.Id, nil
-		}
-	}
-
-	return "", fmt.Errorf("no existing project found with name: %s", expectedName)
-}
-

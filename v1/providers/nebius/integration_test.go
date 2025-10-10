@@ -2,6 +2,7 @@ package v1
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -29,17 +30,13 @@ func setupIntegrationTest(t *testing.T) *NebiusClient {
 		serviceAccountJSON = string(data)
 	}
 
-	// Create credential to get the project ID
-	cred := NewNebiusCredential("integration-test-ref", serviceAccountJSON, tenantID)
-	projectID, err := cred.GetTenantID()
-	require.NoError(t, err, "Failed to get project ID")
-
+	// Create client (project ID is now determined in NewNebiusClient as default-project-{location})
 	client, err := NewNebiusClient(
 		context.Background(),
 		"integration-test-ref",
 		serviceAccountJSON,
 		tenantID,
-		projectID,
+		"", // projectID is now determined as default-project-{location}
 		"eu-north1",
 	)
 	require.NoError(t, err, "Failed to create Nebius client for integration test")
@@ -123,14 +120,29 @@ func TestIntegration_InstanceLifecycle(t *testing.T) {
 	client := setupIntegrationTest(t)
 	ctx := context.Background()
 
+	// Step 0: Get available instance types to find one we can use
+	t.Log("Discovering available instance types...")
+	instanceTypes, err := client.GetInstanceTypes(ctx, v1.GetInstanceTypeArgs{})
+	require.NoError(t, err, "Failed to get instance types")
+
+	if len(instanceTypes) == 0 {
+		t.Skip("No instance types available - skipping instance lifecycle test")
+	}
+
+	// Use the first available instance type (should have quota)
+	selectedInstanceType := instanceTypes[0]
+	t.Logf("Using instance type: %s (Location: %s)", selectedInstanceType.ID, selectedInstanceType.Location)
+
 	// Step 1: Create instance
 	instanceRefID := "integration-test-" + time.Now().Format("20060102-150405")
+	instanceName := "nebius-int-test-" + time.Now().Format("20060102-150405") // Unique name to avoid collisions
 	createAttrs := v1.CreateInstanceAttrs{
 		RefID:        instanceRefID,
-		Name:         "nebius-integration-test",
-		InstanceType: "standard-2", // This may need to be updated with actual Nebius instance types
-		ImageID:      "ubuntu-20.04", // This may need to be updated with actual Nebius image IDs
-		DiskSize:     20,
+		Name:         instanceName,
+		InstanceType: string(selectedInstanceType.ID), // Use discovered instance type
+		ImageID:      "ubuntu22.04-cuda12",            // Use known-good Nebius image family
+		DiskSize:     50 * 1024 * 1024 * 1024,         // 50 GiB in bytes
+		Location:     selectedInstanceType.Location,   // Use the instance type's location
 		Tags: map[string]string{
 			"test":        "integration",
 			"created-by":  "nebius-integration-test",
@@ -149,6 +161,18 @@ func TestIntegration_InstanceLifecycle(t *testing.T) {
 
 	instanceCloudID := instance.CloudID
 	t.Logf("Created instance with CloudID: %s", instanceCloudID)
+
+	// Register cleanup to ensure resources are deleted even if test fails
+	t.Cleanup(func() {
+		t.Logf("Cleanup: Terminating instance %s", instanceCloudID)
+		cleanupCtx := context.Background()
+		if err := client.TerminateInstance(cleanupCtx, instanceCloudID); err != nil {
+			t.Logf("WARNING: Failed to cleanup instance %s: %v", instanceCloudID, err)
+			t.Logf("         Please manually delete: instance=%s, disk=%s-boot-disk", instanceCloudID, instanceName)
+		} else {
+			t.Logf("Successfully cleaned up instance %s", instanceCloudID)
+		}
+	})
 
 	// Step 2: Get instance details
 	t.Logf("Getting instance details for CloudID: %s", instanceCloudID)
@@ -184,12 +208,17 @@ func TestIntegration_InstanceLifecycle(t *testing.T) {
 		assert.Contains(t, err.Error(), "implementation pending")
 	}
 
-	// Step 6: Terminate instance (currently not implemented)
-	t.Logf("Terminating instance: %s", instanceCloudID)
+	// Step 6: Terminate instance
+	// Note: Cleanup is registered via t.Cleanup() above to ensure deletion even on test failure
+	// This step tests that termination works as part of the lifecycle test
+	t.Logf("Testing termination of instance: %s", instanceCloudID)
 	err = client.TerminateInstance(ctx, instanceCloudID)
+
+	// TerminateInstance is fully implemented, should succeed
 	if err != nil {
-		t.Logf("TerminateInstance failed as expected: %v", err)
-		assert.Contains(t, err.Error(), "implementation pending")
+		t.Errorf("TerminateInstance failed: %v", err)
+	} else {
+		t.Logf("Successfully terminated instance %s", instanceCloudID)
 	}
 
 	t.Log("Instance lifecycle test completed")
@@ -336,6 +365,55 @@ func TestIntegration_GetInstanceTypes(t *testing.T) {
 			// Verify CPU and memory
 			assert.Greater(t, it.VCPU, int32(0), "VCPU count should be positive")
 			assert.Greater(t, int64(it.Memory), int64(0), "Memory should be positive")
+
+			// Verify pricing is enriched from Nebius Billing API
+			if it.BasePrice != nil {
+				t.Logf("  Price: %s %s/hr", it.BasePrice.Number(), it.BasePrice.CurrencyCode())
+				assert.NotEmpty(t, it.BasePrice.Number(), "Price should have a value")
+				assert.Equal(t, "USD", it.BasePrice.CurrencyCode(), "Nebius pricing should be in USD")
+
+				// Price should be reasonable (not negative or extremely high)
+				priceStr := it.BasePrice.Number()
+				var priceFloat float64
+				fmt.Sscanf(priceStr, "%f", &priceFloat)
+				assert.Greater(t, priceFloat, 0.0, "Price should be positive")
+				assert.Less(t, priceFloat, 1000.0, "Price per hour should be reasonable (< $1000/hr)")
+			} else {
+				t.Logf("  Price: Not available (pricing API may have failed)")
+			}
+		}
+	})
+
+	t.Run("Verify pricing enrichment", func(t *testing.T) {
+		instanceTypes, err := client.GetInstanceTypes(ctx, v1.GetInstanceTypeArgs{})
+		require.NoError(t, err)
+
+		pricedCount := 0
+		unpricedCount := 0
+
+		for _, it := range instanceTypes {
+			if it.BasePrice != nil {
+				pricedCount++
+			} else {
+				unpricedCount++
+			}
+		}
+
+		t.Logf("Pricing statistics:")
+		t.Logf("  Instance types with pricing: %d", pricedCount)
+		t.Logf("  Instance types without pricing: %d", unpricedCount)
+
+		// We expect most (ideally all) instance types to have pricing
+		// But pricing API failures are non-critical, so we just log if missing
+		if unpricedCount > 0 {
+			t.Logf("WARNING: %d instance types are missing pricing data", unpricedCount)
+			t.Logf("         This may indicate Nebius Billing API issues or quota problems")
+		}
+
+		// At least verify that pricing is available for SOME instance types
+		// If zero, that suggests a systematic problem with pricing integration
+		if len(instanceTypes) > 0 && pricedCount == 0 {
+			t.Error("No instance types have pricing data - pricing integration may be broken")
 		}
 	})
 

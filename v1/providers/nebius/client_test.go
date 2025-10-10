@@ -19,8 +19,8 @@ func TestNebiusCredential(t *testing.T) {
 		expectError bool
 	}{
 		{
-			name:     "valid credentials",
-			refID:    "test-ref-id",
+			name:  "valid credentials",
+			refID: "test-ref-id",
 			serviceKey: `{
 				"subject-credentials": {
 					"type": "JWT",
@@ -34,8 +34,8 @@ func TestNebiusCredential(t *testing.T) {
 			tenantID: "test-tenant-id",
 		},
 		{
-			name:        "empty user ID",
-			refID:       "",
+			name:  "empty tenant ID",
+			refID: "test-ref",
 			serviceKey: `{
 				"subject-credentials": {
 					"type": "JWT",
@@ -46,7 +46,7 @@ func TestNebiusCredential(t *testing.T) {
 					"sub": "serviceaccount-test456"
 				}
 			}`,
-			tenantID:    "test-tenant-id",
+			tenantID:    "",
 			expectError: true,
 		},
 	}
@@ -64,9 +64,8 @@ func TestNebiusCredential(t *testing.T) {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
-				// tenantID should be a hash-based project ID like "brev-abc123def456"
-				assert.Contains(t, tenantID, "brev-")
-				assert.Len(t, tenantID, 17) // "brev-" + 12 char hash
+				// tenantID should now just return the tenant ID (not a project ID)
+				assert.Equal(t, tt.tenantID, tenantID)
 			}
 		})
 	}
@@ -91,6 +90,7 @@ func TestNebiusCredential_GetCapabilities(t *testing.T) {
 	expectedCapabilities := []v1.Capability{
 		v1.CapabilityCreateInstance,
 		v1.CapabilityTerminateInstance,
+		v1.CapabilityCreateTerminateInstance,
 		v1.CapabilityRebootInstance,
 		v1.CapabilityStopStartInstance,
 		v1.CapabilityResizeInstanceVolume,
@@ -215,6 +215,7 @@ func TestNebiusClient_GetCapabilities(t *testing.T) {
 	expectedCapabilities := []v1.Capability{
 		v1.CapabilityCreateInstance,
 		v1.CapabilityTerminateInstance,
+		v1.CapabilityCreateTerminateInstance,
 		v1.CapabilityRebootInstance,
 		v1.CapabilityStopStartInstance,
 		v1.CapabilityResizeInstanceVolume,
@@ -227,9 +228,9 @@ func TestNebiusClient_GetCapabilities(t *testing.T) {
 
 func TestValidServiceAccountJSON(t *testing.T) {
 	tests := []struct {
-		name     string
-		jsonStr  string
-		isValid  bool
+		name    string
+		jsonStr string
+		isValid bool
 	}{
 		{
 			name: "valid nebius service account",
@@ -252,9 +253,9 @@ func TestValidServiceAccountJSON(t *testing.T) {
 			isValid: true,
 		},
 		{
-			name:     "invalid JSON",
-			jsonStr:  `{invalid}`,
-			isValid:  false,
+			name:    "invalid JSON",
+			jsonStr: `{invalid}`,
+			isValid: false,
 		},
 	}
 

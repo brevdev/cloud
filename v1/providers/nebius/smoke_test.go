@@ -139,17 +139,13 @@ func setupSmokeTestClient(t *testing.T) *NebiusClient {
 		serviceAccountJSON = string(data)
 	}
 
-	// Create credential to get the project ID
-	cred := NewNebiusCredential("smoke-test-ref", serviceAccountJSON, tenantID)
-	projectID, err := cred.GetTenantID()
-	require.NoError(t, err, "Failed to get project ID")
-
+	// Create client (project ID is now determined in NewNebiusClient as default-project-{location})
 	client, err := NewNebiusClient(
 		context.Background(),
 		"smoke-test-ref",
 		serviceAccountJSON,
 		tenantID,
-		projectID,
+		"", // projectID is now determined as default-project-{location}
 		location,
 	)
 	require.NoError(t, err, "Failed to create Nebius client for smoke test")
@@ -428,9 +424,9 @@ func rebootInstance(t *testing.T, ctx context.Context, client *NebiusClient, ins
 
 func updateInstanceTags(t *testing.T, ctx context.Context, client *NebiusClient, instanceID v1.CloudProviderInstanceID) {
 	newTags := map[string]string{
-		"smoke-test":      "passed",
-		"last-updated":    time.Now().Format(time.RFC3339),
-		"test-operation":  "tag-update",
+		"smoke-test":     "passed",
+		"last-updated":   time.Now().Format(time.RFC3339),
+		"test-operation": "tag-update",
 	}
 
 	args := v1.UpdateInstanceTagsArgs{
