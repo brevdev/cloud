@@ -14,15 +14,18 @@ import (
 )
 
 func (c *NebiusClient) CreateInstance(ctx context.Context, attrs v1.CreateInstanceAttrs) (*v1.Instance, error) {
-	// Ensure networking infrastructure exists
-	subnetID, err := c.ensureNetworkInfrastructure(ctx, attrs.Name)
+	// Create isolated networking infrastructure for this instance
+	// Each instance gets its own VPC for proper isolation
+	networkID, subnetID, err := c.createIsolatedNetwork(ctx, attrs.Name)
 	if err != nil {
-		return nil, fmt.Errorf("failed to ensure network infrastructure: %w", err)
+		return nil, fmt.Errorf("failed to create isolated network: %w", err)
 	}
 
 	// Create boot disk first using image family
 	bootDiskID, err := c.createBootDisk(ctx, attrs)
 	if err != nil {
+		// Cleanup network resources if disk creation fails
+		_ = c.cleanupNetworkResources(ctx, networkID, subnetID)
 		return nil, fmt.Errorf("failed to create boot disk: %w", err)
 	}
 
@@ -67,16 +70,18 @@ func (c *NebiusClient) CreateInstance(ctx context.Context, attrs v1.CreateInstan
 		Spec: instanceSpec,
 	}
 
-	// Add labels/tags to metadata if provided
-	if len(attrs.Tags) > 0 {
-		createReq.Metadata.Labels = make(map[string]string)
-		for k, v := range attrs.Tags {
-			createReq.Metadata.Labels[k] = v
-		}
-		// Add Brev-specific labels
-		createReq.Metadata.Labels["created-by"] = "brev-cloud-sdk"
-		createReq.Metadata.Labels["brev-user"] = attrs.RefID
+	// Add labels/tags to metadata (always create labels for resource tracking)
+	createReq.Metadata.Labels = make(map[string]string)
+	for k, v := range attrs.Tags {
+		createReq.Metadata.Labels[k] = v
 	}
+	// Add Brev-specific labels and resource tracking
+	createReq.Metadata.Labels["created-by"] = "brev-cloud-sdk"
+	createReq.Metadata.Labels["brev-user"] = attrs.RefID
+	// Track associated resources for cleanup
+	createReq.Metadata.Labels["network-id"] = networkID
+	createReq.Metadata.Labels["subnet-id"] = subnetID
+	createReq.Metadata.Labels["boot-disk-id"] = bootDiskID
 
 	operation, err := c.sdk.Services().Compute().V1().Instance().Create(ctx, createReq)
 	if err != nil {
@@ -202,7 +207,23 @@ func extractImageFamily(bootDisk *compute.AttachedDiskSpec) string {
 }
 
 func (c *NebiusClient) TerminateInstance(ctx context.Context, instanceID v1.CloudProviderInstanceID) error {
-	// Delete the instance
+	// Get instance details to retrieve associated resource IDs
+	instance, err := c.sdk.Services().Compute().V1().Instance().Get(ctx, &compute.GetInstanceRequest{
+		Id: string(instanceID),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to get instance details: %w", err)
+	}
+
+	// Extract resource IDs from labels
+	var networkID, subnetID, bootDiskID string
+	if instance.Metadata != nil && instance.Metadata.Labels != nil {
+		networkID = instance.Metadata.Labels["network-id"]
+		subnetID = instance.Metadata.Labels["subnet-id"]
+		bootDiskID = instance.Metadata.Labels["boot-disk-id"]
+	}
+
+	// Step 1: Delete the instance
 	operation, err := c.sdk.Services().Compute().V1().Instance().Delete(ctx, &compute.DeleteInstanceRequest{
 		Id: string(instanceID),
 	})
@@ -210,7 +231,7 @@ func (c *NebiusClient) TerminateInstance(ctx context.Context, instanceID v1.Clou
 		return fmt.Errorf("failed to initiate instance termination: %w", err)
 	}
 
-	// Wait for the deletion to complete
+	// Wait for the instance deletion to complete
 	finalOp, err := operation.Wait(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to wait for instance termination: %w", err)
@@ -218,6 +239,20 @@ func (c *NebiusClient) TerminateInstance(ctx context.Context, instanceID v1.Clou
 
 	if !finalOp.Successful() {
 		return fmt.Errorf("instance termination failed: %v", finalOp.Status())
+	}
+
+	// Step 2: Delete boot disk if it exists and wasn't auto-deleted
+	if bootDiskID != "" {
+		if err := c.deleteBootDiskIfExists(ctx, bootDiskID); err != nil {
+			// Log but don't fail - disk may have been auto-deleted with instance
+			fmt.Printf("Warning: failed to delete boot disk %s: %v\n", bootDiskID, err)
+		}
+	}
+
+	// Step 3: Delete network resources (subnet, then VPC)
+	if err := c.cleanupNetworkResources(ctx, networkID, subnetID); err != nil {
+		// Log but don't fail - cleanup is best-effort
+		fmt.Printf("Warning: failed to cleanup network resources: %v\n", err)
 	}
 
 	return nil
@@ -275,47 +310,20 @@ func (c *NebiusClient) MergeInstanceForUpdate(currInst v1.Instance, newInst v1.I
 	return merged
 }
 
-// ensureNetworkInfrastructure creates VPC network and subnet for instance if needed
-func (c *NebiusClient) ensureNetworkInfrastructure(ctx context.Context, instanceName string) (string, error) {
-	// Create or get VPC network
-	networkID, err := c.ensureVPCNetwork(ctx)
-	if err != nil {
-		return "", fmt.Errorf("failed to ensure VPC network: %w", err)
-	}
+// createIsolatedNetwork creates a dedicated VPC and subnet for a single instance
+// This ensures complete network isolation between instances
+func (c *NebiusClient) createIsolatedNetwork(ctx context.Context, instanceName string) (networkID, subnetID string, err error) {
+	// Create VPC network (unique per instance)
+	networkName := fmt.Sprintf("%s-vpc", instanceName)
 
-	// Create or get subnet
-	subnetID, err := c.ensureSubnet(ctx, networkID, instanceName)
-	if err != nil {
-		return "", fmt.Errorf("failed to ensure subnet: %w", err)
-	}
-
-	return subnetID, nil
-}
-
-// ensureVPCNetwork creates a VPC network for the project if it doesn't exist
-func (c *NebiusClient) ensureVPCNetwork(ctx context.Context) (string, error) {
-	networkName := fmt.Sprintf("%s-network", c.projectID)
-
-	// Try to find existing network
-	networksResp, err := c.sdk.Services().VPC().V1().Network().List(ctx, &vpc.ListNetworksRequest{
-		ParentId: c.projectID,
-	})
-	if err == nil {
-		for _, network := range networksResp.GetItems() {
-			if network.Metadata != nil && network.Metadata.Name == networkName {
-				return network.Metadata.Id, nil
-			}
-		}
-	}
-
-	// Create new VPC network
-	createReq := &vpc.CreateNetworkRequest{
+	createNetworkReq := &vpc.CreateNetworkRequest{
 		Metadata: &common.ResourceMetadata{
 			ParentId: c.projectID,
 			Name:     networkName,
 			Labels: map[string]string{
 				"created-by": "brev-cloud-sdk",
 				"brev-user":  c.refID,
+				"instance":   instanceName,
 			},
 		},
 		Spec: &vpc.NetworkSpec{
@@ -323,54 +331,38 @@ func (c *NebiusClient) ensureVPCNetwork(ctx context.Context) (string, error) {
 		},
 	}
 
-	operation, err := c.sdk.Services().VPC().V1().Network().Create(ctx, createReq)
+	networkOp, err := c.sdk.Services().VPC().V1().Network().Create(ctx, createNetworkReq)
 	if err != nil {
-		return "", fmt.Errorf("failed to create VPC network: %w", err)
+		return "", "", fmt.Errorf("failed to create isolated VPC network: %w", err)
 	}
 
-	// Wait for network creation to complete
-	finalOp, err := operation.Wait(ctx)
+	// Wait for network creation
+	finalNetworkOp, err := networkOp.Wait(ctx)
 	if err != nil {
-		return "", fmt.Errorf("failed to wait for VPC network creation: %w", err)
+		return "", "", fmt.Errorf("failed to wait for VPC network creation: %w", err)
 	}
 
-	if !finalOp.Successful() {
-		return "", fmt.Errorf("VPC network creation failed: %v", finalOp.Status())
+	if !finalNetworkOp.Successful() {
+		return "", "", fmt.Errorf("VPC network creation failed: %v", finalNetworkOp.Status())
 	}
 
-	// Get the resource ID directly
-	networkID := finalOp.ResourceID()
+	networkID = finalNetworkOp.ResourceID()
 	if networkID == "" {
-		return "", fmt.Errorf("failed to get network ID from operation")
+		return "", "", fmt.Errorf("failed to get network ID from operation")
 	}
 
-	return networkID, nil
-}
+	// Create subnet within the VPC
+	subnetName := fmt.Sprintf("%s-subnet", instanceName)
 
-// ensureSubnet creates a subnet within the VPC network if it doesn't exist
-func (c *NebiusClient) ensureSubnet(ctx context.Context, networkID, instanceName string) (string, error) {
-	subnetName := fmt.Sprintf("%s-subnet", strings.ReplaceAll(instanceName, "_", "-"))
-
-	// Try to find existing subnet
-	subnetsResp, err := c.sdk.Services().VPC().V1().Subnet().List(ctx, &vpc.ListSubnetsRequest{
-		ParentId: c.projectID,
-	})
-	if err == nil {
-		for _, subnet := range subnetsResp.GetItems() {
-			if subnet.Metadata != nil && subnet.Metadata.Name == subnetName {
-				return subnet.Metadata.Id, nil
-			}
-		}
-	}
-
-	// Create new subnet
-	createReq := &vpc.CreateSubnetRequest{
+	createSubnetReq := &vpc.CreateSubnetRequest{
 		Metadata: &common.ResourceMetadata{
 			ParentId: c.projectID,
 			Name:     subnetName,
 			Labels: map[string]string{
 				"created-by": "brev-cloud-sdk",
 				"brev-user":  c.refID,
+				"instance":   instanceName,
+				"network-id": networkID,
 			},
 		},
 		Spec: &vpc.SubnetSpec{
@@ -379,28 +371,106 @@ func (c *NebiusClient) ensureSubnet(ctx context.Context, networkID, instanceName
 		},
 	}
 
-	operation, err := c.sdk.Services().VPC().V1().Subnet().Create(ctx, createReq)
+	subnetOp, err := c.sdk.Services().VPC().V1().Subnet().Create(ctx, createSubnetReq)
 	if err != nil {
-		return "", fmt.Errorf("failed to create subnet: %w", err)
+		// Cleanup network if subnet creation fails
+		_ = c.deleteNetworkIfExists(ctx, networkID)
+		return "", "", fmt.Errorf("failed to create subnet: %w", err)
 	}
 
-	// Wait for subnet creation to complete
+	// Wait for subnet creation
+	finalSubnetOp, err := subnetOp.Wait(ctx)
+	if err != nil {
+		// Cleanup network if subnet wait fails
+		_ = c.deleteNetworkIfExists(ctx, networkID)
+		return "", "", fmt.Errorf("failed to wait for subnet creation: %w", err)
+	}
+
+	if !finalSubnetOp.Successful() {
+		// Cleanup network if subnet creation fails
+		_ = c.deleteNetworkIfExists(ctx, networkID)
+		return "", "", fmt.Errorf("subnet creation failed: %v", finalSubnetOp.Status())
+	}
+
+	subnetID = finalSubnetOp.ResourceID()
+	if subnetID == "" {
+		// Cleanup network if we can't get subnet ID
+		_ = c.deleteNetworkIfExists(ctx, networkID)
+		return "", "", fmt.Errorf("failed to get subnet ID from operation")
+	}
+
+	return networkID, subnetID, nil
+}
+
+// cleanupNetworkResources deletes subnet and VPC network
+func (c *NebiusClient) cleanupNetworkResources(ctx context.Context, networkID, subnetID string) error {
+	// Delete subnet first (must be deleted before VPC)
+	if subnetID != "" {
+		if err := c.deleteSubnetIfExists(ctx, subnetID); err != nil {
+			return fmt.Errorf("failed to delete subnet: %w", err)
+		}
+	}
+
+	// Then delete VPC network
+	if networkID != "" {
+		if err := c.deleteNetworkIfExists(ctx, networkID); err != nil {
+			return fmt.Errorf("failed to delete network: %w", err)
+		}
+	}
+
+	return nil
+}
+
+// deleteSubnetIfExists deletes a subnet if it exists
+func (c *NebiusClient) deleteSubnetIfExists(ctx context.Context, subnetID string) error {
+	operation, err := c.sdk.Services().VPC().V1().Subnet().Delete(ctx, &vpc.DeleteSubnetRequest{
+		Id: subnetID,
+	})
+	if err != nil {
+		// Ignore NotFound errors
+		if isNotFoundError(err) {
+			return nil
+		}
+		return fmt.Errorf("failed to delete subnet: %w", err)
+	}
+
+	// Wait for deletion to complete
 	finalOp, err := operation.Wait(ctx)
 	if err != nil {
-		return "", fmt.Errorf("failed to wait for subnet creation: %w", err)
+		return fmt.Errorf("failed to wait for subnet deletion: %w", err)
 	}
 
 	if !finalOp.Successful() {
-		return "", fmt.Errorf("subnet creation failed: %v", finalOp.Status())
+		return fmt.Errorf("subnet deletion failed: %v", finalOp.Status())
 	}
 
-	// Get the resource ID directly
-	subnetID := finalOp.ResourceID()
-	if subnetID == "" {
-		return "", fmt.Errorf("failed to get subnet ID from operation")
+	return nil
+}
+
+// deleteNetworkIfExists deletes a VPC network if it exists
+func (c *NebiusClient) deleteNetworkIfExists(ctx context.Context, networkID string) error {
+	operation, err := c.sdk.Services().VPC().V1().Network().Delete(ctx, &vpc.DeleteNetworkRequest{
+		Id: networkID,
+	})
+	if err != nil {
+		// Ignore NotFound errors
+		if isNotFoundError(err) {
+			return nil
+		}
+		return fmt.Errorf("failed to delete network: %w", err)
 	}
 
-	return subnetID, nil
+	// Wait for deletion to complete
+	finalOp, err := operation.Wait(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to wait for network deletion: %w", err)
+	}
+
+	if !finalOp.Successful() {
+		return fmt.Errorf("network deletion failed: %v", finalOp.Status())
+	}
+
+	return nil
 }
 
 // createBootDisk creates a boot disk for the instance using image family or specific image ID
@@ -816,6 +886,32 @@ func (c *NebiusClient) deleteBootDisk(ctx context.Context, diskID string) error 
 		Id: diskID,
 	})
 	if err != nil {
+		return fmt.Errorf("failed to delete boot disk: %w", err)
+	}
+
+	// Wait for disk deletion to complete
+	finalOp, err := operation.Wait(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to wait for boot disk deletion: %w", err)
+	}
+
+	if !finalOp.Successful() {
+		return fmt.Errorf("boot disk deletion failed: %v", finalOp.Status())
+	}
+
+	return nil
+}
+
+// deleteBootDiskIfExists deletes a boot disk if it exists (ignores NotFound errors)
+func (c *NebiusClient) deleteBootDiskIfExists(ctx context.Context, diskID string) error {
+	operation, err := c.sdk.Services().Compute().V1().Disk().Delete(ctx, &compute.DeleteDiskRequest{
+		Id: diskID,
+	})
+	if err != nil {
+		// Ignore NotFound errors - disk may have been auto-deleted with instance
+		if isNotFoundError(err) {
+			return nil
+		}
 		return fmt.Errorf("failed to delete boot disk: %w", err)
 	}
 
