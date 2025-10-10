@@ -33,6 +33,12 @@ type Cluster struct {
 	// The status of the cluster.
 	Status ClusterStatus
 
+	// The API endpoint of the cluster.
+	APIEndpoint string
+
+	// The CA certificate of the cluster, in base64.
+	ClusterCACertificateBase64 string
+
 	// The node groups associated with the cluster.
 	NodeGroups []NodeGroup
 }
@@ -67,15 +73,38 @@ type CreateClusterArgs struct {
 	SubnetIDs         []string
 	KubernetesVersion string
 	Location          string
-	NodeGroups        []CreateNodeGroupArgs
+}
+
+type PutUserArgs struct {
+	ClusterRefID string
+	Username     string
+	RSAPEMBase64 string
+}
+
+type PutUserResponse struct {
+	ClusterName                           string
+	ClusterCertificateAuthorityDataBase64 string
+	ClusterServerURL                      string
+	Username                              string
+	UserClientCertificateDataBase64       string
+	UserClientKeyDataBase64               string
+	KubeconfigBase64                      string
 }
 
 type CreateNodeGroupArgs struct {
+	ClusterRefID string
 	Name         string
 	RefID        string
 	MinNodeCount int
 	MaxNodeCount int
 	InstanceType string
+	DiskSizeGiB  int
+}
+
+type CreateNodeGroupResponse struct {
+	ClusterRefID string
+	Name         string
+	RefID        string
 }
 
 type GetClusterArgs struct {
@@ -85,11 +114,13 @@ type GetClusterArgs struct {
 }
 
 type DeleteClusterArgs struct {
-	Cluster *Cluster
+	ClusterRefID string
 }
 
 type CloudMaintainKubernetes interface {
 	CreateCluster(ctx context.Context, args CreateClusterArgs) (*Cluster, error)
 	GetCluster(ctx context.Context, args GetClusterArgs) (*Cluster, error)
+	PutUser(ctx context.Context, args PutUserArgs) (*PutUserResponse, error)
+	CreateNodeGroup(ctx context.Context, args CreateNodeGroupArgs) (*CreateNodeGroupResponse, error)
 	DeleteCluster(ctx context.Context, args DeleteClusterArgs) error
 }

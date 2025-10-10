@@ -143,11 +143,12 @@ func createSubnet(ctx context.Context, nebiusSubnetService nebiusVPC.SubnetServi
 		Spec: &vpc.SubnetSpec{
 			NetworkId: networkID,
 			Ipv4PrivatePools: &vpc.IPv4PrivateSubnetPools{
-				Pools: []*vpc.SubnetPool{
-					{Cidrs: []*vpc.SubnetCidr{
-						{Cidr: args.CidrBlock},
-					}},
-				},
+				// Pools: []*vpc.SubnetPool{
+				// 	{Cidrs: []*vpc.SubnetCidr{
+				// 		{Cidr: args.CidrBlock},
+				// 	}},
+				// },
+				UseNetworkPools: true,
 			},
 			Ipv4PublicPools: &vpc.IPv4PublicSubnetPools{
 				UseNetworkPools: allowPublicIPAllocations,

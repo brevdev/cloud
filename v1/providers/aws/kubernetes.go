@@ -199,10 +199,19 @@ func installEKSAddon(ctx context.Context, awsClient awsClient, eksCluster *eksty
 	return nil
 }
 
-func (c *AWSClient) GetCluster(ctx context.Context, args v1.GetClusterArgs) (*v1.Cluster, error) {
-	return nil, nil
+// PutUser implements v1.CloudMaintainKubernetes.
+func (c *AWSClient) PutUser(_ context.Context, _ v1.PutUserArgs) (*v1.PutUserResponse, error) {
+	panic("unimplemented")
 }
 
-func (c *AWSClient) DeleteCluster(ctx context.Context, args v1.DeleteClusterArgs) error {
-	return nil
+func (c *AWSClient) CreateNodeGroup(_ context.Context, _ v1.CreateNodeGroupArgs) (*v1.CreateNodeGroupResponse, error) {
+	panic("unimplemented")
+}
+
+func (c *AWSClient) GetCluster(_ context.Context, _ v1.GetClusterArgs) (*v1.Cluster, error) {
+	panic("unimplemented")
+}
+
+func (c *AWSClient) DeleteCluster(_ context.Context, _ v1.DeleteClusterArgs) error {
+	panic("unimplemented")
 }
