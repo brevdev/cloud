@@ -35,6 +35,10 @@ func (c *NebiusClient) CreateInstance(ctx context.Context, attrs v1.CreateInstan
 		return nil, fmt.Errorf("failed to parse instance type %s: %w", attrs.InstanceType, err)
 	}
 
+	// Generate cloud-init user-data for SSH key injection and firewall configuration
+	// This is similar to Shadeform's LaunchConfiguration approach but uses cloud-init
+	cloudInitUserData := generateCloudInitUserData(attrs.PublicKey, attrs.FirewallRules)
+
 	// Create instance specification
 	instanceSpec := &compute.InstanceSpec{
 		Resources: &compute.ResourcesSpec{
@@ -45,9 +49,15 @@ func (c *NebiusClient) CreateInstance(ctx context.Context, attrs v1.CreateInstan
 		},
 		NetworkInterfaces: []*compute.NetworkInterfaceSpec{
 			{
-				Name:      "eth0",
-				SubnetId:  subnetID,
-				IpAddress: &compute.IPAddress{}, // Auto-assign IP
+				Name:     "eth0",
+				SubnetId: subnetID,
+				// Auto-assign private IP
+				IpAddress: &compute.IPAddress{},
+				// Request public IP for SSH connectivity
+				// Static=false means ephemeral IP (allocated with instance, freed on deletion)
+				PublicIpAddress: &compute.PublicIPAddress{
+					Static: false,
+				},
 			},
 		},
 		BootDisk: &compute.AttachedDiskSpec{
@@ -59,6 +69,7 @@ func (c *NebiusClient) CreateInstance(ctx context.Context, attrs v1.CreateInstan
 			},
 			DeviceId: "boot-disk", // User-defined device identifier
 		},
+		CloudInitUserData: cloudInitUserData, // Inject SSH keys and configure instance via cloud-init
 	}
 
 	// Create the instance - labels should be in metadata
@@ -104,21 +115,30 @@ func (c *NebiusClient) CreateInstance(ctx context.Context, attrs v1.CreateInstan
 		return nil, fmt.Errorf("failed to get instance ID from operation")
 	}
 
-	instance := &v1.Instance{
-		RefID:          attrs.RefID,
-		CloudCredRefID: c.refID,
-		Name:           attrs.Name,
-		Location:       c.location,
-		CreatedAt:      time.Now(),
-		InstanceType:   attrs.InstanceType,
-		ImageID:        attrs.ImageID,
-		DiskSize:       attrs.DiskSize,
-		Tags:           attrs.Tags,
-		CloudID:        v1.CloudProviderInstanceID(instanceID),                // Use actual instance ID
-		Status:         v1.Status{LifecycleStatus: v1.LifecycleStatusRunning}, // Instance should be running after successful operation
+	// Query the created instance to get IP addresses and full details
+	createdInstance, err := c.GetInstance(ctx, v1.CloudProviderInstanceID(instanceID))
+	if err != nil {
+		// If we can't get instance details, return basic info
+		return &v1.Instance{
+			RefID:          attrs.RefID,
+			CloudCredRefID: c.refID,
+			Name:           attrs.Name,
+			Location:       c.location,
+			CreatedAt:      time.Now(),
+			InstanceType:   attrs.InstanceType,
+			ImageID:        attrs.ImageID,
+			DiskSize:       attrs.DiskSize,
+			Tags:           attrs.Tags,
+			CloudID:        v1.CloudProviderInstanceID(instanceID),
+			Status:         v1.Status{LifecycleStatus: v1.LifecycleStatusPending},
+		}, nil
 	}
 
-	return instance, nil
+	// Return the full instance details with IP addresses and SSH info
+	createdInstance.RefID = attrs.RefID
+	createdInstance.CloudCredRefID = c.refID
+	createdInstance.Tags = attrs.Tags
+	return createdInstance, nil
 }
 
 func (c *NebiusClient) GetInstance(ctx context.Context, instanceID v1.CloudProviderInstanceID) (*v1.Instance, error) {
@@ -179,6 +199,39 @@ func (c *NebiusClient) GetInstance(ctx context.Context, instanceID v1.CloudProvi
 		refID = instance.Metadata.Labels["brev-user"] // Extract from labels if available
 	}
 
+	// Extract IP addresses from network interfaces
+	var publicIP, privateIP, hostname string
+	if instance.Status != nil && len(instance.Status.NetworkInterfaces) > 0 {
+		// Get the first network interface (usually eth0)
+		netInterface := instance.Status.NetworkInterfaces[0]
+
+		// Extract private IP
+		if netInterface.IpAddress != nil {
+			privateIP = netInterface.IpAddress.Address
+		}
+
+		// Extract public IP (if assigned)
+		if netInterface.PublicIpAddress != nil {
+			publicIP = netInterface.PublicIpAddress.Address
+		}
+
+		// Use public IP as hostname if available, otherwise use private IP
+		if publicIP != "" {
+			hostname = publicIP
+		} else {
+			hostname = privateIP
+		}
+	}
+
+	// Determine SSH user based on image
+	sshUser := "ubuntu" // Default SSH user for Nebius instances
+	imageFamily := extractImageFamily(instance.Spec.BootDisk)
+	if strings.Contains(strings.ToLower(imageFamily), "centos") {
+		sshUser = "centos"
+	} else if strings.Contains(strings.ToLower(imageFamily), "debian") {
+		sshUser = "admin"
+	}
+
 	return &v1.Instance{
 		RefID:          refID,
 		CloudCredRefID: c.refID,
@@ -187,10 +240,17 @@ func (c *NebiusClient) GetInstance(ctx context.Context, instanceID v1.CloudProvi
 		Location:       c.location,
 		CreatedAt:      createdAt,
 		InstanceType:   instance.Spec.Resources.Platform,
-		ImageID:        extractImageFamily(instance.Spec.BootDisk),
+		ImageID:        imageFamily,
 		DiskSize:       units.Base2Bytes(diskSize) * units.Gibibyte,
 		Tags:           tags,
 		Status:         v1.Status{LifecycleStatus: lifecycleStatus},
+		// SSH connectivity details
+		PublicIP:  publicIP,
+		PrivateIP: privateIP,
+		PublicDNS: publicIP, // Nebius doesn't provide separate DNS, use public IP
+		Hostname:  hostname,
+		SSHUser:   sshUser,
+		SSHPort:   22, // Standard SSH port
 	}, nil
 }
 
@@ -264,11 +324,47 @@ func (c *NebiusClient) ListInstances(ctx context.Context, args v1.ListInstancesA
 }
 
 func (c *NebiusClient) StopInstance(ctx context.Context, instanceID v1.CloudProviderInstanceID) error {
-	return fmt.Errorf("nebius stop instance implementation pending: %w", v1.ErrNotImplemented)
+	// Initiate instance stop operation
+	operation, err := c.sdk.Services().Compute().V1().Instance().Stop(ctx, &compute.StopInstanceRequest{
+		Id: string(instanceID),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to initiate instance stop: %w", err)
+	}
+
+	// Wait for the stop operation to complete
+	finalOp, err := operation.Wait(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to wait for instance stop: %w", err)
+	}
+
+	if !finalOp.Successful() {
+		return fmt.Errorf("instance stop failed: %v", finalOp.Status())
+	}
+
+	return nil
 }
 
 func (c *NebiusClient) StartInstance(ctx context.Context, instanceID v1.CloudProviderInstanceID) error {
-	return fmt.Errorf("nebius start instance implementation pending: %w", v1.ErrNotImplemented)
+	// Initiate instance start operation
+	operation, err := c.sdk.Services().Compute().V1().Instance().Start(ctx, &compute.StartInstanceRequest{
+		Id: string(instanceID),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to initiate instance start: %w", err)
+	}
+
+	// Wait for the start operation to complete
+	finalOp, err := operation.Wait(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to wait for instance start: %w", err)
+	}
+
+	if !finalOp.Successful() {
+		return fmt.Errorf("instance start failed: %v", finalOp.Status())
+	}
+
+	return nil
 }
 
 func (c *NebiusClient) RebootInstance(ctx context.Context, instanceID v1.CloudProviderInstanceID) error {
@@ -960,4 +1056,115 @@ func (c *NebiusClient) cleanupOrphanedBootDisks(ctx context.Context, testID stri
 	}
 
 	return nil
+}
+
+// generateCloudInitUserData generates a cloud-init user-data script for SSH key injection and firewall configuration
+// This is inspired by Shadeform's LaunchConfiguration approach but uses cloud-init instead of base64 scripts
+func generateCloudInitUserData(publicKey string, firewallRules v1.FirewallRules) string {
+	// Start with cloud-init header
+	script := "#cloud-config\n"
+
+	// Add SSH key configuration if provided
+	if publicKey != "" {
+		script += fmt.Sprintf(`ssh_authorized_keys:
+  - %s
+`, publicKey)
+	}
+
+	// Generate UFW firewall commands (similar to Shadeform's approach)
+	// UFW (Uncomplicated Firewall) is available on Ubuntu/Debian instances
+	ufwCommands := generateUFWCommands(firewallRules)
+
+	if len(ufwCommands) > 0 {
+		// Use runcmd to execute firewall setup commands
+		script += "\nruncmd:\n"
+		for _, cmd := range ufwCommands {
+			script += fmt.Sprintf("  - %s\n", cmd)
+		}
+	}
+
+	return script
+}
+
+// generateUFWCommands generates UFW firewall commands similar to Shadeform
+// This follows the same pattern as Shadeform's GenerateFirewallScript
+func generateUFWCommands(firewallRules v1.FirewallRules) []string {
+	commands := []string{
+		"ufw --force reset",          // Reset to clean state
+		"ufw default deny incoming",  // Default deny incoming
+		"ufw default allow outgoing", // Default allow outgoing
+		"ufw allow 22/tcp",           // Always allow SSH on port 22
+		"ufw allow 2222/tcp",         // Also allow alternate SSH port
+	}
+
+	// Add ingress rules
+	for _, rule := range firewallRules.IngressRules {
+		commands = append(commands, convertIngressRuleToUFW(rule)...)
+	}
+
+	// Add egress rules
+	for _, rule := range firewallRules.EgressRules {
+		commands = append(commands, convertEgressRuleToUFW(rule)...)
+	}
+
+	// Enable the firewall
+	commands = append(commands, "ufw --force enable")
+
+	return commands
+}
+
+// convertIngressRuleToUFW converts an ingress firewall rule to UFW command(s)
+func convertIngressRuleToUFW(rule v1.FirewallRule) []string {
+	cmds := []string{}
+	portSpecs := []string{}
+
+	if rule.FromPort == rule.ToPort {
+		portSpecs = append(portSpecs, fmt.Sprintf("port %d", rule.FromPort))
+	} else {
+		// Port ranges require two separate rules for tcp and udp
+		portSpecs = append(portSpecs, fmt.Sprintf("port %d:%d proto tcp", rule.FromPort, rule.ToPort))
+		portSpecs = append(portSpecs, fmt.Sprintf("port %d:%d proto udp", rule.FromPort, rule.ToPort))
+	}
+
+	if len(rule.IPRanges) == 0 {
+		for _, portSpec := range portSpecs {
+			cmds = append(cmds, fmt.Sprintf("ufw allow in from any to any %s", portSpec))
+		}
+	} else {
+		for _, ipRange := range rule.IPRanges {
+			for _, portSpec := range portSpecs {
+				cmds = append(cmds, fmt.Sprintf("ufw allow in from %s to any %s", ipRange, portSpec))
+			}
+		}
+	}
+
+	return cmds
+}
+
+// convertEgressRuleToUFW converts an egress firewall rule to UFW command(s)
+func convertEgressRuleToUFW(rule v1.FirewallRule) []string {
+	cmds := []string{}
+	portSpecs := []string{}
+
+	if rule.FromPort == rule.ToPort {
+		portSpecs = append(portSpecs, fmt.Sprintf("port %d", rule.FromPort))
+	} else {
+		// Port ranges require two separate rules for tcp and udp
+		portSpecs = append(portSpecs, fmt.Sprintf("port %d:%d proto tcp", rule.FromPort, rule.ToPort))
+		portSpecs = append(portSpecs, fmt.Sprintf("port %d:%d proto udp", rule.FromPort, rule.ToPort))
+	}
+
+	if len(rule.IPRanges) == 0 {
+		for _, portSpec := range portSpecs {
+			cmds = append(cmds, fmt.Sprintf("ufw allow out to any %s", portSpec))
+		}
+	} else {
+		for _, ipRange := range rule.IPRanges {
+			for _, portSpec := range portSpecs {
+				cmds = append(cmds, fmt.Sprintf("ufw allow out to %s %s", ipRange, portSpec))
+			}
+		}
+	}
+
+	return cmds
 }
