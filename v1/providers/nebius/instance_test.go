@@ -92,3 +92,47 @@ func BenchmarkCreateInstance(b *testing.B) {
 func BenchmarkGetInstance(b *testing.B) {
 	b.Skip("GetInstance requires real SDK initialization - use integration tests instead")
 }
+
+// TestStripCIDR tests CIDR notation removal from IP addresses
+// Nebius API returns IPs with CIDR notation (e.g., "192.168.1.1/32")
+// which breaks SSH connectivity if not stripped
+func TestStripCIDR(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "IPv4 with /32 CIDR",
+			input:    "195.242.10.162/32",
+			expected: "195.242.10.162",
+		},
+		{
+			name:     "IPv4 with /24 CIDR",
+			input:    "192.168.1.0/24",
+			expected: "192.168.1.0",
+		},
+		{
+			name:     "IPv4 without CIDR",
+			input:    "10.0.0.1",
+			expected: "10.0.0.1",
+		},
+		{
+			name:     "empty string",
+			input:    "",
+			expected: "",
+		},
+		{
+			name:     "private IP with CIDR",
+			input:    "10.128.0.5/32",
+			expected: "10.128.0.5",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := stripCIDR(tt.input)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}

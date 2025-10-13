@@ -205,14 +205,14 @@ func (c *NebiusClient) GetInstance(ctx context.Context, instanceID v1.CloudProvi
 		// Get the first network interface (usually eth0)
 		netInterface := instance.Status.NetworkInterfaces[0]
 
-		// Extract private IP
+		// Extract private IP (strip CIDR notation if present)
 		if netInterface.IpAddress != nil {
-			privateIP = netInterface.IpAddress.Address
+			privateIP = stripCIDR(netInterface.IpAddress.Address)
 		}
 
-		// Extract public IP (if assigned)
+		// Extract public IP (strip CIDR notation if present)
 		if netInterface.PublicIpAddress != nil {
-			publicIP = netInterface.PublicIpAddress.Address
+			publicIP = stripCIDR(netInterface.PublicIpAddress.Address)
 		}
 
 		// Use public IP as hostname if available, otherwise use private IP
@@ -252,6 +252,20 @@ func (c *NebiusClient) GetInstance(ctx context.Context, instanceID v1.CloudProvi
 		SSHUser:   sshUser,
 		SSHPort:   22, // Standard SSH port
 	}, nil
+}
+
+// stripCIDR removes CIDR notation from an IP address string
+// Nebius API returns IPs in CIDR format (e.g., "192.168.1.1/32")
+// We need just the IP address for SSH connectivity
+func stripCIDR(ipWithCIDR string) string {
+	if ipWithCIDR == "" {
+		return ""
+	}
+	// Check if CIDR notation is present
+	if idx := strings.Index(ipWithCIDR, "/"); idx != -1 {
+		return ipWithCIDR[:idx]
+	}
+	return ipWithCIDR
 }
 
 // extractImageFamily extracts the image family from attached disk spec
