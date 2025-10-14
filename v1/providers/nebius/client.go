@@ -81,6 +81,10 @@ func NewNebiusClientWithOrg(ctx context.Context, refID, serviceAccountKey, tenan
 		}
 	}
 
+	// DEBUG: Log projectID to diagnose corruption
+	fmt.Printf("[NEBIUS_DEBUG] NewNebiusClient: refID=%s, location=%s, tenantID=%q (len=%d), projectID=%q (len=%d)\n",
+		refID, location, tenantID, len(tenantID), projectID, len(projectID))
+
 	client := &NebiusClient{
 		refID:             refID,
 		serviceAccountKey: serviceAccountKey,
