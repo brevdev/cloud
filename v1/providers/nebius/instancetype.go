@@ -173,18 +173,20 @@ func (c *NebiusClient) getInstanceTypesForLocation(ctx context.Context, platform
 				instanceTypeID = fmt.Sprintf("nebius-%s-%s-%s", location.Name, gpuTypeSlug, preset.Name)
 			}
 
-			// Convert Nebius platform preset to our InstanceType format
-			instanceType := v1.InstanceType{
-				ID:                 v1.InstanceTypeID(instanceTypeID),
-				Location:           location.Name,
-				Type:               fmt.Sprintf("%s (%s)", platform.Metadata.Name, preset.Name),
-				VCPU:               preset.Resources.VcpuCount,
-				Memory:             units.Base2Bytes(int64(preset.Resources.MemoryGibibytes) * 1024 * 1024 * 1024), // Convert GiB to bytes
-				NetworkPerformance: "standard",                                                                     // Default network performance
-				IsAvailable:        isAvailable,
-				ElasticRootVolume:  true, // Nebius supports dynamic disk allocation
-				SupportedStorage:   c.buildSupportedStorage(),
-			}
+		// Convert Nebius platform preset to our InstanceType format
+		instanceType := v1.InstanceType{
+			ID:                 v1.InstanceTypeID(instanceTypeID),
+			Location:           location.Name,
+			Type:               fmt.Sprintf("%s (%s)", platform.Metadata.Name, preset.Name),
+			VCPU:               preset.Resources.VcpuCount,
+			Memory:             units.Base2Bytes(int64(preset.Resources.MemoryGibibytes) * 1024 * 1024 * 1024), // Convert GiB to bytes
+			NetworkPerformance: "standard",                                                                     // Default network performance
+			IsAvailable:        isAvailable,
+			ElasticRootVolume:  true,           // Nebius supports dynamic disk allocation
+			SupportedStorage:   c.buildSupportedStorage(),
+			Provider:           CloudProviderID, // Nebius is the provider
+			Cloud:              CloudProviderID, // Nebius doesn't broker from other providers
+		}
 
 			// Add GPU information if available
 			if preset.Resources.GpuCount > 0 && !isCPUOnly {
