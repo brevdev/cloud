@@ -823,6 +823,10 @@ func (c *NebiusClient) getPublicImagesParent() string {
 //	nebius-eu-north1-l40s-4gpu-96vcpu-768gb
 //	nebius-eu-north1-cpu-4vcpu-16gb
 func (c *NebiusClient) parseInstanceType(ctx context.Context, instanceTypeID string) (platform string, preset string, err error) {
+	c.logger.Info(ctx, "parsing instance type",
+		v1.LogField("instanceTypeID", instanceTypeID),
+		v1.LogField("projectID", c.projectID))
+
 	// Get the compute platforms to find the correct platform and preset
 	platformsResp, err := c.sdk.Services().Compute().V1().Platform().List(ctx, &compute.ListPlatformsRequest{
 		ParentId: c.projectID,
@@ -830,6 +834,9 @@ func (c *NebiusClient) parseInstanceType(ctx context.Context, instanceTypeID str
 	if err != nil {
 		return "", "", errors.WrapAndTrace(err)
 	}
+
+	c.logger.Info(ctx, "listed platforms",
+		v1.LogField("platformCount", len(platformsResp.GetItems())))
 
 	// Parse the NEW instance type ID format: nebius-{region}-{gpu-type}-{preset}
 	// Split by "-" and extract components
@@ -861,6 +868,11 @@ func (c *NebiusClient) parseInstanceType(ctx context.Context, instanceTypeID str
 			// Reconstruct the preset name from remaining parts
 			presetName := strings.Join(parts[presetStartIdx:], "-")
 
+			c.logger.Info(ctx, "parsed NEW format instance type",
+				v1.LogField("gpuType", gpuType),
+				v1.LogField("presetName", presetName),
+				v1.LogField("presetStartIdx", presetStartIdx))
+
 			// Now find the matching platform based on GPU type
 			for _, p := range platformsResp.GetItems() {
 				if p.Metadata == nil || p.Spec == nil {
@@ -873,15 +885,38 @@ func (c *NebiusClient) parseInstanceType(ctx context.Context, instanceTypeID str
 				if (gpuType == "cpu" && strings.Contains(platformNameLower, "cpu")) ||
 					(gpuType != "cpu" && strings.Contains(platformNameLower, gpuType)) {
 
+					// Log ALL available presets for this platform for debugging
+					availablePresets := make([]string, 0, len(p.Spec.Presets))
+					for _, preset := range p.Spec.Presets {
+						if preset != nil {
+							availablePresets = append(availablePresets, preset.Name)
+						}
+					}
+
+					c.logger.Info(ctx, "found matching platform",
+						v1.LogField("platformName", p.Metadata.Name),
+						v1.LogField("platformID", p.Metadata.Id),
+						v1.LogField("presetCount", len(p.Spec.Presets)),
+						v1.LogField("requestedPreset", presetName),
+						v1.LogField("availablePresets", strings.Join(availablePresets, ", ")))
+
 					// Verify the preset exists in this platform
 					for _, preset := range p.Spec.Presets {
 						if preset != nil && preset.Name == presetName {
+							c.logger.Info(ctx, "✓ EXACT MATCH - using requested preset",
+								v1.LogField("platformName", p.Metadata.Name),
+								v1.LogField("presetName", preset.Name))
 							return p.Metadata.Name, preset.Name, nil
 						}
 					}
 
 					// If preset not found, use first preset as fallback
 					if len(p.Spec.Presets) > 0 && p.Spec.Presets[0] != nil {
+						c.logger.Warn(ctx, "✗ MISMATCH - preset not found, using FIRST preset as fallback",
+							v1.LogField("requestedPreset", presetName),
+							v1.LogField("fallbackPreset", p.Spec.Presets[0].Name),
+							v1.LogField("platformName", p.Metadata.Name),
+							v1.LogField("availablePresets", strings.Join(availablePresets, ", ")))
 						return p.Metadata.Name, p.Spec.Presets[0].Name, nil
 					}
 				}
@@ -945,11 +980,17 @@ func (c *NebiusClient) parseInstanceType(ctx context.Context, instanceTypeID str
 		if platform.Metadata != nil && platform.Spec != nil && len(platform.Spec.Presets) > 0 {
 			firstPreset := platform.Spec.Presets[0]
 			if firstPreset != nil {
+				c.logger.Warn(ctx, "using final fallback - first available platform/preset",
+					v1.LogField("requestedInstanceType", instanceTypeID),
+					v1.LogField("fallbackPlatform", platform.Metadata.Name),
+					v1.LogField("fallbackPreset", firstPreset.Name))
 				return platform.Metadata.Name, firstPreset.Name, nil
 			}
 		}
 	}
 
+	c.logger.Error(ctx, fmt.Errorf("no platforms available"),
+		v1.LogField("instanceTypeID", instanceTypeID))
 	return "", "", fmt.Errorf("could not parse instance type %s or find suitable platform/preset", instanceTypeID)
 }
 

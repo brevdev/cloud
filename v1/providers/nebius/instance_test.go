@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -255,6 +256,76 @@ func TestExtractGPUTypeAndName(t *testing.T) {
 			// Ensure name does not contain manufacturer prefix
 			assert.NotContains(t, gpuName, "NVIDIA",
 				"GPU name should not contain 'NVIDIA' prefix - use GPU.Manufacturer field instead")
+		})
+	}
+}
+
+// TestParseInstanceTypeFormat tests the instance type ID format parsing
+func TestParseInstanceTypeFormat(t *testing.T) {
+	tests := []struct {
+		name             string
+		instanceTypeID   string
+		expectedGPUType  string
+		expectedPreset   string
+		shouldParseAsNEW bool
+	}{
+		{
+			name:             "H100 single GPU",
+			instanceTypeID:   "nebius-eu-north1-h100-1gpu-16vcpu-200gb",
+			expectedGPUType:  "h100",
+			expectedPreset:   "1gpu-16vcpu-200gb",
+			shouldParseAsNEW: true,
+		},
+		{
+			name:             "L40S quad GPU",
+			instanceTypeID:   "nebius-eu-north1-l40s-4gpu-96vcpu-768gb",
+			expectedGPUType:  "l40s",
+			expectedPreset:   "4gpu-96vcpu-768gb",
+			shouldParseAsNEW: true,
+		},
+		{
+			name:             "H200 octa GPU",
+			instanceTypeID:   "nebius-us-central1-h200-8gpu-128vcpu-1600gb",
+			expectedGPUType:  "h200",
+			expectedPreset:   "8gpu-128vcpu-1600gb",
+			shouldParseAsNEW: true,
+		},
+		{
+			name:             "CPU only",
+			instanceTypeID:   "nebius-eu-north1-cpu-4vcpu-16gb",
+			expectedGPUType:  "cpu",
+			expectedPreset:   "4vcpu-16gb",
+			shouldParseAsNEW: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Parse the format
+			parts := strings.Split(tt.instanceTypeID, "-")
+			assert.GreaterOrEqual(t, len(parts), 4, "Instance type should have at least 4 parts")
+			assert.Equal(t, "nebius", parts[0], "Should start with 'nebius'")
+
+			// Find GPU type
+			var gpuType string
+			var presetStartIdx int
+			for i := 1; i < len(parts); i++ {
+				partLower := strings.ToLower(parts[i])
+				if partLower == "cpu" || partLower == "l40s" || partLower == "h100" ||
+					partLower == "h200" || partLower == "a100" || partLower == "v100" {
+					gpuType = partLower
+					presetStartIdx = i + 1
+					break
+				}
+			}
+
+			assert.Equal(t, tt.expectedGPUType, gpuType, "Should extract correct GPU type")
+			assert.Greater(t, presetStartIdx, 0, "Should find preset start index")
+
+			if presetStartIdx > 0 && presetStartIdx < len(parts) {
+				presetName := strings.Join(parts[presetStartIdx:], "-")
+				assert.Equal(t, tt.expectedPreset, presetName, "Should extract correct preset name")
+			}
 		})
 	}
 }

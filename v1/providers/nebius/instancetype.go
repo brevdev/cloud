@@ -174,11 +174,18 @@ func (c *NebiusClient) getInstanceTypesForLocation(ctx context.Context, platform
 				instanceTypeID = fmt.Sprintf("nebius-%s-%s-%s", location.Name, gpuTypeSlug, preset.Name)
 			}
 
+			c.logger.Info(ctx, "building instance type",
+				v1.LogField("instanceTypeID", instanceTypeID),
+				v1.LogField("platformName", platform.Metadata.Name),
+				v1.LogField("presetName", preset.Name),
+				v1.LogField("location", location.Name),
+				v1.LogField("gpuType", gpuType))
+
 			// Convert Nebius platform preset to our InstanceType format
 			instanceType := v1.InstanceType{
 				ID:                 v1.InstanceTypeID(instanceTypeID),
 				Location:           location.Name,
-				Type:               fmt.Sprintf("%s (%s)", platform.Metadata.Name, preset.Name),
+				Type:               instanceTypeID, // Use instance type ID, not display name
 				VCPU:               preset.Resources.VcpuCount,
 				Memory:             units.Base2Bytes(int64(preset.Resources.MemoryGibibytes) * 1024 * 1024 * 1024), // Convert GiB to bytes
 				NetworkPerformance: "standard",                                                                     // Default network performance
