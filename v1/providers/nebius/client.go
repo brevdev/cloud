@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	v1 "github.com/brevdev/cloud/v1"
+	"github.com/brevdev/cloud/internal/errors"
 	"github.com/nebius/gosdk"
 	"github.com/nebius/gosdk/auth"
 	iam "github.com/nebius/gosdk/proto/nebius/iam/v1"
@@ -23,15 +24,24 @@ type NebiusClient struct {
 	organizationID    string // Brev organization ID (maps to tenant_uuid)
 	location          string
 	sdk               *gosdk.SDK
+	logger            v1.Logger
 }
 
 var _ v1.CloudClient = &NebiusClient{}
+
+type NebiusClientOption func(c *NebiusClient)
+
+func WithLogger(logger v1.Logger) NebiusClientOption {
+	return func(c *NebiusClient) {
+		c.logger = logger
+	}
+}
 
 func NewNebiusClient(ctx context.Context, refID, serviceAccountKey, tenantID, projectID, location string) (*NebiusClient, error) {
 	return NewNebiusClientWithOrg(ctx, refID, serviceAccountKey, tenantID, projectID, "", location)
 }
 
-func NewNebiusClientWithOrg(ctx context.Context, refID, serviceAccountKey, tenantID, projectID, organizationID, location string) (*NebiusClient, error) {
+func NewNebiusClientWithOrg(ctx context.Context, refID, serviceAccountKey, tenantID, projectID, organizationID, location string, opts ...NebiusClientOption) (*NebiusClient, error) {
 	// Initialize SDK with proper service account credentials
 	var creds gosdk.Credentials
 
@@ -66,7 +76,7 @@ func NewNebiusClientWithOrg(ctx context.Context, refID, serviceAccountKey, tenan
 
 	sdk, err := gosdk.New(ctx, gosdk.WithCredentials(creds))
 	if err != nil {
-		return nil, fmt.Errorf("failed to initialize Nebius SDK: %w", err)
+		return nil, errors.WrapAndTrace(err)
 	}
 
 	// Determine projectID: use provided ID, or find first available project, or use tenant ID
@@ -93,6 +103,11 @@ func NewNebiusClientWithOrg(ctx context.Context, refID, serviceAccountKey, tenan
 		organizationID:    organizationID,
 		location:          location,
 		sdk:               sdk,
+		logger:            &v1.NoopLogger{},
+	}
+
+	for _, opt := range opts {
+		opt(client)
 	}
 
 	return client, nil
@@ -110,7 +125,7 @@ func findProjectForRegion(ctx context.Context, sdk *gosdk.SDK, tenantID, region 
 		PageSize: &pageSize,
 	})
 	if err != nil {
-		return "", fmt.Errorf("failed to list projects: %w", err)
+		return "", errors.WrapAndTrace(err)
 	}
 
 	projects := projectsResp.GetItems()
@@ -163,7 +178,11 @@ func (c *NebiusClient) GetCloudProviderID() v1.CloudProviderID {
 
 // FIXME for b64 decode on cred JSON
 func (c *NebiusClient) MakeClient(ctx context.Context, location string) (v1.CloudClient, error) {
-	return NewNebiusClient(ctx, c.refID, c.serviceAccountKey, c.tenantID, c.projectID, location)
+	return c.MakeClientWithOptions(ctx, location)
+}
+
+func (c *NebiusClient) MakeClientWithOptions(ctx context.Context, location string, opts ...NebiusClientOption) (v1.CloudClient, error) {
+	return NewNebiusClientWithOrg(ctx, c.refID, c.serviceAccountKey, c.tenantID, c.projectID, c.organizationID, location, opts...)
 }
 
 // GetTenantID returns the project ID (tenant ID) for this Brev user

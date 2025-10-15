@@ -136,3 +136,125 @@ func TestStripCIDR(t *testing.T) {
 		})
 	}
 }
+
+// TestGetGPUMemory tests VRAM mapping for GPU types
+func TestGetGPUMemory(t *testing.T) {
+	// Import the function from instancetype.go (it's in the same package)
+	tests := []struct {
+		gpuType      string
+		expectedGiB  int64
+		shouldBeZero bool
+	}{
+		{
+			gpuType:     "L40S",
+			expectedGiB: 48,
+		},
+		{
+			gpuType:     "H100",
+			expectedGiB: 80,
+		},
+		{
+			gpuType:     "H200",
+			expectedGiB: 141,
+		},
+		{
+			gpuType:     "A100",
+			expectedGiB: 80,
+		},
+		{
+			gpuType:     "V100",
+			expectedGiB: 32,
+		},
+		{
+			gpuType:     "A10",
+			expectedGiB: 24,
+		},
+		{
+			gpuType:     "T4",
+			expectedGiB: 16,
+		},
+		{
+			gpuType:     "L4",
+			expectedGiB: 24,
+		},
+		{
+			gpuType:     "B200",
+			expectedGiB: 192,
+		},
+		{
+			gpuType:      "UNKNOWN_GPU",
+			expectedGiB:  0,
+			shouldBeZero: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.gpuType, func(t *testing.T) {
+			vram := getGPUMemory(tt.gpuType)
+			vramGiB := int64(vram) / (1024 * 1024 * 1024)
+
+			if tt.shouldBeZero {
+				assert.Equal(t, int64(0), vramGiB, "Unknown GPU type should return 0 VRAM")
+			} else {
+				assert.Equal(t, tt.expectedGiB, vramGiB,
+					"GPU type %s should have %d GiB VRAM", tt.gpuType, tt.expectedGiB)
+			}
+		})
+	}
+}
+
+func TestExtractGPUTypeAndName(t *testing.T) {
+	// Verify that GPU names no longer include "NVIDIA" prefix
+	// Manufacturer info is stored separately in GPU.Manufacturer field
+	tests := []struct {
+		platformName string
+		expectedType string
+		expectedName string
+	}{
+		{
+			platformName: "gpu-h100-sxm",
+			expectedType: "H100",
+			expectedName: "H100", // Should be "H100", not "NVIDIA H100"
+		},
+		{
+			platformName: "gpu-h200-sxm",
+			expectedType: "H200",
+			expectedName: "H200", // Should be "H200", not "NVIDIA H200"
+		},
+		{
+			platformName: "gpu-l40s",
+			expectedType: "L40S",
+			expectedName: "L40S", // Should be "L40S", not "NVIDIA L40S"
+		},
+		{
+			platformName: "gpu-a100-sxm4",
+			expectedType: "A100",
+			expectedName: "A100", // Should be "A100", not "NVIDIA A100"
+		},
+		{
+			platformName: "gpu-v100-sxm2",
+			expectedType: "V100",
+			expectedName: "V100", // Should be "V100", not "NVIDIA V100"
+		},
+		{
+			platformName: "unknown-platform",
+			expectedType: "GPU",
+			expectedName: "GPU", // Generic fallback
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.platformName, func(t *testing.T) {
+			gpuType, gpuName := extractGPUTypeAndName(tt.platformName)
+
+			assert.Equal(t, tt.expectedType, gpuType,
+				"Platform %s should extract GPU type %s", tt.platformName, tt.expectedType)
+			assert.Equal(t, tt.expectedName, gpuName,
+				"Platform %s should extract GPU name %s (without 'NVIDIA' prefix)", tt.platformName, tt.expectedName)
+
+			// Ensure name does not contain manufacturer prefix
+			assert.NotContains(t, gpuName, "NVIDIA",
+				"GPU name should not contain 'NVIDIA' prefix - use GPU.Manufacturer field instead")
+		})
+	}
+}

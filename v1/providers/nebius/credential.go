@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/brevdev/cloud/internal/errors"
 	v1 "github.com/brevdev/cloud/v1"
 )
 
@@ -62,11 +63,20 @@ func (c *NebiusCredential) GetTenantID() (string, error) {
 
 // MakeClient creates a new Nebius client from this credential
 func (c *NebiusCredential) MakeClient(ctx context.Context, location string) (v1.CloudClient, error) {
+	return c.MakeClientWithOptions(ctx, location)
+}
+
+// MakeClientWithOptions creates a new Nebius client with options (e.g., logger)
+func (c *NebiusCredential) MakeClientWithOptions(ctx context.Context, location string, opts ...NebiusClientOption) (v1.CloudClient, error) {
 	// DEBUG: Log credential data before creating client
 	fmt.Printf("[NEBIUS_DEBUG] NebiusCredential.MakeClient: RefID=%s, TenantID=%q (len=%d), location=%s\n",
 		c.RefID, c.TenantID, len(c.TenantID), location)
 
 	// ProjectID is now determined in NewNebiusClient as default-project-{location}
 	// Pass empty string and let the client constructor set it
-	return NewNebiusClientWithOrg(ctx, c.RefID, c.ServiceAccountKey, c.TenantID, "", "", location)
+	client, err := NewNebiusClientWithOrg(ctx, c.RefID, c.ServiceAccountKey, c.TenantID, "", "", location, opts...)
+	if err != nil {
+		return nil, errors.WrapAndTrace(err)
+	}
+	return client, nil
 }

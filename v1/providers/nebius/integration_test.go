@@ -505,8 +505,9 @@ func TestIntegration_GetInstanceTypes(t *testing.T) {
 			// Verify GPU details if present
 			if len(it.SupportedGPUs) > 0 {
 				gpu := it.SupportedGPUs[0]
-				t.Logf("  GPU: %s (Type: %s), Count: %d, Manufacturer: %s",
-					gpu.Name, gpu.Type, gpu.Count, gpu.Manufacturer)
+				vramGB := int64(gpu.Memory) / (1024 * 1024 * 1024)
+				t.Logf("  GPU: %s (Type: %s), Count: %d, VRAM: %d GiB, Manufacturer: %s",
+					gpu.Name, gpu.Type, gpu.Count, vramGB, gpu.Manufacturer)
 
 				assert.NotEmpty(t, gpu.Type, "GPU should have a type")
 				assert.NotEmpty(t, gpu.Name, "GPU should have a name")
@@ -515,6 +516,21 @@ func TestIntegration_GetInstanceTypes(t *testing.T) {
 
 				// Verify GPU type is not empty (any GPU with quota is supported)
 				assert.NotEmpty(t, gpu.Type, "GPU type should not be empty")
+
+				// Verify VRAM is populated for known GPU types
+				knownGPUTypes := map[string]int64{
+					"L40S": 48,
+					"H100": 80,
+					"H200": 141,
+					"A100": 80,
+					"V100": 32,
+				}
+				if expectedVRAM, isKnown := knownGPUTypes[gpu.Type]; isKnown {
+					assert.Equal(t, expectedVRAM, vramGB,
+						"GPU %s should have %d GiB VRAM", gpu.Type, expectedVRAM)
+				} else {
+					t.Logf("  Note: GPU type %s VRAM not validated (unknown type)", gpu.Type)
+				}
 			}
 
 			// Verify CPU and memory

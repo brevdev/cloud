@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/alecthomas/units"
+	"github.com/brevdev/cloud/internal/errors"
 	v1 "github.com/brevdev/cloud/v1"
 	common "github.com/nebius/gosdk/proto/nebius/common/v1"
 	compute "github.com/nebius/gosdk/proto/nebius/compute/v1"
@@ -14,18 +15,42 @@ import (
 )
 
 func (c *NebiusClient) CreateInstance(ctx context.Context, attrs v1.CreateInstanceAttrs) (*v1.Instance, error) {
+	// Track created resources for automatic cleanup on failure
+	var networkID, subnetID, bootDiskID string
+	cleanupOnError := true
+	defer func() {
+		if cleanupOnError {
+			c.logger.Info(ctx, "cleaning up resources after instance creation failure",
+				v1.LogField("refID", attrs.RefID),
+				v1.LogField("networkID", networkID),
+				v1.LogField("subnetID", subnetID),
+				v1.LogField("bootDiskID", bootDiskID))
+
+			// Clean up boot disk
+			if bootDiskID != "" {
+				if err := c.deleteBootDiskIfExists(ctx, bootDiskID); err != nil {
+					c.logger.Error(ctx, err, v1.LogField("bootDiskID", bootDiskID))
+				}
+			}
+
+			// Clean up network resources
+			if err := c.cleanupNetworkResources(ctx, networkID, subnetID); err != nil {
+				c.logger.Error(ctx, err, v1.LogField("networkID", networkID), v1.LogField("subnetID", subnetID))
+			}
+		}
+	}()
+
 	// Create isolated networking infrastructure for this instance
-	// Each instance gets its own VPC for proper isolation
-	networkID, subnetID, err := c.createIsolatedNetwork(ctx, attrs.Name)
+	// Use RefID (environmentId) for resource correlation
+	var err error
+	networkID, subnetID, err = c.createIsolatedNetwork(ctx, attrs.RefID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create isolated network: %w", err)
 	}
 
 	// Create boot disk first using image family
-	bootDiskID, err := c.createBootDisk(ctx, attrs)
+	bootDiskID, err = c.createBootDisk(ctx, attrs)
 	if err != nil {
-		// Cleanup network resources if disk creation fails
-		_ = c.cleanupNetworkResources(ctx, networkID, subnetID)
 		return nil, fmt.Errorf("failed to create boot disk: %w", err)
 	}
 
@@ -89,6 +114,7 @@ func (c *NebiusClient) CreateInstance(ctx context.Context, attrs v1.CreateInstan
 	// Add Brev-specific labels and resource tracking
 	createReq.Metadata.Labels["created-by"] = "brev-cloud-sdk"
 	createReq.Metadata.Labels["brev-user"] = attrs.RefID
+	createReq.Metadata.Labels["environment-id"] = attrs.RefID
 	// Track associated resources for cleanup
 	createReq.Metadata.Labels["network-id"] = networkID
 	createReq.Metadata.Labels["subnet-id"] = subnetID
@@ -96,13 +122,13 @@ func (c *NebiusClient) CreateInstance(ctx context.Context, attrs v1.CreateInstan
 
 	operation, err := c.sdk.Services().Compute().V1().Instance().Create(ctx, createReq)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create Nebius instance: %w", err)
+		return nil, errors.WrapAndTrace(err)
 	}
 
 	// Wait for the operation to complete and get the actual instance ID
 	finalOp, err := operation.Wait(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to wait for instance creation: %w", err)
+		return nil, errors.WrapAndTrace(err)
 	}
 
 	if !finalOp.Successful() {
@@ -138,6 +164,9 @@ func (c *NebiusClient) CreateInstance(ctx context.Context, attrs v1.CreateInstan
 	createdInstance.RefID = attrs.RefID
 	createdInstance.CloudCredRefID = c.refID
 	createdInstance.Tags = attrs.Tags
+
+	// Success - disable cleanup
+	cleanupOnError = false
 	return createdInstance, nil
 }
 
@@ -147,7 +176,7 @@ func (c *NebiusClient) GetInstance(ctx context.Context, instanceID v1.CloudProvi
 		Id: string(instanceID),
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to get Nebius instance: %w", err)
+		return nil, errors.WrapAndTrace(err)
 	}
 
 	if instance.Metadata == nil || instance.Spec == nil {
@@ -422,18 +451,19 @@ func (c *NebiusClient) MergeInstanceForUpdate(currInst v1.Instance, newInst v1.I
 
 // createIsolatedNetwork creates a dedicated VPC and subnet for a single instance
 // This ensures complete network isolation between instances
-func (c *NebiusClient) createIsolatedNetwork(ctx context.Context, instanceName string) (networkID, subnetID string, err error) {
-	// Create VPC network (unique per instance)
-	networkName := fmt.Sprintf("%s-vpc", instanceName)
+// Uses refID (environmentId) for resource correlation
+func (c *NebiusClient) createIsolatedNetwork(ctx context.Context, refID string) (networkID, subnetID string, err error) {
+	// Create VPC network (unique per instance, named with refID for correlation)
+	networkName := fmt.Sprintf("%s-vpc", refID)
 
 	createNetworkReq := &vpc.CreateNetworkRequest{
 		Metadata: &common.ResourceMetadata{
 			ParentId: c.projectID,
 			Name:     networkName,
 			Labels: map[string]string{
-				"created-by": "brev-cloud-sdk",
-				"brev-user":  c.refID,
-				"instance":   instanceName,
+				"created-by":     "brev-cloud-sdk",
+				"brev-user":      c.refID,
+				"environment-id": refID,
 			},
 		},
 		Spec: &vpc.NetworkSpec{
@@ -462,17 +492,17 @@ func (c *NebiusClient) createIsolatedNetwork(ctx context.Context, instanceName s
 	}
 
 	// Create subnet within the VPC
-	subnetName := fmt.Sprintf("%s-subnet", instanceName)
+	subnetName := fmt.Sprintf("%s-subnet", refID)
 
 	createSubnetReq := &vpc.CreateSubnetRequest{
 		Metadata: &common.ResourceMetadata{
 			ParentId: c.projectID,
 			Name:     subnetName,
 			Labels: map[string]string{
-				"created-by": "brev-cloud-sdk",
-				"brev-user":  c.refID,
-				"instance":   instanceName,
-				"network-id": networkID,
+				"created-by":     "brev-cloud-sdk",
+				"brev-user":      c.refID,
+				"environment-id": refID,
+				"network-id":     networkID,
 			},
 		},
 		Spec: &vpc.SubnetSpec{
@@ -584,8 +614,9 @@ func (c *NebiusClient) deleteNetworkIfExists(ctx context.Context, networkID stri
 }
 
 // createBootDisk creates a boot disk for the instance using image family or specific image ID
+// Uses refID (environmentId) for resource correlation
 func (c *NebiusClient) createBootDisk(ctx context.Context, attrs v1.CreateInstanceAttrs) (string, error) {
-	diskName := fmt.Sprintf("%s-boot-disk", attrs.Name)
+	diskName := fmt.Sprintf("%s-boot-disk", attrs.RefID)
 
 	// Try to use image family first, then fallback to specific image ID
 	createReq, err := c.buildDiskCreateRequest(ctx, diskName, attrs)
@@ -624,8 +655,9 @@ func (c *NebiusClient) buildDiskCreateRequest(ctx context.Context, diskName stri
 			ParentId: c.projectID,
 			Name:     diskName,
 			Labels: map[string]string{
-				"created-by": "brev-cloud-sdk",
-				"brev-user":  c.refID,
+				"created-by":     "brev-cloud-sdk",
+				"brev-user":      c.refID,
+				"environment-id": attrs.RefID,
 			},
 		},
 		Spec: &compute.DiskSpec{
@@ -796,7 +828,7 @@ func (c *NebiusClient) parseInstanceType(ctx context.Context, instanceTypeID str
 		ParentId: c.projectID,
 	})
 	if err != nil {
-		return "", "", fmt.Errorf("failed to list platforms: %w", err)
+		return "", "", errors.WrapAndTrace(err)
 	}
 
 	// Parse the NEW instance type ID format: nebius-{region}-{gpu-type}-{preset}
@@ -913,7 +945,7 @@ func (c *NebiusClient) parseInstanceType(ctx context.Context, instanceTypeID str
 		if platform.Metadata != nil && platform.Spec != nil && len(platform.Spec.Presets) > 0 {
 			firstPreset := platform.Spec.Presets[0]
 			if firstPreset != nil {
-				return platform.Metadata.Id, firstPreset.Name, nil
+				return platform.Metadata.Name, firstPreset.Name, nil
 			}
 		}
 	}

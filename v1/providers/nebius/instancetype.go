@@ -8,6 +8,7 @@ import (
 
 	"github.com/alecthomas/units"
 	"github.com/bojanz/currency"
+	"github.com/brevdev/cloud/internal/errors"
 	v1 "github.com/brevdev/cloud/v1"
 	billing "github.com/nebius/gosdk/proto/nebius/billing/v1alpha1"
 	common "github.com/nebius/gosdk/proto/nebius/common/v1"
@@ -25,7 +26,7 @@ func (c *NebiusClient) GetInstanceTypes(ctx context.Context, args v1.GetInstance
 		ParentId: c.projectID, // List platforms available in this project
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to list Nebius platforms: %w", err)
+		return nil, errors.WrapAndTrace(err)
 	}
 
 	// Get all available locations for quota-aware enumeration
@@ -173,20 +174,19 @@ func (c *NebiusClient) getInstanceTypesForLocation(ctx context.Context, platform
 				instanceTypeID = fmt.Sprintf("nebius-%s-%s-%s", location.Name, gpuTypeSlug, preset.Name)
 			}
 
-		// Convert Nebius platform preset to our InstanceType format
-		instanceType := v1.InstanceType{
-			ID:                 v1.InstanceTypeID(instanceTypeID),
-			Location:           location.Name,
-			Type:               fmt.Sprintf("%s (%s)", platform.Metadata.Name, preset.Name),
-			VCPU:               preset.Resources.VcpuCount,
-			Memory:             units.Base2Bytes(int64(preset.Resources.MemoryGibibytes) * 1024 * 1024 * 1024), // Convert GiB to bytes
-			NetworkPerformance: "standard",                                                                     // Default network performance
-			IsAvailable:        isAvailable,
-			ElasticRootVolume:  true,           // Nebius supports dynamic disk allocation
-			SupportedStorage:   c.buildSupportedStorage(),
-			Provider:           CloudProviderID, // Nebius is the provider
-			Cloud:              CloudProviderID, // Nebius doesn't broker from other providers
-		}
+			// Convert Nebius platform preset to our InstanceType format
+			instanceType := v1.InstanceType{
+				ID:                 v1.InstanceTypeID(instanceTypeID),
+				Location:           location.Name,
+				Type:               fmt.Sprintf("%s (%s)", platform.Metadata.Name, preset.Name),
+				VCPU:               preset.Resources.VcpuCount,
+				Memory:             units.Base2Bytes(int64(preset.Resources.MemoryGibibytes) * 1024 * 1024 * 1024), // Convert GiB to bytes
+				NetworkPerformance: "standard",                                                                     // Default network performance
+				IsAvailable:        isAvailable,
+				ElasticRootVolume:  true, // Nebius supports dynamic disk allocation
+				SupportedStorage:   c.buildSupportedStorage(),
+				Provider:           CloudProviderID, // Nebius is the provider
+			}
 
 			// Add GPU information if available
 			if preset.Resources.GpuCount > 0 && !isCPUOnly {
@@ -195,6 +195,7 @@ func (c *NebiusClient) getInstanceTypesForLocation(ctx context.Context, platform
 					Type:         gpuType,
 					Name:         gpuName,
 					Manufacturer: v1.ManufacturerNVIDIA, // Nebius currently only supports NVIDIA GPUs
+					Memory:       getGPUMemory(gpuType), // Populate VRAM based on GPU type
 				}
 				instanceType.SupportedGPUs = []v1.GPU{gpu}
 			}
@@ -222,7 +223,7 @@ func (c *NebiusClient) getQuotaMap(ctx context.Context) (map[string]*quotas.Quot
 		PageSize: 1000,       // Get all quotas in one request
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to list quota allowances: %w", err)
+		return nil, errors.WrapAndTrace(err)
 	}
 
 	// Build a map of quota name + region -> quota allowance
@@ -421,27 +422,52 @@ func (c *NebiusClient) applyInstanceTypeFilters(instanceTypes []v1.InstanceType,
 	return filtered
 }
 
-// extractGPUTypeAndName extracts GPU type and full name from platform name
+// extractGPUTypeAndName extracts GPU type and name from platform name
+// Note: Returns model name only (e.g., "H100"), not full name with manufacturer
+// Manufacturer info is stored separately in GPU.Manufacturer field
 func extractGPUTypeAndName(platformName string) (string, string) {
 	platformLower := strings.ToLower(platformName)
 
 	if strings.Contains(platformLower, "h100") {
-		return "H100", "NVIDIA H100"
+		return "H100", "H100"
 	}
 	if strings.Contains(platformLower, "h200") {
-		return "H200", "NVIDIA H200"
+		return "H200", "H200"
 	}
 	if strings.Contains(platformLower, "l40s") {
-		return "L40S", "NVIDIA L40S"
+		return "L40S", "L40S"
 	}
 	if strings.Contains(platformLower, "a100") {
-		return "A100", "NVIDIA A100"
+		return "A100", "A100"
 	}
 	if strings.Contains(platformLower, "v100") {
-		return "V100", "NVIDIA V100"
+		return "V100", "V100"
 	}
 
 	return "GPU", "GPU" // Generic fallback
+}
+
+// getGPUMemory returns the VRAM for a given GPU type in GiB
+func getGPUMemory(gpuType string) units.Base2Bytes {
+	// Static mapping of GPU types to their VRAM capacities
+	vramMap := map[string]int64{
+		"L40S": 48,  // 48 GiB VRAM
+		"H100": 80,  // 80 GiB VRAM
+		"H200": 141, // 141 GiB VRAM
+		"A100": 80,  // 80 GiB VRAM (most common variant)
+		"V100": 32,  // 32 GiB VRAM (most common variant)
+		"A10":  24,  // 24 GiB VRAM
+		"T4":   16,  // 16 GiB VRAM
+		"L4":   24,  // 24 GiB VRAM
+		"B200": 192, // 192 GiB VRAM
+	}
+
+	if vramGiB, exists := vramMap[gpuType]; exists {
+		return units.Base2Bytes(vramGiB * int64(units.Gibibyte))
+	}
+
+	// Default fallback for unknown GPU types
+	return units.Base2Bytes(0)
 }
 
 // determineInstanceTypeArchitecture determines architecture from instance type
