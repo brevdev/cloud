@@ -185,11 +185,12 @@ func (c *NebiusClient) getInstanceTypesForLocation(ctx context.Context, platform
 			instanceType := v1.InstanceType{
 				ID:                 v1.InstanceTypeID(instanceTypeID),
 				Location:           location.Name,
-				Type:               instanceTypeID, // Use instance type ID, not display name
+				Type:               instanceTypeID, // ID and Type are 1:1 - same value used for API calls
 				VCPU:               preset.Resources.VcpuCount,
 				Memory:             units.Base2Bytes(int64(preset.Resources.MemoryGibibytes) * 1024 * 1024 * 1024), // Convert GiB to bytes
 				NetworkPerformance: "standard",                                                                     // Default network performance
 				IsAvailable:        isAvailable,
+				Stoppable:          true, // All Nebius instances support stop/start operations
 				ElasticRootVolume:  true, // Nebius supports dynamic disk allocation
 				SupportedStorage:   c.buildSupportedStorage(),
 				Provider:           CloudProviderID, // Nebius is the provider
