@@ -161,18 +161,13 @@ func (c *NebiusClient) getInstanceTypesForLocation(ctx context.Context, platform
 				cpuPresetCount++
 			}
 
-			// Build new instance type ID format: nebius-{region}-{gpu-type}-{preset}
+			// Build instance type ID in dot-separated format: {platform}.{preset}
 			// Examples:
-			//   nebius-eu-north1-l40s-4gpu-96vcpu-768gb
-			//   nebius-us-central1-h100-8gpu-128vcpu-1600gb
-			//   nebius-eu-north1-cpu-4vcpu-16gb
-			var instanceTypeID string
-			if isCPUOnly {
-				instanceTypeID = fmt.Sprintf("nebius-%s-cpu-%s", location.Name, preset.Name)
-			} else {
-				gpuTypeSlug := strings.ToLower(gpuType)
-				instanceTypeID = fmt.Sprintf("nebius-%s-%s-%s", location.Name, gpuTypeSlug, preset.Name)
-			}
+			//   gpu-l40s.4gpu-96vcpu-768gb
+			//   gpu-h100-sxm.8gpu-128vcpu-1600gb
+			//   cpu-e2.4vcpu-16gb
+			// ID and Type are the same - no region/provider prefix
+			instanceTypeID := fmt.Sprintf("%s.%s", platform.Metadata.Name, preset.Name)
 
 			c.logger.Info(ctx, "building instance type",
 				v1.LogField("instanceTypeID", instanceTypeID),
@@ -183,9 +178,9 @@ func (c *NebiusClient) getInstanceTypesForLocation(ctx context.Context, platform
 
 			// Convert Nebius platform preset to our InstanceType format
 			instanceType := v1.InstanceType{
-				ID:                 v1.InstanceTypeID(instanceTypeID), // Unique ID for API calls (e.g., "nebius-eu-north1-h100-1gpu-16vcpu-200gb")
+				ID:                 v1.InstanceTypeID(instanceTypeID), // Dot-separated format (e.g., "gpu-h100-sxm.8gpu-128vcpu-1600gb")
 				Location:           location.Name,
-				Type:               fmt.Sprintf("%s.%s", platform.Metadata.Name, preset.Name), // Dot-separated format (e.g., "gpu-h100-sxm.8gpu-128vcpu-1600gb")
+				Type:               instanceTypeID, // Same as ID - both use dot-separated format
 				VCPU:               preset.Resources.VcpuCount,
 				Memory:             units.Base2Bytes(int64(preset.Resources.MemoryGibibytes) * 1024 * 1024 * 1024), // Convert GiB to bytes
 				NetworkPerformance: "standard",                                                                     // Default network performance
