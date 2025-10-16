@@ -86,6 +86,17 @@ Nebius AI Cloud is known for:
 ### Platform Name vs Platform ID
 The Nebius API requires **platform NAME** (e.g., `"gpu-h100-sxm"`) in `ResourcesSpec.Platform`, **NOT** platform ID (e.g., `"computeplatform-e00caqbn6nysa972yq"`). The `parseInstanceType` function must always return `platform.Metadata.Name`, not `platform.Metadata.Id`.
 
+### Instance Type ID Preservation
+**Critical**: When creating instances, the SDK stores the full instance type ID (e.g., `"gpu-h100-sxm.8gpu-128vcpu-1600gb"`) in metadata labels (`instance-type-id`). When retrieving instances via `GetInstance`, the SDK:
+
+1. **Retrieves the stored ID** from the `instance-type-id` label
+2. **Populates both** `Instance.InstanceType` and `Instance.InstanceTypeID` with this full ID
+3. **Falls back to reconstruction** from platform + preset if the label is missing (backwards compatibility)
+
+This ensures that dev-plane can correctly look up the instance type in the database without having to derive it from provider-specific naming conventions like `"<provider>-<region>-<subregion>-<platform>"`.
+
+**Without this**, dev-plane would construct an incorrect ID like `"nebius-brev-dev1-eu-north1-noSub-gpu-l40s"` which doesn't exist in the database, causing `"ent: instance_type not found"` errors.
+
 ### GPU VRAM Mapping
 GPU memory (VRAM) is populated via static mapping since the Nebius SDK doesn't natively provide this information:
 - L40S: 48 GiB
@@ -130,17 +141,29 @@ All Nebius resources (instances, VPCs, subnets, boot disks) are named using the 
 - VPC: `{refID}-vpc`
 - Subnet: `{refID}-subnet`
 - Boot Disk: `{refID}-boot-disk`
-- Instance: User-provided name
+- Instance: `{refID}`
 
 All resources include the `environment-id` label for filtering and tracking.
 
 ### Automatic Cleanup on Failure
 If instance creation fails at any step, all created resources are automatically cleaned up to prevent orphaned resources:
-- Boot disks
-- Subnets
-- VPC networks
+- **Instances** (if created but failed to reach RUNNING state)
+- **Boot disks**
+- **Subnets**
+- **VPC networks**
 
-This cleanup is handled via a deferred function that tracks all created resource IDs and deletes them if the operation doesn't complete successfully.
+**How it works:**
+1. After the instance creation API call succeeds, the SDK waits for the instance to reach **RUNNING** state (5-minute timeout)
+2. If the instance enters a terminal failure state (ERROR, FAILED) or times out, cleanup is triggered
+3. The cleanup handler deletes **all** correlated resources (instance, boot disk, subnet, VPC) in the correct order
+4. Only when the instance reaches RUNNING state is cleanup disabled
+
+This prevents orphaned resources when:
+- The Nebius API call succeeds but the instance fails to start due to provider issues
+- The instance is created but never transitions to a usable state
+- Network/timeout errors occur during instance provisioning
+
+The cleanup is handled via a deferred function that tracks all created resource IDs and deletes them if the operation doesn't complete successfully.
 
 ## TODO
 

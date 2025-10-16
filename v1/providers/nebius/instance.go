@@ -16,15 +16,23 @@ import (
 
 func (c *NebiusClient) CreateInstance(ctx context.Context, attrs v1.CreateInstanceAttrs) (*v1.Instance, error) {
 	// Track created resources for automatic cleanup on failure
-	var networkID, subnetID, bootDiskID string
+	var networkID, subnetID, bootDiskID, instanceID string
 	cleanupOnError := true
 	defer func() {
 		if cleanupOnError {
 			c.logger.Info(ctx, "cleaning up resources after instance creation failure",
 				v1.LogField("refID", attrs.RefID),
+				v1.LogField("instanceID", instanceID),
 				v1.LogField("networkID", networkID),
 				v1.LogField("subnetID", subnetID),
 				v1.LogField("bootDiskID", bootDiskID))
+
+			// Clean up instance if it was created
+			if instanceID != "" {
+				if err := c.deleteInstanceIfExists(ctx, v1.CloudProviderInstanceID(instanceID)); err != nil {
+					c.logger.Error(ctx, err, v1.LogField("instanceID", instanceID))
+				}
+			}
 
 			// Clean up boot disk
 			if bootDiskID != "" {
@@ -98,10 +106,11 @@ func (c *NebiusClient) CreateInstance(ctx context.Context, attrs v1.CreateInstan
 	}
 
 	// Create the instance - labels should be in metadata
+	// Use RefID for naming consistency with VPC, subnet, and boot disk
 	createReq := &compute.CreateInstanceRequest{
 		Metadata: &common.ResourceMetadata{
 			ParentId: c.projectID,
-			Name:     attrs.Name,
+			Name:     attrs.RefID,
 		},
 		Spec: instanceSpec,
 	}
@@ -119,6 +128,8 @@ func (c *NebiusClient) CreateInstance(ctx context.Context, attrs v1.CreateInstan
 	createReq.Metadata.Labels["network-id"] = networkID
 	createReq.Metadata.Labels["subnet-id"] = subnetID
 	createReq.Metadata.Labels["boot-disk-id"] = bootDiskID
+	// Store full instance type ID for later retrieval (dot format: "gpu-h100-sxm.8gpu-128vcpu-1600gb")
+	createReq.Metadata.Labels["instance-type-id"] = attrs.InstanceType
 
 	operation, err := c.sdk.Services().Compute().V1().Instance().Create(ctx, createReq)
 	if err != nil {
@@ -136,28 +147,24 @@ func (c *NebiusClient) CreateInstance(ctx context.Context, attrs v1.CreateInstan
 	}
 
 	// Get the actual instance ID from the completed operation
-	instanceID := finalOp.ResourceID()
+	// Assign to the outer variable for cleanup tracking
+	instanceID = finalOp.ResourceID()
 	if instanceID == "" {
 		return nil, fmt.Errorf("failed to get instance ID from operation")
 	}
 
-	// Query the created instance to get IP addresses and full details
-	createdInstance, err := c.GetInstance(ctx, v1.CloudProviderInstanceID(instanceID))
+	// Wait for instance to reach a stable state (RUNNING or terminal failure)
+	// This prevents leaving orphaned resources if the instance fails after creation
+	c.logger.Info(ctx, "waiting for instance to reach RUNNING state",
+		v1.LogField("instanceID", instanceID),
+		v1.LogField("refID", attrs.RefID))
+
+	createdInstance, err := c.waitForInstanceRunning(ctx, v1.CloudProviderInstanceID(instanceID), attrs.RefID, 5*time.Minute)
 	if err != nil {
-		// If we can't get instance details, return basic info
-		return &v1.Instance{
-			RefID:          attrs.RefID,
-			CloudCredRefID: c.refID,
-			Name:           attrs.Name,
-			Location:       c.location,
-			CreatedAt:      time.Now(),
-			InstanceType:   attrs.InstanceType,
-			ImageID:        attrs.ImageID,
-			DiskSize:       attrs.DiskSize,
-			Tags:           attrs.Tags,
-			CloudID:        v1.CloudProviderInstanceID(instanceID),
-			Status:         v1.Status{LifecycleStatus: v1.LifecycleStatusPending},
-		}, nil
+		// Instance failed to reach RUNNING state - cleanup will be triggered by defer
+		c.logger.Error(ctx, fmt.Errorf("instance failed to reach RUNNING state: %w", err),
+			v1.LogField("instanceID", instanceID))
+		return nil, fmt.Errorf("instance failed to reach RUNNING state: %w", err)
 	}
 
 	// Return the full instance details with IP addresses and SSH info
@@ -165,7 +172,8 @@ func (c *NebiusClient) CreateInstance(ctx context.Context, attrs v1.CreateInstan
 	createdInstance.CloudCredRefID = c.refID
 	createdInstance.Tags = attrs.Tags
 
-	// Success - disable cleanup
+	// Success - instance reached RUNNING state
+	// Disable cleanup and return
 	cleanupOnError = false
 	return createdInstance, nil
 }
@@ -223,9 +231,29 @@ func (c *NebiusClient) GetInstance(ctx context.Context, instanceID v1.CloudProvi
 	// Extract labels from metadata
 	var tags map[string]string
 	var refID string
+	var instanceTypeID string
 	if instance.Metadata != nil && len(instance.Metadata.Labels) > 0 {
 		tags = instance.Metadata.Labels
-		refID = instance.Metadata.Labels["brev-user"] // Extract from labels if available
+		refID = instance.Metadata.Labels["brev-user"]                 // Extract from labels if available
+		instanceTypeID = instance.Metadata.Labels["instance-type-id"] // Full instance type ID (dot format)
+	}
+
+	// If instance type ID is not in labels (older instances), reconstruct it from platform + preset
+	// This is a fallback for backwards compatibility
+	if instanceTypeID == "" && instance.Spec.Resources != nil {
+		platform := instance.Spec.Resources.Platform
+		var preset string
+		if instance.Spec.Resources.Size != nil {
+			if presetSpec, ok := instance.Spec.Resources.Size.(*compute.ResourcesSpec_Preset); ok {
+				preset = presetSpec.Preset
+			}
+		}
+		if platform != "" && preset != "" {
+			instanceTypeID = fmt.Sprintf("%s.%s", platform, preset)
+		} else {
+			// Last resort: just use platform name (less accurate but prevents total failure)
+			instanceTypeID = platform
+		}
 	}
 
 	// Extract IP addresses from network interfaces
@@ -268,7 +296,8 @@ func (c *NebiusClient) GetInstance(ctx context.Context, instanceID v1.CloudProvi
 		CloudID:        instanceID,
 		Location:       c.location,
 		CreatedAt:      createdAt,
-		InstanceType:   instance.Spec.Resources.Platform,
+		InstanceType:   instanceTypeID,                    // Full instance type ID (e.g., "gpu-h100-sxm.8gpu-128vcpu-1600gb")
+		InstanceTypeID: v1.InstanceTypeID(instanceTypeID), // Same as InstanceType - required for dev-plane lookup
 		ImageID:        imageFamily,
 		DiskSize:       units.Base2Bytes(diskSize) * units.Gibibyte,
 		Tags:           tags,
@@ -281,6 +310,66 @@ func (c *NebiusClient) GetInstance(ctx context.Context, instanceID v1.CloudProvi
 		SSHUser:   sshUser,
 		SSHPort:   22, // Standard SSH port
 	}, nil
+}
+
+// waitForInstanceRunning polls the instance until it reaches RUNNING state or fails
+// This prevents orphaned resources when instances fail after the create API call succeeds
+func (c *NebiusClient) waitForInstanceRunning(ctx context.Context, instanceID v1.CloudProviderInstanceID, refID string, timeout time.Duration) (*v1.Instance, error) {
+	deadline := time.Now().Add(timeout)
+	pollInterval := 10 * time.Second
+
+	c.logger.Info(ctx, "polling instance state until RUNNING or terminal failure",
+		v1.LogField("instanceID", instanceID),
+		v1.LogField("refID", refID),
+		v1.LogField("timeout", timeout.String()))
+
+	for {
+		// Check if we've exceeded the timeout
+		if time.Now().After(deadline) {
+			return nil, fmt.Errorf("timeout waiting for instance to reach RUNNING state after %v", timeout)
+		}
+
+		// Check if context is cancelled
+		if ctx.Err() != nil {
+			return nil, fmt.Errorf("context cancelled while waiting for instance: %w", ctx.Err())
+		}
+
+		// Get current instance state
+		instance, err := c.GetInstance(ctx, instanceID)
+		if err != nil {
+			c.logger.Error(ctx, fmt.Errorf("failed to query instance state: %w", err),
+				v1.LogField("instanceID", instanceID))
+			// Don't fail immediately on transient errors, keep polling
+			time.Sleep(pollInterval)
+			continue
+		}
+
+		c.logger.Info(ctx, "instance state check",
+			v1.LogField("instanceID", instanceID),
+			v1.LogField("status", instance.Status.LifecycleStatus))
+
+		// Check for success: RUNNING state
+		if instance.Status.LifecycleStatus == v1.LifecycleStatusRunning {
+			c.logger.Info(ctx, "instance reached RUNNING state",
+				v1.LogField("instanceID", instanceID),
+				v1.LogField("refID", refID))
+			return instance, nil
+		}
+
+		// Check for terminal failure states
+		if instance.Status.LifecycleStatus == v1.LifecycleStatusFailed ||
+			instance.Status.LifecycleStatus == v1.LifecycleStatusTerminated {
+			return nil, fmt.Errorf("instance entered terminal failure state: %s", instance.Status.LifecycleStatus)
+		}
+
+		// Instance is still in transitional state (PENDING, STARTING, etc.)
+		// Wait and poll again
+		c.logger.Info(ctx, "instance still transitioning, waiting...",
+			v1.LogField("instanceID", instanceID),
+			v1.LogField("currentStatus", instance.Status.LifecycleStatus),
+			v1.LogField("pollInterval", pollInterval.String()))
+		time.Sleep(pollInterval)
+	}
 }
 
 // stripCIDR removes CIDR notation from an IP address string
@@ -358,6 +447,30 @@ func (c *NebiusClient) TerminateInstance(ctx context.Context, instanceID v1.Clou
 		fmt.Printf("Warning: failed to cleanup network resources: %v\n", err)
 	}
 
+	return nil
+}
+
+// deleteInstanceIfExists deletes an instance and ignores NotFound errors
+// Used during cleanup to handle cases where the instance may have already been deleted
+func (c *NebiusClient) deleteInstanceIfExists(ctx context.Context, instanceID v1.CloudProviderInstanceID) error {
+	if instanceID == "" {
+		return nil
+	}
+
+	// Try to delete the instance - TerminateInstance handles all cleanup
+	err := c.TerminateInstance(ctx, instanceID)
+	if err != nil {
+		// Ignore NotFound errors - instance may have already been deleted
+		if isNotFoundError(err) {
+			c.logger.Info(ctx, "instance already deleted or not found",
+				v1.LogField("instanceID", instanceID))
+			return nil
+		}
+		return fmt.Errorf("failed to delete instance: %w", err)
+	}
+
+	c.logger.Info(ctx, "successfully deleted instance",
+		v1.LogField("instanceID", instanceID))
 	return nil
 }
 
