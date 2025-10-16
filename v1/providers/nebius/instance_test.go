@@ -268,63 +268,97 @@ func TestParseInstanceTypeFormat(t *testing.T) {
 		expectedGPUType  string
 		expectedPreset   string
 		shouldParseAsNEW bool
+		isDotFormat      bool
 	}{
 		{
-			name:             "H100 single GPU",
+			name:             "H100 single GPU (nebius format)",
 			instanceTypeID:   "nebius-eu-north1-h100-1gpu-16vcpu-200gb",
 			expectedGPUType:  "h100",
 			expectedPreset:   "1gpu-16vcpu-200gb",
 			shouldParseAsNEW: true,
 		},
 		{
-			name:             "L40S quad GPU",
+			name:             "L40S quad GPU (nebius format)",
 			instanceTypeID:   "nebius-eu-north1-l40s-4gpu-96vcpu-768gb",
 			expectedGPUType:  "l40s",
 			expectedPreset:   "4gpu-96vcpu-768gb",
 			shouldParseAsNEW: true,
 		},
 		{
-			name:             "H200 octa GPU",
+			name:             "H200 octa GPU (nebius format)",
 			instanceTypeID:   "nebius-us-central1-h200-8gpu-128vcpu-1600gb",
 			expectedGPUType:  "h200",
 			expectedPreset:   "8gpu-128vcpu-1600gb",
 			shouldParseAsNEW: true,
 		},
 		{
-			name:             "CPU only",
+			name:             "CPU only (nebius format)",
 			instanceTypeID:   "nebius-eu-north1-cpu-4vcpu-16gb",
 			expectedGPUType:  "cpu",
 			expectedPreset:   "4vcpu-16gb",
 			shouldParseAsNEW: true,
 		},
+		{
+			name:            "H100 (dot format)",
+			instanceTypeID:  "gpu-h100-sxm.8gpu-128vcpu-1600gb",
+			expectedGPUType: "gpu-h100-sxm",
+			expectedPreset:  "8gpu-128vcpu-1600gb",
+			isDotFormat:     true,
+		},
+		{
+			name:            "L40S (dot format)",
+			instanceTypeID:  "gpu-l40s.1gpu-8vcpu-32gb",
+			expectedGPUType: "gpu-l40s",
+			expectedPreset:  "1gpu-8vcpu-32gb",
+			isDotFormat:     true,
+		},
+		{
+			name:            "CPU (dot format)",
+			instanceTypeID:  "cpu-e2.4vcpu-16gb",
+			expectedGPUType: "cpu-e2",
+			expectedPreset:  "4vcpu-16gb",
+			isDotFormat:     true,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Parse the format
-			parts := strings.Split(tt.instanceTypeID, "-")
-			assert.GreaterOrEqual(t, len(parts), 4, "Instance type should have at least 4 parts")
-			assert.Equal(t, "nebius", parts[0], "Should start with 'nebius'")
-
-			// Find GPU type
-			var gpuType string
-			var presetStartIdx int
-			for i := 1; i < len(parts); i++ {
-				partLower := strings.ToLower(parts[i])
-				if partLower == "cpu" || partLower == "l40s" || partLower == "h100" ||
-					partLower == "h200" || partLower == "a100" || partLower == "v100" {
-					gpuType = partLower
-					presetStartIdx = i + 1
-					break
-				}
-			}
-
-			assert.Equal(t, tt.expectedGPUType, gpuType, "Should extract correct GPU type")
-			assert.Greater(t, presetStartIdx, 0, "Should find preset start index")
-
-			if presetStartIdx > 0 && presetStartIdx < len(parts) {
-				presetName := strings.Join(parts[presetStartIdx:], "-")
+			if tt.isDotFormat {
+				// Test DOT format parsing: platform.preset
+				dotParts := strings.SplitN(tt.instanceTypeID, ".", 2)
+				assert.Equal(t, 2, len(dotParts), "Dot format should have exactly 2 parts")
+				
+				platformName := dotParts[0]
+				presetName := dotParts[1]
+				
+				assert.Equal(t, tt.expectedGPUType, platformName, "Should extract correct platform name")
 				assert.Equal(t, tt.expectedPreset, presetName, "Should extract correct preset name")
+			} else {
+				// Test NEBIUS format parsing: nebius-region-gpu-preset
+				parts := strings.Split(tt.instanceTypeID, "-")
+				assert.GreaterOrEqual(t, len(parts), 4, "Instance type should have at least 4 parts")
+				assert.Equal(t, "nebius", parts[0], "Should start with 'nebius'")
+
+				// Find GPU type
+				var gpuType string
+				var presetStartIdx int
+				for i := 1; i < len(parts); i++ {
+					partLower := strings.ToLower(parts[i])
+					if partLower == "cpu" || partLower == "l40s" || partLower == "h100" ||
+						partLower == "h200" || partLower == "a100" || partLower == "v100" {
+						gpuType = partLower
+						presetStartIdx = i + 1
+						break
+					}
+				}
+
+				assert.Equal(t, tt.expectedGPUType, gpuType, "Should extract correct GPU type")
+				assert.Greater(t, presetStartIdx, 0, "Should find preset start index")
+				
+				if presetStartIdx > 0 && presetStartIdx < len(parts) {
+					presetName := strings.Join(parts[presetStartIdx:], "-")
+					assert.Equal(t, tt.expectedPreset, presetName, "Should extract correct preset name")
+				}
 			}
 		})
 	}

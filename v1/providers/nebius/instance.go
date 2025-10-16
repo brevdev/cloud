@@ -838,6 +838,47 @@ func (c *NebiusClient) parseInstanceType(ctx context.Context, instanceTypeID str
 	c.logger.Info(ctx, "listed platforms",
 		v1.LogField("platformCount", len(platformsResp.GetItems())))
 
+	// DOT Format: {platform-name}.{preset-name}
+	// Example: "gpu-h100-sxm.8gpu-128vcpu-1600gb"
+	if strings.Contains(instanceTypeID, ".") {
+		dotParts := strings.SplitN(instanceTypeID, ".", 2)
+		if len(dotParts) == 2 {
+			platformName := dotParts[0]
+			presetName := dotParts[1]
+
+			c.logger.Info(ctx, "parsed DOT format instance type",
+				v1.LogField("platformName", platformName),
+				v1.LogField("presetName", presetName))
+
+			// Find matching platform by name
+			for _, p := range platformsResp.GetItems() {
+				if p.Metadata == nil || p.Spec == nil {
+					continue
+				}
+
+				if p.Metadata.Name == platformName {
+					// Verify the preset exists
+					for _, preset := range p.Spec.Presets {
+						if preset != nil && preset.Name == presetName {
+							c.logger.Info(ctx, "✓ DOT format EXACT MATCH",
+								v1.LogField("platformName", p.Metadata.Name),
+								v1.LogField("presetName", preset.Name))
+							return p.Metadata.Name, preset.Name, nil
+						}
+					}
+
+					// If preset not found but platform matches, use first preset
+					if len(p.Spec.Presets) > 0 && p.Spec.Presets[0] != nil {
+						c.logger.Warn(ctx, "✗ DOT format - preset not found, using first preset",
+							v1.LogField("requestedPreset", presetName),
+							v1.LogField("fallbackPreset", p.Spec.Presets[0].Name))
+						return p.Metadata.Name, p.Spec.Presets[0].Name, nil
+					}
+				}
+			}
+		}
+	}
+
 	// Parse the NEW instance type ID format: nebius-{region}-{gpu-type}-{preset}
 	// Split by "-" and extract components
 	parts := strings.Split(instanceTypeID, "-")

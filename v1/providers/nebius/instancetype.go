@@ -183,9 +183,9 @@ func (c *NebiusClient) getInstanceTypesForLocation(ctx context.Context, platform
 
 			// Convert Nebius platform preset to our InstanceType format
 			instanceType := v1.InstanceType{
-				ID:                 v1.InstanceTypeID(instanceTypeID),
+				ID:                 v1.InstanceTypeID(instanceTypeID), // Unique ID for API calls (e.g., "nebius-eu-north1-h100-1gpu-16vcpu-200gb")
 				Location:           location.Name,
-				Type:               instanceTypeID, // ID and Type are 1:1 - same value used for API calls
+				Type:               fmt.Sprintf("%s.%s", platform.Metadata.Name, preset.Name), // Dot-separated format (e.g., "gpu-h100-sxm.8gpu-128vcpu-1600gb")
 				VCPU:               preset.Resources.VcpuCount,
 				Memory:             units.Base2Bytes(int64(preset.Resources.MemoryGibibytes) * 1024 * 1024 * 1024), // Convert GiB to bytes
 				NetworkPerformance: "standard",                                                                     // Default network performance
