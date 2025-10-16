@@ -224,11 +224,21 @@ func (c *NebiusClient) convertNebiusInstanceToV1(ctx context.Context, instance *
 		lifecycleStatus = v1.LifecycleStatusFailed
 	}
 
-	// Extract disk size from boot disk spec
-	// Note: For existing disks, we'd need to query the disk separately to get size
-	// This is a limitation of the current structure
-	var diskSize int
-	// TODO: Query the actual disk to get its size if needed
+	// Extract disk size from boot disk by querying the disk
+	var diskSize int64 // in bytes
+	if instance.Metadata != nil && instance.Metadata.Labels != nil {
+		bootDiskID := instance.Metadata.Labels["boot-disk-id"]
+		if bootDiskID != "" {
+			diskSizeBytes, err := c.getBootDiskSize(ctx, bootDiskID)
+			if err != nil {
+				c.logger.Error(ctx, fmt.Errorf("failed to get boot disk size: %w", err),
+					v1.LogField("bootDiskID", bootDiskID))
+				// Don't fail, just use 0 as fallback
+			} else {
+				diskSize = diskSizeBytes
+			}
+		}
+	}
 
 	// Extract creation time
 	createdAt := time.Now()
@@ -307,7 +317,7 @@ func (c *NebiusClient) convertNebiusInstanceToV1(ctx context.Context, instance *
 		InstanceType:   instanceTypeID,                    // Full instance type ID (e.g., "gpu-h100-sxm.8gpu-128vcpu-1600gb")
 		InstanceTypeID: v1.InstanceTypeID(instanceTypeID), // Same as InstanceType - required for dev-plane lookup
 		ImageID:        imageFamily,
-		DiskSize:       units.Base2Bytes(diskSize) * units.Gibibyte,
+		DiskSize:       units.Base2Bytes(diskSize), // diskSize is already in bytes from getBootDiskSize
 		Tags:           tags,
 		Status:         v1.Status{LifecycleStatus: lifecycleStatus},
 		// SSH connectivity details
@@ -570,12 +580,14 @@ func (c *NebiusClient) TerminateInstance(ctx context.Context, instanceID v1.Clou
 		v1.LogField("instanceID", instanceID))
 
 	// Step 2: Wait for instance to be actually deleted (not just "DELETING")
-	// The operation completing doesn't mean the instance is gone yet
+	// We MUST wait because we need to clean up boot disk, subnet, and VPC
+	// These resources cannot be deleted while still attached to the instance
 	if err := c.waitForInstanceDeleted(ctx, instanceID, 5*time.Minute); err != nil {
-		c.logger.Error(ctx, fmt.Errorf("instance failed to complete deletion: %w", err),
-			v1.LogField("instanceID", instanceID))
-		// Don't fail here - proceed with resource cleanup anyway
+		return fmt.Errorf("instance failed to complete deletion: %w", err)
 	}
+
+	c.logger.Info(ctx, "instance fully deleted, proceeding with resource cleanup",
+		v1.LogField("instanceID", instanceID))
 
 	// Step 3: Delete boot disk if it exists and wasn't auto-deleted
 	if bootDiskID != "" {
@@ -1459,6 +1471,28 @@ func (c *NebiusClient) deleteBootDisk(ctx context.Context, diskID string) error 
 	}
 
 	return nil
+}
+
+// getBootDiskSize queries a boot disk and returns its size in bytes
+func (c *NebiusClient) getBootDiskSize(ctx context.Context, diskID string) (int64, error) {
+	disk, err := c.sdk.Services().Compute().V1().Disk().Get(ctx, &compute.GetDiskRequest{
+		Id: diskID,
+	})
+	if err != nil {
+		return 0, fmt.Errorf("failed to get disk details: %w", err)
+	}
+
+	if disk.Spec == nil {
+		return 0, fmt.Errorf("disk spec is nil")
+	}
+
+	// Extract size from the Size oneof field
+	if sizeGiB, ok := disk.Spec.Size.(*compute.DiskSpec_SizeGibibytes); ok {
+		// Convert GiB to bytes
+		return sizeGiB.SizeGibibytes * int64(units.Gibibyte), nil
+	}
+
+	return 0, fmt.Errorf("disk size not available")
 }
 
 // deleteBootDiskIfExists deletes a boot disk if it exists (ignores NotFound errors)
