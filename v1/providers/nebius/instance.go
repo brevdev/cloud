@@ -187,9 +187,17 @@ func (c *NebiusClient) GetInstance(ctx context.Context, instanceID v1.CloudProvi
 		return nil, errors.WrapAndTrace(err)
 	}
 
+	return c.convertNebiusInstanceToV1(ctx, instance)
+}
+
+// convertNebiusInstanceToV1 converts a Nebius instance to v1.Instance
+// This is used by both GetInstance and ListInstances for consistent conversion
+func (c *NebiusClient) convertNebiusInstanceToV1(ctx context.Context, instance *compute.Instance) (*v1.Instance, error) {
 	if instance.Metadata == nil || instance.Spec == nil {
 		return nil, fmt.Errorf("invalid instance response from Nebius API")
 	}
+
+	instanceID := v1.CloudProviderInstanceID(instance.Metadata.Id)
 
 	// Convert Nebius instance status to our status
 	var lifecycleStatus v1.LifecycleStatus
@@ -617,8 +625,50 @@ func (c *NebiusClient) deleteInstanceIfExists(ctx context.Context, instanceID v1
 }
 
 func (c *NebiusClient) ListInstances(ctx context.Context, args v1.ListInstancesArgs) ([]v1.Instance, error) {
-	// Simplified implementation - would list actual instances
-	return []v1.Instance{}, fmt.Errorf("nebius list instances implementation pending: %w", v1.ErrNotImplemented)
+	c.logger.Info(ctx, "listing instances",
+		v1.LogField("projectID", c.projectID),
+		v1.LogField("location", c.location))
+
+	// List instances in the project
+	response, err := c.sdk.Services().Compute().V1().Instance().List(ctx, &compute.ListInstancesRequest{
+		ParentId: c.projectID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list instances: %w", err)
+	}
+
+	if response == nil || response.Items == nil {
+		c.logger.Info(ctx, "no instances found")
+		return []v1.Instance{}, nil
+	}
+
+	c.logger.Info(ctx, "found instances",
+		v1.LogField("count", len(response.Items)))
+
+	// Convert each Nebius instance to v1.Instance
+	instances := make([]v1.Instance, 0, len(response.Items))
+	for _, nebiusInstance := range response.Items {
+		if nebiusInstance.Metadata == nil {
+			c.logger.Error(ctx, fmt.Errorf("instance has no metadata"),
+				v1.LogField("instanceID", nebiusInstance.Metadata.GetId()))
+			continue
+		}
+
+		// Convert to v1.Instance using GetInstance to ensure consistent conversion
+		instance, err := c.convertNebiusInstanceToV1(ctx, nebiusInstance)
+		if err != nil {
+			c.logger.Error(ctx, fmt.Errorf("failed to convert instance: %w", err),
+				v1.LogField("instanceID", nebiusInstance.Metadata.Id))
+			continue
+		}
+
+		instances = append(instances, *instance)
+	}
+
+	c.logger.Info(ctx, "successfully listed instances",
+		v1.LogField("count", len(instances)))
+
+	return instances, nil
 }
 
 func (c *NebiusClient) StopInstance(ctx context.Context, instanceID v1.CloudProviderInstanceID) error {

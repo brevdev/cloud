@@ -171,13 +171,25 @@ The SDK properly waits for instances to reach their target states after issuing 
 - **CreateInstance**: Waits for `RUNNING` state (5-minute timeout) before returning
 - **StopInstance**: Issues stop command, then waits for `STOPPED` state (3-minute timeout)
 - **StartInstance**: Issues start command, then waits for `RUNNING` state (5-minute timeout)
+- **TerminateInstance**: Issues delete command, then waits for instance to be fully deleted (5-minute timeout)
 
 **Why this is critical**: Nebius operations complete when the action is *initiated*, not when the instance reaches the final state. Without explicit state waiting:
 - Stop operations would return while instance is still `STOPPING`, causing UI to hang
 - Start operations would return while instance is still `STARTING`, before it's accessible
+- Delete operations would return while instance is still `DELETING`, leaving UI stuck
 - State polling on the frontend would show stale states
 
-The SDK uses `waitForInstanceState()` helper which polls instance status every 5 seconds until the target state is reached or a timeout occurs.
+The SDK uses `waitForInstanceState()` and `waitForInstanceDeleted()` helpers which poll instance status every 5 seconds until the target state is reached or a timeout occurs.
+
+### Instance Listing and State Polling
+**ListInstances** is fully implemented and enables dev-plane to poll instance states:
+
+- Queries all instances in the project via Nebius List API
+- Converts each instance to `v1.Instance` using the same conversion logic as `GetInstance`
+- Returns instances with current state (RUNNING, STOPPED, DELETING, etc.)
+- Enables dev-plane's `WaitForChangedInstancesAndUpdate` workflow to track state changes
+
+**Critical for UI**: Without `ListInstances`, dev-plane cannot poll instances to detect state transitions, causing the UI to get stuck on transitional states like "Stopping" or "Deleting" even after the operations complete.
 
 ## TODO
 
