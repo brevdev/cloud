@@ -165,6 +165,20 @@ This prevents orphaned resources when:
 
 The cleanup is handled via a deferred function that tracks all created resource IDs and deletes them if the operation doesn't complete successfully.
 
+### State Transition Waiting
+The SDK properly waits for instances to reach their target states after issuing operations:
+
+- **CreateInstance**: Waits for `RUNNING` state (5-minute timeout) before returning
+- **StopInstance**: Issues stop command, then waits for `STOPPED` state (3-minute timeout)
+- **StartInstance**: Issues start command, then waits for `RUNNING` state (5-minute timeout)
+
+**Why this is critical**: Nebius operations complete when the action is *initiated*, not when the instance reaches the final state. Without explicit state waiting:
+- Stop operations would return while instance is still `STOPPING`, causing UI to hang
+- Start operations would return while instance is still `STARTING`, before it's accessible
+- State polling on the frontend would show stale states
+
+The SDK uses `waitForInstanceState()` helper which polls instance status every 5 seconds until the target state is reached or a timeout occurs.
+
 ## TODO
 
 - [ ] Add comprehensive error handling and retry logic

@@ -372,6 +372,128 @@ func (c *NebiusClient) waitForInstanceRunning(ctx context.Context, instanceID v1
 	}
 }
 
+// waitForInstanceState is a generic helper that waits for an instance to reach a specific lifecycle state
+// Used by StopInstance (wait for STOPPED), StartInstance (wait for RUNNING), etc.
+func (c *NebiusClient) waitForInstanceState(ctx context.Context, instanceID v1.CloudProviderInstanceID, targetState v1.LifecycleStatus, timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
+	pollInterval := 5 * time.Second
+
+	c.logger.Info(ctx, "waiting for instance to reach target state",
+		v1.LogField("instanceID", instanceID),
+		v1.LogField("targetState", targetState),
+		v1.LogField("timeout", timeout.String()))
+
+	for {
+		// Check if we've exceeded the timeout
+		if time.Now().After(deadline) {
+			return fmt.Errorf("timeout waiting for instance to reach %s state after %v", targetState, timeout)
+		}
+
+		// Check if context is cancelled
+		if ctx.Err() != nil {
+			return fmt.Errorf("context cancelled while waiting for instance: %w", ctx.Err())
+		}
+
+		// Get current instance state
+		instance, err := c.GetInstance(ctx, instanceID)
+		if err != nil {
+			c.logger.Error(ctx, fmt.Errorf("failed to query instance state: %w", err),
+				v1.LogField("instanceID", instanceID))
+			// Don't fail immediately on transient errors, keep polling
+			time.Sleep(pollInterval)
+			continue
+		}
+
+		c.logger.Info(ctx, "instance state check",
+			v1.LogField("instanceID", instanceID),
+			v1.LogField("currentState", instance.Status.LifecycleStatus),
+			v1.LogField("targetState", targetState))
+
+		// Check if we've reached the target state
+		if instance.Status.LifecycleStatus == targetState {
+			c.logger.Info(ctx, "instance reached target state",
+				v1.LogField("instanceID", instanceID),
+				v1.LogField("state", targetState))
+			return nil
+		}
+
+		// Check for terminal failure states (unless we're specifically waiting for a failed state)
+		if targetState != v1.LifecycleStatusFailed && targetState != v1.LifecycleStatusTerminated {
+			if instance.Status.LifecycleStatus == v1.LifecycleStatusFailed ||
+				instance.Status.LifecycleStatus == v1.LifecycleStatusTerminated {
+				return fmt.Errorf("instance entered terminal failure state: %s while waiting for %s",
+					instance.Status.LifecycleStatus, targetState)
+			}
+		}
+
+		// Instance is still transitioning, wait and poll again
+		c.logger.Info(ctx, "instance still transitioning, waiting...",
+			v1.LogField("instanceID", instanceID),
+			v1.LogField("currentState", instance.Status.LifecycleStatus),
+			v1.LogField("targetState", targetState),
+			v1.LogField("pollInterval", pollInterval.String()))
+		time.Sleep(pollInterval)
+	}
+}
+
+// waitForInstanceDeleted polls until the instance is fully deleted (NotFound)
+// This is different from waitForInstanceState because deletion results in the instance disappearing
+func (c *NebiusClient) waitForInstanceDeleted(ctx context.Context, instanceID v1.CloudProviderInstanceID, timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
+	pollInterval := 5 * time.Second
+
+	c.logger.Info(ctx, "waiting for instance to be fully deleted",
+		v1.LogField("instanceID", instanceID),
+		v1.LogField("timeout", timeout.String()))
+
+	for {
+		// Check if we've exceeded the timeout
+		if time.Now().After(deadline) {
+			return fmt.Errorf("timeout waiting for instance to be deleted after %v", timeout)
+		}
+
+		// Check if context is cancelled
+		if ctx.Err() != nil {
+			return fmt.Errorf("context cancelled while waiting for instance deletion: %w", ctx.Err())
+		}
+
+		// Try to get the instance
+		instance, err := c.GetInstance(ctx, instanceID)
+		if err != nil {
+			// Check if it's a NotFound error - that means the instance is fully deleted
+			if isNotFoundError(err) {
+				c.logger.Info(ctx, "instance successfully deleted (NotFound)",
+					v1.LogField("instanceID", instanceID))
+				return nil
+			}
+			// Other errors - log but keep polling
+			c.logger.Error(ctx, fmt.Errorf("error querying instance during deletion wait: %w", err),
+				v1.LogField("instanceID", instanceID))
+			time.Sleep(pollInterval)
+			continue
+		}
+
+		// Instance still exists - check its state
+		c.logger.Info(ctx, "instance still exists, checking state",
+			v1.LogField("instanceID", instanceID),
+			v1.LogField("state", instance.Status.LifecycleStatus))
+
+		// If instance is in TERMINATED state, consider it deleted
+		if instance.Status.LifecycleStatus == v1.LifecycleStatusTerminated {
+			c.logger.Info(ctx, "instance reached TERMINATED state",
+				v1.LogField("instanceID", instanceID))
+			return nil
+		}
+
+		// Instance still in DELETING or other transitional state, wait and poll again
+		c.logger.Info(ctx, "instance still deleting, waiting...",
+			v1.LogField("instanceID", instanceID),
+			v1.LogField("currentState", instance.Status.LifecycleStatus),
+			v1.LogField("pollInterval", pollInterval.String()))
+		time.Sleep(pollInterval)
+	}
+}
+
 // stripCIDR removes CIDR notation from an IP address string
 // Nebius API returns IPs in CIDR format (e.g., "192.168.1.1/32")
 // We need just the IP address for SSH connectivity
@@ -399,6 +521,9 @@ func extractImageFamily(bootDisk *compute.AttachedDiskSpec) string {
 }
 
 func (c *NebiusClient) TerminateInstance(ctx context.Context, instanceID v1.CloudProviderInstanceID) error {
+	c.logger.Info(ctx, "initiating instance termination",
+		v1.LogField("instanceID", instanceID))
+
 	// Get instance details to retrieve associated resource IDs
 	instance, err := c.sdk.Services().Compute().V1().Instance().Get(ctx, &compute.GetInstanceRequest{
 		Id: string(instanceID),
@@ -423,7 +548,7 @@ func (c *NebiusClient) TerminateInstance(ctx context.Context, instanceID v1.Clou
 		return fmt.Errorf("failed to initiate instance termination: %w", err)
 	}
 
-	// Wait for the instance deletion to complete
+	// Wait for the deletion operation to complete
 	finalOp, err := operation.Wait(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to wait for instance termination: %w", err)
@@ -433,19 +558,36 @@ func (c *NebiusClient) TerminateInstance(ctx context.Context, instanceID v1.Clou
 		return fmt.Errorf("instance termination failed: %v", finalOp.Status())
 	}
 
-	// Step 2: Delete boot disk if it exists and wasn't auto-deleted
+	c.logger.Info(ctx, "delete operation completed, waiting for instance to be fully deleted",
+		v1.LogField("instanceID", instanceID))
+
+	// Step 2: Wait for instance to be actually deleted (not just "DELETING")
+	// The operation completing doesn't mean the instance is gone yet
+	if err := c.waitForInstanceDeleted(ctx, instanceID, 5*time.Minute); err != nil {
+		c.logger.Error(ctx, fmt.Errorf("instance failed to complete deletion: %w", err),
+			v1.LogField("instanceID", instanceID))
+		// Don't fail here - proceed with resource cleanup anyway
+	}
+
+	// Step 3: Delete boot disk if it exists and wasn't auto-deleted
 	if bootDiskID != "" {
 		if err := c.deleteBootDiskIfExists(ctx, bootDiskID); err != nil {
 			// Log but don't fail - disk may have been auto-deleted with instance
-			fmt.Printf("Warning: failed to delete boot disk %s: %v\n", bootDiskID, err)
+			c.logger.Error(ctx, fmt.Errorf("failed to delete boot disk: %w", err),
+				v1.LogField("bootDiskID", bootDiskID))
 		}
 	}
 
-	// Step 3: Delete network resources (subnet, then VPC)
+	// Step 4: Delete network resources (subnet, then VPC)
 	if err := c.cleanupNetworkResources(ctx, networkID, subnetID); err != nil {
 		// Log but don't fail - cleanup is best-effort
-		fmt.Printf("Warning: failed to cleanup network resources: %v\n", err)
+		c.logger.Error(ctx, fmt.Errorf("failed to cleanup network resources: %w", err),
+			v1.LogField("networkID", networkID),
+			v1.LogField("subnetID", subnetID))
 	}
+
+	c.logger.Info(ctx, "instance successfully terminated and cleaned up",
+		v1.LogField("instanceID", instanceID))
 
 	return nil
 }
@@ -480,6 +622,9 @@ func (c *NebiusClient) ListInstances(ctx context.Context, args v1.ListInstancesA
 }
 
 func (c *NebiusClient) StopInstance(ctx context.Context, instanceID v1.CloudProviderInstanceID) error {
+	c.logger.Info(ctx, "initiating instance stop operation",
+		v1.LogField("instanceID", instanceID))
+
 	// Initiate instance stop operation
 	operation, err := c.sdk.Services().Compute().V1().Instance().Stop(ctx, &compute.StopInstanceRequest{
 		Id: string(instanceID),
@@ -498,10 +643,25 @@ func (c *NebiusClient) StopInstance(ctx context.Context, instanceID v1.CloudProv
 		return fmt.Errorf("instance stop failed: %v", finalOp.Status())
 	}
 
+	c.logger.Info(ctx, "stop operation completed, waiting for instance to reach STOPPED state",
+		v1.LogField("instanceID", instanceID))
+
+	// Wait for instance to actually reach STOPPED state
+	// The operation completing doesn't mean the instance is fully stopped yet
+	if err := c.waitForInstanceState(ctx, instanceID, v1.LifecycleStatusStopped, 3*time.Minute); err != nil {
+		return fmt.Errorf("instance failed to reach STOPPED state: %w", err)
+	}
+
+	c.logger.Info(ctx, "instance successfully stopped",
+		v1.LogField("instanceID", instanceID))
+
 	return nil
 }
 
 func (c *NebiusClient) StartInstance(ctx context.Context, instanceID v1.CloudProviderInstanceID) error {
+	c.logger.Info(ctx, "initiating instance start operation",
+		v1.LogField("instanceID", instanceID))
+
 	// Initiate instance start operation
 	operation, err := c.sdk.Services().Compute().V1().Instance().Start(ctx, &compute.StartInstanceRequest{
 		Id: string(instanceID),
@@ -519,6 +679,18 @@ func (c *NebiusClient) StartInstance(ctx context.Context, instanceID v1.CloudPro
 	if !finalOp.Successful() {
 		return fmt.Errorf("instance start failed: %v", finalOp.Status())
 	}
+
+	c.logger.Info(ctx, "start operation completed, waiting for instance to reach RUNNING state",
+		v1.LogField("instanceID", instanceID))
+
+	// Wait for instance to actually reach RUNNING state
+	// The operation completing doesn't mean the instance is fully running yet
+	if err := c.waitForInstanceState(ctx, instanceID, v1.LifecycleStatusRunning, 5*time.Minute); err != nil {
+		return fmt.Errorf("instance failed to reach RUNNING state: %w", err)
+	}
+
+	c.logger.Info(ctx, "instance successfully started",
+		v1.LogField("instanceID", instanceID))
 
 	return nil
 }
