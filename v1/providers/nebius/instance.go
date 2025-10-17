@@ -642,31 +642,57 @@ func (c *NebiusClient) deleteInstanceIfExists(ctx context.Context, instanceID v1
 
 func (c *NebiusClient) ListInstances(ctx context.Context, args v1.ListInstancesArgs) ([]v1.Instance, error) {
 	c.logger.Info(ctx, "listing nebius instances",
-		v1.LogField("projectID", c.projectID),
+		v1.LogField("primaryProjectID", c.projectID),
 		v1.LogField("location", c.location),
 		v1.LogField("tagFilters", fmt.Sprintf("%+v", args.TagFilters)),
 		v1.LogField("instanceIDFilter", fmt.Sprintf("%+v", args.InstanceIDs)),
 		v1.LogField("locationFilter", fmt.Sprintf("%+v", args.Locations)))
 
-	// List instances in the project
-	response, err := c.sdk.Services().Compute().V1().Instance().List(ctx, &compute.ListInstancesRequest{
-		ParentId: c.projectID,
-	})
+	// Query ALL projects in the tenant to find all instances
+	// Projects are region-specific, so we need to check all projects to find all instances
+	allProjects, err := c.discoverAllProjects(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list instances: %w", err)
+		c.logger.Error(ctx, fmt.Errorf("failed to discover projects: %w", err))
+		// Fallback to querying just the primary project
+		allProjects = []string{c.projectID}
 	}
 
-	if response == nil || response.Items == nil {
-		c.logger.Info(ctx, "no instances found")
+	c.logger.Info(ctx, "querying instances across all projects",
+		v1.LogField("projectCount", len(allProjects)),
+		v1.LogField("projects", fmt.Sprintf("%v", allProjects)))
+
+	// Collect instances from all projects
+	allNebiusInstances := make([]*compute.Instance, 0)
+	for _, projectID := range allProjects {
+		response, err := c.sdk.Services().Compute().V1().Instance().List(ctx, &compute.ListInstancesRequest{
+			ParentId: projectID,
+		})
+		if err != nil {
+			c.logger.Error(ctx, fmt.Errorf("failed to list instances in project %s: %w", projectID, err),
+				v1.LogField("projectID", projectID))
+			// Continue to next project instead of failing completely
+			continue
+		}
+
+		if response != nil && response.Items != nil {
+			c.logger.Info(ctx, "found instances in project",
+				v1.LogField("projectID", projectID),
+				v1.LogField("count", len(response.Items)))
+			allNebiusInstances = append(allNebiusInstances, response.Items...)
+		}
+	}
+
+	if len(allNebiusInstances) == 0 {
+		c.logger.Info(ctx, "no instances found across all projects")
 		return []v1.Instance{}, nil
 	}
 
-	c.logger.Info(ctx, "found raw instances from Nebius API",
-		v1.LogField("count", len(response.Items)))
+	c.logger.Info(ctx, "found raw instances from Nebius API across all projects",
+		v1.LogField("totalCount", len(allNebiusInstances)))
 
 	// Convert and filter each Nebius instance to v1.Instance
-	instances := make([]v1.Instance, 0, len(response.Items))
-	for _, nebiusInstance := range response.Items {
+	instances := make([]v1.Instance, 0, len(allNebiusInstances))
+	for _, nebiusInstance := range allNebiusInstances {
 		if nebiusInstance.Metadata == nil {
 			c.logger.Error(ctx, fmt.Errorf("instance has no metadata"),
 				v1.LogField("instanceID", "unknown"))

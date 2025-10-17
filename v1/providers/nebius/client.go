@@ -5,10 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 
-	v1 "github.com/brevdev/cloud/v1"
 	"github.com/brevdev/cloud/internal/errors"
+	v1 "github.com/brevdev/cloud/v1"
 	"github.com/nebius/gosdk"
 	"github.com/nebius/gosdk/auth"
 	iam "github.com/nebius/gosdk/proto/nebius/iam/v1"
@@ -133,6 +134,15 @@ func findProjectForRegion(ctx context.Context, sdk *gosdk.SDK, tenantID, region 
 		return "", fmt.Errorf("no projects found in tenant %s", tenantID)
 	}
 
+	// Sort projects by ID for deterministic selection
+	// This ensures CreateInstance and ListInstances always use the same project!
+	sort.Slice(projects, func(i, j int) bool {
+		if projects[i].Metadata == nil || projects[j].Metadata == nil {
+			return false
+		}
+		return projects[i].Metadata.Id < projects[j].Metadata.Id
+	})
+
 	// Priority 1: Look for default-project-{region} or default-{region}
 	preferredNames := []string{
 		fmt.Sprintf("default-project-%s", region),
@@ -143,6 +153,8 @@ func findProjectForRegion(ctx context.Context, sdk *gosdk.SDK, tenantID, region 
 	for _, preferredName := range preferredNames {
 		for _, project := range projects {
 			if project.Metadata != nil && strings.EqualFold(project.Metadata.Name, preferredName) {
+				fmt.Printf("[NEBIUS_DEBUG] findProjectForRegion: Selected project by name match: %s (ID: %s)\n",
+					project.Metadata.Name, project.Metadata.Id)
 				return project.Metadata.Id, nil
 			}
 		}
@@ -152,16 +164,56 @@ func findProjectForRegion(ctx context.Context, sdk *gosdk.SDK, tenantID, region 
 	regionLower := strings.ToLower(region)
 	for _, project := range projects {
 		if project.Metadata != nil && strings.Contains(strings.ToLower(project.Metadata.Name), regionLower) {
+			fmt.Printf("[NEBIUS_DEBUG] findProjectForRegion: Selected project by region in name: %s (ID: %s)\n",
+				project.Metadata.Name, project.Metadata.Id)
 			return project.Metadata.Id, nil
 		}
 	}
 
-	// Priority 3: Return first available project
+	// Priority 3: Return first available project (now deterministic due to sorting)
 	if projects[0].Metadata != nil {
+		fmt.Printf("[NEBIUS_DEBUG] findProjectForRegion: Selected first available project (sorted): %s (ID: %s)\n",
+			projects[0].Metadata.Name, projects[0].Metadata.Id)
+		fmt.Printf("[NEBIUS_DEBUG] findProjectForRegion: Total projects: %d, All IDs: %v\n",
+			len(projects), func() []string {
+				ids := make([]string, 0, len(projects))
+				for _, p := range projects {
+					if p.Metadata != nil {
+						ids = append(ids, p.Metadata.Id)
+					}
+				}
+				return ids
+			}())
 		return projects[0].Metadata.Id, nil
 	}
 
 	return "", fmt.Errorf("no suitable project found")
+}
+
+// discoverAllProjects returns all project IDs in the tenant
+// This is used by ListInstances to query across all projects
+func (c *NebiusClient) discoverAllProjects(ctx context.Context) ([]string, error) {
+	pageSize := int64(1000)
+	projectsResp, err := c.sdk.Services().IAM().V1().Project().List(ctx, &iam.ListProjectsRequest{
+		ParentId: c.tenantID,
+		PageSize: &pageSize,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list projects: %w", err)
+	}
+
+	projects := projectsResp.GetItems()
+	projectIDs := make([]string, 0, len(projects))
+	for _, project := range projects {
+		if project.Metadata != nil && project.Metadata.Id != "" {
+			projectIDs = append(projectIDs, project.Metadata.Id)
+		}
+	}
+
+	// Sort for consistency
+	sort.Strings(projectIDs)
+
+	return projectIDs, nil
 }
 
 // GetAPIType returns the API type for Nebius
