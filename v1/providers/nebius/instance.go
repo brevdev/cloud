@@ -769,7 +769,7 @@ func (c *NebiusClient) ListInstances(ctx context.Context, args v1.ListInstancesA
 	}
 
 	c.logger.Info(ctx, "successfully listed and filtered instances",
-		v1.LogField("totalFromAPI", len(response.Items)),
+		v1.LogField("totalFromAPI", len(allNebiusInstances)),
 		v1.LogField("afterFiltering", len(instances)))
 
 	return instances, nil
