@@ -190,15 +190,26 @@ The SDK uses `waitForInstanceState()` and `waitForInstanceDeleted()` helpers whi
 - Returns instances with current state (RUNNING, STOPPED, DELETING, etc.)
 - Enables dev-plane's `WaitForChangedInstancesAndUpdate` workflow to track state changes
 
-**Tag Filtering is Critical**: Dev-plane passes service tags (e.g., `{"brev-service": "dev-plane", "brev-org": "..."}`) to filter instances. Without proper tag filtering, dev-plane cannot find its instances in the response, assumes they're terminated, and removes them from the database while leaving cloud resources orphaned.
+**Tag Filtering is Critical** - This is a fundamental architectural difference from Shadeform/Launchpad:
 
-**How Tag Filtering Works**:
-1. Dev-plane calls `ListInstances` with `TagFilters` (e.g., `{"brev-service": ["dev-plane"], "brev-org": ["org-xyz"]}`)
-2. Nebius SDK queries all instances in the project
+**Why Nebius REQUIRES Tag Filtering:**
+- **Shadeform & Launchpad**: Single-tenant per API key. Each cloud credential only sees its own instances through API-level isolation.
+- **Nebius**: Multi-tenant project. Multiple dev-plane cloud credentials can share one Nebius project. Without tag filtering, `ListInstances` returns ALL instances in the project, including those from other services/organizations.
+
+**How Tag Filtering Works:**
+1. Dev-plane calls `ListInstances` with `TagFilters` (e.g., `{"devplane-service": ["dev-plane"], "devplane-org": ["org-xyz"]}`)
+2. Nebius SDK queries ALL instances in the project
 3. SDK filters results to only return instances where **all** specified tags match
-4. Dev-plane uses the filtered list to update instance states in its database
+4. Dev-plane builds a map of cloud instances by CloudID
+5. For each database instance, checks if it exists in the cloud map
+6. If NOT in map → marks as TERMINATED (line 3011-3024 in `dev-plane/internal/instance/service.go`)
 
-**Without Tag Filtering**: Instances "disappear" from the dev-plane console (marked as terminated in the database) even though they're still running in Nebius, leading to orphaned resources and a broken user experience.
+**Without Tag Filtering:** 
+1. `ListInstances` returns instances with mismatched/missing tags
+2. dev-plane's instance is excluded from filtered results
+3. dev-plane's `getInstancesChangeSet` sees instance missing from cloud → marks as TERMINATED
+4. `WaitForInstanceToBeRunning` queries database → sees TERMINATED → fails with "instance terminated" error
+5. `BuildEnvironment` workflow fails, orphaning all cloud resources
 
 ## TODO
 

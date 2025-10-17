@@ -117,6 +117,10 @@ func (c *NebiusClient) CreateInstance(ctx context.Context, attrs v1.CreateInstan
 
 	// Add labels/tags to metadata (always create labels for resource tracking)
 	createReq.Metadata.Labels = make(map[string]string)
+	c.logger.Info(ctx, "🏷️  Setting instance tags during CreateInstance",
+		v1.LogField("providedTagsCount", len(attrs.Tags)),
+		v1.LogField("providedTags", fmt.Sprintf("%+v", attrs.Tags)),
+		v1.LogField("refID", attrs.RefID))
 	for k, v := range attrs.Tags {
 		createReq.Metadata.Labels[k] = v
 	}
@@ -665,9 +669,15 @@ func (c *NebiusClient) ListInstances(ctx context.Context, args v1.ListInstancesA
 	for _, nebiusInstance := range response.Items {
 		if nebiusInstance.Metadata == nil {
 			c.logger.Error(ctx, fmt.Errorf("instance has no metadata"),
-				v1.LogField("instanceID", nebiusInstance.Metadata.GetId()))
+				v1.LogField("instanceID", "unknown"))
 			continue
 		}
+
+		c.logger.Info(ctx, "🔍 Processing instance from Nebius API",
+			v1.LogField("instanceID", nebiusInstance.Metadata.Id),
+			v1.LogField("instanceName", nebiusInstance.Metadata.Name),
+			v1.LogField("rawLabelsCount", len(nebiusInstance.Metadata.Labels)),
+			v1.LogField("rawLabels", fmt.Sprintf("%+v", nebiusInstance.Metadata.Labels)))
 
 		// Convert to v1.Instance using convertNebiusInstanceToV1 for consistent conversion
 		instance, err := c.convertNebiusInstanceToV1(ctx, nebiusInstance)
@@ -677,15 +687,28 @@ func (c *NebiusClient) ListInstances(ctx context.Context, args v1.ListInstancesA
 			continue
 		}
 
+		c.logger.Info(ctx, "🏷️  Instance after conversion",
+			v1.LogField("instanceID", instance.CloudID),
+			v1.LogField("convertedTagsCount", len(instance.Tags)),
+			v1.LogField("convertedTags", fmt.Sprintf("%+v", instance.Tags)))
+
 		// Apply tag filtering if TagFilters are provided
 		if len(args.TagFilters) > 0 {
+			c.logger.Info(ctx, "🔎 Checking tag filters",
+				v1.LogField("instanceID", instance.CloudID),
+				v1.LogField("requiredFilters", fmt.Sprintf("%+v", args.TagFilters)),
+				v1.LogField("instanceTags", fmt.Sprintf("%+v", instance.Tags)))
+
 			if !matchesTagFilters(instance.Tags, args.TagFilters) {
-				c.logger.Debug(ctx, "instance filtered out by tag filters",
+				c.logger.Warn(ctx, "❌ Instance FILTERED OUT by tag filters",
 					v1.LogField("instanceID", instance.CloudID),
 					v1.LogField("instanceTags", fmt.Sprintf("%+v", instance.Tags)),
 					v1.LogField("requiredFilters", fmt.Sprintf("%+v", args.TagFilters)))
 				continue
 			}
+
+			c.logger.Info(ctx, "✅ Instance PASSED tag filters",
+				v1.LogField("instanceID", instance.CloudID))
 		}
 
 		// Apply instance ID filtering if provided
