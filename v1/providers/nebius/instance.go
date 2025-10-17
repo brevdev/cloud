@@ -637,9 +637,12 @@ func (c *NebiusClient) deleteInstanceIfExists(ctx context.Context, instanceID v1
 }
 
 func (c *NebiusClient) ListInstances(ctx context.Context, args v1.ListInstancesArgs) ([]v1.Instance, error) {
-	c.logger.Info(ctx, "listing instances",
+	c.logger.Info(ctx, "listing nebius instances",
 		v1.LogField("projectID", c.projectID),
-		v1.LogField("location", c.location))
+		v1.LogField("location", c.location),
+		v1.LogField("tagFilters", fmt.Sprintf("%+v", args.TagFilters)),
+		v1.LogField("instanceIDFilter", fmt.Sprintf("%+v", args.InstanceIDs)),
+		v1.LogField("locationFilter", fmt.Sprintf("%+v", args.Locations)))
 
 	// List instances in the project
 	response, err := c.sdk.Services().Compute().V1().Instance().List(ctx, &compute.ListInstancesRequest{
@@ -654,10 +657,10 @@ func (c *NebiusClient) ListInstances(ctx context.Context, args v1.ListInstancesA
 		return []v1.Instance{}, nil
 	}
 
-	c.logger.Info(ctx, "found instances",
+	c.logger.Info(ctx, "found raw instances from Nebius API",
 		v1.LogField("count", len(response.Items)))
 
-	// Convert each Nebius instance to v1.Instance
+	// Convert and filter each Nebius instance to v1.Instance
 	instances := make([]v1.Instance, 0, len(response.Items))
 	for _, nebiusInstance := range response.Items {
 		if nebiusInstance.Metadata == nil {
@@ -666,7 +669,7 @@ func (c *NebiusClient) ListInstances(ctx context.Context, args v1.ListInstancesA
 			continue
 		}
 
-		// Convert to v1.Instance using GetInstance to ensure consistent conversion
+		// Convert to v1.Instance using convertNebiusInstanceToV1 for consistent conversion
 		instance, err := c.convertNebiusInstanceToV1(ctx, nebiusInstance)
 		if err != nil {
 			c.logger.Error(ctx, fmt.Errorf("failed to convert instance: %w", err),
@@ -674,13 +677,83 @@ func (c *NebiusClient) ListInstances(ctx context.Context, args v1.ListInstancesA
 			continue
 		}
 
+		// Apply tag filtering if TagFilters are provided
+		if len(args.TagFilters) > 0 {
+			if !matchesTagFilters(instance.Tags, args.TagFilters) {
+				c.logger.Debug(ctx, "instance filtered out by tag filters",
+					v1.LogField("instanceID", instance.CloudID),
+					v1.LogField("instanceTags", fmt.Sprintf("%+v", instance.Tags)),
+					v1.LogField("requiredFilters", fmt.Sprintf("%+v", args.TagFilters)))
+				continue
+			}
+		}
+
+		// Apply instance ID filtering if provided
+		if len(args.InstanceIDs) > 0 {
+			found := false
+			for _, id := range args.InstanceIDs {
+				if instance.CloudID == id {
+					found = true
+					break
+				}
+			}
+			if !found {
+				c.logger.Debug(ctx, "instance filtered out by instance ID filter",
+					v1.LogField("instanceID", instance.CloudID))
+				continue
+			}
+		}
+
+		// Apply location filtering if provided
+		if len(args.Locations) > 0 && !args.Locations.IsAllowed(instance.Location) {
+			c.logger.Debug(ctx, "instance filtered out by location filter",
+				v1.LogField("instanceID", instance.CloudID),
+				v1.LogField("instanceLocation", instance.Location))
+			continue
+		}
+
+		c.logger.Debug(ctx, "instance passed all filters",
+			v1.LogField("instanceID", instance.CloudID),
+			v1.LogField("instanceTags", fmt.Sprintf("%+v", instance.Tags)))
+
 		instances = append(instances, *instance)
 	}
 
-	c.logger.Info(ctx, "successfully listed instances",
-		v1.LogField("count", len(instances)))
+	c.logger.Info(ctx, "successfully listed and filtered instances",
+		v1.LogField("totalFromAPI", len(response.Items)),
+		v1.LogField("afterFiltering", len(instances)))
 
 	return instances, nil
+}
+
+// matchesTagFilters checks if the instance tags match the required tag filters.
+// TagFilters is a map where the key is the tag name and the value is a list of acceptable values.
+// An instance matches if for every filter key, the instance has that tag and its value is in the list.
+func matchesTagFilters(instanceTags map[string]string, tagFilters map[string][]string) bool {
+	for filterKey, acceptableValues := range tagFilters {
+		instanceValue, hasTag := instanceTags[filterKey]
+		if !hasTag {
+			// Instance doesn't have this required tag
+			return false
+		}
+
+		// Check if the instance's tag value is in the list of acceptable values
+		valueMatches := false
+		for _, acceptableValue := range acceptableValues {
+			if instanceValue == acceptableValue {
+				valueMatches = true
+				break
+			}
+		}
+
+		if !valueMatches {
+			// Instance has the tag but the value doesn't match any acceptable value
+			return false
+		}
+	}
+
+	// All filters passed
+	return true
 }
 
 func (c *NebiusClient) StopInstance(ctx context.Context, instanceID v1.CloudProviderInstanceID) error {

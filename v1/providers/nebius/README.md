@@ -186,10 +186,19 @@ The SDK uses `waitForInstanceState()` and `waitForInstanceDeleted()` helpers whi
 
 - Queries all instances in the project via Nebius List API
 - Converts each instance to `v1.Instance` using the same conversion logic as `GetInstance`
+- **Properly filters by `TagFilters`, `InstanceIDs`, and `Locations`** passed in `ListInstancesArgs`
 - Returns instances with current state (RUNNING, STOPPED, DELETING, etc.)
 - Enables dev-plane's `WaitForChangedInstancesAndUpdate` workflow to track state changes
 
-**Critical for UI**: Without `ListInstances`, dev-plane cannot poll instances to detect state transitions, causing the UI to get stuck on transitional states like "Stopping" or "Deleting" even after the operations complete.
+**Tag Filtering is Critical**: Dev-plane passes service tags (e.g., `{"brev-service": "dev-plane", "brev-org": "..."}`) to filter instances. Without proper tag filtering, dev-plane cannot find its instances in the response, assumes they're terminated, and removes them from the database while leaving cloud resources orphaned.
+
+**How Tag Filtering Works**:
+1. Dev-plane calls `ListInstances` with `TagFilters` (e.g., `{"brev-service": ["dev-plane"], "brev-org": ["org-xyz"]}`)
+2. Nebius SDK queries all instances in the project
+3. SDK filters results to only return instances where **all** specified tags match
+4. Dev-plane uses the filtered list to update instance states in its database
+
+**Without Tag Filtering**: Instances "disappear" from the dev-plane console (marked as terminated in the database) even though they're still running in Nebius, leading to orphaned resources and a broken user experience.
 
 ## TODO
 
