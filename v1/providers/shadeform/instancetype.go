@@ -2,7 +2,6 @@ package v1
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -10,6 +9,7 @@ import (
 	"github.com/alecthomas/units"
 	"github.com/bojanz/currency"
 
+	"github.com/brevdev/cloud/internal/errors"
 	v1 "github.com/brevdev/cloud/v1"
 	openapi "github.com/brevdev/cloud/v1/providers/shadeform/gen/shadeform"
 )
@@ -27,6 +27,7 @@ func (c *ShadeformClient) GetInstanceTypes(ctx context.Context, args v1.GetInsta
 	request := c.client.DefaultAPI.InstancesTypes(authCtx)
 	if len(args.Locations) > 0 && args.Locations[0] != AllRegions {
 		regionFilter := args.Locations[0]
+		c.logger.Debug(ctx, "filtering by region", v1.LogField("regionFilter", regionFilter))
 		request = request.Region(regionFilter)
 	}
 
@@ -35,18 +36,19 @@ func (c *ShadeformClient) GetInstanceTypes(ctx context.Context, args v1.GetInsta
 		defer func() { _ = httpResp.Body.Close() }()
 	}
 	if err != nil {
-		return nil, fmt.Errorf("failed to get instance types: %w", err)
+		return nil, errors.WrapAndTrace(fmt.Errorf("failed to get instance types: %w", err))
 	}
 
 	var instanceTypes []v1.InstanceType
 	for _, sfInstanceType := range resp.InstanceTypes {
-		instanceTypesFromShadeformInstanceType, err := c.convertShadeformInstanceTypeToV1InstanceType(sfInstanceType)
+		instanceTypesFromShadeformInstanceType, err := c.convertShadeformInstanceTypeToV1InstanceType(ctx, sfInstanceType)
 		if err != nil {
-			return nil, err
+			return nil, errors.WrapAndTrace(err)
 		}
 		// Filter the list down to the instance types that are allowed by the configuration filter and the args
 		for _, singleInstanceType := range instanceTypesFromShadeformInstanceType {
 			if !isSelectedByArgs(singleInstanceType, args) {
+				c.logger.Debug(ctx, "instance type not selected by args", v1.LogField("instanceType", singleInstanceType.Type))
 				continue
 			}
 			if c.isInstanceTypeAllowed(singleInstanceType.Type) {
@@ -97,7 +99,7 @@ func (c *ShadeformClient) GetLocations(ctx context.Context, _ v1.GetLocationsArg
 	}
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to get locations: %w", err)
+		return nil, errors.WrapAndTrace(fmt.Errorf("failed to get locations: %w", err))
 	}
 
 	// Shadeform doesn't have a dedicated locations API but we can get the same result from using the
@@ -165,7 +167,7 @@ func (c *ShadeformClient) getInstanceTypeID(instanceType string, region string) 
 func (c *ShadeformClient) getShadeformCloudAndInstanceType(instanceType string) (string, string, error) {
 	shadeformCloud, shadeformInstanceType, found := strings.Cut(instanceType, "_")
 	if !found {
-		return "", "", errors.New("could not determine shadeform cloud and instance type from instance type")
+		return "", "", errors.WrapAndTrace(errors.New("could not determine shadeform cloud and instance type from instance type"))
 	}
 	return shadeformCloud, shadeformInstanceType, nil
 }
@@ -195,14 +197,15 @@ func (c *ShadeformClient) getEstimatedDeployTime(shadeformInstanceType openapi.I
 }
 
 // convertShadeformInstanceTypeToV1InstanceTypes - converts a shadeform returned instance type to a specific instance type and region of availability
-func (c *ShadeformClient) convertShadeformInstanceTypeToV1InstanceType(shadeformInstanceType openapi.InstanceType) ([]v1.InstanceType, error) {
+func (c *ShadeformClient) convertShadeformInstanceTypeToV1InstanceType(ctx context.Context, shadeformInstanceType openapi.InstanceType) ([]v1.InstanceType, error) {
+	c.logger.Debug(ctx, "converting shadeform instance type to v1 instance type", v1.LogField("shadeformInstanceType", shadeformInstanceType))
 	instanceType := c.getInstanceType(string(shadeformInstanceType.Cloud), shadeformInstanceType.ShadeInstanceType)
 
 	instanceTypes := []v1.InstanceType{}
 
 	basePrice, err := convertHourlyPriceToAmount(shadeformInstanceType.HourlyPrice)
 	if err != nil {
-		return nil, err
+		return nil, errors.WrapAndTrace(err)
 	}
 
 	gpuName := shadeformGPUTypeToBrevGPUName(shadeformInstanceType.Configuration.GpuType)
@@ -254,7 +257,7 @@ func convertHourlyPriceToAmount(hourlyPrice int32) (*currency.Amount, error) {
 
 	amount, err := currency.NewAmount(number, UsdCurrentCode)
 	if err != nil {
-		return nil, err
+		return nil, errors.WrapAndTrace(err)
 	}
 	return &amount, nil
 }
