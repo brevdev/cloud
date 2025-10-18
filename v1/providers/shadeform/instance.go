@@ -25,9 +25,9 @@ func (c *ShadeformClient) CreateInstance(ctx context.Context, attrs v1.CreateIns
 	authCtx := c.makeAuthContext(ctx)
 
 	c.logger.Debug(ctx, "Creating instance", v1.LogField("instanceAttrs", attrs))
-
 	// Check if the instance type is allowed by configuration
-	if !c.isInstanceTypeAllowed(attrs.InstanceType) {
+	allowed, _ := c.isInstanceTypeAllowed(attrs.InstanceType)
+	if !allowed {
 		return nil, errors.WrapAndTrace(fmt.Errorf("instance type: %v is not deployable", attrs.InstanceType))
 	}
 

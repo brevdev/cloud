@@ -40,8 +40,10 @@ func (c *ShadeformClient) GetInstanceTypes(ctx context.Context, args v1.GetInsta
 	}
 
 	var instanceTypes []v1.InstanceType
+	c.logger.Debug(ctx, "converting shadeform instance types to v1 instance types", v1.LogField("countToConvert", len(resp.InstanceTypes)), v1.LogField("shadeformInstanceTypes", resp.InstanceTypes))
+	var errCount int
 	for _, sfInstanceType := range resp.InstanceTypes {
-		instanceTypesFromShadeformInstanceType, err := c.convertShadeformInstanceTypeToV1InstanceType(ctx, sfInstanceType)
+		instanceTypesFromShadeformInstanceType, err := c.convertShadeformInstanceTypeToV1InstanceType(sfInstanceType)
 		if err != nil {
 			return nil, errors.WrapAndTrace(err)
 		}
@@ -51,10 +53,17 @@ func (c *ShadeformClient) GetInstanceTypes(ctx context.Context, args v1.GetInsta
 				c.logger.Debug(ctx, "instance type not selected by args", v1.LogField("instanceType", singleInstanceType.Type))
 				continue
 			}
-			if c.isInstanceTypeAllowed(singleInstanceType.Type) {
+			allowed, err := c.isInstanceTypeAllowed(singleInstanceType.Type)
+			if err != nil {
+				errCount++
+			}
+			if allowed {
 				instanceTypes = append(instanceTypes, singleInstanceType)
 			}
 		}
+	}
+	if errCount > 0 {
+		c.logger.Warn(ctx, "error converting instance types", v1.LogField("errCount", errCount))
 	}
 
 	return instanceTypes, nil
@@ -132,25 +141,25 @@ func (c *ShadeformClient) GetLocations(ctx context.Context, _ v1.GetLocationsArg
 }
 
 // isInstanceTypeAllowed - determines if an instance type is allowed based on configuration
-func (c *ShadeformClient) isInstanceTypeAllowed(instanceType string) bool {
+func (c *ShadeformClient) isInstanceTypeAllowed(instanceType string) (bool, error) {
 	// By default, everything is allowed
 	if c.config == nil || c.config.AllowedInstanceTypes == nil {
-		return true
+		return true, nil
 	}
 
 	// Convert to Cloud and Instance Type
 	cloud, shadeInstanceType, err := c.getShadeformCloudAndInstanceType(instanceType)
 	if err != nil {
-		return false
+		return false, errors.WrapAndTrace(err)
 	}
 
 	// Convert to API Cloud Enum
 	cloudEnum, err := openapi.NewCloudFromValue(cloud)
 	if err != nil {
-		return false
+		return false, errors.WrapAndTrace(err)
 	}
 
-	return c.config.isAllowed(*cloudEnum, shadeInstanceType)
+	return c.config.isAllowed(*cloudEnum, shadeInstanceType), nil
 }
 
 // getInstanceType - gets the Brev instance type from the shadeform cloud and shade instance type
@@ -197,8 +206,7 @@ func (c *ShadeformClient) getEstimatedDeployTime(shadeformInstanceType openapi.I
 }
 
 // convertShadeformInstanceTypeToV1InstanceTypes - converts a shadeform returned instance type to a specific instance type and region of availability
-func (c *ShadeformClient) convertShadeformInstanceTypeToV1InstanceType(ctx context.Context, shadeformInstanceType openapi.InstanceType) ([]v1.InstanceType, error) {
-	c.logger.Debug(ctx, "converting shadeform instance type to v1 instance type", v1.LogField("shadeformInstanceType", shadeformInstanceType))
+func (c *ShadeformClient) convertShadeformInstanceTypeToV1InstanceType(shadeformInstanceType openapi.InstanceType) ([]v1.InstanceType, error) {
 	instanceType := c.getInstanceType(string(shadeformInstanceType.Cloud), shadeformInstanceType.ShadeInstanceType)
 
 	instanceTypes := []v1.InstanceType{}
