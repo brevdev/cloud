@@ -53,7 +53,7 @@ func TestGetVPC(t *testing.T) {
 	}
 
 	vpc, err := nebiusClient.GetVPC(context.Background(), v1.GetVPCArgs{
-		RefID: "cloud-sdk-test",
+		ID: v1.CloudProviderResourceID("cloud-sdk-test"),
 	})
 	if err != nil {
 		t.Fatalf("failed to get VPC: %v", err)
@@ -75,9 +75,7 @@ func TestDeleteVPC(t *testing.T) {
 	}
 
 	err = nebiusClient.DeleteVPC(context.Background(), v1.DeleteVPCArgs{
-		VPC: &v1.VPC{
-			RefID: "cloud-sdk-test",
-		},
+		ID: v1.CloudProviderResourceID("cloud-sdk-test"),
 	})
 	if err != nil {
 		t.Fatalf("failed to delete VPC: %v", err)

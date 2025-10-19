@@ -126,3 +126,111 @@ func RunInstanceLifecycleValidation(t *testing.T, config ProviderConfig) {
 		})
 	})
 }
+
+func RunNetworkValidation(t *testing.T, config ProviderConfig) {
+	if testing.Short() {
+		t.Skip("Skipping validation tests in short mode")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
+	defer cancel()
+
+	client, err := config.Credential.MakeClient(ctx, config.Location)
+	if err != nil {
+		t.Fatalf("Failed to create client for %s: %v", config.Credential.GetCloudProviderID(), err)
+	}
+
+	t.Run("ValidateCreateVPC", func(t *testing.T) {
+		err := v1.ValidateCreateVPC(ctx, client, v1.CreateVPCArgs{
+			Name:      "test-vpc",
+			RefID:     "test-vpc",
+			Location:  "test-location",
+			CidrBlock: "172.16.0.0/16",
+			Subnets: []v1.CreateSubnetArgs{
+				{CidrBlock: "172.16.0.0/24", Type: v1.SubnetTypePublic},
+			},
+		})
+		require.NoError(t, err, "ValidateCreateVPC should pass")
+	})
+
+	t.Run("ValidateGetVPC", func(t *testing.T) {
+		err := v1.ValidateGetVPC(ctx, client, v1.GetVPCArgs{
+			ID: v1.CloudProviderResourceID("test-vpc"),
+		})
+		require.NoError(t, err, "ValidateGetVPC should pass")
+	})
+
+	t.Run("ValidateDeleteVPC", func(t *testing.T) {
+		err := v1.ValidateDeleteVPC(ctx, client, v1.DeleteVPCArgs{
+			ID: v1.CloudProviderResourceID("test-vpc"),
+		})
+		require.NoError(t, err, "ValidateDeleteVPC should pass")
+	})
+}
+
+func RunKubernetesValidation(t *testing.T, config ProviderConfig) {
+	if testing.Short() {
+		t.Skip("Skipping validation tests in short mode")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
+	defer cancel()
+
+	client, err := config.Credential.MakeClient(ctx, config.Location)
+	if err != nil {
+		t.Fatalf("Failed to create client for %s: %v", config.Credential.GetCloudProviderID(), err)
+	}
+
+	t.Run("ValidateCreateKubernetesCluster", func(t *testing.T) {
+		err := v1.ValidateCreateKubernetesCluster(ctx, client, v1.CreateClusterArgs{
+			Name:              "test-cluster",
+			RefID:             "test-cluster",
+			VPCID:             "test-vpc",
+			SubnetIDs:         []string{"test-subnet"},
+			KubernetesVersion: "1.24",
+			Location:          "test-location",
+		})
+		require.NoError(t, err, "ValidateCreateKubernetesCluster should pass")
+	})
+
+	t.Run("ValidateGetKubernetesCluster", func(t *testing.T) {
+		err := v1.ValidateGetKubernetesCluster(ctx, client, v1.GetClusterArgs{
+			ID: v1.CloudProviderResourceID("test-cluster"),
+		})
+		require.NoError(t, err, "ValidateGetKubernetesCluster should pass")
+	})
+
+	t.Run("ValidateGetKubernetesClusterCredentials", func(t *testing.T) {
+		err := v1.ValidateGetKubernetesClusterCredentials(ctx, client, v1.GetClusterArgs{
+			ID: v1.CloudProviderResourceID("test-cluster"),
+		})
+		require.NoError(t, err, "ValidateGetKubernetesClusterCredentials should pass")
+	})
+
+	t.Run("ValidateCreateKubernetesNodeGroup", func(t *testing.T) {
+		err := v1.ValidateCreateKubernetesNodeGroup(ctx, client, v1.CreateNodeGroupArgs{
+			ClusterID:    v1.CloudProviderResourceID("test-cluster"),
+			Name:         "test-node-group",
+			RefID:        "test-node-group",
+			MinNodeCount: 1,
+			MaxNodeCount: 1,
+			InstanceType: "test-instance-type",
+			DiskSizeGiB:  100,
+		})
+		require.NoError(t, err, "ValidateCreateKubernetesNodeGroup should pass")
+	})
+
+	t.Run("ValidateDeleteKubernetesNodeGroup", func(t *testing.T) {
+		err := v1.ValidateDeleteKubernetesNodeGroup(ctx, client, v1.DeleteNodeGroupArgs{
+			ID: v1.CloudProviderResourceID("test-node-group"),
+		})
+		require.NoError(t, err, "ValidateDeleteKubernetesNodeGroup should pass")
+	})
+
+	t.Run("ValidateDeleteKubernetesCluster", func(t *testing.T) {
+		err := v1.ValidateDeleteKubernetesCluster(ctx, client, v1.DeleteClusterArgs{
+			ID: v1.CloudProviderResourceID("test-cluster"),
+		})
+		require.NoError(t, err, "ValidateDeleteKubernetesCluster should pass")
+	})
+}

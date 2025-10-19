@@ -6,16 +6,16 @@ import (
 	"fmt"
 	"strings"
 
-	cloudk8s "github.com/brevdev/cloud/internal/kubernetes"
-	"github.com/brevdev/cloud/internal/rsa"
-	v1 "github.com/brevdev/cloud/v1"
-
-	common "github.com/nebius/gosdk/proto/nebius/common/v1"
-	mk8s "github.com/nebius/gosdk/proto/nebius/mk8s/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+
+	cloudk8s "github.com/brevdev/cloud/internal/kubernetes"
+	"github.com/brevdev/cloud/internal/rsa"
+	v1 "github.com/brevdev/cloud/v1"
+	common "github.com/nebius/gosdk/proto/nebius/common/v1"
+	mk8s "github.com/nebius/gosdk/proto/nebius/mk8s/v1"
 )
 
 var _ v1.CloudMaintainKubernetes = &NebiusClient{}
@@ -24,7 +24,7 @@ func (c *NebiusClient) CreateCluster(ctx context.Context, args v1.CreateClusterA
 	nebiusClusterService := c.sdk.Services().MK8S().V1().Cluster()
 
 	vpc, err := c.GetVPC(ctx, v1.GetVPCArgs{
-		CloudID: args.VPCID,
+		ID: v1.CloudProviderResourceID(args.VPCID),
 	})
 	if err != nil {
 		return nil, err
@@ -32,22 +32,22 @@ func (c *NebiusClient) CreateCluster(ctx context.Context, args v1.CreateClusterA
 
 	// validate
 	if len(args.SubnetIDs) == 0 {
-		return nil, fmt.Errorf("no subnet IDs specified for VPC %s", vpc.CloudID)
+		return nil, fmt.Errorf("no subnet IDs specified for VPC %s", vpc.ID)
 	} else if len(args.SubnetIDs) > 1 {
-		return nil, fmt.Errorf("multiple subnet IDs not allowed for VPC %s", vpc.CloudID)
+		return nil, fmt.Errorf("multiple subnet IDs not allowed for VPC %s", vpc.ID)
 	}
 	subnetID := args.SubnetIDs[0]
 
 	// make a map of ID to subnet for this VPC
 	subnetMap := make(map[string]v1.Subnet)
 	for _, subnet := range vpc.Subnets {
-		subnetMap[subnet.CloudID] = subnet
+		subnetMap[string(subnet.ID)] = subnet
 	}
 
 	// get the specified subnet
 	var subnet v1.Subnet
 	if _, ok := subnetMap[subnetID]; !ok {
-		return nil, fmt.Errorf("subnet ID %s does not match VPC %s", subnetID, vpc.CloudID)
+		return nil, fmt.Errorf("subnet ID %s does not match VPC %s", subnetID, vpc.ID)
 	} else {
 		subnet = subnetMap[subnetID]
 	}
@@ -64,7 +64,7 @@ func (c *NebiusClient) CreateCluster(ctx context.Context, args v1.CreateClusterA
 		Spec: &mk8s.ClusterSpec{
 			ControlPlane: &mk8s.ControlPlaneSpec{
 				Version:         args.KubernetesVersion,
-				SubnetId:        subnet.CloudID,
+				SubnetId:        string(subnet.ID),
 				EtcdClusterSize: 3,
 				Endpoints: &mk8s.ControlPlaneEndpointsSpec{
 					PublicEndpoint: &mk8s.PublicEndpointSpec{},
@@ -85,39 +85,42 @@ func (c *NebiusClient) CreateCluster(ctx context.Context, args v1.CreateClusterA
 	}
 
 	return &v1.Cluster{
-		CloudID: createClusterOperation.ResourceID(),
+		ID:                v1.CloudProviderResourceID(createClusterOperation.ResourceID()),
+		Name:              args.Name,
+		RefID:             args.RefID,
+		Provider:          "nebius",
+		Cloud:             "nebius",
+		Location:          args.Location,
+		VPCID:             args.VPCID,
+		SubnetIDs:         args.SubnetIDs,
+		KubernetesVersion: args.KubernetesVersion,
+		Status:            v1.ClusterStatusPending,
 	}, nil
 }
 
 func (c *NebiusClient) GetCluster(ctx context.Context, args v1.GetClusterArgs) (*v1.Cluster, error) {
 	nebiusClusterService := c.sdk.Services().MK8S().V1().Cluster()
 
-	var cluster *mk8s.Cluster
-	var err error
-	if args.CloudID == "" {
-		cluster, err = nebiusClusterService.GetByName(ctx, &common.GetByNameRequest{
-			ParentId: c.projectID,
-			Name:     args.RefID,
-		})
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		cluster, err = nebiusClusterService.Get(ctx, &mk8s.GetClusterRequest{
-			Id: args.CloudID,
-		})
-		if err != nil {
-			return nil, err
-		}
+	cluster, err := nebiusClusterService.Get(ctx, &mk8s.GetClusterRequest{
+		Id: string(args.ID),
+	})
+	if err != nil {
+		return nil, err
 	}
 
 	clusterCACertificate := cluster.Status.ControlPlane.Auth.ClusterCaCertificate
 	clusterCACertificateBase64 := base64.StdEncoding.EncodeToString([]byte(clusterCACertificate))
 
 	return &v1.Cluster{
-		RefID:                      cluster.Metadata.Labels[labelBrevRefID],
-		CloudID:                    cluster.Metadata.Id,
-		APIEndpoint:                cluster.Status.ControlPlane.Endpoints.PublicEndpoint,
+		RefID:             cluster.Metadata.Labels[labelBrevRefID],
+		ID:                v1.CloudProviderResourceID(cluster.Metadata.Id),
+		Name:              cluster.Metadata.Name,
+		APIEndpoint:       cluster.Status.ControlPlane.Endpoints.PublicEndpoint,
+		KubernetesVersion: cluster.Spec.ControlPlane.Version,
+		Status:            v1.ClusterStatusUnknown,
+		// VPCID:                      cluster.Spec.ControlPlane.VpcId,
+		// SubnetIDs:                  cluster.Spec.ControlPlane.SubnetIds,
+		// NodeGroups:                 cluster.Spec.NodeGroups,
 		ClusterCACertificateBase64: clusterCACertificateBase64,
 	}, nil
 }
@@ -126,7 +129,7 @@ func (c *NebiusClient) GetCluster(ctx context.Context, args v1.GetClusterArgs) (
 func (c *NebiusClient) PutUser(ctx context.Context, args v1.PutUserArgs) (*v1.PutUserResponse, error) {
 	// Fetch the cluster the user key will be added to
 	cluster, err := c.GetCluster(ctx, v1.GetClusterArgs{
-		RefID: args.ClusterRefID,
+		ID: args.ClusterID,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get cluster: %w", err)
@@ -214,7 +217,7 @@ func (c *NebiusClient) CreateNodeGroup(ctx context.Context, args v1.CreateNodeGr
 
 	// Fetch the cluster the user key will be added to
 	cluster, err := c.GetCluster(ctx, v1.GetClusterArgs{
-		RefID: args.ClusterRefID,
+		ID: args.ClusterID,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get cluster: %w", err)
@@ -229,7 +232,7 @@ func (c *NebiusClient) CreateNodeGroup(ctx context.Context, args v1.CreateNodeGr
 	createNodeGroupOperation, err := nebiusNodeGroupService.Create(ctx, &mk8s.CreateNodeGroupRequest{
 		Metadata: &common.ResourceMetadata{
 			Name:     args.Name,
-			ParentId: cluster.CloudID,
+			ParentId: string(cluster.ID),
 			Labels: map[string]string{
 				labelBrevRefID: args.RefID,
 				labelCreatedBy: labelBrevCloudSDK,
@@ -271,23 +274,73 @@ func (c *NebiusClient) CreateNodeGroup(ctx context.Context, args v1.CreateNodeGr
 	}
 
 	return &v1.CreateNodeGroupResponse{
-		ClusterRefID: args.ClusterRefID,
+		ID:           args.ClusterID,
 		Name:         args.Name,
 		RefID:        args.RefID,
+		MinNodeCount: args.MinNodeCount,
+		MaxNodeCount: args.MaxNodeCount,
+		InstanceType: args.InstanceType,
+		DiskSizeGiB:  args.DiskSizeGiB,
 	}, nil
+}
+
+func (c *NebiusClient) GetNodeGroup(ctx context.Context, args v1.GetNodeGroupArgs) (*v1.NodeGroup, error) {
+	nebiusNodeGroupService := c.sdk.Services().MK8S().V1().NodeGroup()
+
+	nodeGroup, err := nebiusNodeGroupService.Get(ctx, &mk8s.GetNodeGroupRequest{
+		Id: string(args.ID),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &v1.NodeGroup{
+		RefID:        nodeGroup.Metadata.Id,
+		ID:           v1.CloudProviderResourceID(nodeGroup.Metadata.Id),
+		Name:         nodeGroup.Metadata.Name,
+		MinNodeCount: int(nodeGroup.Spec.GetAutoscaling().MinNodeCount),
+		MaxNodeCount: int(nodeGroup.Spec.GetAutoscaling().MaxNodeCount),
+		InstanceType: nodeGroup.Spec.Template.Resources.Platform + "." + nodeGroup.Spec.Template.Resources.GetPreset(),
+		DiskSizeGiB:  int(nodeGroup.Spec.Template.BootDisk.GetSizeGibibytes()),
+	}, nil
+}
+
+func (c *NebiusClient) DeleteNodeGroup(ctx context.Context, args v1.DeleteNodeGroupArgs) error {
+	nebiusNodeGroupService := c.sdk.Services().MK8S().V1().NodeGroup()
+
+	nodeGroup, err := c.GetNodeGroup(ctx, v1.GetNodeGroupArgs{
+		ID: args.ID,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to get node group: %w", err)
+	}
+
+	deleteNodeGroupOperation, err := nebiusNodeGroupService.Delete(ctx, &mk8s.DeleteNodeGroupRequest{
+		Id: string(nodeGroup.ID),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to delete node group: %w", err)
+	}
+
+	_, err = deleteNodeGroupOperation.Wait(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to delete node group: %w", err)
+	}
+
+	return nil
 }
 
 func (c *NebiusClient) DeleteCluster(ctx context.Context, args v1.DeleteClusterArgs) error {
 	// Fetch the cluster the user key will be added to
 	cluster, err := c.GetCluster(ctx, v1.GetClusterArgs{
-		RefID: args.ClusterRefID,
+		ID: args.ID,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to get cluster: %w", err)
 	}
 
 	deleteClusterOperation, err := c.sdk.Services().MK8S().V1().Cluster().Delete(ctx, &mk8s.DeleteClusterRequest{
-		Id: cluster.CloudID,
+		Id: string(cluster.ID),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to delete cluster: %w", err)

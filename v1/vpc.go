@@ -20,7 +20,7 @@ type VPC struct {
 	Cloud string
 
 	// The ID assigned by the cloud provider to the VPC.
-	CloudID string
+	ID CloudProviderResourceID
 
 	// The location of the VPC. For example, "us-east-1".
 	Location string
@@ -43,10 +43,10 @@ type Subnet struct {
 	RefID string
 
 	// The ID of the VPC that the subnet is associated with.
-	VPCID string
+	VPCID CloudProviderResourceID
 
 	// The ID assigned by the cloud provider to the subnet.
-	CloudID string
+	ID CloudProviderResourceID
 
 	// The location of the subnet. For example, "us-east-1".
 	Location string
@@ -92,11 +92,10 @@ type CreateSubnetArgs struct {
 }
 
 type GetVPCArgs struct {
-	RefID    string
-	CloudID  string
+	ID       CloudProviderResourceID
 	Location string
 }
 
 type DeleteVPCArgs struct {
-	VPC *VPC
+	ID CloudProviderResourceID
 }

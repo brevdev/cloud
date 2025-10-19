@@ -49,7 +49,7 @@ func (c *NebiusClient) CreateVPC(ctx context.Context, args v1.CreateVPCArgs) (*v
 		Location:  args.Location,
 		CidrBlock: args.CidrBlock,
 		Status:    v1.VPCStatusAvailable,
-		CloudID:   vpcID,
+		ID:        v1.CloudProviderResourceID(vpcID),
 		Subnets:   subnets,
 	}, nil
 }
@@ -164,10 +164,10 @@ func createSubnet(ctx context.Context, nebiusSubnetService nebiusVPC.SubnetServi
 	}
 
 	return &v1.Subnet{
-		CloudID:   createSubnetOperation.ResourceID(),
+		ID:        v1.CloudProviderResourceID(createSubnetOperation.ResourceID()),
 		CidrBlock: args.CidrBlock,
 		Type:      v1.SubnetTypePublic,
-		VPCID:     networkID,
+		VPCID:     v1.CloudProviderResourceID(networkID),
 		Name:      fmt.Sprintf("%s-%s-%s", networkID, args.CidrBlock, args.Type),
 	}, nil
 }
@@ -176,23 +176,11 @@ func (c *NebiusClient) GetVPC(ctx context.Context, args v1.GetVPCArgs) (*v1.VPC,
 	nebiusNetworkService := c.sdk.Services().VPC().V1().Network()
 	nebiusSubnetService := c.sdk.Services().VPC().V1().Subnet()
 
-	var network *vpc.Network
-	var err error
-	if args.CloudID == "" {
-		network, err = nebiusNetworkService.GetByName(ctx, &vpc.GetNetworkByNameRequest{
-			ParentId: c.projectID,
-			Name:     args.RefID,
-		})
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		network, err = nebiusNetworkService.Get(ctx, &vpc.GetNetworkRequest{
-			Id: args.CloudID,
-		})
-		if err != nil {
-			return nil, err
-		}
+	network, err := nebiusNetworkService.Get(ctx, &vpc.GetNetworkRequest{
+		Id: string(args.ID),
+	})
+	if err != nil {
+		return nil, err
 	}
 
 	nebiusSubnets, err := nebiusSubnetService.ListByNetwork(ctx, &vpc.ListSubnetsByNetworkRequest{
@@ -205,18 +193,18 @@ func (c *NebiusClient) GetVPC(ctx context.Context, args v1.GetVPCArgs) (*v1.VPC,
 	subnets := make([]v1.Subnet, 0)
 	for _, subnet := range nebiusSubnets.Items {
 		subnets = append(subnets, v1.Subnet{
-			CloudID:   subnet.Metadata.Id,
+			ID:        v1.CloudProviderResourceID(subnet.Metadata.Id),
 			RefID:     subnet.Metadata.Labels[labelBrevRefID],
 			Location:  subnet.Metadata.ParentId,
 			CidrBlock: subnet.Metadata.Labels[labelBrevCIDRBlock],
 			Type:      v1.SubnetType(subnet.Metadata.Labels[labelBrevSubnetType]),
-			VPCID:     network.Metadata.Id,
+			VPCID:     v1.CloudProviderResourceID(network.Metadata.Id),
 			Name:      subnet.Metadata.Name,
 		})
 	}
 
 	return &v1.VPC{
-		CloudID:  network.Metadata.Id,
+		ID:       v1.CloudProviderResourceID(network.Metadata.Id),
 		RefID:    network.Metadata.Labels[labelBrevRefID],
 		Location: network.Metadata.ParentId,
 		Status:   v1.VPCStatusAvailable,
@@ -230,9 +218,8 @@ func (c *NebiusClient) DeleteVPC(ctx context.Context, args v1.DeleteVPCArgs) err
 	nebiusSubnetService := c.sdk.Services().VPC().V1().Subnet()
 
 	// Find the network
-	network, err := nebiusNetworkService.GetByName(ctx, &vpc.GetNetworkByNameRequest{
-		ParentId: c.projectID,
-		Name:     args.VPC.RefID,
+	network, err := nebiusNetworkService.Get(ctx, &vpc.GetNetworkRequest{
+		Id: string(args.ID),
 	})
 	if err != nil {
 		return err
@@ -260,9 +247,8 @@ func (c *NebiusClient) DeleteVPC(ctx context.Context, args v1.DeleteVPCArgs) err
 		}
 	}
 
-	pool, err := nebiusPoolService.GetByName(ctx, &vpc.GetPoolByNameRequest{
-		ParentId: c.projectID,
-		Name:     args.VPC.RefID,
+	pool, err := nebiusPoolService.Get(ctx, &vpc.GetPoolRequest{
+		Id: string(args.ID),
 	})
 	if err != nil {
 		if grpcStatus.Code(err) != grpcCodes.NotFound {

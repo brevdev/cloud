@@ -38,8 +38,8 @@ func Test_CreateVPCAndCluster(t *testing.T) {
 	cluster, err := nebiusClient.CreateCluster(context.Background(), v1.CreateClusterArgs{
 		Name:              "cloud-sdk-test",
 		RefID:             "cloud-sdk-test",
-		VPCID:             vpc.CloudID,
-		SubnetIDs:         []string{vpc.Subnets[0].CloudID},
+		VPCID:             string(vpc.ID),
+		SubnetIDs:         []string{string(vpc.Subnets[0].ID)},
 		KubernetesVersion: "1.31",
 	})
 	if err != nil {
@@ -62,7 +62,7 @@ func Test_GetCluster(t *testing.T) {
 	}
 
 	cluster, err := nebiusClient.GetCluster(context.Background(), v1.GetClusterArgs{
-		RefID: "cloud-sdk-test",
+		ID: v1.CloudProviderResourceID("cloud-sdk-test"),
 	})
 	if err != nil {
 		t.Fatalf("failed to get cluster: %v", err)
@@ -86,7 +86,7 @@ func Test_PutUser(t *testing.T) {
 
 	putUserResponse, err := nebiusClient.PutUser(context.Background(), v1.PutUserArgs{
 		Username:     "test-user",
-		ClusterRefID: "cloud-sdk-test",
+		ClusterID:    v1.CloudProviderResourceID("cloud-sdk-test"),
 		RSAPEMBase64: testUserPrivateKeyPEMBase64,
 	})
 	if err != nil {
@@ -112,7 +112,7 @@ func Test_CreateNodeGroup(t *testing.T) {
 	preset := platformPresetMap[platform][0]
 
 	createNodeGroupResponse, err := nebiusClient.CreateNodeGroup(context.Background(), v1.CreateNodeGroupArgs{
-		ClusterRefID: "cloud-sdk-test",
+		ClusterID:    v1.CloudProviderResourceID("cloud-sdk-test"),
 		Name:         "test-node-group3",
 		RefID:        "test-node-group3",
 		MinNodeCount: 1,
@@ -140,7 +140,7 @@ func Test_DeleteCluster(t *testing.T) {
 	}
 
 	err = nebiusClient.DeleteCluster(context.Background(), v1.DeleteClusterArgs{
-		ClusterRefID: "cloud-sdk-test",
+		ID: v1.CloudProviderResourceID("cloud-sdk-test"),
 	})
 	if err != nil {
 		t.Fatalf("failed to delete cluster: %v", err)
@@ -162,9 +162,7 @@ func Test_DeleteVPC(t *testing.T) {
 	}
 
 	err = nebiusClient.DeleteVPC(context.Background(), v1.DeleteVPCArgs{
-		VPC: &v1.VPC{
-			RefID: "cloud-sdk-test",
-		},
+		ID: v1.CloudProviderResourceID("cloud-sdk-test"),
 	})
 	if err != nil {
 		t.Fatalf("failed to delete VPC: %v", err)

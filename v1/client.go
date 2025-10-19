@@ -43,4 +43,5 @@ type CloudClient interface {
 	CloudInstanceTags
 	UpdateHandler
 	CloudMaintainVPC
+	CloudMaintainKubernetes
 }

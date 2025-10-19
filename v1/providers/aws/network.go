@@ -519,7 +519,7 @@ func (c *AWSClient) GetVPC(ctx context.Context, args v1.GetVPCArgs) (*v1.VPC, er
 		RefID:          brevRefID,
 		Name:           brevVPCName,
 		Location:       args.Location,
-		CloudID:        *awsVPC.VpcId,
+		ID:             v1.CloudProviderResourceID(*awsVPC.VpcId),
 		CloudCredRefID: c.GetReferenceID(),
 		Provider:       CloudProviderID,
 		Cloud:          CloudProviderID,
@@ -530,29 +530,11 @@ func (c *AWSClient) GetVPC(ctx context.Context, args v1.GetVPCArgs) (*v1.VPC, er
 }
 
 func getVPC(ctx context.Context, awsClient *ec2.Client, args v1.GetVPCArgs) (*types.Vpc, error) {
-	var describeVPCsOutput *ec2.DescribeVpcsOutput
-
-	if args.CloudID != "" {
-		var err error
-		describeVPCsOutput, err = awsClient.DescribeVpcs(ctx, &ec2.DescribeVpcsInput{
-			VpcIds: []string{args.CloudID},
-		})
-		if err != nil {
-			return nil, err
-		}
-	} else if args.RefID != "" {
-		var err error
-		describeVPCsOutput, err = awsClient.DescribeVpcs(ctx, &ec2.DescribeVpcsInput{
-			Filters: []types.Filter{
-				{
-					Name:   aws.String("tag:" + tagBrevRefID),
-					Values: []string{args.RefID},
-				},
-			},
-		})
-		if err != nil {
-			return nil, err
-		}
+	describeVPCsOutput, err := awsClient.DescribeVpcs(ctx, &ec2.DescribeVpcsInput{
+		VpcIds: []string{string(args.ID)},
+	})
+	if err != nil {
+		return nil, err
 	}
 
 	if len(describeVPCsOutput.Vpcs) == 0 {
@@ -615,8 +597,8 @@ func getVPCSubnets(ctx context.Context, awsClient *ec2.Client, awsVPC *types.Vpc
 		}
 
 		subnets = append(subnets, v1.Subnet{
-			CloudID:   *subnet.SubnetId,
-			VPCID:     *awsVPC.VpcId,
+			ID:        v1.CloudProviderResourceID(*subnet.SubnetId),
+			VPCID:     v1.CloudProviderResourceID(*awsVPC.VpcId),
 			Location:  *subnet.AvailabilityZone,
 			CidrBlock: *subnet.CidrBlock,
 			Type:      subnetType,
@@ -628,7 +610,7 @@ func getVPCSubnets(ctx context.Context, awsClient *ec2.Client, awsVPC *types.Vpc
 func (c *AWSClient) DeleteVPC(ctx context.Context, args v1.DeleteVPCArgs) error {
 	// Create the AWS client in the specified region
 	awsClient := ec2.NewFromConfig(c.awsConfig, func(o *ec2.Options) {
-		o.Region = args.VPC.Location
+		o.Region = args.Location
 	})
 
 	err := deleteVPC(ctx, awsClient, args.VPC.CloudID)
