@@ -10,6 +10,8 @@ import (
 
 const CloudProviderID = "nebius"
 
+const defaultNebiusLocation = "eu-north1"
+
 // NebiusCredential implements the CloudCredential interface for Nebius AI Cloud
 type NebiusCredential struct {
 	RefID             string
@@ -68,6 +70,11 @@ func (c *NebiusCredential) MakeClient(ctx context.Context, location string) (v1.
 
 // MakeClientWithOptions creates a new Nebius client with options (e.g., logger)
 func (c *NebiusCredential) MakeClientWithOptions(ctx context.Context, location string, opts ...NebiusClientOption) (v1.CloudClient, error) {
+	// If no location is provided, use the default locaiton
+	if location == "" {
+		location = defaultNebiusLocation
+	}
+
 	// DEBUG: Log credential data before creating client
 	fmt.Printf("[NEBIUS_DEBUG] NebiusCredential.MakeClient: RefID=%s, TenantID=%q (len=%d), location=%s\n",
 		c.RefID, c.TenantID, len(c.TenantID), location)
