@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/brevdev/cloud/internal/errors"
 	v1 "github.com/brevdev/cloud/v1"
 
 	common "github.com/nebius/gosdk/proto/nebius/common/v1"
@@ -30,17 +31,17 @@ func (c *NebiusClient) CreateVPC(ctx context.Context, args v1.CreateVPCArgs) (*v
 	// Create the network
 	vpcID, err := createNetwork(ctx, nebiusNetworkService, nebiusPoolService, c.projectID, args)
 	if err != nil {
-		return nil, err
+		return nil, errors.WrapAndTrace(err)
 	}
 
 	// Create the subnets
-	subnets := make([]v1.Subnet, 0)
+	subnets := make([]*v1.Subnet, 0)
 	for _, subnetArgs := range args.Subnets {
 		subnet, err := createSubnet(ctx, nebiusSubnetService, c.projectID, vpcID, subnetArgs)
 		if err != nil {
-			return nil, err
+			return nil, errors.WrapAndTrace(err)
 		}
-		subnets = append(subnets, *subnet)
+		subnets = append(subnets, subnet)
 	}
 
 	return &v1.VPC{
@@ -48,7 +49,7 @@ func (c *NebiusClient) CreateVPC(ctx context.Context, args v1.CreateVPCArgs) (*v
 		Name:      args.Name,
 		Location:  args.Location,
 		CidrBlock: args.CidrBlock,
-		Status:    v1.VPCStatusAvailable,
+		Status:    v1.VPCStatusPending,
 		ID:        v1.CloudProviderResourceID(vpcID),
 		Subnets:   subnets,
 	}, nil
@@ -80,11 +81,11 @@ func createNetwork(ctx context.Context, nebiusNetworkService nebiusVPC.NetworkSe
 		},
 	})
 	if err != nil {
-		return "", err
+		return "", errors.WrapAndTrace(err)
 	}
 	createPoolOperation, err = createPoolOperation.Wait(ctx)
 	if err != nil {
-		return "", err
+		return "", errors.WrapAndTrace(err)
 	}
 	poolID := createPoolOperation.ResourceID()
 
@@ -107,11 +108,11 @@ func createNetwork(ctx context.Context, nebiusNetworkService nebiusVPC.NetworkSe
 		},
 	})
 	if err != nil {
-		return "", err
+		return "", errors.WrapAndTrace(err)
 	}
 	createNetworkOperation, err = createNetworkOperation.Wait(ctx)
 	if err != nil {
-		return "", err
+		return "", errors.WrapAndTrace(err)
 	}
 
 	return createNetworkOperation.ResourceID(), nil
@@ -143,11 +144,6 @@ func createSubnet(ctx context.Context, nebiusSubnetService nebiusVPC.SubnetServi
 		Spec: &vpc.SubnetSpec{
 			NetworkId: networkID,
 			Ipv4PrivatePools: &vpc.IPv4PrivateSubnetPools{
-				// Pools: []*vpc.SubnetPool{
-				// 	{Cidrs: []*vpc.SubnetCidr{
-				// 		{Cidr: args.CidrBlock},
-				// 	}},
-				// },
 				UseNetworkPools: true,
 			},
 			Ipv4PublicPools: &vpc.IPv4PublicSubnetPools{
@@ -156,17 +152,17 @@ func createSubnet(ctx context.Context, nebiusSubnetService nebiusVPC.SubnetServi
 		},
 	})
 	if err != nil {
-		return nil, err
+		return nil, errors.WrapAndTrace(err)
 	}
 	createSubnetOperation, err = createSubnetOperation.Wait(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errors.WrapAndTrace(err)
 	}
 
 	return &v1.Subnet{
 		ID:        v1.CloudProviderResourceID(createSubnetOperation.ResourceID()),
 		CidrBlock: args.CidrBlock,
-		Type:      v1.SubnetTypePublic,
+		Type:      args.Type,
 		VPCID:     v1.CloudProviderResourceID(networkID),
 		Name:      fmt.Sprintf("%s-%s-%s", networkID, args.CidrBlock, args.Type),
 	}, nil
@@ -180,19 +176,22 @@ func (c *NebiusClient) GetVPC(ctx context.Context, args v1.GetVPCArgs) (*v1.VPC,
 		Id: string(args.ID),
 	})
 	if err != nil {
-		return nil, err
+		if grpcStatus.Code(err) == grpcCodes.NotFound {
+			return nil, v1.ErrResourceNotFound
+		}
+		return nil, errors.WrapAndTrace(err)
 	}
 
 	nebiusSubnets, err := nebiusSubnetService.ListByNetwork(ctx, &vpc.ListSubnetsByNetworkRequest{
 		NetworkId: network.Metadata.Id,
 	})
 	if err != nil {
-		return nil, err
+		return nil, errors.WrapAndTrace(err)
 	}
 
-	subnets := make([]v1.Subnet, 0)
+	subnets := make([]*v1.Subnet, 0)
 	for _, subnet := range nebiusSubnets.Items {
-		subnets = append(subnets, v1.Subnet{
+		subnets = append(subnets, &v1.Subnet{
 			ID:        v1.CloudProviderResourceID(subnet.Metadata.Id),
 			RefID:     subnet.Metadata.Labels[labelBrevRefID],
 			Location:  subnet.Metadata.ParentId,
@@ -207,9 +206,21 @@ func (c *NebiusClient) GetVPC(ctx context.Context, args v1.GetVPCArgs) (*v1.VPC,
 		ID:       v1.CloudProviderResourceID(network.Metadata.Id),
 		RefID:    network.Metadata.Labels[labelBrevRefID],
 		Location: network.Metadata.ParentId,
-		Status:   v1.VPCStatusAvailable,
+		Status:   parseNebiusNetworkStatus(network.Status),
 		Subnets:  subnets,
 	}, nil
+}
+
+func parseNebiusNetworkStatus(status *vpc.NetworkStatus) v1.VPCStatus {
+	switch status.State {
+	case vpc.NetworkStatus_CREATING:
+		return v1.VPCStatusPending
+	case vpc.NetworkStatus_READY:
+		return v1.VPCStatusAvailable
+	case vpc.NetworkStatus_DELETING:
+		return v1.VPCStatusDeleting
+	}
+	return v1.VPCStatusUnknown
 }
 
 func (c *NebiusClient) DeleteVPC(ctx context.Context, args v1.DeleteVPCArgs) error {
@@ -222,7 +233,7 @@ func (c *NebiusClient) DeleteVPC(ctx context.Context, args v1.DeleteVPCArgs) err
 		Id: string(args.ID),
 	})
 	if err != nil {
-		return err
+		return errors.WrapAndTrace(err)
 	}
 
 	// Find the network's subnets
@@ -230,7 +241,7 @@ func (c *NebiusClient) DeleteVPC(ctx context.Context, args v1.DeleteVPCArgs) err
 		NetworkId: network.Metadata.Id,
 	})
 	if err != nil {
-		return err
+		return errors.WrapAndTrace(err)
 	}
 
 	// Delete the subnets
@@ -239,20 +250,21 @@ func (c *NebiusClient) DeleteVPC(ctx context.Context, args v1.DeleteVPCArgs) err
 			Id: subnet.Metadata.Id,
 		})
 		if err != nil {
-			return err
+			return errors.WrapAndTrace(err)
 		}
 		deleteSubnetOperation, err = deleteSubnetOperation.Wait(ctx)
 		if err != nil {
-			return err
+			return errors.WrapAndTrace(err)
 		}
 	}
 
-	pool, err := nebiusPoolService.Get(ctx, &vpc.GetPoolRequest{
-		Id: string(args.ID),
+	pool, err := nebiusPoolService.GetByName(ctx, &vpc.GetPoolByNameRequest{
+		ParentId: network.Metadata.ParentId,
+		Name:     network.Metadata.Name,
 	})
 	if err != nil {
 		if grpcStatus.Code(err) != grpcCodes.NotFound {
-			return err
+			return errors.WrapAndTrace(err)
 		}
 		// Pool not found, continue
 	}
@@ -272,11 +284,11 @@ func (c *NebiusClient) DeleteVPC(ctx context.Context, args v1.DeleteVPCArgs) err
 			},
 		})
 		if err != nil {
-			return err
+			return errors.WrapAndTrace(err)
 		}
 		updateNetworkOperation, err = updateNetworkOperation.Wait(ctx)
 		if err != nil {
-			return err
+			return errors.WrapAndTrace(err)
 		}
 
 		// Delete pool
@@ -284,11 +296,11 @@ func (c *NebiusClient) DeleteVPC(ctx context.Context, args v1.DeleteVPCArgs) err
 			Id: pool.Metadata.Id,
 		})
 		if err != nil {
-			return err
+			return errors.WrapAndTrace(err)
 		}
 		deletePoolOperation, err = deletePoolOperation.Wait(ctx)
 		if err != nil {
-			return err
+			return errors.WrapAndTrace(err)
 		}
 	}
 
@@ -297,12 +309,12 @@ func (c *NebiusClient) DeleteVPC(ctx context.Context, args v1.DeleteVPCArgs) err
 		Id: network.Metadata.Id,
 	})
 	if err != nil {
-		return err
+		return errors.WrapAndTrace(err)
 	}
 
 	deleteNetworkOperation, err = deleteNetworkOperation.Wait(ctx)
 	if err != nil {
-		return err
+		return errors.WrapAndTrace(err)
 	}
 
 	return nil

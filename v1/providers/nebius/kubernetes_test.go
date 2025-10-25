@@ -38,8 +38,8 @@ func Test_CreateVPCAndCluster(t *testing.T) {
 	cluster, err := nebiusClient.CreateCluster(context.Background(), v1.CreateClusterArgs{
 		Name:              "cloud-sdk-test",
 		RefID:             "cloud-sdk-test",
-		VPCID:             string(vpc.ID),
-		SubnetIDs:         []string{string(vpc.Subnets[0].ID)},
+		VPCID:             v1.CloudProviderResourceID(vpc.ID),
+		SubnetIDs:         []v1.CloudProviderResourceID{v1.CloudProviderResourceID(vpc.Subnets[0].ID)},
 		KubernetesVersion: "1.31",
 	})
 	if err != nil {

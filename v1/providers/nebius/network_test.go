@@ -13,8 +13,11 @@ func TestCreateVPC(t *testing.T) {
 	privateKeyPEMBase64 := os.Getenv("NEBIUS_PRIVATE_KEY_PEM_BASE64")
 	publicKeyID := os.Getenv("NEBIUS_PUBLIC_KEY_ID")
 	serviceAccountID := os.Getenv("NEBIUS_SERVICE_ACCOUNT_ID")
+	projectID := os.Getenv("NEBIUS_PROJECT_ID")
 
-	projectID := "project-e00nrhefpr009ynkkzcgba" // eu-north1
+	if privateKeyPEMBase64 == "" || publicKeyID == "" || serviceAccountID == "" || projectID == "" {
+		t.Fatalf("NEBIUS_PRIVATE_KEY_PEM_BASE64, NEBIUS_PUBLIC_KEY_ID, NEBIUS_SERVICE_ACCOUNT_ID, and NEBIUS_PROJECT_ID must be set")
+	}
 
 	nebiusClient, err := NewNebiusClient(context.Background(), "test", publicKeyID, privateKeyPEMBase64, serviceAccountID, projectID)
 	if err != nil {
@@ -24,7 +27,7 @@ func TestCreateVPC(t *testing.T) {
 	vpc, err := nebiusClient.CreateVPC(context.Background(), v1.CreateVPCArgs{
 		Name:      "cloud-sdk-test",
 		RefID:     "cloud-sdk-test",
-		Location:  "eu-north1",
+		Location:  "us-central1",
 		CidrBlock: "172.16.0.0/16",
 		Subnets: []v1.CreateSubnetArgs{
 			{CidrBlock: "172.16.0.0/24", Type: v1.SubnetTypePublic},
@@ -44,8 +47,11 @@ func TestGetVPC(t *testing.T) {
 	privateKeyPEMBase64 := os.Getenv("NEBIUS_PRIVATE_KEY_PEM_BASE64")
 	publicKeyID := os.Getenv("NEBIUS_PUBLIC_KEY_ID")
 	serviceAccountID := os.Getenv("NEBIUS_SERVICE_ACCOUNT_ID")
+	projectID := os.Getenv("NEBIUS_PROJECT_ID")
 
-	projectID := "project-e00nrhefpr009ynkkzcgba" // eu-north1
+	if privateKeyPEMBase64 == "" || publicKeyID == "" || serviceAccountID == "" || projectID == "" {
+		t.Fatalf("NEBIUS_PRIVATE_KEY_PEM_BASE64, NEBIUS_PUBLIC_KEY_ID, NEBIUS_SERVICE_ACCOUNT_ID, and NEBIUS_PROJECT_ID must be set")
+	}
 
 	nebiusClient, err := NewNebiusClient(context.Background(), "test", publicKeyID, privateKeyPEMBase64, serviceAccountID, projectID)
 	if err != nil {
@@ -66,8 +72,11 @@ func TestDeleteVPC(t *testing.T) {
 	privateKeyPEMBase64 := os.Getenv("NEBIUS_PRIVATE_KEY_PEM_BASE64")
 	publicKeyID := os.Getenv("NEBIUS_PUBLIC_KEY_ID")
 	serviceAccountID := os.Getenv("NEBIUS_SERVICE_ACCOUNT_ID")
+	projectID := os.Getenv("NEBIUS_PROJECT_ID")
 
-	projectID := "project-e00nrhefpr009ynkkzcgba" // eu-north1
+	if privateKeyPEMBase64 == "" || publicKeyID == "" || serviceAccountID == "" || projectID == "" {
+		t.Fatalf("NEBIUS_PRIVATE_KEY_PEM_BASE64, NEBIUS_PUBLIC_KEY_ID, NEBIUS_SERVICE_ACCOUNT_ID, and NEBIUS_PROJECT_ID must be set")
+	}
 
 	nebiusClient, err := NewNebiusClient(context.Background(), "test", publicKeyID, privateKeyPEMBase64, serviceAccountID, projectID)
 	if err != nil {
@@ -75,7 +84,7 @@ func TestDeleteVPC(t *testing.T) {
 	}
 
 	err = nebiusClient.DeleteVPC(context.Background(), v1.DeleteVPCArgs{
-		ID: v1.CloudProviderResourceID("cloud-sdk-test"),
+		ID: v1.CloudProviderResourceID("vpcnetwork-u00rzx8h07374s9gw7"),
 	})
 	if err != nil {
 		t.Fatalf("failed to delete VPC: %v", err)

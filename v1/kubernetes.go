@@ -1,6 +1,10 @@
 package v1
 
-import "context"
+import (
+	"context"
+	"fmt"
+	"time"
+)
 
 type Cluster struct {
 	// The ID assigned by the cloud provider to the cluster.
@@ -22,10 +26,10 @@ type Cluster struct {
 	Location string
 
 	// The ID of the VPC that the cluster is associated with.
-	VPCID string
+	VPCID CloudProviderResourceID
 
 	// The subnet IDs that the cluster's nodes are deployed into.
-	SubnetIDs []string
+	SubnetIDs []CloudProviderResourceID
 
 	// The version of Kubernetes that the cluster is running.
 	KubernetesVersion string
@@ -40,7 +44,7 @@ type Cluster struct {
 	ClusterCACertificateBase64 string
 
 	// The node groups associated with the cluster.
-	NodeGroups []NodeGroup
+	NodeGroups []*NodeGroup
 }
 
 type NodeGroup struct {
@@ -72,6 +76,7 @@ const (
 	ClusterStatusUnknown   ClusterStatus = "unknown"
 	ClusterStatusPending   ClusterStatus = "pending"
 	ClusterStatusAvailable ClusterStatus = "available"
+	ClusterStatusDeleting  ClusterStatus = "deleting"
 )
 
 type CloudProviderResourceID string
@@ -79,8 +84,8 @@ type CloudProviderResourceID string
 type CreateClusterArgs struct {
 	Name              string
 	RefID             string
-	VPCID             string
-	SubnetIDs         []string
+	VPCID             CloudProviderResourceID
+	SubnetIDs         []CloudProviderResourceID
 	KubernetesVersion string
 	Location          string
 }
@@ -154,28 +159,68 @@ type CloudMaintainKubernetes interface {
 	DeleteCluster(ctx context.Context, args DeleteClusterArgs) error
 }
 
-func ValidateCreateKubernetesCluster(ctx context.Context, client CloudMaintainKubernetes, attrs CreateClusterArgs) error {
-	_, err := client.CreateCluster(ctx, attrs)
+func ValidateCreateKubernetesCluster(ctx context.Context, client CloudMaintainKubernetes, attrs CreateClusterArgs) (*Cluster, error) {
+	cluster, err := client.CreateCluster(ctx, attrs)
 	if err != nil {
-		return err
+		return nil, err
+	}
+
+	return cluster, nil
+}
+
+func ValidateGetKubernetesCluster(ctx context.Context, client CloudMaintainKubernetes, attrs GetClusterArgs) (*Cluster, error) {
+	cluster, err := client.GetCluster(ctx, attrs)
+	if err != nil {
+		return nil, err
+	}
+	return cluster, nil
+}
+
+// WaitForKubernetesClusterPredicate waits for the Kubernetes cluster to satisfy the predicate function. If the predicate returns true, the loop breaks.
+type WaitForKubernetesClusterPredicateOpts struct {
+	Predicate func(cluster *Cluster) bool
+	Timeout   time.Duration
+	Interval  time.Duration
+}
+
+func WaitForKubernetesClusterPredicate(ctx context.Context, client CloudMaintainKubernetes, attrs GetClusterArgs, opts WaitForKubernetesClusterPredicateOpts) error {
+	ctx, cancel := context.WithTimeout(ctx, opts.Timeout)
+	defer cancel()
+
+	ticker := time.NewTicker(opts.Interval)
+	defer ticker.Stop()
+
+	fmt.Printf("Entering WaitForKubernetesClusterPredicate, timeout: %s, interval: %s\n", opts.Timeout.String(), opts.Interval.String())
+	for {
+		cluster, err := client.GetCluster(ctx, attrs)
+		if err != nil {
+			return err
+		}
+
+		if opts.Predicate(cluster) {
+			break
+		}
+		fmt.Printf("Waiting %s for cluster to satisfy predicate\n", opts.Interval.String())
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("timeout waiting for cluster to satisfy predicate")
+		case <-ticker.C:
+			continue
+		}
 	}
 	return nil
 }
 
-func ValidateGetKubernetesCluster(ctx context.Context, client CloudMaintainKubernetes, attrs GetClusterArgs) error {
-	_, err := client.GetCluster(ctx, attrs)
+func ValidateGetKubernetesClusterCredentials(ctx context.Context, client CloudMaintainKubernetes, attrs GetClusterArgs) (*PutUserResponse, error) {
+	putUserResponse, err := client.PutUser(ctx, PutUserArgs{
+		ClusterID:    attrs.ID,
+		Username:     "admin",
+		RSAPEMBase64: "test",
+	})
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
-}
-
-func ValidateGetKubernetesClusterCredentials(ctx context.Context, client CloudMaintainKubernetes, attrs GetClusterArgs) error {
-	_, err := client.GetCluster(ctx, attrs)
-	if err != nil {
-		return err
-	}
-	return nil
+	return putUserResponse, nil
 }
 
 func ValidateCreateKubernetesNodeGroup(ctx context.Context, client CloudMaintainKubernetes, attrs CreateNodeGroupArgs) error {

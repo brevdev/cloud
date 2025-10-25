@@ -32,7 +32,7 @@ type VPC struct {
 	Status VPCStatus
 
 	// The subnets associated with the VPC.
-	Subnets []Subnet
+	Subnets []*Subnet
 }
 
 type Subnet struct {
@@ -70,6 +70,8 @@ type VPCStatus string
 const (
 	VPCStatusAvailable VPCStatus = "available"
 	VPCStatusPending   VPCStatus = "pending"
+	VPCStatusDeleting  VPCStatus = "deleting"
+	VPCStatusUnknown   VPCStatus = "unknown"
 )
 
 type CloudMaintainVPC interface {
