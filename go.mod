@@ -19,6 +19,7 @@ require (
 	github.com/stretchr/testify v1.11.0
 	golang.org/x/crypto v0.41.0
 	gopkg.in/validator.v2 v2.0.1
+	github.com/sfcompute/nodes-go v0.1.0-alpha.3
 )
 
 require (
