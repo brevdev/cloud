@@ -1,6 +1,10 @@
 package v1
 
-import "context"
+import (
+	"context"
+	"fmt"
+	"time"
+)
 
 type VPC struct {
 	// The name of the VPC, displayed on clients.
@@ -33,6 +37,9 @@ type VPC struct {
 
 	// The subnets associated with the VPC.
 	Subnets []*Subnet
+
+	// The tags associated with the VPC.
+	Tags Tags
 }
 
 type Subnet struct {
@@ -56,6 +63,9 @@ type Subnet struct {
 
 	// The type of the subnet.
 	Type SubnetType
+
+	// The tags associated with the subnet.
+	Tags Tags
 }
 
 type SubnetType string
@@ -75,29 +85,134 @@ const (
 )
 
 type CloudMaintainVPC interface {
+	// Create a new VPC.
 	CreateVPC(ctx context.Context, args CreateVPCArgs) (*VPC, error)
+
+	// Get a VPC identified by the provided args.
 	GetVPC(ctx context.Context, args GetVPCArgs) (*VPC, error)
+
+	// Delete a VPC identified by the provided args.
 	DeleteVPC(ctx context.Context, args DeleteVPCArgs) error
 }
 
 type CreateVPCArgs struct {
-	Name      string
-	RefID     string
-	Location  string
+	// The name of the VPC, displayed on clients.
+	Name string
+
+	// The unique ID used to associate with this VPC.
+	RefID string
+
+	// The location of the VPC.
+	Location string
+
+	// The IPv4 network range for the VPC, in CIDR notation. For example, "10.0.0.0/16".
 	CidrBlock string
-	Subnets   []CreateSubnetArgs
+
+	// The subnets to create in the VPC.
+	Subnets []CreateSubnetArgs
+
+	// The tags to associate with the VPC.
+	Tags Tags
 }
 
 type CreateSubnetArgs struct {
+	// The IPv4 network range for the subnet, in CIDR notation. For example, "10.0.0.0/24".
 	CidrBlock string
-	Type      SubnetType
+
+	// The type of the subnet.
+	Type SubnetType
+
+	// The tags to associate with the subnet.
+	Tags Tags
 }
 
 type GetVPCArgs struct {
-	ID       CloudProviderResourceID
+	// The ID of the VPC to get.
+	ID CloudProviderResourceID
+
+	// The location of the VPC.
 	Location string
 }
 
 type DeleteVPCArgs struct {
+	// The ID of the VPC to delete.
 	ID CloudProviderResourceID
+}
+
+func ValidateCreateVPC(ctx context.Context, client CloudMaintainVPC, attrs CreateVPCArgs) (*VPC, error) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer cancel()
+
+	vpc, err := client.CreateVPC(ctx, attrs)
+	if err != nil {
+		return nil, err
+	}
+
+	if vpc.Name != attrs.Name {
+		return nil, fmt.Errorf("VPC name does not match create args: '%s' != '%s'", vpc.Name, attrs.Name)
+	}
+	if vpc.RefID != attrs.RefID {
+		return nil, fmt.Errorf("VPC refID does not match create args: '%s' != '%s'", vpc.RefID, attrs.RefID)
+	}
+	if vpc.Location != attrs.Location {
+		return nil, fmt.Errorf("VPC location does not match create args: '%s' != '%s'", vpc.Location, attrs.Location)
+	}
+	if vpc.CidrBlock != attrs.CidrBlock {
+		return nil, fmt.Errorf("VPC cidr block does not match create args: '%s' != '%s'", vpc.CidrBlock, attrs.CidrBlock)
+	}
+	if len(vpc.Subnets) != len(attrs.Subnets) {
+		return nil, fmt.Errorf("VPC subnets does not match create args: '%d' != '%d'", len(vpc.Subnets), len(attrs.Subnets))
+	}
+	for key, value := range vpc.Tags {
+		tagValue, ok := attrs.Tags[key]
+		if !ok {
+			return nil, fmt.Errorf("VPC tag does not match create args: '%s' not found", key)
+		}
+		if tagValue != value {
+			return nil, fmt.Errorf("VPC tag does not match create args: '%s' != '%s'", key, value)
+		}
+	}
+
+	cidrToSubnetMap := make(map[string]*Subnet)
+	for _, subnet := range vpc.Subnets {
+		cidrToSubnetMap[subnet.CidrBlock] = subnet
+	}
+	for _, subnet := range attrs.Subnets {
+		subnetFromMap, ok := cidrToSubnetMap[subnet.CidrBlock]
+		if !ok {
+			return nil, fmt.Errorf("VPC subnet cidr block does not match create args: '%s' not found", subnet.CidrBlock)
+		}
+		if subnetFromMap.Type != subnet.Type {
+			return nil, fmt.Errorf("VPC subnet type does not match create args: '%s' != '%s'", subnetFromMap.Type, subnet.Type)
+		}
+	}
+
+	return vpc, nil
+}
+
+func ValidateGetVPC(ctx context.Context, client CloudMaintainVPC, attrs GetVPCArgs) (*VPC, error) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer cancel()
+
+	vpc, err := client.GetVPC(ctx, attrs)
+	if err != nil {
+		return nil, err
+	}
+
+	if vpc.ID != attrs.ID {
+		return nil, fmt.Errorf("VPC ID does not match get args: '%s' != '%s'", vpc.ID, attrs.ID)
+	}
+	if attrs.Location != "" && vpc.Location != attrs.Location {
+		return nil, fmt.Errorf("VPC location does not match get args: '%s' != '%s'", vpc.Location, attrs.Location)
+	}
+
+	return vpc, nil
+}
+
+func ValidateDeleteVPC(ctx context.Context, client CloudMaintainVPC, attrs DeleteVPCArgs) error {
+	err := client.DeleteVPC(ctx, attrs)
+	if err != nil {
+		return err
+	}
+	return nil
 }

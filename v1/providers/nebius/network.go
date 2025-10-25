@@ -3,15 +3,16 @@ package v1
 import (
 	"context"
 	"fmt"
+	"net"
+
+	nebiuscommon "github.com/nebius/gosdk/proto/nebius/common/v1"
+	nebiusvpc "github.com/nebius/gosdk/proto/nebius/vpc/v1"
+	nebiusvpcv1 "github.com/nebius/gosdk/services/nebius/vpc/v1"
+	grpccodes "google.golang.org/grpc/codes"
+	grpcstatus "google.golang.org/grpc/status"
 
 	"github.com/brevdev/cloud/internal/errors"
 	v1 "github.com/brevdev/cloud/v1"
-
-	common "github.com/nebius/gosdk/proto/nebius/common/v1"
-	vpc "github.com/nebius/gosdk/proto/nebius/vpc/v1"
-	nebiusVPC "github.com/nebius/gosdk/services/nebius/vpc/v1"
-	grpcCodes "google.golang.org/grpc/codes"
-	grpcStatus "google.golang.org/grpc/status"
 )
 
 const (
@@ -27,6 +28,11 @@ func (c *NebiusClient) CreateVPC(ctx context.Context, args v1.CreateVPCArgs) (*v
 	nebiusNetworkService := c.sdk.Services().VPC().V1().Network()
 	nebiusSubnetService := c.sdk.Services().VPC().V1().Subnet()
 	nebiusPoolService := c.sdk.Services().VPC().V1().Pool()
+
+	err := validateCreateVPCArgs(args)
+	if err != nil {
+		return nil, errors.WrapAndTrace(err)
+	}
 
 	// Create the network
 	vpcID, err := createNetwork(ctx, nebiusNetworkService, nebiusPoolService, c.projectID, args)
@@ -55,34 +61,89 @@ func (c *NebiusClient) CreateVPC(ctx context.Context, args v1.CreateVPCArgs) (*v
 	}, nil
 }
 
-func createNetwork(ctx context.Context, nebiusNetworkService nebiusVPC.NetworkService, nebiusPoolService nebiusVPC.PoolService, projectID string, args v1.CreateVPCArgs) (string, error) {
+func validateCreateVPCArgs(args v1.CreateVPCArgs) error {
+	if args.Name == "" {
+		return fmt.Errorf("VPC name is required")
+	}
+	if args.RefID == "" {
+		return fmt.Errorf("VPC refID is required")
+	}
+	if args.Location == "" {
+		return fmt.Errorf("VPC location is required")
+	}
+	if args.CidrBlock == "" {
+		return fmt.Errorf("VPC CIDR block is required")
+	}
+	if len(args.Subnets) == 0 {
+		return fmt.Errorf("VPC subnets are required")
+	}
+	for _, subnet := range args.Subnets {
+		if subnet.CidrBlock == "" {
+			return fmt.Errorf("VPC subnet CIDR block is required")
+		}
+		if subnet.Type == "" {
+			return fmt.Errorf("VPC subnet type is required")
+		}
+	}
+
+	// Subnet CIDR blocks must be grreater than /24
+	for _, subnet := range args.Subnets {
+		larger, err := cidrBlockLargerThanMask(subnet.CidrBlock, 24)
+		if err != nil {
+			return errors.WrapAndTrace(err)
+		}
+		if !larger {
+			return fmt.Errorf("VPC subnet CIDR block must be greater than /24: %s", subnet.CidrBlock)
+		}
+	}
+	return nil
+}
+
+func cidrBlockLargerThanMask(cidrBlock string, mask int) (bool, error) {
+	_, ipnet, err := net.ParseCIDR(cidrBlock)
+	if err != nil {
+		return false, errors.WrapAndTrace(err)
+	}
+	ones, _ := ipnet.Mask.Size()
+	return ones < mask, nil
+}
+
+func createNetwork(ctx context.Context, nebiusNetworkService nebiusvpcv1.NetworkService, nebiusPoolService nebiusvpcv1.PoolService, projectID string, args v1.CreateVPCArgs) (string, error) {
 	// In Nebius, rather than creating a network with a CIDR, and subnets with slices of that CIDR, we instead first create a pool with
 	// several specific CIDR blocks. These blocks will be intended to be used by subnets at the moment of their creation.
 	// As we can add additional CIDR blocks to the pool later, we don't need to specify the entire network CIDR here.
 
-	// Create the pool with the CIDR blocks for the subnets
-	networkPoolCidrs := make([]*vpc.PoolCidr, 0)
-	for _, subnet := range args.Subnets {
-		networkPoolCidrs = append(networkPoolCidrs, &vpc.PoolCidr{Cidr: subnet.CidrBlock})
+	labels := make(map[string]string)
+	for key, value := range args.Tags {
+		labels[key] = value
 	}
-	createPoolOperation, err := nebiusPoolService.Create(ctx, &vpc.CreatePoolRequest{
-		Metadata: &common.ResourceMetadata{
+
+	// Add the required labels
+	labels[labelBrevRefID] = args.RefID
+	labels[labelCreatedBy] = labelBrevCloudSDK
+
+	// Create the pool with the CIDR blocks for the subnets
+	networkPoolCidrs := make([]*nebiusvpc.PoolCidr, 0)
+	for _, subnet := range args.Subnets {
+		networkPoolCidrs = append(networkPoolCidrs, &nebiusvpc.PoolCidr{Cidr: subnet.CidrBlock})
+	}
+	createPoolOperation, err := nebiusPoolService.Create(ctx, &nebiusvpc.CreatePoolRequest{
+		Metadata: &nebiuscommon.ResourceMetadata{
 			Name:     args.RefID,
 			ParentId: projectID,
-			Labels: map[string]string{
-				labelBrevRefID: args.RefID,
-				labelCreatedBy: labelBrevCloudSDK,
-			},
+			Labels:   labels,
 		},
-		Spec: &vpc.PoolSpec{
-			Version:    vpc.IpVersion_IPV4,
-			Visibility: vpc.IpVisibility_PRIVATE,
+		Spec: &nebiusvpc.PoolSpec{
+			Version:    nebiusvpc.IpVersion_IPV4,
+			Visibility: nebiusvpc.IpVisibility_PRIVATE,
 			Cidrs:      networkPoolCidrs,
 		},
 	})
 	if err != nil {
 		return "", errors.WrapAndTrace(err)
 	}
+
+	// Here we must wait for the pool to be created, as otherwise we cannot proceed to create the network.
 	createPoolOperation, err = createPoolOperation.Wait(ctx)
 	if err != nil {
 		return "", errors.WrapAndTrace(err)
@@ -90,18 +151,15 @@ func createNetwork(ctx context.Context, nebiusNetworkService nebiusVPC.NetworkSe
 	poolID := createPoolOperation.ResourceID()
 
 	// Create the network with the pool
-	createNetworkOperation, err := nebiusNetworkService.Create(ctx, &vpc.CreateNetworkRequest{
-		Metadata: &common.ResourceMetadata{
+	createNetworkOperation, err := nebiusNetworkService.Create(ctx, &nebiusvpc.CreateNetworkRequest{
+		Metadata: &nebiuscommon.ResourceMetadata{
 			Name:     args.Name,
 			ParentId: projectID,
-			Labels: map[string]string{
-				labelBrevRefID: args.RefID,
-				labelCreatedBy: labelBrevCloudSDK,
-			},
+			Labels:   labels,
 		},
-		Spec: &vpc.NetworkSpec{
-			Ipv4PrivatePools: &vpc.IPv4PrivateNetworkPools{
-				Pools: []*vpc.NetworkPool{
+		Spec: &nebiusvpc.NetworkSpec{
+			Ipv4PrivatePools: &nebiusvpc.IPv4PrivateNetworkPools{
+				Pools: []*nebiusvpc.NetworkPool{
 					{Id: poolID},
 				},
 			},
@@ -110,17 +168,14 @@ func createNetwork(ctx context.Context, nebiusNetworkService nebiusVPC.NetworkSe
 	if err != nil {
 		return "", errors.WrapAndTrace(err)
 	}
-	createNetworkOperation, err = createNetworkOperation.Wait(ctx)
-	if err != nil {
-		return "", errors.WrapAndTrace(err)
-	}
 
 	return createNetworkOperation.ResourceID(), nil
 }
 
-func createSubnet(ctx context.Context, nebiusSubnetService nebiusVPC.SubnetService, projectID string, networkID string, args v1.CreateSubnetArgs) (*v1.Subnet, error) {
+func createSubnet(ctx context.Context, nebiusSubnetService nebiusvpcv1.SubnetService, projectID string, networkID string, args v1.CreateSubnetArgs) (*v1.Subnet, error) {
 	// In Nebius, the concept of "private" or "public" subnets is not a thing. Instead this concept is indirect -- subnets can be marked in such a
 	// way as to allow for resources that are placed within them to allocate public IPs. This is controlled by the below "allowPublicIPAllocations" flag.
+
 	var allowPublicIPAllocations bool
 	if args.Type == v1.SubnetTypePublic {
 		allowPublicIPAllocations = true
@@ -128,25 +183,31 @@ func createSubnet(ctx context.Context, nebiusSubnetService nebiusVPC.SubnetServi
 		allowPublicIPAllocations = false
 	}
 
+	labels := make(map[string]string)
+	for key, value := range args.Tags {
+		labels[key] = value
+	}
+
+	// Add the required labels
+	labels[labelBrevRefID] = fmt.Sprintf("%s-%s-%s", networkID, args.CidrBlock, args.Type)
+	labels[labelCreatedBy] = labelBrevCloudSDK
+	labels[labelBrevSubnetType] = string(args.Type)
+	labels[labelBrevVPCID] = networkID
+	labels[labelBrevCIDRBlock] = args.CidrBlock
+
 	// Create the subnet, specifying the CIDR block (not the pool!) and the allowPublicIPAllocations flag.
-	createSubnetOperation, err := nebiusSubnetService.Create(ctx, &vpc.CreateSubnetRequest{
-		Metadata: &common.ResourceMetadata{
+	createSubnetOperation, err := nebiusSubnetService.Create(ctx, &nebiusvpc.CreateSubnetRequest{
+		Metadata: &nebiuscommon.ResourceMetadata{
 			Name:     fmt.Sprintf("%s-%s-%s", networkID, args.CidrBlock, args.Type),
 			ParentId: projectID,
-			Labels: map[string]string{
-				labelBrevRefID:      fmt.Sprintf("%s-%s-%s", networkID, args.CidrBlock, args.Type),
-				labelCreatedBy:      labelBrevCloudSDK,
-				labelBrevSubnetType: string(args.Type),
-				labelBrevVPCID:      networkID,
-				labelBrevCIDRBlock:  args.CidrBlock,
-			},
+			Labels:   labels,
 		},
-		Spec: &vpc.SubnetSpec{
+		Spec: &nebiusvpc.SubnetSpec{
 			NetworkId: networkID,
-			Ipv4PrivatePools: &vpc.IPv4PrivateSubnetPools{
+			Ipv4PrivatePools: &nebiusvpc.IPv4PrivateSubnetPools{
 				UseNetworkPools: true,
 			},
-			Ipv4PublicPools: &vpc.IPv4PublicSubnetPools{
+			Ipv4PublicPools: &nebiusvpc.IPv4PublicSubnetPools{
 				UseNetworkPools: allowPublicIPAllocations,
 			},
 		},
@@ -165,6 +226,7 @@ func createSubnet(ctx context.Context, nebiusSubnetService nebiusVPC.SubnetServi
 		Type:      args.Type,
 		VPCID:     v1.CloudProviderResourceID(networkID),
 		Name:      fmt.Sprintf("%s-%s-%s", networkID, args.CidrBlock, args.Type),
+		Tags:      args.Tags,
 	}, nil
 }
 
@@ -172,17 +234,17 @@ func (c *NebiusClient) GetVPC(ctx context.Context, args v1.GetVPCArgs) (*v1.VPC,
 	nebiusNetworkService := c.sdk.Services().VPC().V1().Network()
 	nebiusSubnetService := c.sdk.Services().VPC().V1().Subnet()
 
-	network, err := nebiusNetworkService.Get(ctx, &vpc.GetNetworkRequest{
+	network, err := nebiusNetworkService.Get(ctx, &nebiusvpc.GetNetworkRequest{
 		Id: string(args.ID),
 	})
 	if err != nil {
-		if grpcStatus.Code(err) == grpcCodes.NotFound {
+		if grpcstatus.Code(err) == grpccodes.NotFound {
 			return nil, v1.ErrResourceNotFound
 		}
 		return nil, errors.WrapAndTrace(err)
 	}
 
-	nebiusSubnets, err := nebiusSubnetService.ListByNetwork(ctx, &vpc.ListSubnetsByNetworkRequest{
+	nebiusSubnets, err := nebiusSubnetService.ListByNetwork(ctx, &nebiusvpc.ListSubnetsByNetworkRequest{
 		NetworkId: network.Metadata.Id,
 	})
 	if err != nil {
@@ -199,6 +261,7 @@ func (c *NebiusClient) GetVPC(ctx context.Context, args v1.GetVPCArgs) (*v1.VPC,
 			Type:      v1.SubnetType(subnet.Metadata.Labels[labelBrevSubnetType]),
 			VPCID:     v1.CloudProviderResourceID(network.Metadata.Id),
 			Name:      subnet.Metadata.Name,
+			Tags:      v1.Tags(subnet.Metadata.Labels),
 		})
 	}
 
@@ -208,16 +271,17 @@ func (c *NebiusClient) GetVPC(ctx context.Context, args v1.GetVPCArgs) (*v1.VPC,
 		Location: network.Metadata.ParentId,
 		Status:   parseNebiusNetworkStatus(network.Status),
 		Subnets:  subnets,
+		Tags:     v1.Tags(network.Metadata.Labels),
 	}, nil
 }
 
-func parseNebiusNetworkStatus(status *vpc.NetworkStatus) v1.VPCStatus {
+func parseNebiusNetworkStatus(status *nebiusvpc.NetworkStatus) v1.VPCStatus {
 	switch status.State {
-	case vpc.NetworkStatus_CREATING:
+	case nebiusvpc.NetworkStatus_CREATING:
 		return v1.VPCStatusPending
-	case vpc.NetworkStatus_READY:
+	case nebiusvpc.NetworkStatus_READY:
 		return v1.VPCStatusAvailable
-	case vpc.NetworkStatus_DELETING:
+	case nebiusvpc.NetworkStatus_DELETING:
 		return v1.VPCStatusDeleting
 	}
 	return v1.VPCStatusUnknown
@@ -229,7 +293,7 @@ func (c *NebiusClient) DeleteVPC(ctx context.Context, args v1.DeleteVPCArgs) err
 	nebiusSubnetService := c.sdk.Services().VPC().V1().Subnet()
 
 	// Find the network
-	network, err := nebiusNetworkService.Get(ctx, &vpc.GetNetworkRequest{
+	network, err := nebiusNetworkService.Get(ctx, &nebiusvpc.GetNetworkRequest{
 		Id: string(args.ID),
 	})
 	if err != nil {
@@ -237,7 +301,7 @@ func (c *NebiusClient) DeleteVPC(ctx context.Context, args v1.DeleteVPCArgs) err
 	}
 
 	// Find the network's subnets
-	subnets, err := nebiusSubnetService.ListByNetwork(ctx, &vpc.ListSubnetsByNetworkRequest{
+	subnets, err := nebiusSubnetService.ListByNetwork(ctx, &nebiusvpc.ListSubnetsByNetworkRequest{
 		NetworkId: network.Metadata.Id,
 	})
 	if err != nil {
@@ -246,24 +310,20 @@ func (c *NebiusClient) DeleteVPC(ctx context.Context, args v1.DeleteVPCArgs) err
 
 	// Delete the subnets
 	for _, subnet := range subnets.Items {
-		deleteSubnetOperation, err := nebiusSubnetService.Delete(ctx, &vpc.DeleteSubnetRequest{
+		_, err := nebiusSubnetService.Delete(ctx, &nebiusvpc.DeleteSubnetRequest{
 			Id: subnet.Metadata.Id,
 		})
 		if err != nil {
 			return errors.WrapAndTrace(err)
 		}
-		deleteSubnetOperation, err = deleteSubnetOperation.Wait(ctx)
-		if err != nil {
-			return errors.WrapAndTrace(err)
-		}
 	}
 
-	pool, err := nebiusPoolService.GetByName(ctx, &vpc.GetPoolByNameRequest{
+	pool, err := nebiusPoolService.GetByName(ctx, &nebiusvpc.GetPoolByNameRequest{
 		ParentId: network.Metadata.ParentId,
 		Name:     network.Metadata.Name,
 	})
 	if err != nil {
-		if grpcStatus.Code(err) != grpcCodes.NotFound {
+		if grpcstatus.Code(err) != grpccodes.NotFound {
 			return errors.WrapAndTrace(err)
 		}
 		// Pool not found, continue
@@ -271,33 +331,37 @@ func (c *NebiusClient) DeleteVPC(ctx context.Context, args v1.DeleteVPCArgs) err
 
 	if pool != nil {
 		// Remove pool from network
-		updateNetworkOperation, err := nebiusNetworkService.Update(ctx, &vpc.UpdateNetworkRequest{
-			Metadata: &common.ResourceMetadata{
+		updateNetworkOperation, err := nebiusNetworkService.Update(ctx, &nebiusvpc.UpdateNetworkRequest{
+			Metadata: &nebiuscommon.ResourceMetadata{
 				Name:     network.Metadata.Name,
 				ParentId: network.Metadata.ParentId,
 				Id:       network.Metadata.Id,
 			},
-			Spec: &vpc.NetworkSpec{
-				Ipv4PrivatePools: &vpc.IPv4PrivateNetworkPools{
-					Pools: []*vpc.NetworkPool{},
+			Spec: &nebiusvpc.NetworkSpec{
+				Ipv4PrivatePools: &nebiusvpc.IPv4PrivateNetworkPools{
+					Pools: []*nebiusvpc.NetworkPool{},
 				},
 			},
 		})
 		if err != nil {
 			return errors.WrapAndTrace(err)
 		}
+
+		// Here we must wait for the network to be updated, as otherwise we cannot proceed to delete the pool.
 		updateNetworkOperation, err = updateNetworkOperation.Wait(ctx)
 		if err != nil {
 			return errors.WrapAndTrace(err)
 		}
 
 		// Delete pool
-		deletePoolOperation, err := nebiusPoolService.Delete(ctx, &vpc.DeletePoolRequest{
+		deletePoolOperation, err := nebiusPoolService.Delete(ctx, &nebiusvpc.DeletePoolRequest{
 			Id: pool.Metadata.Id,
 		})
 		if err != nil {
 			return errors.WrapAndTrace(err)
 		}
+
+		// Here we must wait for the pool to be deleted, as otherwise we cannot proceed to delete the network.
 		deletePoolOperation, err = deletePoolOperation.Wait(ctx)
 		if err != nil {
 			return errors.WrapAndTrace(err)
@@ -305,14 +369,9 @@ func (c *NebiusClient) DeleteVPC(ctx context.Context, args v1.DeleteVPCArgs) err
 	}
 
 	// Delete the network
-	deleteNetworkOperation, err := nebiusNetworkService.Delete(ctx, &vpc.DeleteNetworkRequest{
+	_, err = nebiusNetworkService.Delete(ctx, &nebiusvpc.DeleteNetworkRequest{
 		Id: network.Metadata.Id,
 	})
-	if err != nil {
-		return errors.WrapAndTrace(err)
-	}
-
-	deleteNetworkOperation, err = deleteNetworkOperation.Wait(ctx)
 	if err != nil {
 		return errors.WrapAndTrace(err)
 	}

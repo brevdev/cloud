@@ -1,8 +1,10 @@
 package v1
 
 import (
+	"fmt"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/brevdev/cloud/internal/validation"
 )
@@ -18,14 +20,20 @@ func TestNetworkValidation(t *testing.T) {
 	}
 
 	config := validation.ProviderConfig{
-		Credential: NewNebiusCredential("validation-test", publicKeyID, privateKeyPEMBase64, serviceAccountID, projectID),
+		Credential: NewNebiusCredential(fmt.Sprintf("validation-%s", t.Name()), publicKeyID, privateKeyPEMBase64, serviceAccountID, projectID),
 	}
 
+	// Use the test name as the name of the VPC
+	name := fmt.Sprintf("cloud-sdk-%s-%s", t.Name(), time.Now().UTC().Format("20060102150405"))
+
 	validation.RunNetworkValidation(t, config, validation.NetworkValidationOpts{
-		Name:                  "cloud-sdk-test",
-		RefID:                 "cloud-sdk-test",
+		Name:                  name,
+		RefID:                 name,
 		Location:              "us-central1",
 		CidrBlock:             "172.16.0.0/16",
 		PublicSubnetCidrBlock: "172.16.0.0/24",
+		Tags: map[string]string{
+			"test": "TestNetworkValidation",
+		},
 	})
 }

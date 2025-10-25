@@ -95,6 +95,7 @@ func Test_PutUser(t *testing.T) {
 
 	putUserResponse, err := nebiusClient.PutUser(context.Background(), v1.PutUserArgs{
 		Username:     "test-user",
+		Role:         "cluster-admin",
 		ClusterID:    v1.CloudProviderResourceID("cloud-sdk-test"),
 		RSAPEMBase64: testUserPrivateKeyPEMBase64,
 	})
@@ -140,8 +141,7 @@ func Test_DeleteCluster(t *testing.T) {
 	privateKeyPEMBase64 := os.Getenv("NEBIUS_PRIVATE_KEY_PEM_BASE64")
 	publicKeyID := os.Getenv("NEBIUS_PUBLIC_KEY_ID")
 	serviceAccountID := os.Getenv("NEBIUS_SERVICE_ACCOUNT_ID")
-
-	projectID := "project-e00nrhefpr009ynkkzcgba" // eu-north1
+	projectID := os.Getenv("NEBIUS_PROJECT_ID")
 
 	nebiusClient, err := NewNebiusClient(context.Background(), "test", publicKeyID, privateKeyPEMBase64, serviceAccountID, projectID)
 	if err != nil {
@@ -149,7 +149,7 @@ func Test_DeleteCluster(t *testing.T) {
 	}
 
 	err = nebiusClient.DeleteCluster(context.Background(), v1.DeleteClusterArgs{
-		ID: v1.CloudProviderResourceID("cloud-sdk-test"),
+		ID: v1.CloudProviderResourceID("mk8scluster-u00vgffpfgh3ze60vr"),
 	})
 	if err != nil {
 		t.Fatalf("failed to delete cluster: %v", err)

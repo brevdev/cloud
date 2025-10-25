@@ -3,7 +3,6 @@ package v1
 import (
 	"context"
 	"fmt"
-	"time"
 )
 
 type Cluster struct {
@@ -45,7 +44,19 @@ type Cluster struct {
 
 	// The node groups associated with the cluster.
 	NodeGroups []*NodeGroup
+
+	// The tags associated with the cluster.
+	Tags Tags
 }
+
+type ClusterStatus string
+
+const (
+	ClusterStatusUnknown   ClusterStatus = "unknown"
+	ClusterStatusPending   ClusterStatus = "pending"
+	ClusterStatusAvailable ClusterStatus = "available"
+	ClusterStatusDeleting  ClusterStatus = "deleting"
+)
 
 type NodeGroup struct {
 	// The name of the node group, displayed on clients.
@@ -68,18 +79,22 @@ type NodeGroup struct {
 
 	// The disk size of the nodes in the node group.
 	DiskSizeGiB int
+
+	// The status of the node group.
+	Status NodeGroupStatus
+
+	// The tags associated with the node group.
+	Tags Tags
 }
 
-type ClusterStatus string
+type NodeGroupStatus string
 
 const (
-	ClusterStatusUnknown   ClusterStatus = "unknown"
-	ClusterStatusPending   ClusterStatus = "pending"
-	ClusterStatusAvailable ClusterStatus = "available"
-	ClusterStatusDeleting  ClusterStatus = "deleting"
+	NodeGroupStatusUnknown   NodeGroupStatus = "unknown"
+	NodeGroupStatusPending   NodeGroupStatus = "pending"
+	NodeGroupStatusAvailable NodeGroupStatus = "available"
+	NodeGroupStatusDeleting  NodeGroupStatus = "deleting"
 )
-
-type CloudProviderResourceID string
 
 type CreateClusterArgs struct {
 	Name              string
@@ -88,12 +103,14 @@ type CreateClusterArgs struct {
 	SubnetIDs         []CloudProviderResourceID
 	KubernetesVersion string
 	Location          string
+	Tags              Tags
 }
 
 type PutUserArgs struct {
 	ClusterID    CloudProviderResourceID
 	Username     string
 	RSAPEMBase64 string
+	Role         string
 }
 
 type PutUserResponse struct {
@@ -118,6 +135,7 @@ type CreateNodeGroupArgs struct {
 	MaxNodeCount int
 	InstanceType string
 	DiskSizeGiB  int
+	Tags         Tags
 }
 
 type GetNodeGroupArgs struct {
@@ -173,7 +191,15 @@ func ValidateCreateKubernetesCluster(ctx context.Context, client CloudMaintainKu
 	if len(cluster.SubnetIDs) != len(attrs.SubnetIDs) {
 		return nil, fmt.Errorf("cluster subnetIDs does not match create args: '%d' != '%d'", len(cluster.SubnetIDs), len(attrs.SubnetIDs))
 	}
-
+	for key, value := range attrs.Tags {
+		tagValue, ok := cluster.Tags[key]
+		if !ok {
+			return nil, fmt.Errorf("cluster tag does not match create args: '%s' not found", key)
+		}
+		if tagValue != value {
+			return nil, fmt.Errorf("cluster tag does not match create args: '%s' != '%s'", key, value)
+		}
+	}
 	return cluster, nil
 }
 
@@ -190,47 +216,8 @@ func ValidateGetKubernetesCluster(ctx context.Context, client CloudMaintainKuber
 	return cluster, nil
 }
 
-// WaitForKubernetesClusterPredicate waits for the Kubernetes cluster to satisfy the predicate function. If the predicate returns true, the loop breaks.
-type WaitForKubernetesClusterPredicateOpts struct {
-	Predicate func(cluster *Cluster) bool
-	Timeout   time.Duration
-	Interval  time.Duration
-}
-
-func WaitForKubernetesClusterPredicate(ctx context.Context, client CloudMaintainKubernetes, attrs GetClusterArgs, opts WaitForKubernetesClusterPredicateOpts) error {
-	ctx, cancel := context.WithTimeout(ctx, opts.Timeout)
-	defer cancel()
-
-	ticker := time.NewTicker(opts.Interval)
-	defer ticker.Stop()
-
-	fmt.Printf("Entering WaitForKubernetesClusterPredicate, timeout: %s, interval: %s\n", opts.Timeout.String(), opts.Interval.String())
-	for {
-		cluster, err := client.GetCluster(ctx, attrs)
-		if err != nil {
-			return err
-		}
-
-		if opts.Predicate(cluster) {
-			break
-		}
-		fmt.Printf("Waiting %s for cluster to satisfy predicate\n", opts.Interval.String())
-		select {
-		case <-ctx.Done():
-			return fmt.Errorf("timeout waiting for cluster to satisfy predicate")
-		case <-ticker.C:
-			continue
-		}
-	}
-	return nil
-}
-
-func ValidateGetKubernetesClusterCredentials(ctx context.Context, client CloudMaintainKubernetes, attrs GetClusterArgs) (*PutUserResponse, error) {
-	putUserResponse, err := client.PutUser(ctx, PutUserArgs{
-		ClusterID:    attrs.ID,
-		Username:     "admin",
-		RSAPEMBase64: "test",
-	})
+func ValidateGetKubernetesClusterCredentials(ctx context.Context, client CloudMaintainKubernetes, attrs PutUserArgs) (*PutUserResponse, error) {
+	putUserResponse, err := client.PutUser(ctx, attrs)
 	if err != nil {
 		return nil, err
 	}
@@ -265,11 +252,48 @@ func ValidateCreateKubernetesNodeGroup(ctx context.Context, client CloudMaintain
 	return nodeGroup, nil
 }
 
-func ValidateGetKubernetesNodeGroup(ctx context.Context, client CloudMaintainKubernetes, attrs GetNodeGroupArgs) error {
-	_, err := client.GetNodeGroup(ctx, attrs)
+func ValidateClusterNodeGroups(ctx context.Context, client CloudMaintainKubernetes, attrs GetClusterArgs, nodeGroup NodeGroup) error {
+	cluster, err := client.GetCluster(ctx, attrs)
 	if err != nil {
 		return err
 	}
+
+	if len(cluster.NodeGroups) != 1 {
+		return fmt.Errorf("cluster node groups does not match create args: '%d' != '%d'", len(cluster.NodeGroups), 1)
+	}
+
+	clusterNodeGroup := cluster.NodeGroups[0]
+	if clusterNodeGroup.ID != nodeGroup.ID {
+		return fmt.Errorf("cluster node group ID does not match create args: '%s' != '%s'", clusterNodeGroup.ID, nodeGroup.ID)
+	}
+	if clusterNodeGroup.Name != nodeGroup.Name {
+		return fmt.Errorf("cluster node group name does not match create args: '%s' != '%s'", clusterNodeGroup.Name, nodeGroup.Name)
+	}
+	if clusterNodeGroup.RefID != nodeGroup.RefID {
+		return fmt.Errorf("cluster node group refID does not match create args: '%s' != '%s'", clusterNodeGroup.RefID, nodeGroup.RefID)
+	}
+	if clusterNodeGroup.MinNodeCount != nodeGroup.MinNodeCount {
+		return fmt.Errorf("cluster node group minNodeCount does not match create args: '%d' != '%d'", clusterNodeGroup.MinNodeCount, nodeGroup.MinNodeCount)
+	}
+	if clusterNodeGroup.MaxNodeCount != nodeGroup.MaxNodeCount {
+		return fmt.Errorf("cluster node group maxNodeCount does not match create args: '%d' != '%d'", clusterNodeGroup.MaxNodeCount, nodeGroup.MaxNodeCount)
+	}
+	if clusterNodeGroup.InstanceType != nodeGroup.InstanceType {
+		return fmt.Errorf("cluster node group instanceType does not match create args: '%s' != '%s'", clusterNodeGroup.InstanceType, nodeGroup.InstanceType)
+	}
+	if clusterNodeGroup.DiskSizeGiB != nodeGroup.DiskSizeGiB {
+		return fmt.Errorf("cluster node group diskSizeGiB does not match create args: '%d' != '%d'", clusterNodeGroup.DiskSizeGiB, nodeGroup.DiskSizeGiB)
+	}
+	for key, value := range nodeGroup.Tags {
+		tagValue, ok := clusterNodeGroup.Tags[key]
+		if !ok {
+			return fmt.Errorf("cluster node group tag does not match create args: '%s' not found", key)
+		}
+		if tagValue != value {
+			return fmt.Errorf("cluster node group tag does not match create args: '%s' != '%s'", key, value)
+		}
+	}
+
 	return nil
 }
 
