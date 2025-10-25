@@ -41,7 +41,7 @@ func (c *AWSClient) CreateVPC(ctx context.Context, args v1.CreateVPCArgs) (*v1.V
 		CloudCredRefID: c.GetReferenceID(),
 		Provider:       CloudProviderID,
 		Cloud:          CloudProviderID,
-		CloudID:        *awsVPC.VpcId,
+		ID:             v1.CloudProviderResourceID(*awsVPC.VpcId),
 		CidrBlock:      *awsVPC.CidrBlock,
 		Status:         v1.VPCStatusAvailable,
 	}, nil
@@ -571,7 +571,7 @@ func getVPCStatus(ctx context.Context, awsClient *ec2.Client, awsVPC *types.Vpc)
 	return v1.VPCStatusAvailable, nil
 }
 
-func getVPCSubnets(ctx context.Context, awsClient *ec2.Client, awsVPC *types.Vpc) ([]v1.Subnet, error) {
+func getVPCSubnets(ctx context.Context, awsClient *ec2.Client, awsVPC *types.Vpc) ([]*v1.Subnet, error) {
 	describeSubnetsOutput, err := awsClient.DescribeSubnets(ctx, &ec2.DescribeSubnetsInput{
 		Filters: []types.Filter{
 			{
@@ -584,7 +584,7 @@ func getVPCSubnets(ctx context.Context, awsClient *ec2.Client, awsVPC *types.Vpc
 		return nil, err
 	}
 
-	subnets := make([]v1.Subnet, 0)
+	subnets := make([]*v1.Subnet, 0)
 	for _, subnet := range describeSubnetsOutput.Subnets {
 		var subnetType v1.SubnetType
 
@@ -596,7 +596,7 @@ func getVPCSubnets(ctx context.Context, awsClient *ec2.Client, awsVPC *types.Vpc
 			}
 		}
 
-		subnets = append(subnets, v1.Subnet{
+		subnets = append(subnets, &v1.Subnet{
 			ID:        v1.CloudProviderResourceID(*subnet.SubnetId),
 			VPCID:     v1.CloudProviderResourceID(*awsVPC.VpcId),
 			Location:  *subnet.AvailabilityZone,
@@ -610,10 +610,10 @@ func getVPCSubnets(ctx context.Context, awsClient *ec2.Client, awsVPC *types.Vpc
 func (c *AWSClient) DeleteVPC(ctx context.Context, args v1.DeleteVPCArgs) error {
 	// Create the AWS client in the specified region
 	awsClient := ec2.NewFromConfig(c.awsConfig, func(o *ec2.Options) {
-		o.Region = args.Location
+		// o.Region = args.Location
 	})
 
-	err := deleteVPC(ctx, awsClient, args.VPC.CloudID)
+	err := deleteVPC(ctx, awsClient, string(args.ID))
 	if err != nil {
 		return err
 	}

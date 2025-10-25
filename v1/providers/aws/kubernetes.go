@@ -130,12 +130,16 @@ func createCluster(ctx context.Context, awsClient awsClient, args v1.CreateClust
 		"CreatedBy":  tagBrevCloudSDK,
 	}
 
+	subnetIDs := make([]string, len(args.SubnetIDs))
+	for i, subnetID := range args.SubnetIDs {
+		subnetIDs[i] = string(subnetID)
+	}
 	input := &eks.CreateClusterInput{
 		Name:    aws.String(args.Name),
 		Version: aws.String(args.KubernetesVersion),
 		RoleArn: aws.String(serviceRoleARN),
 		ResourcesVpcConfig: &ekstypes.VpcConfigRequest{
-			SubnetIds: args.SubnetIDs,
+			SubnetIds: subnetIDs,
 		},
 		Tags: tags,
 	}
@@ -204,7 +208,7 @@ func (c *AWSClient) PutUser(_ context.Context, _ v1.PutUserArgs) (*v1.PutUserRes
 	panic("unimplemented")
 }
 
-func (c *AWSClient) CreateNodeGroup(_ context.Context, _ v1.CreateNodeGroupArgs) (*v1.CreateNodeGroupResponse, error) {
+func (c *AWSClient) CreateNodeGroup(_ context.Context, _ v1.CreateNodeGroupArgs) (*v1.NodeGroup, error) {
 	panic("unimplemented")
 }
 

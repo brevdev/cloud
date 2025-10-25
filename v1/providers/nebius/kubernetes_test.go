@@ -9,6 +9,15 @@ import (
 	v1 "github.com/brevdev/cloud/v1"
 )
 
+var platformPresetMap = map[string][]string{
+	"cpu-d3":       {"4vcpu-16gb", "8vcpu-32gb", "16vcpu-64gb", "32vcpu-128gb", "48vcpu-192gb", "64vcpu-256gb", "96vcpu-384gb", "128vcpu-512gb"},
+	"cpu-e2":       {"2vcpu-8gb", "4vcpu-16gb", "8vcpu-32gb", "16vcpu-64gb", "32vcpu-128gb", "48vcpu-192gb", "64vcpu-256gb", "80vcpu-320gb"},
+	"gpu-h200-sxm": {"1gpu-16vcpu-200gb", "8gpu-128vcpu-1600gb"},
+	"gpu-h100-sxm": {"1gpu-16vcpu-200gb", "8gpu-128vcpu-1600gb"},
+	"gpu-l40s-a":   {"1gpu-8vcpu-32gb", "1gpu-16vcpu-64gb", "1gpu-24vcpu-96gb", "1gpu-32vcpu-128gb", "1gpu-40vcpu-160gb"},
+	"gpu-l40s-d":   {"1gpu-16vcpu-96gb", "1gpu-32vcpu-192gb", "1gpu-48vcpu-288gb", "2gpu-64vcpu-384gb", "2gpu-96vcpu-576gb", "4gpu-128vcpu-768gb", "4gpu-192vcpu-1152gb"},
+}
+
 func Test_CreateVPCAndCluster(t *testing.T) {
 	privateKeyPEMBase64 := os.Getenv("NEBIUS_PRIVATE_KEY_PEM_BASE64")
 	publicKeyID := os.Getenv("NEBIUS_PUBLIC_KEY_ID")

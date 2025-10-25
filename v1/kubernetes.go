@@ -134,16 +134,6 @@ type DeleteNodeGroupArgs struct {
 	ID CloudProviderResourceID
 }
 
-type CreateNodeGroupResponse struct {
-	ID           CloudProviderResourceID
-	Name         string
-	RefID        string
-	MinNodeCount int
-	MaxNodeCount int
-	InstanceType string
-	DiskSizeGiB  int
-}
-
 type DeleteClusterArgs struct {
 	ID CloudProviderResourceID
 }
@@ -152,7 +142,7 @@ type CloudMaintainKubernetes interface {
 	CreateCluster(ctx context.Context, args CreateClusterArgs) (*Cluster, error)
 	GetCluster(ctx context.Context, args GetClusterArgs) (*Cluster, error)
 	PutUser(ctx context.Context, args PutUserArgs) (*PutUserResponse, error)
-	CreateNodeGroup(ctx context.Context, args CreateNodeGroupArgs) (*CreateNodeGroupResponse, error)
+	CreateNodeGroup(ctx context.Context, args CreateNodeGroupArgs) (*NodeGroup, error)
 	GetNodeGroup(ctx context.Context, args GetNodeGroupArgs) (*NodeGroup, error)
 	ModifyNodeGroup(ctx context.Context, args ModifyNodeGroupArgs) error
 	DeleteNodeGroup(ctx context.Context, args DeleteNodeGroupArgs) error
@@ -165,6 +155,25 @@ func ValidateCreateKubernetesCluster(ctx context.Context, client CloudMaintainKu
 		return nil, err
 	}
 
+	if cluster.Name != attrs.Name {
+		return nil, fmt.Errorf("cluster name does not match create args: '%s' != '%s'", cluster.Name, attrs.Name)
+	}
+	if cluster.RefID != attrs.RefID {
+		return nil, fmt.Errorf("cluster refID does not match create args: '%s' != '%s'", cluster.RefID, attrs.RefID)
+	}
+	if cluster.Location != attrs.Location {
+		return nil, fmt.Errorf("cluster location does not match create args: '%s' != '%s'", cluster.Location, attrs.Location)
+	}
+	if cluster.KubernetesVersion != attrs.KubernetesVersion {
+		return nil, fmt.Errorf("cluster KubernetesVersion does not match create args: '%s' != '%s'", cluster.KubernetesVersion, attrs.KubernetesVersion)
+	}
+	if cluster.VPCID != attrs.VPCID {
+		return nil, fmt.Errorf("cluster VPCID does not match create args: '%s' != '%s'", cluster.VPCID, attrs.VPCID)
+	}
+	if len(cluster.SubnetIDs) != len(attrs.SubnetIDs) {
+		return nil, fmt.Errorf("cluster subnetIDs does not match create args: '%d' != '%d'", len(cluster.SubnetIDs), len(attrs.SubnetIDs))
+	}
+
 	return cluster, nil
 }
 
@@ -173,6 +182,11 @@ func ValidateGetKubernetesCluster(ctx context.Context, client CloudMaintainKuber
 	if err != nil {
 		return nil, err
 	}
+
+	if cluster.ID != attrs.ID {
+		return nil, fmt.Errorf("cluster ID does not match get args: '%s' != '%s'", cluster.ID, attrs.ID)
+	}
+
 	return cluster, nil
 }
 
@@ -223,12 +237,32 @@ func ValidateGetKubernetesClusterCredentials(ctx context.Context, client CloudMa
 	return putUserResponse, nil
 }
 
-func ValidateCreateKubernetesNodeGroup(ctx context.Context, client CloudMaintainKubernetes, attrs CreateNodeGroupArgs) error {
-	_, err := client.CreateNodeGroup(ctx, attrs)
+func ValidateCreateKubernetesNodeGroup(ctx context.Context, client CloudMaintainKubernetes, attrs CreateNodeGroupArgs) (*NodeGroup, error) {
+	nodeGroup, err := client.CreateNodeGroup(ctx, attrs)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+
+	if nodeGroup.Name != attrs.Name {
+		return nil, fmt.Errorf("node group name does not match create args: '%s' != '%s'", nodeGroup.Name, attrs.Name)
+	}
+	if nodeGroup.RefID != attrs.RefID {
+		return nil, fmt.Errorf("node group refID does not match create args: '%s' != '%s'", nodeGroup.RefID, attrs.RefID)
+	}
+	if nodeGroup.MinNodeCount != attrs.MinNodeCount {
+		return nil, fmt.Errorf("node group minNodeCount does not match create args: '%d' != '%d'", nodeGroup.MinNodeCount, attrs.MinNodeCount)
+	}
+	if nodeGroup.MaxNodeCount != attrs.MaxNodeCount {
+		return nil, fmt.Errorf("node group maxNodeCount does not match create args: '%d' != '%d'", nodeGroup.MaxNodeCount, attrs.MaxNodeCount)
+	}
+	if nodeGroup.InstanceType != attrs.InstanceType {
+		return nil, fmt.Errorf("node group instanceType does not match create args: '%s' != '%s'", nodeGroup.InstanceType, attrs.InstanceType)
+	}
+	if nodeGroup.DiskSizeGiB != attrs.DiskSizeGiB {
+		return nil, fmt.Errorf("node group diskSizeGiB does not match create args: '%d' != '%d'", nodeGroup.DiskSizeGiB, attrs.DiskSizeGiB)
+	}
+
+	return nodeGroup, nil
 }
 
 func ValidateGetKubernetesNodeGroup(ctx context.Context, client CloudMaintainKubernetes, attrs GetNodeGroupArgs) error {

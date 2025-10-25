@@ -20,10 +20,7 @@ func TestDeleteVPC(t *testing.T) {
 	}
 
 	err = awsClient.DeleteVPC(context.Background(), v1.DeleteVPCArgs{
-		VPC: &v1.VPC{
-			CloudID:  "vpc-0b4e2176e45300c81",
-			Location: "eu-west-1",
-		},
+		ID: v1.CloudProviderResourceID("vpc-0b4e2176e45300c81"),
 	})
 	if err != nil {
 		t.Fatalf("failed to delete VPC: %v", err)
@@ -61,7 +58,7 @@ func TestCreateVPC(t *testing.T) {
 	}
 
 	vpc, err = awsClient.GetVPC(context.Background(), v1.GetVPCArgs{
-		CloudID:  vpc.CloudID,
+		ID:       vpc.ID,
 		Location: vpc.Location,
 	})
 	if err != nil {
@@ -69,10 +66,7 @@ func TestCreateVPC(t *testing.T) {
 	}
 
 	err = awsClient.DeleteVPC(context.Background(), v1.DeleteVPCArgs{
-		VPC: &v1.VPC{
-			CloudID:  vpc.CloudID,
-			Location: location,
-		},
+		ID: vpc.ID,
 	})
 	if err != nil {
 		t.Fatalf("failed to delete VPC: %v", err)

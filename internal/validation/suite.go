@@ -218,7 +218,17 @@ type KubernetesValidationOpts struct {
 	Name              string
 	RefID             string
 	KubernetesVersion string
+	NodeGroupOpts     *KubernetesValidationNodeGroupOpts
 	NetworkOpts       *KubernetesValidationNetworkOpts
+}
+
+type KubernetesValidationNodeGroupOpts struct {
+	Name         string
+	RefID        string
+	MinNodeCount int
+	MaxNodeCount int
+	InstanceType string
+	DiskSizeGiB  int
 }
 
 type KubernetesValidationNetworkOpts struct {

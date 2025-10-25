@@ -264,16 +264,7 @@ func (c *NebiusClient) PutUser(ctx context.Context, args v1.PutUserArgs) (*v1.Pu
 	}, nil
 }
 
-var platformPresetMap = map[string][]string{
-	"cpu-d3":       {"4vcpu-16gb", "8vcpu-32gb", "16vcpu-64gb", "32vcpu-128gb", "48vcpu-192gb", "64vcpu-256gb", "96vcpu-384gb", "128vcpu-512gb"},
-	"cpu-e2":       {"2vcpu-8gb", "4vcpu-16gb", "8vcpu-32gb", "16vcpu-64gb", "32vcpu-128gb", "48vcpu-192gb", "64vcpu-256gb", "80vcpu-320gb"},
-	"gpu-h200-sxm": {"1gpu-16vcpu-200gb", "8gpu-128vcpu-1600gb"},
-	"gpu-h100-sxm": {"1gpu-16vcpu-200gb", "8gpu-128vcpu-1600gb"},
-	"gpu-l40s-a":   {"1gpu-8vcpu-32gb", "1gpu-16vcpu-64gb", "1gpu-24vcpu-96gb", "1gpu-32vcpu-128gb", "1gpu-40vcpu-160gb"},
-	"gpu-l40s-d":   {"1gpu-16vcpu-96gb", "1gpu-32vcpu-192gb", "1gpu-48vcpu-288gb", "2gpu-64vcpu-384gb", "2gpu-96vcpu-576gb", "4gpu-128vcpu-768gb", "4gpu-192vcpu-1152gb"},
-}
-
-func (c *NebiusClient) CreateNodeGroup(ctx context.Context, args v1.CreateNodeGroupArgs) (*v1.CreateNodeGroupResponse, error) {
+func (c *NebiusClient) CreateNodeGroup(ctx context.Context, args v1.CreateNodeGroupArgs) (*v1.NodeGroup, error) {
 	nebiusNodeGroupService := c.sdk.Services().MK8S().V1().NodeGroup()
 
 	// Fetch the cluster the user key will be added to
@@ -334,7 +325,7 @@ func (c *NebiusClient) CreateNodeGroup(ctx context.Context, args v1.CreateNodeGr
 		return nil, err
 	}
 
-	return &v1.CreateNodeGroupResponse{
+	return &v1.NodeGroup{
 		ID:           args.ClusterID,
 		Name:         args.Name,
 		RefID:        args.RefID,

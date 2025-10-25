@@ -151,7 +151,7 @@ func (c notImplCloudClient) PutUser(_ context.Context, _ PutUserArgs) (*PutUserR
 	return nil, ErrNotImplemented
 }
 
-func (c notImplCloudClient) CreateNodeGroup(_ context.Context, _ CreateNodeGroupArgs) (*CreateNodeGroupResponse, error) {
+func (c notImplCloudClient) CreateNodeGroup(_ context.Context, _ CreateNodeGroupArgs) (*NodeGroup, error) {
 	return nil, ErrNotImplemented
 }
 
