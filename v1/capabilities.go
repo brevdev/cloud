@@ -23,4 +23,5 @@ const (
 	CapabilityMachineImage             Capability = "machine-image"
 	CapabilityModifyFirewall           Capability = "modify-firewall"
 	CapabilityVPC                      Capability = "vpc"
+	CapabilityManagedKubernetes        Capability = "managed-kubernetes"
 )

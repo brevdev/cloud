@@ -46,10 +46,6 @@ func (c *AWSCredential) GetTenantID() (string, error) {
 	return fmt.Sprintf("%s-%x", CloudProviderID, sha256.Sum256([]byte(c.AccessKeyID))), nil
 }
 
-func (c *AWSCredential) GetCapabilities(ctx context.Context) (v1.Capabilities, error) {
-	return GetAWSCapabilities(), nil
-}
-
 func (c *AWSCredential) MakeClient(_ context.Context, region string) (v1.CloudClient, error) {
 	return NewAWSClient(c.RefID, c.AccessKeyID, c.SecretAccessKey, region)
 }
@@ -93,8 +89,4 @@ func (c *AWSClient) GetCloudProviderID() v1.CloudProviderID {
 
 func (c *AWSClient) GetReferenceID() string {
 	return c.refID
-}
-
-func (c *AWSClient) GetCapabilities(_ context.Context) (v1.Capabilities, error) {
-	return GetAWSCapabilities(), nil
 }
