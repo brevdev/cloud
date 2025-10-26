@@ -10,17 +10,17 @@ import (
 )
 
 func TestDeleteVPC(t *testing.T) {
-	// get env var
-	accessKeyID := os.Getenv("AWS_ACCESS_KEY_ID")
-	secretAccessKey := os.Getenv("AWS_SECRET_ACCESS_KEY")
-
-	awsClient, err := NewAWSClient("test", accessKeyID, secretAccessKey)
+	awsClient, err := NewAWSClient("test",
+		os.Getenv("AWS_ACCESS_KEY_ID"),
+		os.Getenv("AWS_SECRET_ACCESS_KEY"),
+		"us-east-1",
+	)
 	if err != nil {
 		t.Fatalf("failed to create AWS client: %v", err)
 	}
 
 	err = awsClient.DeleteVPC(context.Background(), v1.DeleteVPCArgs{
-		ID: v1.CloudProviderResourceID("vpc-0b4e2176e45300c81"),
+		ID: v1.CloudProviderResourceID("vpc-0cea13ba205f6f523"),
 	})
 	if err != nil {
 		t.Fatalf("failed to delete VPC: %v", err)
@@ -30,21 +30,18 @@ func TestDeleteVPC(t *testing.T) {
 }
 
 func TestCreateVPC(t *testing.T) {
-	// get env var
-	accessKeyID := os.Getenv("AWS_ACCESS_KEY_ID")
-	secretAccessKey := os.Getenv("AWS_SECRET_ACCESS_KEY")
-
-	awsClient, err := NewAWSClient("test", accessKeyID, secretAccessKey)
+	awsClient, err := NewAWSClient("test",
+		os.Getenv("AWS_ACCESS_KEY_ID"),
+		os.Getenv("AWS_SECRET_ACCESS_KEY"),
+		"us-east-1",
+	)
 	if err != nil {
 		t.Fatalf("failed to create AWS client: %v", err)
 	}
 
-	location := "eu-west-1"
-
 	vpc, err := awsClient.CreateVPC(context.Background(), v1.CreateVPCArgs{
 		Name:      "cloud-sdk-test",
 		RefID:     "cloud-sdk-test",
-		Location:  location,
 		CidrBlock: "10.0.0.0/16",
 		Subnets: []v1.CreateSubnetArgs{
 			{CidrBlock: "10.0.0.0/24", Type: v1.SubnetTypePublic},
@@ -58,8 +55,7 @@ func TestCreateVPC(t *testing.T) {
 	}
 
 	vpc, err = awsClient.GetVPC(context.Background(), v1.GetVPCArgs{
-		ID:       vpc.ID,
-		Location: vpc.Location,
+		ID: vpc.ID,
 	})
 	if err != nil {
 		t.Fatalf("failed to get VPC: %v", err)

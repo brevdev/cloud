@@ -130,7 +130,6 @@ func RunInstanceLifecycleValidation(t *testing.T, config ProviderConfig) {
 type NetworkValidationOpts struct {
 	Name                  string
 	RefID                 string
-	Location              string
 	CidrBlock             string
 	PublicSubnetCidrBlock string
 	Tags                  map[string]string
@@ -156,7 +155,6 @@ func RunNetworkValidation(t *testing.T, config ProviderConfig, opts NetworkValid
 		vpc, err := v1.ValidateCreateVPC(ctx, client, v1.CreateVPCArgs{
 			Name:      opts.Name,
 			RefID:     opts.RefID,
-			Location:  opts.Location,
 			CidrBlock: opts.CidrBlock,
 			Subnets: []v1.CreateSubnetArgs{
 				{CidrBlock: opts.PublicSubnetCidrBlock, Type: v1.SubnetTypePublic},
@@ -253,7 +251,6 @@ type KubernetesValidationNodeGroupOpts struct {
 type KubernetesValidationNetworkOpts struct {
 	Name                   string
 	RefID                  string
-	Location               string
 	CidrBlock              string
 	PublicSubnetCidrBlock  string
 	PrivateSubnetCidrBlock string
@@ -286,7 +283,6 @@ func RunKubernetesValidation(t *testing.T, config ProviderConfig, opts Kubernete
 	vpc, err := v1.ValidateCreateVPC(ctx, client, v1.CreateVPCArgs{
 		Name:      opts.NetworkOpts.Name,
 		RefID:     opts.NetworkOpts.RefID,
-		Location:  opts.NetworkOpts.Location,
 		CidrBlock: opts.NetworkOpts.CidrBlock,
 		Subnets: []v1.CreateSubnetArgs{
 			{CidrBlock: opts.NetworkOpts.PublicSubnetCidrBlock, Type: v1.SubnetTypePublic},
@@ -332,7 +328,6 @@ func RunKubernetesValidation(t *testing.T, config ProviderConfig, opts Kubernete
 			VPCID:             vpc.ID,
 			SubnetIDs:         []v1.CloudProviderResourceID{vpc.Subnets[0].ID},
 			KubernetesVersion: opts.KubernetesVersion,
-			Location:          opts.NetworkOpts.Location,
 			Tags:              opts.Tags,
 		})
 		require.NoError(t, err, "ValidateCreateKubernetesCluster should pass")

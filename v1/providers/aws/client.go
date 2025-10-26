@@ -47,31 +47,31 @@ func (c *AWSCredential) GetTenantID() (string, error) {
 }
 
 func (c *AWSCredential) GetCapabilities(ctx context.Context) (v1.Capabilities, error) {
-	client, err := c.MakeClient(ctx, "")
-	if err != nil {
-		return nil, err
-	}
-	return client.GetCapabilities(ctx)
+	return GetAWSCapabilities(), nil
 }
 
-func (c *AWSCredential) MakeClient(_ context.Context, _ string) (v1.CloudClient, error) {
-	return NewAWSClient(c.RefID, c.AccessKeyID, c.SecretAccessKey)
+func (c *AWSCredential) MakeClient(_ context.Context, region string) (v1.CloudClient, error) {
+	return NewAWSClient(c.RefID, c.AccessKeyID, c.SecretAccessKey, region)
 }
 
 type AWSClient struct {
 	v1.NotImplCloudClient
 	refID     string
 	awsConfig aws.Config
+	region    string
 }
 
 var _ v1.CloudClient = &AWSClient{}
 
-func NewAWSClient(refID string, accessKeyID string, secretAccessKey string) (*AWSClient, error) {
+func NewAWSClient(refID string, accessKeyID string, secretAccessKey string, region string) (*AWSClient, error) {
 	ctx := context.Background()
 
 	awsCredentials := credentials.NewStaticCredentialsProvider(accessKeyID, secretAccessKey, "")
 
-	awsConfig, err := config.LoadDefaultConfig(ctx, config.WithCredentialsProvider(awsCredentials))
+	awsConfig, err := config.LoadDefaultConfig(ctx,
+		config.WithCredentialsProvider(awsCredentials),
+		config.WithRegion(region),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load AWS config: %w", err)
 	}
@@ -79,6 +79,7 @@ func NewAWSClient(refID string, accessKeyID string, secretAccessKey string) (*AW
 	return &AWSClient{
 		refID:     refID,
 		awsConfig: awsConfig,
+		region:    region,
 	}, nil
 }
 
@@ -92,4 +93,8 @@ func (c *AWSClient) GetCloudProviderID() v1.CloudProviderID {
 
 func (c *AWSClient) GetReferenceID() string {
 	return c.refID
+}
+
+func (c *AWSClient) GetCapabilities(_ context.Context) (v1.Capabilities, error) {
+	return GetAWSCapabilities(), nil
 }

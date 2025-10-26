@@ -102,9 +102,6 @@ type CreateVPCArgs struct {
 	// The unique ID used to associate with this VPC.
 	RefID string
 
-	// The location of the VPC.
-	Location string
-
 	// The IPv4 network range for the VPC, in CIDR notation. For example, "10.0.0.0/16".
 	CidrBlock string
 
@@ -129,9 +126,6 @@ type CreateSubnetArgs struct {
 type GetVPCArgs struct {
 	// The ID of the VPC to get.
 	ID CloudProviderResourceID
-
-	// The location of the VPC.
-	Location string
 }
 
 type DeleteVPCArgs struct {
@@ -154,17 +148,14 @@ func ValidateCreateVPC(ctx context.Context, client CloudMaintainVPC, attrs Creat
 	if vpc.RefID != attrs.RefID {
 		return nil, fmt.Errorf("VPC refID does not match create args: '%s' != '%s'", vpc.RefID, attrs.RefID)
 	}
-	if vpc.Location != attrs.Location {
-		return nil, fmt.Errorf("VPC location does not match create args: '%s' != '%s'", vpc.Location, attrs.Location)
-	}
 	if vpc.CidrBlock != attrs.CidrBlock {
 		return nil, fmt.Errorf("VPC cidr block does not match create args: '%s' != '%s'", vpc.CidrBlock, attrs.CidrBlock)
 	}
 	if len(vpc.Subnets) != len(attrs.Subnets) {
 		return nil, fmt.Errorf("VPC subnets does not match create args: '%d' != '%d'", len(vpc.Subnets), len(attrs.Subnets))
 	}
-	for key, value := range vpc.Tags {
-		tagValue, ok := attrs.Tags[key]
+	for key, value := range attrs.Tags {
+		tagValue, ok := vpc.Tags[key]
 		if !ok {
 			return nil, fmt.Errorf("VPC tag does not match create args: '%s' not found", key)
 		}
@@ -201,9 +192,6 @@ func ValidateGetVPC(ctx context.Context, client CloudMaintainVPC, attrs GetVPCAr
 
 	if vpc.ID != attrs.ID {
 		return nil, fmt.Errorf("VPC ID does not match get args: '%s' != '%s'", vpc.ID, attrs.ID)
-	}
-	if attrs.Location != "" && vpc.Location != attrs.Location {
-		return nil, fmt.Errorf("VPC location does not match get args: '%s' != '%s'", vpc.Location, attrs.Location)
 	}
 
 	return vpc, nil

@@ -6,6 +6,7 @@ import (
 	"net"
 
 	nebiuscommon "github.com/nebius/gosdk/proto/nebius/common/v1"
+	nebiusiamv1 "github.com/nebius/gosdk/proto/nebius/iam/v1"
 	nebiusvpc "github.com/nebius/gosdk/proto/nebius/vpc/v1"
 	nebiusvpcv1 "github.com/nebius/gosdk/services/nebius/vpc/v1"
 	grpccodes "google.golang.org/grpc/codes"
@@ -15,21 +16,21 @@ import (
 	v1 "github.com/brevdev/cloud/v1"
 )
 
-const (
-	labelBrevRefID      = "brev-ref-id"
-	labelBrevVPCID      = "brev-vpc-id"
-	labelBrevSubnetType = "brev-subnet-type"
-	labelBrevCIDRBlock  = "brev-cidr-block"
-	labelCreatedBy      = "CreatedBy"
-	labelBrevCloudSDK   = "brev-cloud-sdk"
-)
-
 func (c *NebiusClient) CreateVPC(ctx context.Context, args v1.CreateVPCArgs) (*v1.VPC, error) {
 	nebiusNetworkService := c.sdk.Services().VPC().V1().Network()
 	nebiusSubnetService := c.sdk.Services().VPC().V1().Subnet()
 	nebiusPoolService := c.sdk.Services().VPC().V1().Pool()
+	nebiusProjectService := c.sdk.Services().IAM().V1().Project()
 
-	err := validateCreateVPCArgs(args)
+	project, err := nebiusProjectService.Get(ctx, &nebiusiamv1.GetProjectRequest{
+		Id: c.projectID,
+	})
+	if err != nil {
+		return nil, errors.WrapAndTrace(err)
+	}
+	region := project.GetSpec().GetRegion()
+
+	err = validateCreateVPCArgs(args)
 	if err != nil {
 		return nil, errors.WrapAndTrace(err)
 	}
@@ -53,11 +54,12 @@ func (c *NebiusClient) CreateVPC(ctx context.Context, args v1.CreateVPCArgs) (*v
 	return &v1.VPC{
 		RefID:     args.RefID,
 		Name:      args.Name,
-		Location:  args.Location,
+		Location:  region,
 		CidrBlock: args.CidrBlock,
 		Status:    v1.VPCStatusPending,
 		ID:        v1.CloudProviderResourceID(vpcID),
 		Subnets:   subnets,
+		Tags:      args.Tags,
 	}, nil
 }
 
@@ -67,9 +69,6 @@ func validateCreateVPCArgs(args v1.CreateVPCArgs) error {
 	}
 	if args.RefID == "" {
 		return fmt.Errorf("VPC refID is required")
-	}
-	if args.Location == "" {
-		return fmt.Errorf("VPC location is required")
 	}
 	if args.CidrBlock == "" {
 		return fmt.Errorf("VPC CIDR block is required")

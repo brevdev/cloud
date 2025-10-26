@@ -12,6 +12,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ec2 v1.251.2
 	github.com/aws/aws-sdk-go-v2/service/eks v1.73.3
 	github.com/aws/aws-sdk-go-v2/service/iam v1.47.5
+	github.com/aws/smithy-go v1.23.0
 	github.com/bojanz/currency v1.3.1
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/cenkalti/backoff/v4 v4.3.0
@@ -43,7 +44,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sso v1.29.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.34.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.38.4 // indirect
-	github.com/aws/smithy-go v1.23.0 // indirect
 	github.com/cockroachdb/apd/v3 v3.2.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/emicklei/go-restful/v3 v3.12.2 // indirect

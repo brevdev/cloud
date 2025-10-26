@@ -33,7 +33,6 @@ func Test_CreateVPCAndCluster(t *testing.T) {
 	vpc, err := nebiusClient.CreateVPC(context.Background(), v1.CreateVPCArgs{
 		Name:      "cloud-sdk-test",
 		RefID:     "cloud-sdk-test",
-		Location:  "eu-north1",
 		CidrBlock: "172.16.0.0/16",
 		Subnets: []v1.CreateSubnetArgs{
 			{CidrBlock: "172.16.0.0/19", Type: v1.SubnetTypePublic}, // note, /24 (IP count: 256) is too small for a subnet

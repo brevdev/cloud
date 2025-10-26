@@ -10,6 +10,8 @@ const (
 	tagBrevVPCID      = "brev-vpc-id"
 	tagBrevSubnetType = "brev-subnet-type"
 	tagBrevCloudSDK   = "brev-cloud-sdk"
+	tagCreatedBy      = "CreatedBy"
+	tagName           = "Name"
 )
 
 type awsClient struct {

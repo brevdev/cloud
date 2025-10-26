@@ -10,10 +10,6 @@ import (
 )
 
 func TestKubernetesValidation(t *testing.T) {
-	privateKeyPEMBase64 := os.Getenv("NEBIUS_PRIVATE_KEY_PEM_BASE64")
-	publicKeyID := os.Getenv("NEBIUS_PUBLIC_KEY_ID")
-	serviceAccountID := os.Getenv("NEBIUS_SERVICE_ACCOUNT_ID")
-	projectID := os.Getenv("NEBIUS_PROJECT_ID")
 	testUserPrivateKeyPEMBase64 := os.Getenv("TEST_USER_PRIVATE_KEY_PEM_BASE64")
 
 	if privateKeyPEMBase64 == "" || publicKeyID == "" || serviceAccountID == "" || projectID == "" {
@@ -34,7 +30,6 @@ func TestKubernetesValidation(t *testing.T) {
 		NetworkOpts: &validation.KubernetesValidationNetworkOpts{
 			Name:                   name,
 			RefID:                  name,
-			Location:               "us-central1",
 			CidrBlock:              "172.16.0.0/16",
 			PublicSubnetCidrBlock:  "172.16.0.0/19",
 			PrivateSubnetCidrBlock: "172.16.32.0/19",
