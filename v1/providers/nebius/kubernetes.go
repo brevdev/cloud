@@ -422,6 +422,74 @@ func parseNebiusNodeGroupStatus(status *nebiusmk8s.NodeGroupStatus) v1.NodeGroup
 	return v1.NodeGroupStatusUnknown
 }
 
+func (c *NebiusClient) ModifyNodeGroup(ctx context.Context, args v1.ModifyNodeGroupArgs) error {
+	nebiusNodeGroupService := c.sdk.Services().MK8S().V1().NodeGroup()
+
+	err := validateModifyNodeGroupArgs(args)
+	if err != nil {
+		return errors.WrapAndTrace(err)
+	}
+
+	nodeGroup, err := nebiusNodeGroupService.Get(ctx, &nebiusmk8s.GetNodeGroupRequest{
+		Id: string(args.ID),
+	})
+	if err != nil {
+		return errors.WrapAndTrace(err)
+	}
+
+	_, err = nebiusNodeGroupService.Update(ctx, &nebiusmk8s.UpdateNodeGroupRequest{
+		Metadata: &nebiuscommon.ResourceMetadata{
+			Id:       nodeGroup.Metadata.Id,
+			Name:     nodeGroup.Metadata.Name,
+			ParentId: nodeGroup.Metadata.ParentId,
+			Labels:   nodeGroup.Metadata.Labels,
+		},
+		Spec: &nebiusmk8s.NodeGroupSpec{
+			Size: &nebiusmk8s.NodeGroupSpec_Autoscaling{
+				Autoscaling: &nebiusmk8s.NodeGroupAutoscalingSpec{
+					MinNodeCount: int64(args.MinNodeCount),
+					MaxNodeCount: int64(args.MaxNodeCount),
+				},
+			},
+			Template: &nebiusmk8s.NodeTemplate{
+				Resources: &nebiusmk8s.ResourcesSpec{
+					Platform: nodeGroup.Spec.GetTemplate().GetResources().GetPlatform(),
+					Size: &nebiusmk8s.ResourcesSpec_Preset{
+						Preset: nodeGroup.Spec.GetTemplate().GetResources().GetPreset(),
+					},
+				},
+				GpuSettings: &nebiusmk8s.GpuSettings{
+					DriversPreset: nodeGroup.Spec.GetTemplate().GetGpuSettings().GetDriversPreset(),
+				},
+				BootDisk: &nebiusmk8s.DiskSpec{
+					Type: nodeGroup.Spec.GetTemplate().GetBootDisk().GetType(),
+					Size: &nebiusmk8s.DiskSpec_SizeGibibytes{
+						SizeGibibytes: nodeGroup.Spec.GetTemplate().GetBootDisk().GetSizeGibibytes(),
+					},
+				},
+			},
+		},
+	})
+	if err != nil {
+		return errors.WrapAndTrace(fmt.Errorf("failed to modify node group: %w", err))
+	}
+
+	return nil
+}
+
+func validateModifyNodeGroupArgs(args v1.ModifyNodeGroupArgs) error {
+	if args.MinNodeCount < 1 {
+		return fmt.Errorf("node group minNodeCount must be greater than 0")
+	}
+	if args.MaxNodeCount < 1 {
+		return fmt.Errorf("node group maxNodeCount must be greater than 0")
+	}
+	if args.MaxNodeCount < args.MinNodeCount {
+		return fmt.Errorf("node group maxNodeCount must be greater than or equal to minNodeCount")
+	}
+	return nil
+}
+
 func (c *NebiusClient) DeleteNodeGroup(ctx context.Context, args v1.DeleteNodeGroupArgs) error {
 	nebiusNodeGroupService := c.sdk.Services().MK8S().V1().NodeGroup()
 

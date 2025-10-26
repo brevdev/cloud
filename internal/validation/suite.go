@@ -442,6 +442,33 @@ func RunKubernetesValidation(t *testing.T, config ProviderConfig, opts Kubernete
 		require.NoError(t, err, "ValidateClusterNodeGroups should pass")
 	})
 
+	// Test: Modify Kubernetes Node Group
+	t.Run("ValidateModifyKubernetesNodeGroup", func(t *testing.T) {
+		err := v1.ValidateModifyKubernetesNodeGroup(ctx, client, v1.ModifyNodeGroupArgs{
+			ID:           nodeGroup.ID,
+			MinNodeCount: opts.NodeGroupOpts.MinNodeCount + 1,
+			MaxNodeCount: opts.NodeGroupOpts.MaxNodeCount + 1,
+		})
+		require.NoError(t, err, "ValidateModifyKubernetesNodeGroup should pass")
+	})
+
+	// Test: WaitFor Kubernetes Node Group to Be Available
+	t.Run("WaitForKubernetesNodeGroupToBeAvailable", func(t *testing.T) {
+		err := WaitForResourcePredicate(ctx, WaitForResourcePredicateOpts[*v1.NodeGroup]{
+			GetResource: func() (*v1.NodeGroup, error) {
+				return client.GetNodeGroup(ctx, v1.GetNodeGroupArgs{ID: nodeGroup.ID})
+			},
+			Predicate: func(nodeGroup *v1.NodeGroup) bool {
+				return nodeGroup.Status == v1.NodeGroupStatusAvailable &&
+					nodeGroup.MinNodeCount == opts.NodeGroupOpts.MinNodeCount+1 &&
+					nodeGroup.MaxNodeCount == opts.NodeGroupOpts.MaxNodeCount+1
+			},
+			Timeout:  5 * time.Minute,
+			Interval: 5 * time.Second,
+		})
+		require.NoError(t, err, "WaitForKubernetesNodeGroupToBeAvailable should pass")
+	})
+
 	// Test: Delete Kubernetes Node Group
 	t.Run("ValidateDeleteKubernetesNodeGroup", func(t *testing.T) {
 		err := v1.ValidateDeleteKubernetesNodeGroup(ctx, client, v1.DeleteNodeGroupArgs{

@@ -157,13 +157,28 @@ type DeleteClusterArgs struct {
 }
 
 type CloudMaintainKubernetes interface {
+	// Create a new Kubernetes cluster.
 	CreateCluster(ctx context.Context, args CreateClusterArgs) (*Cluster, error)
+
+	// Get a Kubernetes cluster identified by the provided args.
 	GetCluster(ctx context.Context, args GetClusterArgs) (*Cluster, error)
+
+	// Put a user into a Kubernetes cluster.
 	PutUser(ctx context.Context, args PutUserArgs) (*PutUserResponse, error)
+
+	// Create a new Kubernetes node group.
 	CreateNodeGroup(ctx context.Context, args CreateNodeGroupArgs) (*NodeGroup, error)
+
+	// Get a Kubernetes node group identified by the provided args.
 	GetNodeGroup(ctx context.Context, args GetNodeGroupArgs) (*NodeGroup, error)
+
+	// Modify a Kubernetes node group.
 	ModifyNodeGroup(ctx context.Context, args ModifyNodeGroupArgs) error
+
+	// Delete a Kubernetes node group identified by the provided args.
 	DeleteNodeGroup(ctx context.Context, args DeleteNodeGroupArgs) error
+
+	// Delete a Kubernetes cluster identified by the provided args.
 	DeleteCluster(ctx context.Context, args DeleteClusterArgs) error
 }
 
