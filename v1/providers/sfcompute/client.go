@@ -11,7 +11,7 @@ import (
 
 type SFCCredential struct {
 	RefID  string
-	apiKey string
+	apiKey string `json:"api_key"`
 }
 
 var _ v1.CloudCredential = &SFCCredential{}
