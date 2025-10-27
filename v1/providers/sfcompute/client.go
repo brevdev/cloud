@@ -62,7 +62,7 @@ func NewSFCClient(refID string, apiKey string /* auth fields */) *SFCClient {
 	}
 }
 
-func (c *SFCClient) GetAPIType() v1.APIType                 { return v1.APITypeLocational /* or Global */ }
+func (c *SFCClient) GetAPIType() v1.APIType                 { return v1.APITypeGlobal /* or Global */ }
 func (c *SFCClient) GetCloudProviderID() v1.CloudProviderID { return "sfcompute" }
 func (c *SFCClient) GetReferenceID() string                 { return c.refID }
 func (c *SFCClient) GetTenantID() (string, error)           { return "", nil }
