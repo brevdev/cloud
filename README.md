@@ -1,4 +1,4 @@
-# Cloud SDK (v1)
+# Cloud SDK (v1000)
 
 An early-stage, vendor-agnostic Go SDK for managing **clusterable, GPU-accelerated compute** across cloud providers.
 
