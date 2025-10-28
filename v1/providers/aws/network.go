@@ -3,6 +3,7 @@ package v1
 import (
 	"context"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -90,13 +91,22 @@ func createCompleteVPC(ctx context.Context, awsClient *ec2.Client, args v1.Creat
 		return nil, nil, errors.WrapAndTrace(err)
 	}
 
+	// Get the availability zones in the context region
+	availabilityZones, err := getAvailabilityZones(ctx, awsClient)
+	if err != nil {
+		return nil, nil, errors.WrapAndTrace(err)
+	}
+
 	var subnets []*v1.Subnet
 
 	// Create public subnets
 	var publicSubnets []*types.Subnet
-	for _, subnetArgs := range publicSubnetArgs {
+	for i, subnetArgs := range publicSubnetArgs {
+		// Round-robin through the availability zones
+		availabilityZone := availabilityZones[i%len(availabilityZones)]
+
 		// Create the public subnet
-		publicSubnet, err := createPublicSubnet(ctx, awsClient, vpc, subnetArgs, args)
+		publicSubnet, err := createPublicSubnet(ctx, awsClient, vpc, subnetArgs, args, availabilityZone)
 		if err != nil {
 			return nil, nil, errors.WrapAndTrace(err)
 		}
@@ -111,7 +121,7 @@ func createCompleteVPC(ctx context.Context, awsClient *ec2.Client, args v1.Creat
 		subnetArgs := privateSubnetArgs[i]
 
 		// Create the private subnet
-		privateSubnet, err := createPrivateSubnet(ctx, awsClient, vpc, natGatewaySubnet, subnetArgs, args)
+		privateSubnet, err := createPrivateSubnet(ctx, awsClient, vpc, natGatewaySubnet, subnetArgs)
 		if err != nil {
 			return nil, nil, errors.WrapAndTrace(err)
 		}
@@ -120,6 +130,23 @@ func createCompleteVPC(ctx context.Context, awsClient *ec2.Client, args v1.Creat
 	}
 
 	return vpc, subnets, nil
+}
+
+func getAvailabilityZones(ctx context.Context, awsClient *ec2.Client) ([]string, error) {
+	describeAvailabilityZonesOutput, err := awsClient.DescribeAvailabilityZones(ctx, &ec2.DescribeAvailabilityZonesInput{})
+	if err != nil {
+		return nil, errors.WrapAndTrace(err)
+	}
+
+	availabilityZones := []string{}
+	for _, availabilityZone := range describeAvailabilityZonesOutput.AvailabilityZones {
+		availabilityZones = append(availabilityZones, *availabilityZone.ZoneName)
+	}
+
+	// Sort the availability zones alphabetically for consistent round-robin behavior
+	sort.Strings(availabilityZones)
+
+	return availabilityZones, nil
 }
 
 func createVPC(ctx context.Context, awsClient *ec2.Client, args v1.CreateVPCArgs) (*types.Vpc, error) {
@@ -241,7 +268,7 @@ func awsSubnetToCloudSubnet(awsSubnet *types.Subnet, vpc *types.Vpc) *v1.Subnet 
 	}
 }
 
-func createPublicSubnet(ctx context.Context, awsClient *ec2.Client, vpc *types.Vpc, createSubnetArgs v1.CreateSubnetArgs, createVPCArgs v1.CreateVPCArgs) (*types.Subnet, error) {
+func createPublicSubnet(ctx context.Context, awsClient *ec2.Client, vpc *types.Vpc, createSubnetArgs v1.CreateSubnetArgs, createVPCArgs v1.CreateVPCArgs, availabilityZone string) (*types.Subnet, error) {
 	tags := make(map[string]string)
 	for key, value := range createSubnetArgs.Tags {
 		tags[key] = value
@@ -255,8 +282,9 @@ func createPublicSubnet(ctx context.Context, awsClient *ec2.Client, vpc *types.V
 	awsTags := makeEC2Tags(tags)
 
 	input := &ec2.CreateSubnetInput{
-		VpcId:     vpc.VpcId,
-		CidrBlock: aws.String(createSubnetArgs.CidrBlock),
+		VpcId:            vpc.VpcId,
+		CidrBlock:        aws.String(createSubnetArgs.CidrBlock),
+		AvailabilityZone: aws.String(availabilityZone),
 		TagSpecifications: []types.TagSpecification{
 			{
 				ResourceType: types.ResourceTypeSubnet,
@@ -423,7 +451,7 @@ func getOrCreateInternetGateway(ctx context.Context, awsClient *ec2.Client, vpc 
 	return output.InternetGateway, nil
 }
 
-func createPrivateSubnet(ctx context.Context, awsClient *ec2.Client, vpc *types.Vpc, natGatewaySubnet *types.Subnet, createSubnetArgs v1.CreateSubnetArgs, createVPCArgs v1.CreateVPCArgs) (*types.Subnet, error) {
+func createPrivateSubnet(ctx context.Context, awsClient *ec2.Client, vpc *types.Vpc, natGatewaySubnet *types.Subnet, createSubnetArgs v1.CreateSubnetArgs) (*types.Subnet, error) {
 	tags := make(map[string]string)
 	for key, value := range createSubnetArgs.Tags {
 		tags[key] = value

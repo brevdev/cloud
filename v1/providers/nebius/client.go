@@ -13,6 +13,8 @@ import (
 	"github.com/nebius/gosdk/auth"
 )
 
+const CloudProviderID string = "nebius"
+
 type NebiusCredential struct {
 	RefID               string
 	PublicKeyID         string
@@ -45,7 +47,7 @@ func (c *NebiusCredential) GetAPIType() v1.APIType {
 
 // GetCloudProviderID returns the cloud provider ID for Nebius
 func (c *NebiusCredential) GetCloudProviderID() v1.CloudProviderID {
-	return "nebius"
+	return v1.CloudProviderID(CloudProviderID)
 }
 
 // GetTenantID returns the tenant ID for Nebius (project ID)

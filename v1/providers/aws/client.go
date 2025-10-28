@@ -12,7 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 )
 
-const CloudProviderID = "aws"
+const CloudProviderID string = "aws"
 
 type AWSCredential struct {
 	RefID           string
@@ -39,7 +39,7 @@ func (c *AWSCredential) GetAPIType() v1.APIType {
 }
 
 func (c *AWSCredential) GetCloudProviderID() v1.CloudProviderID {
-	return CloudProviderID
+	return v1.CloudProviderID(CloudProviderID)
 }
 
 func (c *AWSCredential) GetTenantID() (string, error) {
@@ -84,7 +84,7 @@ func (c *AWSClient) GetAPIType() v1.APIType {
 }
 
 func (c *AWSClient) GetCloudProviderID() v1.CloudProviderID {
-	return CloudProviderID
+	return v1.CloudProviderID(CloudProviderID)
 }
 
 func (c *AWSClient) GetReferenceID() string {

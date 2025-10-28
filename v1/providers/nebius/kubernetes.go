@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	nebiuscommon "github.com/nebius/gosdk/proto/nebius/common/v1"
+	nebiusiamv1 "github.com/nebius/gosdk/proto/nebius/iam/v1"
 	nebiusmk8s "github.com/nebius/gosdk/proto/nebius/mk8s/v1"
 	nebiusvpc "github.com/nebius/gosdk/proto/nebius/vpc/v1"
 	grpccodes "google.golang.org/grpc/codes"
@@ -26,7 +27,26 @@ var _ v1.CloudMaintainKubernetes = &NebiusClient{}
 
 func (c *NebiusClient) CreateCluster(ctx context.Context, args v1.CreateClusterArgs) (*v1.Cluster, error) {
 	nebiusClusterService := c.sdk.Services().MK8S().V1().Cluster()
+	nebiusProjectService := c.sdk.Services().IAM().V1().Project()
 
+	// The target region is the same as the client's project region
+	project, err := nebiusProjectService.Get(ctx, &nebiusiamv1.GetProjectRequest{
+		Id: c.projectID,
+	})
+	if err != nil {
+		return nil, errors.WrapAndTrace(err)
+	}
+	region := project.GetSpec().GetRegion()
+
+	// Validate arguments
+	if len(args.SubnetIDs) == 0 {
+		return nil, errors.WrapAndTrace(fmt.Errorf("no subnet IDs specified for VPC %s", args.VPCID))
+	} else if len(args.SubnetIDs) > 1 {
+		return nil, errors.WrapAndTrace(fmt.Errorf("multiple subnet IDs not allowed for VPC %s", args.VPCID))
+	}
+	subnetID := string(args.SubnetIDs[0])
+
+	// Fetch the target VPC
 	vpc, err := c.GetVPC(ctx, v1.GetVPCArgs{
 		ID: args.VPCID,
 	})
@@ -34,21 +54,13 @@ func (c *NebiusClient) CreateCluster(ctx context.Context, args v1.CreateClusterA
 		return nil, errors.WrapAndTrace(err)
 	}
 
-	// validate
-	if len(args.SubnetIDs) == 0 {
-		return nil, errors.WrapAndTrace(fmt.Errorf("no subnet IDs specified for VPC %s", vpc.ID))
-	} else if len(args.SubnetIDs) > 1 {
-		return nil, errors.WrapAndTrace(fmt.Errorf("multiple subnet IDs not allowed for VPC %s", vpc.ID))
-	}
-	subnetID := string(args.SubnetIDs[0])
-
-	// make a map of ID to subnet for this VPC
+	// Create a map of subnetID->subnet for this VPC so that we can find the target subnet
 	subnetMap := make(map[string]*v1.Subnet)
 	for _, subnet := range vpc.Subnets {
 		subnetMap[string(subnet.ID)] = subnet
 	}
 
-	// get the specified subnet
+	// Get the target subnet from the map
 	var subnet *v1.Subnet
 	if _, ok := subnetMap[subnetID]; !ok {
 		return nil, errors.WrapAndTrace(fmt.Errorf("subnet ID %s does not match VPC %s", subnetID, vpc.ID))
@@ -65,6 +77,7 @@ func (c *NebiusClient) CreateCluster(ctx context.Context, args v1.CreateClusterA
 	labels[labelBrevRefID] = args.RefID
 	labels[labelCreatedBy] = labelBrevCloudSDK
 
+	// Create the cluster
 	createClusterOperation, err := nebiusClusterService.Create(ctx, &nebiusmk8s.CreateClusterRequest{
 		Metadata: &nebiuscommon.ResourceMetadata{
 			Name:     args.Name,
@@ -93,9 +106,9 @@ func (c *NebiusClient) CreateCluster(ctx context.Context, args v1.CreateClusterA
 		ID:                v1.CloudProviderResourceID(createClusterOperation.ResourceID()),
 		Name:              args.Name,
 		RefID:             args.RefID,
-		Provider:          "nebius",
-		Cloud:             "nebius",
-		Location:          args.Location,
+		Provider:          CloudProviderID,
+		Cloud:             CloudProviderID,
+		Location:          region,
 		VPCID:             args.VPCID,
 		SubnetIDs:         args.SubnetIDs,
 		KubernetesVersion: args.KubernetesVersion,
@@ -175,9 +188,9 @@ func (c *NebiusClient) getClusterNodeGroups(ctx context.Context, cluster *nebius
 		return nil, errors.WrapAndTrace(err)
 	}
 
-	nodeGroups := make([]*v1.NodeGroup, 0)
-	for _, nebiusNodeGroup := range nebiusNodeGroups.Items {
-		nodeGroups = append(nodeGroups, parseNebiusNodeGroup(nebiusNodeGroup))
+	nodeGroups := make([]*v1.NodeGroup, len(nebiusNodeGroups.Items))
+	for i, nebiusNodeGroup := range nebiusNodeGroups.Items {
+		nodeGroups[i] = parseNebiusNodeGroup(nebiusNodeGroup)
 	}
 	return nodeGroups, nil
 }

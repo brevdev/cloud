@@ -56,6 +56,7 @@ const (
 	ClusterStatusPending   ClusterStatus = "pending"
 	ClusterStatusAvailable ClusterStatus = "available"
 	ClusterStatusDeleting  ClusterStatus = "deleting"
+	ClusterStatusFailed    ClusterStatus = "failed"
 )
 
 type NodeGroup struct {
@@ -94,6 +95,7 @@ const (
 	NodeGroupStatusPending   NodeGroupStatus = "pending"
 	NodeGroupStatusAvailable NodeGroupStatus = "available"
 	NodeGroupStatusDeleting  NodeGroupStatus = "deleting"
+	NodeGroupStatusFailed    NodeGroupStatus = "failed"
 )
 
 type CreateClusterArgs struct {
@@ -102,7 +104,6 @@ type CreateClusterArgs struct {
 	VPCID             CloudProviderResourceID
 	SubnetIDs         []CloudProviderResourceID
 	KubernetesVersion string
-	Location          string
 	Tags              Tags
 }
 
@@ -193,9 +194,6 @@ func ValidateCreateKubernetesCluster(ctx context.Context, client CloudMaintainKu
 	}
 	if cluster.RefID != attrs.RefID {
 		return nil, fmt.Errorf("cluster refID does not match create args: '%s' != '%s'", cluster.RefID, attrs.RefID)
-	}
-	if cluster.Location != attrs.Location {
-		return nil, fmt.Errorf("cluster location does not match create args: '%s' != '%s'", cluster.Location, attrs.Location)
 	}
 	if cluster.KubernetesVersion != attrs.KubernetesVersion {
 		return nil, fmt.Errorf("cluster KubernetesVersion does not match create args: '%s' != '%s'", cluster.KubernetesVersion, attrs.KubernetesVersion)
