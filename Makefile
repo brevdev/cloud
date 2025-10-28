@@ -29,6 +29,7 @@ GOSEC=gosec
 # Third party tools
 ARTIFACT_GOLINT=github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8
 ARTIFACT_GOSEC=github.com/securego/gosec/v2/cmd/gosec@v2.22.8
+ARTIFACT_GOFUMPT=mvdan.cc/gofumpt@v0.9.2
 
 # Build flags
 LDFLAGS=-ldflags "-X main.Version=$(shell git describe --tags --always --dirty) -X main.BuildTime=$(shell date -u '+%Y-%m-%d_%H:%M:%S')"
@@ -194,6 +195,7 @@ install-tools:
 	@echo "Installing development tools..."
 	$(GOINSTALL) $(ARTIFACT_GOLINT)
 	$(GOINSTALL) $(ARTIFACT_GOSEC)
+	$(GOINSTALL) $(ARTIFACT_GOFUMPT)
 
 # Show help
 .PHONY: help
