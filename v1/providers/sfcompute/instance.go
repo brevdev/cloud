@@ -2,16 +2,58 @@ package v1
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
+	"time"
 
 	v1 "github.com/brevdev/cloud/v1"
+	sfcnodes "github.com/sfcompute/nodes-go"
+	"github.com/sfcompute/nodes-go/packages/param"
 )
 
+// define function to convert string to b64
+func toBase64(s string) string {
+	return base64.StdEncoding.EncodeToString([]byte(s))
+}
+
+// define function to add ssh key to cloud init
+func sshKeyCloudInit(sshKey string) string {
+	return toBase64(fmt.Sprintf("#cloud-config\nssh_authorized_keys:\n  - %s", sshKey))
+}
+
 func (c *SFCClient) CreateInstance(ctx context.Context, attrs v1.CreateInstanceAttrs) (*v1.Instance, error) {
-	// 1) ensure SSH key present (or inject via API) per ../docs/SECURITY.md
-	// 2) map attrs to provider request (location, instance type, image, tags, firewall rules if supported)
-	// 3) launch and return instance converted to v1.Instance
-	return nil, fmt.Errorf("not implemented")
+	resp, err := c.client.Nodes.New(ctx, sfcnodes.NodeNewParams{
+		CreateNodesRequest: sfcnodes.CreateNodesRequestParam{
+			DesiredCount:        1,
+			MaxPricePerNodeHour: 1000,
+			Zone:                attrs.Location,
+			ImageID:             param.Opt[string]{Value: attrs.ImageID},                    //this needs to point to a valid image
+			CloudInitUserData:   param.Opt[string]{Value: sshKeyCloudInit(attrs.PublicKey)}, // encode ssh key to b64-wrapped cloud-init script
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if len(resp.Data) == 0 {
+		return nil, fmt.Errorf("no nodes returned")
+	}
+	node := resp.Data[0]
+
+	inst := &v1.Instance{
+		Name:           attrs.Name,
+		RefID:          attrs.RefID,
+		CloudCredRefID: c.refID,
+		CloudID:        v1.CloudProviderInstanceID(node.ID), // SFC ID
+		ImageID:        attrs.ImageID,
+		InstanceType:   attrs.InstanceType,
+		Location:       attrs.Location,
+		CreatedAt:      time.Now(),
+		Status:         v1.Status{LifecycleStatus: v1.LifecycleStatusPending}, // or map from SDK status
+		InstanceTypeID: v1.InstanceTypeID(node.GPUType),
+	}
+
+	return inst, nil
 }
 
 func (c *SFCClient) GetInstance(ctx context.Context, id v1.CloudProviderInstanceID) (*v1.Instance, error) {
