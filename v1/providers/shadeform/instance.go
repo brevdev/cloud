@@ -258,7 +258,6 @@ func (c *ShadeformClient) getLifecycleStatus(status string) v1.LifecycleStatus {
 
 // convertInstanceInfoResponseToV1Instance - converts Instance Info to v1 instance
 func (c *ShadeformClient) convertInstanceInfoResponseToV1Instance(ctx context.Context, instanceInfo openapi.InstanceInfoResponse) (*v1.Instance, error) {
-	c.logger.Debug(ctx, "converting instance info response to v1 instance", v1.LogField("instanceInfo", instanceInfo))
 	instanceType := c.getInstanceType(string(instanceInfo.Cloud), instanceInfo.ShadeInstanceType)
 	lifeCycleStatus := c.getLifecycleStatus(string(instanceInfo.Status))
 
@@ -271,18 +270,15 @@ func (c *ShadeformClient) convertInstanceInfoResponseToV1Instance(ctx context.Co
 	if !found {
 		return nil, errors.WrapAndTrace(errors.New("could not find refID tag"))
 	}
-	c.logger.Debug(ctx, "refID found, deleting from tags", v1.LogField("refID", refID))
 	delete(tags, refIDTagName)
 
 	cloudCredRefID, found := tags[cloudCredRefIDTagName]
 	if !found {
 		return nil, errors.WrapAndTrace(errors.New("could not find cloudCredRefID tag"))
 	}
-	c.logger.Debug(ctx, "cloudCredRefID found, deleting from tags", v1.LogField("cloudCredRefID", cloudCredRefID))
 	delete(tags, cloudCredRefIDTagName)
 
 	diskSize := units.Base2Bytes(instanceInfo.Configuration.StorageInGb) * units.GiB
-	c.logger.Debug(ctx, "calculated diskSize", v1.LogField("diskSize", diskSize), v1.LogField("storageInGb", instanceInfo.Configuration.StorageInGb))
 
 	instance := &v1.Instance{
 		Name:           c.getProvidedInstanceName(instanceInfo.Name),
@@ -315,7 +311,6 @@ func (c *ShadeformClient) convertInstanceInfoResponseToV1Instance(ctx context.Co
 // convertInstanceInfoResponseToV1Instance - converts /instances response to v1 instance; the api struct is slightly
 // different from instance info response and expected to diverge so keeping it as a separate function for now
 func (c *ShadeformClient) convertShadeformInstanceToV1Instance(ctx context.Context, shadeformInstance openapi.Instance) (*v1.Instance, error) {
-	c.logger.Debug(ctx, "converting shadeform instance to v1 instance", v1.LogField("shadeformInstance", shadeformInstance))
 	instanceType := c.getInstanceType(string(shadeformInstance.Cloud), shadeformInstance.ShadeInstanceType)
 	lifeCycleStatus := c.getLifecycleStatus(string(shadeformInstance.Status))
 
@@ -328,18 +323,15 @@ func (c *ShadeformClient) convertShadeformInstanceToV1Instance(ctx context.Conte
 	if !found {
 		return nil, errors.WrapAndTrace(errors.New("could not find refID tag"))
 	}
-	c.logger.Debug(ctx, "refID found, deleting from tags", v1.LogField("refID", refID))
 	delete(tags, refIDTagName)
 
 	cloudCredRefID, found := tags[cloudCredRefIDTagName]
 	if !found {
 		return nil, errors.WrapAndTrace(errors.New("could not find cloudCredRefID tag"))
 	}
-	c.logger.Debug(ctx, "cloudCredRefID found, deleting from tags", v1.LogField("cloudCredRefID", cloudCredRefID))
 	delete(tags, cloudCredRefIDTagName)
 
 	diskSize := units.Base2Bytes(shadeformInstance.Configuration.StorageInGb) * units.GiB
-	c.logger.Debug(ctx, "calculated diskSize", v1.LogField("diskSize", diskSize), v1.LogField("storageInGb", shadeformInstance.Configuration.StorageInGb))
 
 	instance := &v1.Instance{
 		Name:         shadeformInstance.Name,
