@@ -42,4 +42,6 @@ type CloudClient interface {
 	CloudModifyFirewall
 	CloudInstanceTags
 	UpdateHandler
+	CloudMaintainVPC
+	CloudMaintainKubernetes
 }

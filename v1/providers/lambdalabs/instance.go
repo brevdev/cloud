@@ -107,10 +107,9 @@ func (c *LambdaLabsClient) ListInstances(ctx context.Context, _ v1.ListInstances
 		return nil, fmt.Errorf("failed to list instances: %w", err)
 	}
 
-	instances := make([]v1.Instance, 0, len(resp.Data))
-	for _, llInstance := range resp.Data {
-		instance := convertLambdaLabsInstanceToV1Instance(llInstance)
-		instances = append(instances, *instance)
+	instances := make([]v1.Instance, len(resp.Data))
+	for i, llInstance := range resp.Data {
+		instances[i] = *convertLambdaLabsInstanceToV1Instance(llInstance)
 	}
 
 	return instances, nil

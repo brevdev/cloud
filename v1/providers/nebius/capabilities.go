@@ -22,7 +22,8 @@ func getNebiusCapabilities() v1.Capabilities {
 		v1.CapabilityResizeInstanceVolume, // Nebius supports disk resizing
 		v1.CapabilityTags,                 // Nebius supports resource tagging
 		v1.CapabilityInstanceUserData,     // Nebius supports user data in instance creation
-
+		v1.CapabilityVPC,                  // Nebius supports VPCs
+		v1.CapabilityManagedKubernetes,    // Nebius supports managed Kubernetes clusters
 	}
 }
 

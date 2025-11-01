@@ -1,6 +1,8 @@
 package v1
 
-import "context"
+import (
+	"context"
+)
 
 type CloudModifyFirewall interface {
 	AddFirewallRulesToInstance(ctx context.Context, args AddFirewallRulesToInstanceArgs) error
