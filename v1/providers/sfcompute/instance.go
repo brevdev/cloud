@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"strings"
 	"time"
 
 	v1 "github.com/brevdev/cloud/v1"
@@ -19,6 +20,25 @@ func toBase64(s string) string {
 // define function to add ssh key to cloud init
 func sshKeyCloudInit(sshKey string) string {
 	return toBase64(fmt.Sprintf("#cloud-config\nssh_authorized_keys:\n  - %s", sshKey))
+}
+
+func mapSFCStatus(s string) v1.LifecycleStatus {
+	switch strings.ToLower(s) {
+	case "pending", "nodefailure", "unspecified", "awaitingcapacity", "unknown", "failed":
+		return v1.LifecycleStatusPending
+	case "running":
+		return v1.LifecycleStatusRunning
+	// case "stopping":
+	//return v1.LifecycleStatusStopping
+	case "stopped":
+		return v1.LifecycleStatusStopped
+	case "terminating", "released":
+		return v1.LifecycleStatusTerminating
+	case "destroyed", "deleted":
+		return v1.LifecycleStatusTerminated
+	default:
+		return v1.LifecycleStatusPending
+	}
 }
 
 func (c *SFCClient) CreateInstance(ctx context.Context, attrs v1.CreateInstanceAttrs) (*v1.Instance, error) {
@@ -49,7 +69,7 @@ func (c *SFCClient) CreateInstance(ctx context.Context, attrs v1.CreateInstanceA
 		InstanceType:   attrs.InstanceType,
 		Location:       attrs.Location,
 		CreatedAt:      time.Now(),
-		Status:         v1.Status{LifecycleStatus: v1.LifecycleStatusPending}, // or map from SDK status
+		Status:         v1.Status{LifecycleStatus: mapSFCStatus(fmt.Sprint(node.Status))}, // map SDK status to our lifecycle
 		InstanceTypeID: v1.InstanceTypeID(node.GPUType),
 	}
 
