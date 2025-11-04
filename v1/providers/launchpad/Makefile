@@ -1,14 +1,16 @@
-SPEC_VERSION ?= v2.36.1
-SPEC_FILE    ?= /local/swagger-${SPEC_VERSION}.yaml
-OUTPUT_DIR   ?= launchpad
+SPEC_VERSION    ?= v2.39.5
+SPEC_FILE       ?= swagger-${SPEC_VERSION}.yaml
+SPEC_FILE_FINAL ?= swagger-${SPEC_VERSION}.final.yaml
+OUTPUT_DIR      ?= launchpad
 # To understand disallowAdditionalPropertiesIfNotPresent=false
 # Check out https://openapi-generator.tech/docs/generators/go/#config-options
 generate-launchpad-client:
+	go run ./scripts/finalize-swagger ${SPEC_FILE} ${SPEC_FILE_FINAL}
 	rm -rf gen/${OUTPUT_DIR}
 	mkdir -p gen/${OUTPUT_DIR}
 	docker run --rm -v ${PWD}:/local openapitools/openapi-generator-cli:v7.8.0 generate \
 		--additional-properties disallowAdditionalPropertiesIfNotPresent=false \
-		-i ${SPEC_FILE} \
+		-i /local/${SPEC_FILE_FINAL} \
 		-g go \
 		--git-user-id brevdev \
 		--git-repo-id cloud \

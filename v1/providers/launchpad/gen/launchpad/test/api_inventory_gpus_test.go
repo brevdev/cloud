@@ -22,98 +22,98 @@ func Test_openapi_InventoryGpusAPIService(t *testing.T) {
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
 
-	t.Run("Test InventoryGpusAPIService InventoryGpusBulkPartialUpdate", func(t *testing.T) {
+	t.Run("Test InventoryGpusAPIService V1InventoryGpusBulkPartialUpdate", func(t *testing.T) {
 		t.Skip("skip test") // remove to run test
 
-		resp, httpRes, err := apiClient.InventoryGpusAPI.InventoryGpusBulkPartialUpdate(context.Background()).Execute()
+		resp, httpRes, err := apiClient.InventoryGpusAPI.V1InventoryGpusBulkPartialUpdate(context.Background()).Execute()
 
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
 	})
 
-	t.Run("Test InventoryGpusAPIService InventoryGpusCreate", func(t *testing.T) {
+	t.Run("Test InventoryGpusAPIService V1InventoryGpusCreate", func(t *testing.T) {
 		t.Skip("skip test") // remove to run test
 
-		resp, httpRes, err := apiClient.InventoryGpusAPI.InventoryGpusCreate(context.Background()).Execute()
+		resp, httpRes, err := apiClient.InventoryGpusAPI.V1InventoryGpusCreate(context.Background()).Execute()
 
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
 	})
 
-	t.Run("Test InventoryGpusAPIService InventoryGpusDestroy", func(t *testing.T) {
+	t.Run("Test InventoryGpusAPIService V1InventoryGpusDestroy", func(t *testing.T) {
 		t.Skip("skip test") // remove to run test
 
 		var id string
 
-		httpRes, err := apiClient.InventoryGpusAPI.InventoryGpusDestroy(context.Background(), id).Execute()
+		httpRes, err := apiClient.InventoryGpusAPI.V1InventoryGpusDestroy(context.Background(), id).Execute()
 
 		require.Nil(t, err)
 		assert.Equal(t, 200, httpRes.StatusCode)
 	})
 
-	t.Run("Test InventoryGpusAPIService InventoryGpusHistoryList", func(t *testing.T) {
+	t.Run("Test InventoryGpusAPIService V1InventoryGpusHistoryList", func(t *testing.T) {
 		t.Skip("skip test") // remove to run test
 
 		var id string
 
-		resp, httpRes, err := apiClient.InventoryGpusAPI.InventoryGpusHistoryList(context.Background(), id).Execute()
+		resp, httpRes, err := apiClient.InventoryGpusAPI.V1InventoryGpusHistoryList(context.Background(), id).Execute()
 
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
 	})
 
-	t.Run("Test InventoryGpusAPIService InventoryGpusList", func(t *testing.T) {
+	t.Run("Test InventoryGpusAPIService V1InventoryGpusList", func(t *testing.T) {
 		t.Skip("skip test") // remove to run test
 
-		resp, httpRes, err := apiClient.InventoryGpusAPI.InventoryGpusList(context.Background()).Execute()
+		resp, httpRes, err := apiClient.InventoryGpusAPI.V1InventoryGpusList(context.Background()).Execute()
 
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
 	})
 
-	t.Run("Test InventoryGpusAPIService InventoryGpusPartialUpdate", func(t *testing.T) {
+	t.Run("Test InventoryGpusAPIService V1InventoryGpusPartialUpdate", func(t *testing.T) {
 		t.Skip("skip test") // remove to run test
 
 		var id string
 
-		resp, httpRes, err := apiClient.InventoryGpusAPI.InventoryGpusPartialUpdate(context.Background(), id).Execute()
+		resp, httpRes, err := apiClient.InventoryGpusAPI.V1InventoryGpusPartialUpdate(context.Background(), id).Execute()
 
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
 	})
 
-	t.Run("Test InventoryGpusAPIService InventoryGpusRetrieve", func(t *testing.T) {
+	t.Run("Test InventoryGpusAPIService V1InventoryGpusRetrieve", func(t *testing.T) {
 		t.Skip("skip test") // remove to run test
 
 		var id string
 
-		resp, httpRes, err := apiClient.InventoryGpusAPI.InventoryGpusRetrieve(context.Background(), id).Execute()
+		resp, httpRes, err := apiClient.InventoryGpusAPI.V1InventoryGpusRetrieve(context.Background(), id).Execute()
 
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
 	})
 
-	t.Run("Test InventoryGpusAPIService InventoryGpusStatsRetrieve", func(t *testing.T) {
+	t.Run("Test InventoryGpusAPIService V1InventoryGpusStatsRetrieve", func(t *testing.T) {
 		t.Skip("skip test") // remove to run test
 
-		httpRes, err := apiClient.InventoryGpusAPI.InventoryGpusStatsRetrieve(context.Background()).Execute()
+		httpRes, err := apiClient.InventoryGpusAPI.V1InventoryGpusStatsRetrieve(context.Background()).Execute()
 
 		require.Nil(t, err)
 		assert.Equal(t, 200, httpRes.StatusCode)
 	})
 
-	t.Run("Test InventoryGpusAPIService InventoryGpusUpdate", func(t *testing.T) {
+	t.Run("Test InventoryGpusAPIService V1InventoryGpusUpdate", func(t *testing.T) {
 		t.Skip("skip test") // remove to run test
 
 		var id string
 
-		resp, httpRes, err := apiClient.InventoryGpusAPI.InventoryGpusUpdate(context.Background(), id).Execute()
+		resp, httpRes, err := apiClient.InventoryGpusAPI.V1InventoryGpusUpdate(context.Background(), id).Execute()
 
 		require.Nil(t, err)
 		require.NotNil(t, resp)

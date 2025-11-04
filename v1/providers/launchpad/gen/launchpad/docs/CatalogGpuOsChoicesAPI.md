@@ -4,14 +4,14 @@ All URIs are relative to *http://localhost*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
-[**CatalogGpuOsChoicesCreate**](CatalogGpuOsChoicesAPI.md#CatalogGpuOsChoicesCreate) | **Post** /v1/catalog/gpu-os-choices/ | 
-[**CatalogGpuOsChoicesList**](CatalogGpuOsChoicesAPI.md#CatalogGpuOsChoicesList) | **Get** /v1/catalog/gpu-os-choices/ | 
+[**V1CatalogGpuOsChoicesCreate**](CatalogGpuOsChoicesAPI.md#V1CatalogGpuOsChoicesCreate) | **Post** /v1/catalog/gpu-os-choices/ | 
+[**V1CatalogGpuOsChoicesList**](CatalogGpuOsChoicesAPI.md#V1CatalogGpuOsChoicesList) | **Get** /v1/catalog/gpu-os-choices/ | 
 
 
 
-## CatalogGpuOsChoicesCreate
+## V1CatalogGpuOsChoicesCreate
 
-> GpuOsChoice CatalogGpuOsChoicesCreate(ctx).GpuOsChoice(gpuOsChoice).Execute()
+> GpuOsChoice V1CatalogGpuOsChoicesCreate(ctx).GpuOsChoice(gpuOsChoice).Execute()
 
 
 
@@ -33,13 +33,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.CatalogGpuOsChoicesAPI.CatalogGpuOsChoicesCreate(context.Background()).GpuOsChoice(gpuOsChoice).Execute()
+	resp, r, err := apiClient.CatalogGpuOsChoicesAPI.V1CatalogGpuOsChoicesCreate(context.Background()).GpuOsChoice(gpuOsChoice).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `CatalogGpuOsChoicesAPI.CatalogGpuOsChoicesCreate``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `CatalogGpuOsChoicesAPI.V1CatalogGpuOsChoicesCreate``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `CatalogGpuOsChoicesCreate`: GpuOsChoice
-	fmt.Fprintf(os.Stdout, "Response from `CatalogGpuOsChoicesAPI.CatalogGpuOsChoicesCreate`: %v\n", resp)
+	// response from `V1CatalogGpuOsChoicesCreate`: GpuOsChoice
+	fmt.Fprintf(os.Stdout, "Response from `CatalogGpuOsChoicesAPI.V1CatalogGpuOsChoicesCreate`: %v\n", resp)
 }
 ```
 
@@ -49,7 +49,7 @@ func main() {
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiCatalogGpuOsChoicesCreateRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1CatalogGpuOsChoicesCreateRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -74,9 +74,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## CatalogGpuOsChoicesList
+## V1CatalogGpuOsChoicesList
 
-> PaginatedGpuOsChoiceList CatalogGpuOsChoicesList(ctx).Fields(fields).Omit(omit).Ordering(ordering).Page(page).PageSize(pageSize).Search(search).Execute()
+> PaginatedGpuOsChoiceList V1CatalogGpuOsChoicesList(ctx).Fields(fields).Omit(omit).Ordering(ordering).Page(page).PageSize(pageSize).Search(search).Execute()
 
 
 
@@ -102,13 +102,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.CatalogGpuOsChoicesAPI.CatalogGpuOsChoicesList(context.Background()).Fields(fields).Omit(omit).Ordering(ordering).Page(page).PageSize(pageSize).Search(search).Execute()
+	resp, r, err := apiClient.CatalogGpuOsChoicesAPI.V1CatalogGpuOsChoicesList(context.Background()).Fields(fields).Omit(omit).Ordering(ordering).Page(page).PageSize(pageSize).Search(search).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `CatalogGpuOsChoicesAPI.CatalogGpuOsChoicesList``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `CatalogGpuOsChoicesAPI.V1CatalogGpuOsChoicesList``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `CatalogGpuOsChoicesList`: PaginatedGpuOsChoiceList
-	fmt.Fprintf(os.Stdout, "Response from `CatalogGpuOsChoicesAPI.CatalogGpuOsChoicesList`: %v\n", resp)
+	// response from `V1CatalogGpuOsChoicesList`: PaginatedGpuOsChoiceList
+	fmt.Fprintf(os.Stdout, "Response from `CatalogGpuOsChoicesAPI.V1CatalogGpuOsChoicesList`: %v\n", resp)
 }
 ```
 
@@ -118,7 +118,7 @@ func main() {
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiCatalogGpuOsChoicesListRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1CatalogGpuOsChoicesListRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes

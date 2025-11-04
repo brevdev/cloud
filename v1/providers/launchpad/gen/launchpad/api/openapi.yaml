@@ -2,16 +2,53 @@ openapi: 3.1.0
 info:
   description: RESTful API for interacting with the NVIDIA LaunchPad platform
   title: NVIDIA LaunchPad API
-  version: 2.36.1
+  version: 2.39.5
 servers:
 - url: /
 paths:
+  /health/:
+    get:
+      operationId: health_retrieve
+      responses:
+        "200":
+          content:
+            application/json:
+              examples:
+                HealthyResponse:
+                  summary: Healthy Response
+                  value:
+                    status: healthy
+                    components:
+                      application: ok
+                      database: ok
+              schema:
+                $ref: '#/components/schemas/health_retrieve_200_response'
+          description: ""
+        "503":
+          content:
+            application/json:
+              examples:
+                UnhealthyResponse:
+                  summary: Unhealthy Response
+                  value:
+                    status: unhealthy
+                    components:
+                      application: ok
+                      database: connection failure
+              schema:
+                $ref: '#/components/schemas/health_retrieve_200_response'
+          description: ""
+      security:
+      - TokenAuthentication: []
+      - {}
+      tags:
+      - health
   /v1/auth/login/:
     post:
       description: Login with either an authorization code or username and password
         (deprecated) to generate an API token that can be used with all other API
         endpoints.
-      operationId: auth_login_create
+      operationId: v1_auth_login_create
       requestBody:
         content:
           application/x-www-form-urlencoded:
@@ -48,7 +85,7 @@ paths:
     post:
       description: Logout from the current session. Your API token will no longer
         be usable and must be regenerated via the login API.
-      operationId: auth_logout_create
+      operationId: v1_auth_logout_create
       responses:
         "200":
           content:
@@ -64,7 +101,7 @@ paths:
     post:
       deprecated: true
       description: Change your current password
-      operationId: auth_password_change_create
+      operationId: v1_auth_password_change_create
       requestBody:
         content:
           application/x-www-form-urlencoded:
@@ -91,7 +128,7 @@ paths:
   /v1/auth/redirect/:
     get:
       description: Get an HTTP redirect to begin an OAuth login flow.
-      operationId: auth_redirect_retrieve
+      operationId: v1_auth_redirect_retrieve
       parameters:
       - description: "If \"false\" or unset, receive an HTTP 302 with the OAuth URL\
           \ returned in the Location header. If \"true\", receive an HTTP 200 with\
@@ -118,7 +155,7 @@ paths:
       - auth
   /v1/catalog/deployments/:
     get:
-      operationId: catalog_deployments_list
+      operationId: v1_catalog_deployments_list
       parameters:
       - explode: true
         in: query
@@ -361,36 +398,11 @@ paths:
         schema:
           type: string
         style: form
-      - description: |-
-          Override the default platform selection
-
-          * `air` - NVIDIA Air
-          * `flight_deck` - Flight Deck
-          * `kvm_bastion` - KVM Bastion
-          * `lp-vmware-platform` - lp-vmware-platform
-          * `minimal` - minimal
-          * `openshift` - OpenShift
-          * `vsphere` - vSphere
-          * `vsphere_horizon` - VMware Horizon
-          * `vsphere7` - vSphere 7
-          * `vsphere8` - vSphere 8
-        explode: true
+      - explode: true
         in: query
         name: platform
         required: false
         schema:
-          enum:
-          - air
-          - flight_deck
-          - kvm_bastion
-          - lp-vmware-platform
-          - minimal
-          - openshift
-          - vsphere
-          - vsphere7
-          - vsphere8
-          - vsphere_horizon
-          nullable: true
           type: string
         style: form
       - description: |-
@@ -449,6 +461,69 @@ paths:
         style: form
       - explode: true
         in: query
+        name: runtime_branch
+        required: false
+        schema:
+          type: string
+        style: form
+      - explode: true
+        in: query
+        name: runtime_cns_addon_pack
+        required: false
+        schema:
+          type: boolean
+        style: form
+      - explode: true
+        in: query
+        name: runtime_cns_docker
+        required: false
+        schema:
+          type: boolean
+        style: form
+      - explode: true
+        in: query
+        name: runtime_cns_driver_version
+        required: false
+        schema:
+          type: string
+        style: form
+      - explode: true
+        in: query
+        name: runtime_cns_k8s
+        required: false
+        schema:
+          type: boolean
+        style: form
+      - explode: true
+        in: query
+        name: runtime_cns_nvidia_driver
+        required: false
+        schema:
+          type: boolean
+        style: form
+      - explode: true
+        in: query
+        name: runtime_cns_version
+        required: false
+        schema:
+          type: string
+        style: form
+      - explode: true
+        in: query
+        name: runtime_mig
+        required: false
+        schema:
+          type: boolean
+        style: form
+      - explode: true
+        in: query
+        name: runtime_mig_profile
+        required: false
+        schema:
+          type: string
+        style: form
+      - explode: true
+        in: query
         name: sales_id
         required: false
         schema:
@@ -468,13 +543,31 @@ paths:
         schema:
           type: string
         style: form
-      - description: "Search for deployments by bastion_operating_system, collection_branch,\
-          \ experience_branch, experience catalog_id, experience catalog_id_alias,\
-          \ experience id, experience title, expires_at, flightcontrol_release, garage_id,\
-          \ gc_branch, gpu_alias, gpu_model, gpu_os_name, gpu_os_release, gpu_os_version,\
-          \ id, oem_name, org_name, persona, pipeline_branch, platform, provider_name,\
-          \ region, request_id, requester_email, requester_name, sales_id, sales_owner_email,\
-          \ sales_owner_name, services url, state, tags, workshop_id"
+      - description: "Search for deployments by experience catalog_id, experience\
+          \ catalog_id_alias, experience id, experience title, expires_at, id, org_name,\
+          \ provisioning_config bastion_operating_system, provisioning_config collection_branch,\
+          \ provisioning_config experience_branch, provisioning_config flightcontrol_release,\
+          \ provisioning_config garage_id, provisioning_config gc_branch, provisioning_config\
+          \ gpu_alias, provisioning_config gpu_model, provisioning_config gpu_os_name,\
+          \ provisioning_config gpu_os_release, provisioning_config gpu_os_version,\
+          \ provisioning_config oem_name, provisioning_config persona, provisioning_config\
+          \ pipeline_branch, provisioning_config platform, provisioning_config provider_name,\
+          \ provisioning_config region, provisioning_config runtime_branch, provisioning_config\
+          \ runtime_cns_driver_version, provisioning_config runtime_cns_version, provisioning_config\
+          \ runtime_mig_profile, provisioning_config runtime_url, provisioning_config\
+          \ workshop_id, provisioning_request bastion_operating_system, provisioning_request\
+          \ collection_branch, provisioning_request experience_branch, provisioning_request\
+          \ flightcontrol_release, provisioning_request garage_id, provisioning_request\
+          \ gc_branch, provisioning_request gpu_alias, provisioning_request gpu_model,\
+          \ provisioning_request gpu_os_name, provisioning_request gpu_os_release,\
+          \ provisioning_request gpu_os_version, provisioning_request oem_name, provisioning_request\
+          \ persona, provisioning_request pipeline_branch, provisioning_request platform,\
+          \ provisioning_request provider_name, provisioning_request region, provisioning_request\
+          \ runtime_branch, provisioning_request runtime_cns_driver_version, provisioning_request\
+          \ runtime_cns_version, provisioning_request runtime_mig_profile, provisioning_request\
+          \ runtime_url, provisioning_request workshop_id, request_id, requester_email,\
+          \ requester_name, sales_id, sales_owner_email, sales_owner_name, services\
+          \ url, state, tags"
         explode: true
         in: query
         name: search
@@ -499,6 +592,41 @@ paths:
         explode: false
         in: query
         name: state
+        required: false
+        schema:
+          items:
+            enum:
+            - destroyed
+            - destroying
+            - error
+            - failed
+            - paused
+            - ready
+            - retrying
+            - starting
+            - stopped
+            - stopping
+            - waiting
+            type: string
+          type: array
+        style: form
+      - description: |-
+          Multiple values may be separated by commas.
+
+          * `destroyed` - Deployment has been fully destroyed
+          * `destroying` - Deployment is being destroyed
+          * `error` - Deployment has encountered a fatal error and will not be retried
+          * `failed` - Deployment has failed but may be retried
+          * `paused` - Deployment is paused but may be retried later
+          * `ready` - Deployment is ready and all instances are running
+          * `retrying` - Deployment is retrying
+          * `starting` - Deployment instances are starting
+          * `stopped` - Deployment instances are stopped
+          * `stopping` - Deployment instances are stopping
+          * `waiting` - Waiting for deployment to be ready
+        explode: false
+        in: query
+        name: state_not
         required: false
         schema:
           items:
@@ -549,7 +677,7 @@ paths:
                       created: 2024-04-01T06:14:32.602Z
                       experience: c4b62bd4-6c4b-41f2-b4ec-5ad392f6afc
                       experience_branch: main
-                      expires_at: 2025-09-21 21:04:45.203347+00:00
+                      expires_at: 2025-11-07 14:20:24.717454+00:00
                       flightcontrol_release: latest
                       garage_id: f15b539b-8b64-46e8-95e3-c70f2f36aabd
                       gc_branch: main
@@ -585,6 +713,16 @@ paths:
                       requester_email: jane.doe@nvidia.com
                       requester_name: Jane Doe
                       retry_count: 0
+                      runtime: 4e76b464-e3e4-4ed9-ba1d-ee14c5cf40a0
+                      runtime_branch: main
+                      runtime_cns_addon_pack: false
+                      runtime_cns_docker: true
+                      runtime_cns_driver_version: 580.65.06
+                      runtime_cns_k8s: true
+                      runtime_cns_nvidia_driver: true
+                      runtime_cns_version: "16.0"
+                      runtime_mig: true
+                      runtime_mig_profile: all-2g.20gb
                       sales_created_date: 2025-04-10T15:08:47.381700Z
                       sales_id: a6ZYx000001234
                       sales_owner_email: john.smith@nvidia.com
@@ -607,7 +745,7 @@ paths:
       tags:
       - catalog/deployments
     post:
-      operationId: catalog_deployments_create
+      operationId: v1_catalog_deployments_create
       parameters:
       - description: "Expand related field(s) instead of only showing a UUID (ex:\
           \ \"cluster\")."
@@ -630,7 +768,7 @@ paths:
                   cluster: 089324a5-708c-4386-9fdc-92dd9aa63d2b
                   collection_branch: my-branch
                   experience_branch: main
-                  expires_at: 2025-09-21 21:04:45.203347+00:00
+                  expires_at: 2025-11-07 14:20:24.717454+00:00
                   flightcontrol_release: latest
                   garage_id: f15b539b-8b64-46e8-95e3-c70f2f36aabd
                   gc_branch: main
@@ -659,10 +797,21 @@ paths:
                   request_id: TRY-123
                   requester_email: jane.doe@nvidia.com
                   requester_name: Jane Doe
+                  runtime: 4e76b464-e3e4-4ed9-ba1d-ee14c5cf40a0
+                  runtime_branch: main
+                  runtime_cns_addon_pack: false
+                  runtime_cns_docker: true
+                  runtime_cns_driver_version: 580.65.06
+                  runtime_cns_k8s: true
+                  runtime_cns_nvidia_driver: true
+                  runtime_cns_version: "16.0"
+                  runtime_mig: true
+                  runtime_mig_profile: all-2g.20gb
                   sales_created_date: 2025-04-10T15:08:47.381700Z
                   sales_id: a6ZYx000001234
                   sales_owner_email: john.smith@nvidia.com
                   sales_owner_name: John Smith
+                  startup_script: '#!/bin/bash echo "Hello world"'
                   tags:
                     sample: test
                   workshop: false
@@ -676,7 +825,7 @@ paths:
                   collection_branch: my-branch
                   experience_branch: main
                   experience_id: c4b62bd4-6c4b-41f2-b4ec-5ad392f6afc
-                  expires_at: 2025-09-21 21:04:45.203347+00:00
+                  expires_at: 2025-11-07 14:20:24.717454+00:00
                   flightcontrol_release: latest
                   garage_id: f15b539b-8b64-46e8-95e3-c70f2f36aabd
                   gc_branch: main
@@ -705,10 +854,21 @@ paths:
                   request_id: TRY-123
                   requester_email: jane.doe@nvidia.com
                   requester_name: Jane Doe
+                  runtime: 4e76b464-e3e4-4ed9-ba1d-ee14c5cf40a0
+                  runtime_branch: main
+                  runtime_cns_addon_pack: false
+                  runtime_cns_docker: true
+                  runtime_cns_driver_version: 580.65.06
+                  runtime_cns_k8s: true
+                  runtime_cns_nvidia_driver: true
+                  runtime_cns_version: "16.0"
+                  runtime_mig: true
+                  runtime_mig_profile: all-2g.20gb
                   sales_created_date: 2025-04-10T15:08:47.381700Z
                   sales_id: a6ZYx000001234
                   sales_owner_email: john.smith@nvidia.com
                   sales_owner_name: John Smith
+                  startup_script: '#!/bin/bash echo "Hello world"'
                   tags:
                     sample: test
                   workshop: false
@@ -722,7 +882,7 @@ paths:
                   cluster: 089324a5-708c-4386-9fdc-92dd9aa63d2b
                   collection_branch: my-branch
                   experience_branch: main
-                  expires_at: 2025-09-21 21:04:45.203347+00:00
+                  expires_at: 2025-11-07 14:20:24.717454+00:00
                   flightcontrol_release: latest
                   garage_id: f15b539b-8b64-46e8-95e3-c70f2f36aabd
                   gc_branch: main
@@ -751,10 +911,21 @@ paths:
                   request_id: TRY-123
                   requester_email: jane.doe@nvidia.com
                   requester_name: Jane Doe
+                  runtime: 4e76b464-e3e4-4ed9-ba1d-ee14c5cf40a0
+                  runtime_branch: main
+                  runtime_cns_addon_pack: false
+                  runtime_cns_docker: true
+                  runtime_cns_driver_version: 580.65.06
+                  runtime_cns_k8s: true
+                  runtime_cns_nvidia_driver: true
+                  runtime_cns_version: "16.0"
+                  runtime_mig: true
+                  runtime_mig_profile: all-2g.20gb
                   sales_created_date: 2025-04-10T15:08:47.381700Z
                   sales_id: a6ZYx000001234
                   sales_owner_email: john.smith@nvidia.com
                   sales_owner_name: John Smith
+                  startup_script: '#!/bin/bash echo "Hello world"'
                   tags:
                     sample: test
                   workshop: false
@@ -764,6 +935,23 @@ paths:
                 summary: Deployment Request (Minimum Required Fields)
                 value:
                   experience_id: c4b62bd4-6c4b-41f2-b4ec-5ad392f6afc
+                  org_name: NVIDIA
+                  request_id: TRY-123
+                  requester_email: jane.doe@nvidia.com
+                  requester_name: Jane Doe
+              DeploymentRequest(MinimumRequiredFieldsW/CatalogID):
+                summary: Deployment Request (Minimum Required Fields w/ Catalog ID)
+                value:
+                  catalog_id: aBY3Z000000xBL4NCO
+                  org_name: NVIDIA
+                  request_id: TRY-123
+                  requester_email: jane.doe@nvidia.com
+                  requester_name: Jane Doe
+              DeploymentRequest(MinimumRequiredFieldsW/CatalogIDAlias):
+                summary: Deployment Request (Minimum Required Fields w/ Catalog ID
+                  Alias)
+                value:
+                  catalog_id_alias: LP-15
                   org_name: NVIDIA
                   request_id: TRY-123
                   requester_email: jane.doe@nvidia.com
@@ -791,7 +979,7 @@ paths:
                     created: 2024-04-01T06:14:32.602Z
                     experience: c4b62bd4-6c4b-41f2-b4ec-5ad392f6afc
                     experience_branch: main
-                    expires_at: 2025-09-21 21:04:45.203347+00:00
+                    expires_at: 2025-11-07 14:20:24.717454+00:00
                     flightcontrol_release: latest
                     garage_id: f15b539b-8b64-46e8-95e3-c70f2f36aabd
                     gc_branch: main
@@ -827,6 +1015,16 @@ paths:
                     requester_email: jane.doe@nvidia.com
                     requester_name: Jane Doe
                     retry_count: 0
+                    runtime: 4e76b464-e3e4-4ed9-ba1d-ee14c5cf40a0
+                    runtime_branch: main
+                    runtime_cns_addon_pack: false
+                    runtime_cns_docker: true
+                    runtime_cns_driver_version: 580.65.06
+                    runtime_cns_k8s: true
+                    runtime_cns_nvidia_driver: true
+                    runtime_cns_version: "16.0"
+                    runtime_mig: true
+                    runtime_mig_profile: all-2g.20gb
                     sales_created_date: 2025-04-10T15:08:47.381700Z
                     sales_id: a6ZYx000001234
                     sales_owner_email: john.smith@nvidia.com
@@ -850,7 +1048,7 @@ paths:
       - catalog/deployments
   /v1/catalog/deployments/{deployment_id}/instances/:
     get:
-      operationId: catalog_deployments_instances_list
+      operationId: v1_catalog_deployments_instances_list
       parameters:
       - explode: false
         in: path
@@ -983,7 +1181,7 @@ paths:
       - catalog/deployments
   /v1/catalog/deployments/{deployment_id}/notes/:
     get:
-      operationId: catalog_deployments_notes_list
+      operationId: v1_catalog_deployments_notes_list
       parameters:
       - explode: true
         in: query
@@ -1097,7 +1295,7 @@ paths:
       tags:
       - catalog/deployments
     post:
-      operationId: catalog_deployments_notes_create
+      operationId: v1_catalog_deployments_notes_create
       parameters:
       - explode: false
         in: path
@@ -1147,7 +1345,7 @@ paths:
       - catalog/deployments
   /v1/catalog/deployments/{deployment_id}/notes/{id}/:
     delete:
-      operationId: catalog_deployments_notes_destroy
+      operationId: v1_catalog_deployments_notes_destroy
       parameters:
       - explode: false
         in: path
@@ -1173,7 +1371,7 @@ paths:
       tags:
       - catalog/deployments
     get:
-      operationId: catalog_deployments_notes_retrieve
+      operationId: v1_catalog_deployments_notes_retrieve
       parameters:
       - explode: false
         in: path
@@ -1229,7 +1427,7 @@ paths:
       tags:
       - catalog/deployments
     patch:
-      operationId: catalog_deployments_notes_partial_update
+      operationId: v1_catalog_deployments_notes_partial_update
       parameters:
       - explode: false
         in: path
@@ -1286,7 +1484,7 @@ paths:
       tags:
       - catalog/deployments
     put:
-      operationId: catalog_deployments_notes_update
+      operationId: v1_catalog_deployments_notes_update
       parameters:
       - explode: false
         in: path
@@ -1344,13 +1542,14 @@ paths:
       - catalog/deployments
   /v1/catalog/deployments/{deployment_id}/pipelines/:
     get:
-      operationId: catalog_deployments_pipelines_list
+      operationId: v1_catalog_deployments_pipelines_list
       parameters:
       - description: |-
           Action for the pipeline to run
 
           * `apply` - apply
           * `destroy` - destroy
+          * `notify` - notify
         explode: true
         in: query
         name: action
@@ -1359,6 +1558,7 @@ paths:
           enum:
           - apply
           - destroy
+          - notify
           type: string
         style: form
       - explode: false
@@ -1444,7 +1644,7 @@ paths:
       tags:
       - catalog/deployments
     post:
-      operationId: catalog_deployments_pipelines_create
+      operationId: v1_catalog_deployments_pipelines_create
       parameters:
       - explode: false
         in: path
@@ -1497,7 +1697,7 @@ paths:
       - catalog/deployments
   /v1/catalog/deployments/{deployment_id}/services/:
     get:
-      operationId: catalog_deployments_services_list
+      operationId: v1_catalog_deployments_services_list
       parameters:
       - explode: false
         in: path
@@ -1579,7 +1779,7 @@ paths:
       tags:
       - catalog/deployments
     post:
-      operationId: catalog_deployments_services_create
+      operationId: v1_catalog_deployments_services_create
       parameters:
       - explode: false
         in: path
@@ -1629,7 +1829,7 @@ paths:
       - catalog/deployments
   /v1/catalog/deployments/{deployment_id}/ssh-keys/:
     get:
-      operationId: catalog_deployments_ssh_keys_list
+      operationId: v1_catalog_deployments_ssh_keys_list
       parameters:
       - explode: false
         in: path
@@ -1710,7 +1910,7 @@ paths:
       tags:
       - catalog/deployments
     post:
-      operationId: catalog_deployments_ssh_keys_create
+      operationId: v1_catalog_deployments_ssh_keys_create
       parameters:
       - explode: false
         in: path
@@ -1759,7 +1959,7 @@ paths:
       - catalog/deployments
   /v1/catalog/deployments/{deployment_id}/ssh-keys/{id}/:
     delete:
-      operationId: catalog_deployments_ssh_keys_destroy
+      operationId: v1_catalog_deployments_ssh_keys_destroy
       parameters:
       - explode: false
         in: path
@@ -1786,7 +1986,7 @@ paths:
       - catalog/deployments
   /v1/catalog/deployments/{deployment_id}/tasks/:
     get:
-      operationId: catalog_deployments_tasks_list
+      operationId: v1_catalog_deployments_tasks_list
       parameters:
       - description: |-
           The action the task will perform
@@ -1900,7 +2100,7 @@ paths:
       tags:
       - catalog/deployments
     post:
-      operationId: catalog_deployments_tasks_create
+      operationId: v1_catalog_deployments_tasks_create
       parameters:
       - explode: false
         in: path
@@ -1952,7 +2152,7 @@ paths:
       - catalog/deployments
   /v1/catalog/deployments/{deployment_id}/tasks/{id}/:
     get:
-      operationId: catalog_deployments_tasks_retrieve
+      operationId: v1_catalog_deployments_tasks_retrieve
       parameters:
       - explode: false
         in: path
@@ -1995,7 +2195,7 @@ paths:
       - catalog/deployments
   /v1/catalog/deployments/{id}/:
     delete:
-      operationId: catalog_deployments_destroy
+      operationId: v1_catalog_deployments_destroy
       parameters:
       - description: A UUID string identifying this deployment.
         explode: false
@@ -2020,7 +2220,7 @@ paths:
                     created: 2024-04-01T06:14:32.602Z
                     experience: c4b62bd4-6c4b-41f2-b4ec-5ad392f6afc
                     experience_branch: main
-                    expires_at: 2025-09-21 21:04:45.203347+00:00
+                    expires_at: 2025-11-07 14:20:24.717454+00:00
                     flightcontrol_release: latest
                     garage_id: f15b539b-8b64-46e8-95e3-c70f2f36aabd
                     gc_branch: main
@@ -2056,6 +2256,16 @@ paths:
                     requester_email: jane.doe@nvidia.com
                     requester_name: Jane Doe
                     retry_count: 0
+                    runtime: 4e76b464-e3e4-4ed9-ba1d-ee14c5cf40a0
+                    runtime_branch: main
+                    runtime_cns_addon_pack: false
+                    runtime_cns_docker: true
+                    runtime_cns_driver_version: 580.65.06
+                    runtime_cns_k8s: true
+                    runtime_cns_nvidia_driver: true
+                    runtime_cns_version: "16.0"
+                    runtime_mig: true
+                    runtime_mig_profile: all-2g.20gb
                     sales_created_date: 2025-04-10T15:08:47.381700Z
                     sales_id: a6ZYx000001234
                     sales_owner_email: john.smith@nvidia.com
@@ -2080,7 +2290,7 @@ paths:
       tags:
       - catalog/deployments
     get:
-      operationId: catalog_deployments_retrieve
+      operationId: v1_catalog_deployments_retrieve
       parameters:
       - description: "Expand related field(s) instead of only showing a UUID (ex:\
           \ \"cluster\")."
@@ -2140,7 +2350,7 @@ paths:
                     created: 2024-04-01T06:14:32.602Z
                     experience: c4b62bd4-6c4b-41f2-b4ec-5ad392f6afc
                     experience_branch: main
-                    expires_at: 2025-09-21 21:04:45.203347+00:00
+                    expires_at: 2025-11-07 14:20:24.717454+00:00
                     flightcontrol_release: latest
                     garage_id: f15b539b-8b64-46e8-95e3-c70f2f36aabd
                     gc_branch: main
@@ -2176,6 +2386,16 @@ paths:
                     requester_email: jane.doe@nvidia.com
                     requester_name: Jane Doe
                     retry_count: 0
+                    runtime: 4e76b464-e3e4-4ed9-ba1d-ee14c5cf40a0
+                    runtime_branch: main
+                    runtime_cns_addon_pack: false
+                    runtime_cns_docker: true
+                    runtime_cns_driver_version: 580.65.06
+                    runtime_cns_k8s: true
+                    runtime_cns_nvidia_driver: true
+                    runtime_cns_version: "16.0"
+                    runtime_mig: true
+                    runtime_mig_profile: all-2g.20gb
                     sales_created_date: 2025-04-10T15:08:47.381700Z
                     sales_id: a6ZYx000001234
                     sales_owner_email: john.smith@nvidia.com
@@ -2198,7 +2418,7 @@ paths:
       tags:
       - catalog/deployments
     patch:
-      operationId: catalog_deployments_partial_update
+      operationId: v1_catalog_deployments_partial_update
       parameters:
       - description: A UUID string identifying this deployment.
         explode: false
@@ -2218,7 +2438,7 @@ paths:
                 value:
                   collection_branch: my-branch
                   experience_branch: main
-                  expires_at: 2025-10-18 21:04:45.203550+00:00
+                  expires_at: 2025-12-04 14:20:24.717624+00:00
                   flightcontrol_release: latest
                   gc_branch: main
                   ip_allowlist:
@@ -2259,7 +2479,7 @@ paths:
                     created: 2024-04-01T06:14:32.602Z
                     experience: c4b62bd4-6c4b-41f2-b4ec-5ad392f6afc
                     experience_branch: main
-                    expires_at: 2025-09-21 21:04:45.203347+00:00
+                    expires_at: 2025-11-07 14:20:24.717454+00:00
                     flightcontrol_release: latest
                     garage_id: f15b539b-8b64-46e8-95e3-c70f2f36aabd
                     gc_branch: main
@@ -2295,6 +2515,16 @@ paths:
                     requester_email: jane.doe@nvidia.com
                     requester_name: Jane Doe
                     retry_count: 0
+                    runtime: 4e76b464-e3e4-4ed9-ba1d-ee14c5cf40a0
+                    runtime_branch: main
+                    runtime_cns_addon_pack: false
+                    runtime_cns_docker: true
+                    runtime_cns_driver_version: 580.65.06
+                    runtime_cns_k8s: true
+                    runtime_cns_nvidia_driver: true
+                    runtime_cns_version: "16.0"
+                    runtime_mig: true
+                    runtime_mig_profile: all-2g.20gb
                     sales_created_date: 2025-04-10T15:08:47.381700Z
                     sales_id: a6ZYx000001234
                     sales_owner_email: john.smith@nvidia.com
@@ -2317,7 +2547,7 @@ paths:
       tags:
       - catalog/deployments
     put:
-      operationId: catalog_deployments_update
+      operationId: v1_catalog_deployments_update
       parameters:
       - description: A UUID string identifying this deployment.
         explode: false
@@ -2337,7 +2567,7 @@ paths:
                 value:
                   collection_branch: my-branch
                   experience_branch: main
-                  expires_at: 2025-10-18 21:04:45.203550+00:00
+                  expires_at: 2025-12-04 14:20:24.717624+00:00
                   flightcontrol_release: latest
                   gc_branch: main
                   ip_allowlist:
@@ -2378,7 +2608,7 @@ paths:
                     created: 2024-04-01T06:14:32.602Z
                     experience: c4b62bd4-6c4b-41f2-b4ec-5ad392f6afc
                     experience_branch: main
-                    expires_at: 2025-09-21 21:04:45.203347+00:00
+                    expires_at: 2025-11-07 14:20:24.717454+00:00
                     flightcontrol_release: latest
                     garage_id: f15b539b-8b64-46e8-95e3-c70f2f36aabd
                     gc_branch: main
@@ -2414,6 +2644,16 @@ paths:
                     requester_email: jane.doe@nvidia.com
                     requester_name: Jane Doe
                     retry_count: 0
+                    runtime: 4e76b464-e3e4-4ed9-ba1d-ee14c5cf40a0
+                    runtime_branch: main
+                    runtime_cns_addon_pack: false
+                    runtime_cns_docker: true
+                    runtime_cns_driver_version: 580.65.06
+                    runtime_cns_k8s: true
+                    runtime_cns_nvidia_driver: true
+                    runtime_cns_version: "16.0"
+                    runtime_mig: true
+                    runtime_mig_profile: all-2g.20gb
                     sales_created_date: 2025-04-10T15:08:47.381700Z
                     sales_id: a6ZYx000001234
                     sales_owner_email: john.smith@nvidia.com
@@ -2437,7 +2677,7 @@ paths:
       - catalog/deployments
   /v1/catalog/deployments/{id}/history/:
     get:
-      operationId: catalog_deployments_history_list
+      operationId: v1_catalog_deployments_history_list
       parameters:
       - explode: false
         in: path
@@ -2492,7 +2732,7 @@ paths:
       - catalog/deployments
   /v1/catalog/deployments/bulk/:
     patch:
-      operationId: catalog_deployments_bulk_partial_update
+      operationId: v1_catalog_deployments_bulk_partial_update
       requestBody:
         content:
           application/json:
@@ -2502,7 +2742,7 @@ paths:
                 value:
                   collection_branch: my-branch
                   experience_branch: main
-                  expires_at: 2025-10-18 21:04:45.203550+00:00
+                  expires_at: 2025-12-04 14:20:24.717624+00:00
                   flightcontrol_release: latest
                   gc_branch: main
                   ids:
@@ -2552,7 +2792,7 @@ paths:
       - catalog/deployments
   /v1/catalog/deployments/stats/:
     get:
-      operationId: catalog_deployments_stats_retrieve
+      operationId: v1_catalog_deployments_stats_retrieve
       responses:
         "200":
           description: No response body
@@ -2563,7 +2803,7 @@ paths:
       - catalog/deployments
   /v1/catalog/experiences/:
     get:
-      operationId: catalog_experiences_list
+      operationId: v1_catalog_experiences_list
       parameters:
       - explode: true
         in: query
@@ -2953,6 +3193,7 @@ paths:
                       published: "yes"
                       required_gpus:
                       - c77f399a-8f69-4a07-b1f5-e35f8654cdfc
+                      runtime: 4e76b464-e3e4-4ed9-ba1d-ee14c5cf40a0
                       sa_lab: false
                       system_arch: amd64
                       title: My Experience
@@ -2965,7 +3206,7 @@ paths:
       tags:
       - catalog/experiences
     post:
-      operationId: catalog_experiences_create
+      operationId: v1_catalog_experiences_create
       requestBody:
         content:
           application/json:
@@ -3001,6 +3242,7 @@ paths:
                   published: "yes"
                   required_gpus:
                   - c77f399a-8f69-4a07-b1f5-e35f8654cdfc
+                  runtime: 4e76b464-e3e4-4ed9-ba1d-ee14c5cf40a0
                   sa_lab: false
                   system_arch: amd64
                   title: My Experience
@@ -3053,6 +3295,7 @@ paths:
                     published: "yes"
                     required_gpus:
                     - c77f399a-8f69-4a07-b1f5-e35f8654cdfc
+                    runtime: 4e76b464-e3e4-4ed9-ba1d-ee14c5cf40a0
                     sa_lab: false
                     system_arch: amd64
                     title: My Experience
@@ -3066,7 +3309,7 @@ paths:
       - catalog/experiences
   /v1/catalog/experiences/{experience_id}/notes/:
     get:
-      operationId: catalog_experiences_notes_list
+      operationId: v1_catalog_experiences_notes_list
       parameters:
       - explode: true
         in: query
@@ -3180,7 +3423,7 @@ paths:
       tags:
       - catalog/deployments
     post:
-      operationId: catalog_experiences_notes_create
+      operationId: v1_catalog_experiences_notes_create
       parameters:
       - explode: false
         in: path
@@ -3231,7 +3474,7 @@ paths:
       - catalog/deployments
   /v1/catalog/experiences/{experience_id}/notes/{id}/:
     delete:
-      operationId: catalog_experiences_notes_destroy
+      operationId: v1_catalog_experiences_notes_destroy
       parameters:
       - explode: false
         in: path
@@ -3257,7 +3500,7 @@ paths:
       tags:
       - catalog/deployments
     get:
-      operationId: catalog_experiences_notes_retrieve
+      operationId: v1_catalog_experiences_notes_retrieve
       parameters:
       - explode: false
         in: path
@@ -3313,7 +3556,7 @@ paths:
       tags:
       - catalog/deployments
     patch:
-      operationId: catalog_experiences_notes_partial_update
+      operationId: v1_catalog_experiences_notes_partial_update
       parameters:
       - explode: false
         in: path
@@ -3371,7 +3614,7 @@ paths:
       tags:
       - catalog/deployments
     put:
-      operationId: catalog_experiences_notes_update
+      operationId: v1_catalog_experiences_notes_update
       parameters:
       - explode: false
         in: path
@@ -3430,7 +3673,7 @@ paths:
       - catalog/deployments
   /v1/catalog/experiences/{id}/:
     delete:
-      operationId: catalog_experiences_destroy
+      operationId: v1_catalog_experiences_destroy
       parameters:
       - description: A UUID string identifying this experience.
         explode: false
@@ -3449,7 +3692,7 @@ paths:
       tags:
       - catalog/experiences
     get:
-      operationId: catalog_experiences_retrieve
+      operationId: v1_catalog_experiences_retrieve
       parameters:
       - description: "Expand related field(s) instead of only showing a UUID (ex:\
           \ \"required_gpus\")."
@@ -3524,6 +3767,7 @@ paths:
                     published: "yes"
                     required_gpus:
                     - c77f399a-8f69-4a07-b1f5-e35f8654cdfc
+                    runtime: 4e76b464-e3e4-4ed9-ba1d-ee14c5cf40a0
                     sa_lab: false
                     system_arch: amd64
                     title: My Experience
@@ -3536,7 +3780,7 @@ paths:
       tags:
       - catalog/experiences
     patch:
-      operationId: catalog_experiences_partial_update
+      operationId: v1_catalog_experiences_partial_update
       parameters:
       - description: A UUID string identifying this experience.
         explode: false
@@ -3582,6 +3826,7 @@ paths:
                   published: "yes"
                   required_gpus:
                   - c77f399a-8f69-4a07-b1f5-e35f8654cdfc
+                  runtime: 4e76b464-e3e4-4ed9-ba1d-ee14c5cf40a0
                   sa_lab: false
                   system_arch: amd64
                   title: My Experience
@@ -3634,6 +3879,7 @@ paths:
                     published: "yes"
                     required_gpus:
                     - c77f399a-8f69-4a07-b1f5-e35f8654cdfc
+                    runtime: 4e76b464-e3e4-4ed9-ba1d-ee14c5cf40a0
                     sa_lab: false
                     system_arch: amd64
                     title: My Experience
@@ -3646,7 +3892,7 @@ paths:
       tags:
       - catalog/experiences
     put:
-      operationId: catalog_experiences_update
+      operationId: v1_catalog_experiences_update
       parameters:
       - description: A UUID string identifying this experience.
         explode: false
@@ -3692,6 +3938,7 @@ paths:
                   published: "yes"
                   required_gpus:
                   - c77f399a-8f69-4a07-b1f5-e35f8654cdfc
+                  runtime: 4e76b464-e3e4-4ed9-ba1d-ee14c5cf40a0
                   sa_lab: false
                   system_arch: amd64
                   title: My Experience
@@ -3744,6 +3991,7 @@ paths:
                     published: "yes"
                     required_gpus:
                     - c77f399a-8f69-4a07-b1f5-e35f8654cdfc
+                    runtime: 4e76b464-e3e4-4ed9-ba1d-ee14c5cf40a0
                     sa_lab: false
                     system_arch: amd64
                     title: My Experience
@@ -3757,7 +4005,7 @@ paths:
       - catalog/experiences
   /v1/catalog/experiences/{id}/history/:
     get:
-      operationId: catalog_experiences_history_list
+      operationId: v1_catalog_experiences_history_list
       parameters:
       - explode: false
         in: path
@@ -3812,7 +4060,7 @@ paths:
       - catalog/experiences
   /v1/catalog/experiences/bulk/:
     patch:
-      operationId: catalog_experiences_bulk_partial_update
+      operationId: v1_catalog_experiences_bulk_partial_update
       requestBody:
         content:
           application/json:
@@ -3849,6 +4097,7 @@ paths:
                   published: "yes"
                   required_gpus:
                   - c77f399a-8f69-4a07-b1f5-e35f8654cdfc
+                  runtime: 4e76b464-e3e4-4ed9-ba1d-ee14c5cf40a0
                   sa_lab: false
                   system_arch: amd64
                   title: My Experience
@@ -3875,12 +4124,12 @@ paths:
       - catalog/experiences
     post:
       description: Create experiences in bulk via CSV file upload
-      operationId: catalog_experiences_bulk_create
+      operationId: v1_catalog_experiences_bulk_create
       requestBody:
         content:
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/catalog_experiences_bulk_create_request'
+              $ref: '#/components/schemas/v1_catalog_experiences_bulk_create_request'
       responses:
         "201":
           content:
@@ -3894,7 +4143,7 @@ paths:
       - catalog/experiences
   /v1/catalog/experiences/stats/:
     get:
-      operationId: catalog_experiences_stats_retrieve
+      operationId: v1_catalog_experiences_stats_retrieve
       responses:
         "200":
           description: No response body
@@ -3905,7 +4154,7 @@ paths:
       - catalog/experiences
   /v1/catalog/gpu-os-choices/:
     get:
-      operationId: catalog_gpu_os_choices_list
+      operationId: v1_catalog_gpu_os_choices_list
       parameters:
       - description: Include only the specified fields in the response
         explode: true
@@ -3981,7 +4230,7 @@ paths:
       tags:
       - catalog/gpu-os-choices
     post:
-      operationId: catalog_gpu_os_choices_create
+      operationId: v1_catalog_gpu_os_choices_create
       requestBody:
         content:
           application/json:
@@ -4024,8 +4273,20 @@ paths:
       - catalog/gpu-os-choices
   /v1/catalog/instance-types/:
     get:
-      operationId: catalog_instance_types_list
+      operationId: v1_catalog_instance_types_list
       parameters:
+      - description: Limit results to instance types that can meet the given delivery
+          timelines.
+        explode: true
+        in: query
+        name: delivery
+        required: false
+        schema:
+          enum:
+          - fast
+          - slow
+          type: string
+        style: form
       - description: A page number within the paginated result set.
         explode: true
         in: query
@@ -4087,7 +4348,7 @@ paths:
       - catalog/instance-types
   /v1/catalog/persona-choices/:
     get:
-      operationId: catalog_persona_choices_list
+      operationId: v1_catalog_persona_choices_list
       parameters:
       - description: Include only the specified fields in the response
         explode: true
@@ -4161,7 +4422,7 @@ paths:
       tags:
       - catalog/persona-choices
     post:
-      operationId: catalog_persona_choices_create
+      operationId: v1_catalog_persona_choices_create
       requestBody:
         content:
           application/json:
@@ -4198,9 +4459,492 @@ paths:
       - TokenAuthentication: []
       tags:
       - catalog/persona-choices
+  /v1/catalog/runtimes/:
+    get:
+      operationId: v1_catalog_runtimes_list
+      parameters:
+      - explode: true
+        in: query
+        name: branch
+        required: false
+        schema:
+          type: string
+        style: form
+      - explode: true
+        in: query
+        name: cns_addon_pack
+        required: false
+        schema:
+          type: boolean
+        style: form
+      - explode: true
+        in: query
+        name: cns_docker
+        required: false
+        schema:
+          type: boolean
+        style: form
+      - explode: true
+        in: query
+        name: cns_driver_version
+        required: false
+        schema:
+          type: string
+        style: form
+      - explode: true
+        in: query
+        name: cns_k8s
+        required: false
+        schema:
+          type: boolean
+        style: form
+      - explode: true
+        in: query
+        name: cns_nvidia_driver
+        required: false
+        schema:
+          type: boolean
+        style: form
+      - explode: true
+        in: query
+        name: cns_version
+        required: false
+        schema:
+          type: string
+        style: form
+      - description: Include only the specified fields in the response
+        explode: true
+        in: query
+        name: fields
+        required: false
+        schema:
+          type: string
+        style: form
+      - explode: true
+        in: query
+        name: id
+        required: false
+        schema:
+          format: uuid
+          type: string
+        style: form
+      - explode: true
+        in: query
+        name: mig
+        required: false
+        schema:
+          type: boolean
+        style: form
+      - explode: true
+        in: query
+        name: mig_profile
+        required: false
+        schema:
+          type: string
+        style: form
+      - description: Exclude the specified fields in the response
+        explode: true
+        in: query
+        name: omit
+        required: false
+        schema:
+          type: string
+        style: form
+      - description: Which field to use when ordering the results.
+        explode: true
+        in: query
+        name: ordering
+        required: false
+        schema:
+          type: string
+        style: form
+      - description: A page number within the paginated result set.
+        explode: true
+        in: query
+        name: page
+        required: false
+        schema:
+          type: integer
+        style: form
+      - description: Number of results to return per page.
+        explode: true
+        in: query
+        name: page_size
+        required: false
+        schema:
+          type: integer
+        style: form
+      - description: "Search for runtimes by branch, cns_driver_version, cns_version,\
+          \ mig_profile, id, name, url"
+        explode: true
+        in: query
+        name: search
+        required: false
+        schema:
+          type: string
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              examples:
+                RuntimeResponse:
+                  summary: Runtime Response
+                  value:
+                    count: 123
+                    next: https://launchpad.api.nvidia.com/example/?page=4
+                    previous: https://launchpad.api.nvidia.com/example/?page=2
+                    results:
+                    - branch: main
+                      cns_addon_pack: false
+                      cns_docker: true
+                      cns_driver_version: 580.65.06
+                      cns_k8s: true
+                      cns_nvidia_driver: true
+                      cns_version: "16.0"
+                      created: 2024-04-01T06:14:32.602Z
+                      id: 4e76b464-e3e4-4ed9-ba1d-ee14c5cf40a0
+                      mig: true
+                      mig_profile: all-2g.20gb
+                      modified: 2024-05-03T17:03:45.380Z
+                      name: CNS with Docker and Kubernetes
+                      url: https://gitlab.com/my-project/platform-cns-docker.git
+              schema:
+                $ref: '#/components/schemas/PaginatedRuntimeList'
+          description: ""
+      security:
+      - TokenAuthentication: []
+      tags:
+      - catalog/runtimes
+    post:
+      operationId: v1_catalog_runtimes_create
+      requestBody:
+        content:
+          application/json:
+            examples:
+              RuntimeRequest:
+                summary: Runtime Request
+                value:
+                  branch: main
+                  cns_addon_pack: false
+                  cns_docker: true
+                  cns_driver_version: 580.65.06
+                  cns_k8s: true
+                  cns_nvidia_driver: true
+                  cns_version: "16.0"
+                  mig: true
+                  mig_profile: all-2g.20gb
+                  name: CNS with Docker and Kubernetes
+                  url: https://gitlab.com/my-project/platform-cns-docker.git
+            schema:
+              $ref: '#/components/schemas/Runtime'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Runtime'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Runtime'
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              examples:
+                RuntimeResponse:
+                  summary: Runtime Response
+                  value:
+                    branch: main
+                    cns_addon_pack: false
+                    cns_docker: true
+                    cns_driver_version: 580.65.06
+                    cns_k8s: true
+                    cns_nvidia_driver: true
+                    cns_version: "16.0"
+                    created: 2024-04-01T06:14:32.602Z
+                    id: 4e76b464-e3e4-4ed9-ba1d-ee14c5cf40a0
+                    mig: true
+                    mig_profile: all-2g.20gb
+                    modified: 2024-05-03T17:03:45.380Z
+                    name: CNS with Docker and Kubernetes
+                    url: https://gitlab.com/my-project/platform-cns-docker.git
+              schema:
+                $ref: '#/components/schemas/Runtime'
+          description: ""
+      security:
+      - TokenAuthentication: []
+      tags:
+      - catalog/runtimes
+  /v1/catalog/runtimes/{id}/:
+    delete:
+      operationId: v1_catalog_runtimes_destroy
+      parameters:
+      - description: A UUID string identifying this runtime.
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "204":
+          description: No response body
+      security:
+      - TokenAuthentication: []
+      tags:
+      - catalog/runtimes
+    get:
+      operationId: v1_catalog_runtimes_retrieve
+      parameters:
+      - description: Include only the specified fields in the response
+        explode: true
+        in: query
+        name: fields
+        required: false
+        schema:
+          type: string
+        style: form
+      - description: A UUID string identifying this runtime.
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      - description: Exclude the specified fields in the response
+        explode: true
+        in: query
+        name: omit
+        required: false
+        schema:
+          type: string
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              examples:
+                RuntimeResponse:
+                  summary: Runtime Response
+                  value:
+                    branch: main
+                    cns_addon_pack: false
+                    cns_docker: true
+                    cns_driver_version: 580.65.06
+                    cns_k8s: true
+                    cns_nvidia_driver: true
+                    cns_version: "16.0"
+                    created: 2024-04-01T06:14:32.602Z
+                    id: 4e76b464-e3e4-4ed9-ba1d-ee14c5cf40a0
+                    mig: true
+                    mig_profile: all-2g.20gb
+                    modified: 2024-05-03T17:03:45.380Z
+                    name: CNS with Docker and Kubernetes
+                    url: https://gitlab.com/my-project/platform-cns-docker.git
+              schema:
+                $ref: '#/components/schemas/Runtime'
+          description: ""
+      security:
+      - TokenAuthentication: []
+      tags:
+      - catalog/runtimes
+    patch:
+      operationId: v1_catalog_runtimes_partial_update
+      parameters:
+      - description: A UUID string identifying this runtime.
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            examples:
+              RuntimeRequest:
+                summary: Runtime Request
+                value:
+                  branch: main
+                  cns_addon_pack: false
+                  cns_docker: true
+                  cns_driver_version: 580.65.06
+                  cns_k8s: true
+                  cns_nvidia_driver: true
+                  cns_version: "16.0"
+                  mig: true
+                  mig_profile: all-2g.20gb
+                  name: CNS with Docker and Kubernetes
+                  url: https://gitlab.com/my-project/platform-cns-docker.git
+            schema:
+              $ref: '#/components/schemas/Runtime'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Runtime'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Runtime'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              examples:
+                RuntimeResponse:
+                  summary: Runtime Response
+                  value:
+                    branch: main
+                    cns_addon_pack: false
+                    cns_docker: true
+                    cns_driver_version: 580.65.06
+                    cns_k8s: true
+                    cns_nvidia_driver: true
+                    cns_version: "16.0"
+                    created: 2024-04-01T06:14:32.602Z
+                    id: 4e76b464-e3e4-4ed9-ba1d-ee14c5cf40a0
+                    mig: true
+                    mig_profile: all-2g.20gb
+                    modified: 2024-05-03T17:03:45.380Z
+                    name: CNS with Docker and Kubernetes
+                    url: https://gitlab.com/my-project/platform-cns-docker.git
+              schema:
+                $ref: '#/components/schemas/Runtime'
+          description: ""
+      security:
+      - TokenAuthentication: []
+      tags:
+      - catalog/runtimes
+    put:
+      operationId: v1_catalog_runtimes_update
+      parameters:
+      - description: A UUID string identifying this runtime.
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            examples:
+              RuntimeRequest:
+                summary: Runtime Request
+                value:
+                  branch: main
+                  cns_addon_pack: false
+                  cns_docker: true
+                  cns_driver_version: 580.65.06
+                  cns_k8s: true
+                  cns_nvidia_driver: true
+                  cns_version: "16.0"
+                  mig: true
+                  mig_profile: all-2g.20gb
+                  name: CNS with Docker and Kubernetes
+                  url: https://gitlab.com/my-project/platform-cns-docker.git
+            schema:
+              $ref: '#/components/schemas/Runtime'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Runtime'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Runtime'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              examples:
+                RuntimeResponse:
+                  summary: Runtime Response
+                  value:
+                    branch: main
+                    cns_addon_pack: false
+                    cns_docker: true
+                    cns_driver_version: 580.65.06
+                    cns_k8s: true
+                    cns_nvidia_driver: true
+                    cns_version: "16.0"
+                    created: 2024-04-01T06:14:32.602Z
+                    id: 4e76b464-e3e4-4ed9-ba1d-ee14c5cf40a0
+                    mig: true
+                    mig_profile: all-2g.20gb
+                    modified: 2024-05-03T17:03:45.380Z
+                    name: CNS with Docker and Kubernetes
+                    url: https://gitlab.com/my-project/platform-cns-docker.git
+              schema:
+                $ref: '#/components/schemas/Runtime'
+          description: ""
+      security:
+      - TokenAuthentication: []
+      tags:
+      - catalog/runtimes
+  /v1/catalog/runtimes/{id}/history/:
+    get:
+      operationId: v1_catalog_runtimes_history_list
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      - description: A page number within the paginated result set.
+        explode: true
+        in: query
+        name: page
+        required: false
+        schema:
+          type: integer
+        style: form
+      - description: Number of results to return per page.
+        explode: true
+        in: query
+        name: page_size
+        required: false
+        schema:
+          type: integer
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              examples:
+                SuccessfulResponse:
+                  summary: Successful Response
+                  value:
+                    count: 123
+                    next: https://launchpad.api.nvidia.com/example/?page=4
+                    previous: https://launchpad.api.nvidia.com/example/?page=2
+                    results:
+                    - change_type: changed
+                      changes:
+                      - field: notes
+                        new_value: Sample note
+                        old_value: null
+                      created: 2025-01-29T13:20:39.821Z
+                      id: 123
+                      username: jane.doe@nvidia.com
+              schema:
+                $ref: '#/components/schemas/PaginatedModelChangeList'
+          description: ""
+      security:
+      - TokenAuthentication: []
+      tags:
+      - catalog/runtimes
   /v1/identity/profile/:
     get:
-      operationId: identity_profile_retrieve
+      operationId: v1_identity_profile_retrieve
       responses:
         "200":
           content:
@@ -4228,7 +4972,7 @@ paths:
       tags:
       - identity/profile
     patch:
-      operationId: identity_profile_partial_update
+      operationId: v1_identity_profile_partial_update
       requestBody:
         content:
           application/json:
@@ -4278,7 +5022,7 @@ paths:
       - identity/profile
   /v1/inventory/clusters/:
     get:
-      operationId: inventory_clusters_list
+      operationId: v1_inventory_clusters_list
       parameters:
       - description: Is the cluster currently available for provisioning?
         explode: true
@@ -4743,6 +5487,8 @@ paths:
                       provider_capacity: true
                       provision_user: nvidia
                       provisioning_attempts: 1
+                      provisioning_config: de02399f-ca10-4095-b559-85d87362adb4
+                      provisioning_request: 91471375-dcfa-46ed-9fb7-57509a44aeec
                       provisioning_state: pending
                       public_address: 203.0.113.1
                       request_id: TRY-1234
@@ -4760,7 +5506,7 @@ paths:
       tags:
       - inventory/clusters
     post:
-      operationId: inventory_clusters_create
+      operationId: v1_inventory_clusters_create
       requestBody:
         content:
           application/json:
@@ -4830,6 +5576,8 @@ paths:
                     provider_capacity: true
                     provision_user: nvidia
                     provisioning_attempts: 1
+                    provisioning_config: de02399f-ca10-4095-b559-85d87362adb4
+                    provisioning_request: 91471375-dcfa-46ed-9fb7-57509a44aeec
                     provisioning_state: pending
                     public_address: 203.0.113.1
                     request_id: TRY-1234
@@ -4848,7 +5596,7 @@ paths:
       - inventory/clusters
   /v1/inventory/clusters/{cluster_id}/tenants/:
     post:
-      operationId: inventory_clusters_tenants_create
+      operationId: v1_inventory_clusters_tenants_create
       parameters:
       - explode: false
         in: path
@@ -4904,6 +5652,8 @@ paths:
                     provider_capacity: true
                     provision_user: nvidia
                     provisioning_attempts: 1
+                    provisioning_config: de02399f-ca10-4095-b559-85d87362adb4
+                    provisioning_request: 91471375-dcfa-46ed-9fb7-57509a44aeec
                     provisioning_state: pending
                     public_address: 203.0.113.1
                     request_id: TRY-1234
@@ -4922,7 +5672,7 @@ paths:
       - inventory/clusters
   /v1/inventory/clusters/{cluster_id}/tenants/{id}/:
     delete:
-      operationId: inventory_clusters_tenants_destroy
+      operationId: v1_inventory_clusters_tenants_destroy
       parameters:
       - explode: false
         in: path
@@ -4949,7 +5699,7 @@ paths:
       - inventory/clusters
   /v1/inventory/clusters/{id}/:
     delete:
-      operationId: inventory_clusters_destroy
+      operationId: v1_inventory_clusters_destroy
       parameters:
       - description: A UUID string identifying this cluster.
         explode: false
@@ -4968,7 +5718,7 @@ paths:
       tags:
       - inventory/clusters
     get:
-      operationId: inventory_clusters_retrieve
+      operationId: v1_inventory_clusters_retrieve
       parameters:
       - description: "Expand related field(s) instead of only showing a UUID. Separate\
           \ nested relationships with a period (ex: \"nodes.location\"). Separate\
@@ -5039,6 +5789,8 @@ paths:
                     provider_capacity: true
                     provision_user: nvidia
                     provisioning_attempts: 1
+                    provisioning_config: de02399f-ca10-4095-b559-85d87362adb4
+                    provisioning_request: 91471375-dcfa-46ed-9fb7-57509a44aeec
                     provisioning_state: pending
                     public_address: 203.0.113.1
                     request_id: TRY-1234
@@ -5056,7 +5808,7 @@ paths:
       tags:
       - inventory/clusters
     patch:
-      operationId: inventory_clusters_partial_update
+      operationId: v1_inventory_clusters_partial_update
       parameters:
       - description: A UUID string identifying this cluster.
         explode: false
@@ -5136,6 +5888,8 @@ paths:
                     provider_capacity: true
                     provision_user: nvidia
                     provisioning_attempts: 1
+                    provisioning_config: de02399f-ca10-4095-b559-85d87362adb4
+                    provisioning_request: 91471375-dcfa-46ed-9fb7-57509a44aeec
                     provisioning_state: pending
                     public_address: 203.0.113.1
                     request_id: TRY-1234
@@ -5153,7 +5907,7 @@ paths:
       tags:
       - inventory/clusters
     put:
-      operationId: inventory_clusters_update
+      operationId: v1_inventory_clusters_update
       parameters:
       - description: A UUID string identifying this cluster.
         explode: false
@@ -5233,6 +5987,8 @@ paths:
                     provider_capacity: true
                     provision_user: nvidia
                     provisioning_attempts: 1
+                    provisioning_config: de02399f-ca10-4095-b559-85d87362adb4
+                    provisioning_request: 91471375-dcfa-46ed-9fb7-57509a44aeec
                     provisioning_state: pending
                     public_address: 203.0.113.1
                     request_id: TRY-1234
@@ -5251,7 +6007,7 @@ paths:
       - inventory/clusters
   /v1/inventory/clusters/{id}/history/:
     get:
-      operationId: inventory_clusters_history_list
+      operationId: v1_inventory_clusters_history_list
       parameters:
       - explode: false
         in: path
@@ -5304,9 +6060,349 @@ paths:
       - TokenAuthentication: []
       tags:
       - inventory/clusters
+  /v1/inventory/clusters/{id}/pipelines/trigger/:
+    post:
+      operationId: v1_inventory_clusters_pipelines_trigger_create
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            examples:
+              ClusterPipelineTriggerRequest:
+                summary: ClusterPipelineTrigger Request
+                value:
+                  action: apply
+            schema:
+              $ref: '#/components/schemas/ClusterPipelineTrigger'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ClusterPipelineTrigger'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ClusterPipelineTrigger'
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              examples:
+                ClusterPipelineTriggerResponse:
+                  summary: ClusterPipelineTrigger Response
+                  value:
+                    action: apply
+                    created: 2024-04-01T06:14:32.602Z
+                    id: 84d750af-fa43-4ff1-9198-39535584f83e
+                    modified: 2024-05-03T17:03:45.380Z
+                    pipeline_id: 2101675388
+                    request_id: TRY-1234
+                    url: https://gitlab.com/my-project/-/pipelines/2101675388
+              schema:
+                $ref: '#/components/schemas/ClusterPipelineTrigger'
+          description: ""
+      security:
+      - TokenAuthentication: []
+      tags:
+      - inventory/clusters
+  /v1/inventory/clusters/{id}/provision/:
+    delete:
+      operationId: v1_inventory_clusters_provision_destroy
+      parameters:
+      - description: "Expand related field(s) instead of only showing a UUID (ex:\
+          \ \"cluster,experience\")."
+        explode: true
+        in: query
+        name: expand
+        required: false
+        schema:
+          type: string
+        style: form
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              examples:
+                ClusterResponse:
+                  summary: Cluster Response
+                  value:
+                    available: true
+                    bastion_name: jovial_bastion
+                    created: 2024-04-01T06:14:32.602Z
+                    deployment: null
+                    enabled: true
+                    experience: c4b62bd4-6c4b-41f2-b4ec-5ad392f6afc
+                    free_by: 2024-06-13T02:22:06.611Z
+                    gpu_alias: nvidia3.l40sx2.medium
+                    gpu_count: 2
+                    gpus:
+                    - c77f399a-8f69-4a07-b1f5-e35f8654cdfc
+                    id: 089324a5-708c-4386-9fdc-92dd9aa63d2b
+                    last_used: 2024-05-03T15:04:44.410Z
+                    maintenance: false
+                    mgmt_ip: 172.16.0.11
+                    mgmt_mac: 00:53:FF:00:00:01
+                    modified: 2024-05-03T17:03:45.380Z
+                    netmask: 24
+                    node_count: 1
+                    nodes:
+                    - d66f5cc1-c861-4c79-8d36-d156e050cb07
+                    notes: "Lorem ipsum dolor sit amet, consectetur adipiscing elit."
+                    persist: false
+                    provider_capacity: true
+                    provision_user: nvidia
+                    provisioning_attempts: 1
+                    provisioning_config: de02399f-ca10-4095-b559-85d87362adb4
+                    provisioning_request: 91471375-dcfa-46ed-9fb7-57509a44aeec
+                    provisioning_state: pending
+                    public_address: 203.0.113.1
+                    request_id: TRY-1234
+                    reservation: false
+                    tenant_ids:
+                    - faf0669c-eec2-47a4-a881-5c568be65597
+                    vlan_id: 1
+                    workshop: false
+                    workshop_id: January training
+              schema:
+                $ref: '#/components/schemas/Cluster'
+          description: ""
+      security:
+      - TokenAuthentication: []
+      tags:
+      - inventory/clusters
+    patch:
+      operationId: v1_inventory_clusters_provision_partial_update
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            examples:
+              ProvisioningRequest(CatalogIDAlias):
+                summary: Provisioning Request (Catalog ID Alias)
+                value:
+                  bastion_operating_system: ubuntu_22_04
+                  catalog_id_alias: LP-15
+                  cluster: 089324a5-708c-4386-9fdc-92dd9aa63d2b
+                  collection_branch: my-branch
+                  experience_branch: main
+                  flightcontrol_release: latest
+                  garage_id: f15b539b-8b64-46e8-95e3-c70f2f36aabd
+                  gc_branch: main
+                  gpu_alias: nvidia3.l40sx2.medium
+                  gpu_count: 4
+                  gpu_model: l40s
+                  gpu_os_name: ubuntu
+                  gpu_os_release: jammy
+                  gpu_os_version: "22.04"
+                  min_gpu_count: 2
+                  node_count: 1
+                  oem_name: NVIDIA
+                  persist_on_failure: false
+                  persona: developer
+                  pipeline: 5443221
+                  pipeline_branch: main
+                  platform: flight_deck
+                  provider_name: dmz
+                  region: pdx
+                  request_id: TRY-123
+                  runtime: 4e76b464-e3e4-4ed9-ba1d-ee14c5cf40a0
+                  runtime_branch: main
+                  runtime_cns_addon_pack: false
+                  runtime_cns_docker: true
+                  runtime_cns_driver_version: 580.65.06
+                  runtime_cns_k8s: true
+                  runtime_cns_nvidia_driver: true
+                  runtime_cns_version: "16.0"
+                  runtime_mig: true
+                  runtime_mig_profile: all-2g.20gb
+                  workshop: false
+                  workshop_id: January training
+                  workshop_override_password: nvidia
+              ProvisioningRequest(ExperienceID):
+                summary: Provisioning Request (Experience ID)
+                value:
+                  bastion_operating_system: ubuntu_22_04
+                  cluster: 089324a5-708c-4386-9fdc-92dd9aa63d2b
+                  collection_branch: my-branch
+                  experience_branch: main
+                  experience_id: c4b62bd4-6c4b-41f2-b4ec-5ad392f6afc
+                  flightcontrol_release: latest
+                  garage_id: f15b539b-8b64-46e8-95e3-c70f2f36aabd
+                  gc_branch: main
+                  gpu_alias: nvidia3.l40sx2.medium
+                  gpu_count: 4
+                  gpu_model: l40s
+                  gpu_os_name: ubuntu
+                  gpu_os_release: jammy
+                  gpu_os_version: "22.04"
+                  min_gpu_count: 2
+                  node_count: 1
+                  oem_name: NVIDIA
+                  persist_on_failure: false
+                  persona: developer
+                  pipeline: 5443221
+                  pipeline_branch: main
+                  platform: flight_deck
+                  provider_name: dmz
+                  region: pdx
+                  request_id: TRY-123
+                  runtime: 4e76b464-e3e4-4ed9-ba1d-ee14c5cf40a0
+                  runtime_branch: main
+                  runtime_cns_addon_pack: false
+                  runtime_cns_docker: true
+                  runtime_cns_driver_version: 580.65.06
+                  runtime_cns_k8s: true
+                  runtime_cns_nvidia_driver: true
+                  runtime_cns_version: "16.0"
+                  runtime_mig: true
+                  runtime_mig_profile: all-2g.20gb
+                  workshop: false
+                  workshop_id: January training
+                  workshop_override_password: nvidia
+              ProvisioningRequest(CatalogID):
+                summary: Provisioning Request (Catalog ID)
+                value:
+                  bastion_operating_system: ubuntu_22_04
+                  catalog_id: aBY3Z000000xBL4NCO
+                  cluster: 089324a5-708c-4386-9fdc-92dd9aa63d2b
+                  collection_branch: my-branch
+                  experience_branch: main
+                  flightcontrol_release: latest
+                  garage_id: f15b539b-8b64-46e8-95e3-c70f2f36aabd
+                  gc_branch: main
+                  gpu_alias: nvidia3.l40sx2.medium
+                  gpu_count: 4
+                  gpu_model: l40s
+                  gpu_os_name: ubuntu
+                  gpu_os_release: jammy
+                  gpu_os_version: "22.04"
+                  min_gpu_count: 2
+                  node_count: 1
+                  oem_name: NVIDIA
+                  persist_on_failure: false
+                  persona: developer
+                  pipeline: 5443221
+                  pipeline_branch: main
+                  platform: flight_deck
+                  provider_name: dmz
+                  region: pdx
+                  request_id: TRY-123
+                  runtime: 4e76b464-e3e4-4ed9-ba1d-ee14c5cf40a0
+                  runtime_branch: main
+                  runtime_cns_addon_pack: false
+                  runtime_cns_docker: true
+                  runtime_cns_driver_version: 580.65.06
+                  runtime_cns_k8s: true
+                  runtime_cns_nvidia_driver: true
+                  runtime_cns_version: "16.0"
+                  runtime_mig: true
+                  runtime_mig_profile: all-2g.20gb
+                  workshop: false
+                  workshop_id: January training
+                  workshop_override_password: nvidia
+              ProvisioningRequest(MinimumRequiredFields):
+                summary: Provisioning Request (Minimum Required Fields)
+                value:
+                  experience_id: c4b62bd4-6c4b-41f2-b4ec-5ad392f6afc
+                  request_id: TRY-123
+              ProvisioningRequest(MinimumRequiredFieldsW/CatalogID):
+                summary: Provisioning Request (Minimum Required Fields w/ Catalog
+                  ID)
+                value:
+                  catalog_id: aBY3Z000000xBL4NCO
+                  request_id: TRY-123
+              ProvisioningRequest(MinimumRequiredFieldsW/CatalogIDAlias):
+                summary: Provisioning Request (Minimum Required Fields w/ Catalog
+                  ID Alias)
+                value:
+                  catalog_id_alias: LP-15
+                  request_id: TRY-123
+            schema:
+              $ref: '#/components/schemas/ProvisioningRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ProvisioningRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProvisioningRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              examples:
+                SuccessfulResponse:
+                  summary: Successful Response
+                  value:
+                    bastion_operating_system: ubuntu_22_04
+                    cluster: 089324a5-708c-4386-9fdc-92dd9aa63d2b
+                    collection_branch: my-branch
+                    experience_branch: main
+                    flightcontrol_release: latest
+                    garage_id: f15b539b-8b64-46e8-95e3-c70f2f36aabd
+                    gc_branch: main
+                    gpu_alias: nvidia3.l40sx2.medium
+                    gpu_count: 4
+                    gpu_model: l40s
+                    gpu_os_name: ubuntu
+                    gpu_os_release: jammy
+                    gpu_os_version: "22.04"
+                    min_gpu_count: 2
+                    node_count: 1
+                    oem_name: NVIDIA
+                    persist_on_failure: false
+                    persona: developer
+                    pipeline: 5443221
+                    pipeline_branch: main
+                    platform: flight_deck
+                    provider_name: dmz
+                    region: pdx
+                    request_id: TRY-123
+                    runtime: 4e76b464-e3e4-4ed9-ba1d-ee14c5cf40a0
+                    runtime_branch: main
+                    runtime_cns_addon_pack: false
+                    runtime_cns_docker: true
+                    runtime_cns_driver_version: 580.65.06
+                    runtime_cns_k8s: true
+                    runtime_cns_nvidia_driver: true
+                    runtime_cns_version: "16.0"
+                    runtime_mig: true
+                    runtime_mig_profile: all-2g.20gb
+                    workshop: false
+                    workshop_id: January training
+                    workshop_override_password: nvidia
+              schema:
+                $ref: '#/components/schemas/ProvisioningRequest'
+          description: ""
+      security:
+      - TokenAuthentication: []
+      tags:
+      - inventory/clusters
   /v1/inventory/clusters/bulk/:
     patch:
-      operationId: inventory_clusters_bulk_partial_update
+      operationId: v1_inventory_clusters_bulk_partial_update
       requestBody:
         content:
           application/json:
@@ -5361,9 +6457,227 @@ paths:
       - TokenAuthentication: []
       tags:
       - inventory/clusters
+  /v1/inventory/clusters/provision/:
+    post:
+      operationId: v1_inventory_clusters_provision_create
+      parameters:
+      - description: "Expand related field(s) instead of only showing a UUID (ex:\
+          \ \"cluster,experience\")."
+        explode: true
+        in: query
+        name: expand
+        required: false
+        schema:
+          type: string
+        style: form
+      requestBody:
+        content:
+          application/json:
+            examples:
+              ProvisioningRequest(CatalogIDAlias):
+                summary: Provisioning Request (Catalog ID Alias)
+                value:
+                  bastion_operating_system: ubuntu_22_04
+                  catalog_id_alias: LP-15
+                  cluster: 089324a5-708c-4386-9fdc-92dd9aa63d2b
+                  collection_branch: my-branch
+                  experience_branch: main
+                  flightcontrol_release: latest
+                  garage_id: f15b539b-8b64-46e8-95e3-c70f2f36aabd
+                  gc_branch: main
+                  gpu_alias: nvidia3.l40sx2.medium
+                  gpu_count: 4
+                  gpu_model: l40s
+                  gpu_os_name: ubuntu
+                  gpu_os_release: jammy
+                  gpu_os_version: "22.04"
+                  min_gpu_count: 2
+                  node_count: 1
+                  oem_name: NVIDIA
+                  persist_on_failure: false
+                  persona: developer
+                  pipeline: 5443221
+                  pipeline_branch: main
+                  platform: flight_deck
+                  provider_name: dmz
+                  region: pdx
+                  request_id: TRY-123
+                  runtime: 4e76b464-e3e4-4ed9-ba1d-ee14c5cf40a0
+                  runtime_branch: main
+                  runtime_cns_addon_pack: false
+                  runtime_cns_docker: true
+                  runtime_cns_driver_version: 580.65.06
+                  runtime_cns_k8s: true
+                  runtime_cns_nvidia_driver: true
+                  runtime_cns_version: "16.0"
+                  runtime_mig: true
+                  runtime_mig_profile: all-2g.20gb
+                  workshop: false
+                  workshop_id: January training
+                  workshop_override_password: nvidia
+              ProvisioningRequest(ExperienceID):
+                summary: Provisioning Request (Experience ID)
+                value:
+                  bastion_operating_system: ubuntu_22_04
+                  cluster: 089324a5-708c-4386-9fdc-92dd9aa63d2b
+                  collection_branch: my-branch
+                  experience_branch: main
+                  experience_id: c4b62bd4-6c4b-41f2-b4ec-5ad392f6afc
+                  flightcontrol_release: latest
+                  garage_id: f15b539b-8b64-46e8-95e3-c70f2f36aabd
+                  gc_branch: main
+                  gpu_alias: nvidia3.l40sx2.medium
+                  gpu_count: 4
+                  gpu_model: l40s
+                  gpu_os_name: ubuntu
+                  gpu_os_release: jammy
+                  gpu_os_version: "22.04"
+                  min_gpu_count: 2
+                  node_count: 1
+                  oem_name: NVIDIA
+                  persist_on_failure: false
+                  persona: developer
+                  pipeline: 5443221
+                  pipeline_branch: main
+                  platform: flight_deck
+                  provider_name: dmz
+                  region: pdx
+                  request_id: TRY-123
+                  runtime: 4e76b464-e3e4-4ed9-ba1d-ee14c5cf40a0
+                  runtime_branch: main
+                  runtime_cns_addon_pack: false
+                  runtime_cns_docker: true
+                  runtime_cns_driver_version: 580.65.06
+                  runtime_cns_k8s: true
+                  runtime_cns_nvidia_driver: true
+                  runtime_cns_version: "16.0"
+                  runtime_mig: true
+                  runtime_mig_profile: all-2g.20gb
+                  workshop: false
+                  workshop_id: January training
+                  workshop_override_password: nvidia
+              ProvisioningRequest(CatalogID):
+                summary: Provisioning Request (Catalog ID)
+                value:
+                  bastion_operating_system: ubuntu_22_04
+                  catalog_id: aBY3Z000000xBL4NCO
+                  cluster: 089324a5-708c-4386-9fdc-92dd9aa63d2b
+                  collection_branch: my-branch
+                  experience_branch: main
+                  flightcontrol_release: latest
+                  garage_id: f15b539b-8b64-46e8-95e3-c70f2f36aabd
+                  gc_branch: main
+                  gpu_alias: nvidia3.l40sx2.medium
+                  gpu_count: 4
+                  gpu_model: l40s
+                  gpu_os_name: ubuntu
+                  gpu_os_release: jammy
+                  gpu_os_version: "22.04"
+                  min_gpu_count: 2
+                  node_count: 1
+                  oem_name: NVIDIA
+                  persist_on_failure: false
+                  persona: developer
+                  pipeline: 5443221
+                  pipeline_branch: main
+                  platform: flight_deck
+                  provider_name: dmz
+                  region: pdx
+                  request_id: TRY-123
+                  runtime: 4e76b464-e3e4-4ed9-ba1d-ee14c5cf40a0
+                  runtime_branch: main
+                  runtime_cns_addon_pack: false
+                  runtime_cns_docker: true
+                  runtime_cns_driver_version: 580.65.06
+                  runtime_cns_k8s: true
+                  runtime_cns_nvidia_driver: true
+                  runtime_cns_version: "16.0"
+                  runtime_mig: true
+                  runtime_mig_profile: all-2g.20gb
+                  workshop: false
+                  workshop_id: January training
+                  workshop_override_password: nvidia
+              ProvisioningRequest(MinimumRequiredFields):
+                summary: Provisioning Request (Minimum Required Fields)
+                value:
+                  experience_id: c4b62bd4-6c4b-41f2-b4ec-5ad392f6afc
+                  request_id: TRY-123
+              ProvisioningRequest(MinimumRequiredFieldsW/CatalogID):
+                summary: Provisioning Request (Minimum Required Fields w/ Catalog
+                  ID)
+                value:
+                  catalog_id: aBY3Z000000xBL4NCO
+                  request_id: TRY-123
+              ProvisioningRequest(MinimumRequiredFieldsW/CatalogIDAlias):
+                summary: Provisioning Request (Minimum Required Fields w/ Catalog
+                  ID Alias)
+                value:
+                  catalog_id_alias: LP-15
+                  request_id: TRY-123
+            schema:
+              $ref: '#/components/schemas/ProvisioningRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ProvisioningRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProvisioningRequest'
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              examples:
+                SuccessfulResponse:
+                  summary: Successful Response
+                  value:
+                    bastion_operating_system: ubuntu_22_04
+                    cluster: 089324a5-708c-4386-9fdc-92dd9aa63d2b
+                    collection_branch: my-branch
+                    experience_branch: main
+                    flightcontrol_release: latest
+                    garage_id: f15b539b-8b64-46e8-95e3-c70f2f36aabd
+                    gc_branch: main
+                    gpu_alias: nvidia3.l40sx2.medium
+                    gpu_count: 4
+                    gpu_model: l40s
+                    gpu_os_name: ubuntu
+                    gpu_os_release: jammy
+                    gpu_os_version: "22.04"
+                    min_gpu_count: 2
+                    node_count: 1
+                    oem_name: NVIDIA
+                    persist_on_failure: false
+                    persona: developer
+                    pipeline: 5443221
+                    pipeline_branch: main
+                    platform: flight_deck
+                    provider_name: dmz
+                    region: pdx
+                    request_id: TRY-123
+                    runtime: 4e76b464-e3e4-4ed9-ba1d-ee14c5cf40a0
+                    runtime_branch: main
+                    runtime_cns_addon_pack: false
+                    runtime_cns_docker: true
+                    runtime_cns_driver_version: 580.65.06
+                    runtime_cns_k8s: true
+                    runtime_cns_nvidia_driver: true
+                    runtime_cns_version: "16.0"
+                    runtime_mig: true
+                    runtime_mig_profile: all-2g.20gb
+                    workshop: false
+                    workshop_id: January training
+                    workshop_override_password: nvidia
+              schema:
+                $ref: '#/components/schemas/ProvisioningRequest'
+          description: ""
+      security:
+      - TokenAuthentication: []
+      tags:
+      - inventory/clusters
   /v1/inventory/clusters/stats/:
     get:
-      operationId: inventory_clusters_stats_retrieve
+      operationId: v1_inventory_clusters_stats_retrieve
       responses:
         "200":
           description: No response body
@@ -5374,7 +6688,7 @@ paths:
       - inventory/clusters
   /v1/inventory/gpus/:
     get:
-      operationId: inventory_gpus_list
+      operationId: v1_inventory_gpus_list
       parameters:
       - description: Include only the specified fields in the response
         explode: true
@@ -5492,7 +6806,7 @@ paths:
       tags:
       - inventory/gpus
     post:
-      operationId: inventory_gpus_create
+      operationId: v1_inventory_gpus_create
       requestBody:
         content:
           application/json:
@@ -5538,7 +6852,7 @@ paths:
       - inventory/gpus
   /v1/inventory/gpus/{id}/:
     delete:
-      operationId: inventory_gpus_destroy
+      operationId: v1_inventory_gpus_destroy
       parameters:
       - description: A UUID string identifying this gpu.
         explode: false
@@ -5557,7 +6871,7 @@ paths:
       tags:
       - inventory/gpus
     get:
-      operationId: inventory_gpus_retrieve
+      operationId: v1_inventory_gpus_retrieve
       parameters:
       - description: Include only the specified fields in the response
         explode: true
@@ -5608,7 +6922,7 @@ paths:
       tags:
       - inventory/gpus
     patch:
-      operationId: inventory_gpus_partial_update
+      operationId: v1_inventory_gpus_partial_update
       parameters:
       - description: A UUID string identifying this gpu.
         explode: false
@@ -5663,7 +6977,7 @@ paths:
       tags:
       - inventory/gpus
     put:
-      operationId: inventory_gpus_update
+      operationId: v1_inventory_gpus_update
       parameters:
       - description: A UUID string identifying this gpu.
         explode: false
@@ -5719,7 +7033,7 @@ paths:
       - inventory/gpus
   /v1/inventory/gpus/{id}/history/:
     get:
-      operationId: inventory_gpus_history_list
+      operationId: v1_inventory_gpus_history_list
       parameters:
       - explode: false
         in: path
@@ -5774,7 +7088,7 @@ paths:
       - inventory/gpus
   /v1/inventory/gpus/bulk/:
     patch:
-      operationId: inventory_gpus_bulk_partial_update
+      operationId: v1_inventory_gpus_bulk_partial_update
       requestBody:
         content:
           application/json:
@@ -5816,7 +7130,7 @@ paths:
       - inventory/gpus
   /v1/inventory/gpus/stats/:
     get:
-      operationId: inventory_gpus_stats_retrieve
+      operationId: v1_inventory_gpus_stats_retrieve
       responses:
         "200":
           description: No response body
@@ -5827,7 +7141,7 @@ paths:
       - inventory/gpus
   /v1/inventory/instances/:
     get:
-      operationId: inventory_instances_list
+      operationId: v1_inventory_instances_list
       parameters:
       - explode: true
         in: query
@@ -5969,7 +7283,7 @@ paths:
       tags:
       - inventory/instances
     post:
-      operationId: inventory_instances_create
+      operationId: v1_inventory_instances_create
       requestBody:
         content:
           application/json:
@@ -6020,7 +7334,7 @@ paths:
       - inventory/instances
   /v1/inventory/instances/{id}/:
     delete:
-      operationId: inventory_instances_destroy
+      operationId: v1_inventory_instances_destroy
       parameters:
       - description: A UUID string identifying this instance.
         explode: false
@@ -6040,7 +7354,7 @@ paths:
       tags:
       - inventory/instances
     get:
-      operationId: inventory_instances_retrieve
+      operationId: v1_inventory_instances_retrieve
       parameters:
       - description: "Expand related field(s) instead of only showing a UUID (ex:\
           \ \"cluster\")."
@@ -6103,7 +7417,7 @@ paths:
       tags:
       - inventory/instances
     patch:
-      operationId: inventory_instances_partial_update
+      operationId: v1_inventory_instances_partial_update
       parameters:
       - description: A UUID string identifying this instance.
         explode: false
@@ -6163,7 +7477,7 @@ paths:
       tags:
       - inventory/instances
     put:
-      operationId: inventory_instances_update
+      operationId: v1_inventory_instances_update
       parameters:
       - description: A UUID string identifying this instance.
         explode: false
@@ -6224,7 +7538,7 @@ paths:
       - inventory/instances
   /v1/inventory/instances/{id}/history/:
     get:
-      operationId: inventory_instances_history_list
+      operationId: v1_inventory_instances_history_list
       parameters:
       - explode: false
         in: path
@@ -6280,7 +7594,7 @@ paths:
       - inventory/instances
   /v1/inventory/instances/bulk/:
     patch:
-      operationId: inventory_instances_bulk_partial_update
+      operationId: v1_inventory_instances_bulk_partial_update
       requestBody:
         content:
           application/json:
@@ -6325,7 +7639,7 @@ paths:
       - inventory/instances
   /v1/inventory/locations/:
     get:
-      operationId: inventory_locations_list
+      operationId: v1_inventory_locations_list
       parameters:
       - description: "Expand related field(s) instead of only showing a UUID (ex:\
           \ \"provider\")."
@@ -6440,7 +7754,7 @@ paths:
       tags:
       - inventory/locations
     post:
-      operationId: inventory_locations_create
+      operationId: v1_inventory_locations_create
       requestBody:
         content:
           application/json:
@@ -6483,7 +7797,7 @@ paths:
       - inventory/locations
   /v1/inventory/locations/{id}/:
     delete:
-      operationId: inventory_locations_destroy
+      operationId: v1_inventory_locations_destroy
       parameters:
       - description: A UUID string identifying this location.
         explode: false
@@ -6502,7 +7816,7 @@ paths:
       tags:
       - inventory/locations
     get:
-      operationId: inventory_locations_retrieve
+      operationId: v1_inventory_locations_retrieve
       parameters:
       - description: "Expand related field(s) instead of only showing a UUID (ex:\
           \ \"provider\")."
@@ -6560,7 +7874,7 @@ paths:
       tags:
       - inventory/locations
     patch:
-      operationId: inventory_locations_partial_update
+      operationId: v1_inventory_locations_partial_update
       parameters:
       - description: A UUID string identifying this location.
         explode: false
@@ -6612,7 +7926,7 @@ paths:
       tags:
       - inventory/locations
     put:
-      operationId: inventory_locations_update
+      operationId: v1_inventory_locations_update
       parameters:
       - description: A UUID string identifying this location.
         explode: false
@@ -6665,7 +7979,7 @@ paths:
       - inventory/locations
   /v1/inventory/locations/{id}/history/:
     get:
-      operationId: inventory_locations_history_list
+      operationId: v1_inventory_locations_history_list
       parameters:
       - explode: false
         in: path
@@ -6720,7 +8034,7 @@ paths:
       - inventory/locations
   /v1/inventory/nodes/:
     get:
-      operationId: inventory_nodes_list
+      operationId: v1_inventory_nodes_list
       parameters:
       - explode: true
         in: query
@@ -6732,20 +8046,6 @@ paths:
       - explode: true
         in: query
         name: bmc_mac
-        required: false
-        schema:
-          type: string
-        style: form
-      - explode: true
-        in: query
-        name: bmc_password
-        required: false
-        schema:
-          type: string
-        style: form
-      - explode: true
-        in: query
-        name: bmc_user
         required: false
         schema:
           type: string
@@ -6993,11 +8293,11 @@ paths:
         schema:
           type: integer
         style: form
-      - description: "Search for nodes by bmc_ip, bmc_mac, bmc_password, bmc_user,\
-          \ cpu_manufacturer, cpu_model, garage_id, gpu_alias, gpu model, gpu_vbios,\
-          \ id, location name, location provider name, memory, mgmt_ip, mgmt_mac,\
-          \ model, network_type, nic_prefixes, notes, oem name, provider_node_id,\
-          \ rack, rack_unit, serial_number, storage, system_arch"
+      - description: "Search for nodes by bmc_ip, bmc_mac, cpu_manufacturer, cpu_model,\
+          \ garage_id, gpu_alias, gpu model, gpu_vbios, id, location name, location\
+          \ provider name, memory, mgmt_ip, mgmt_mac, model, network_type, nic_prefixes,\
+          \ notes, oem name, provider_node_id, rack, rack_unit, serial_number, storage,\
+          \ system_arch"
         explode: true
         in: query
         name: search
@@ -7089,7 +8389,7 @@ paths:
       tags:
       - inventory/nodes
     post:
-      operationId: inventory_nodes_create
+      operationId: v1_inventory_nodes_create
       requestBody:
         content:
           application/json:
@@ -7188,7 +8488,7 @@ paths:
       - inventory/nodes
   /v1/inventory/nodes/{id}/:
     delete:
-      operationId: inventory_nodes_destroy
+      operationId: v1_inventory_nodes_destroy
       parameters:
       - description: A UUID string identifying this node.
         explode: false
@@ -7207,7 +8507,7 @@ paths:
       tags:
       - inventory/nodes
     get:
-      operationId: inventory_nodes_retrieve
+      operationId: v1_inventory_nodes_retrieve
       parameters:
       - description: "Expand related field(s) instead of only showing a UUID. Separate\
           \ nested relationships with a period (ex: \"location.provider\"). Separate\
@@ -7295,7 +8595,7 @@ paths:
       tags:
       - inventory/nodes
     patch:
-      operationId: inventory_nodes_partial_update
+      operationId: v1_inventory_nodes_partial_update
       parameters:
       - description: A UUID string identifying this node.
         explode: false
@@ -7403,7 +8703,7 @@ paths:
       tags:
       - inventory/nodes
     put:
-      operationId: inventory_nodes_update
+      operationId: v1_inventory_nodes_update
       parameters:
       - description: A UUID string identifying this node.
         explode: false
@@ -7512,7 +8812,7 @@ paths:
       - inventory/nodes
   /v1/inventory/nodes/{id}/history/:
     get:
-      operationId: inventory_nodes_history_list
+      operationId: v1_inventory_nodes_history_list
       parameters:
       - explode: false
         in: path
@@ -7567,7 +8867,7 @@ paths:
       - inventory/nodes
   /v1/inventory/nodes/bulk/:
     patch:
-      operationId: inventory_nodes_bulk_partial_update
+      operationId: v1_inventory_nodes_bulk_partial_update
       requestBody:
         content:
           application/json:
@@ -7630,12 +8930,12 @@ paths:
       - inventory/nodes
     post:
       description: Create nodes in bulk via CSV file upload
-      operationId: inventory_nodes_bulk_create
+      operationId: v1_inventory_nodes_bulk_create
       requestBody:
         content:
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/catalog_experiences_bulk_create_request'
+              $ref: '#/components/schemas/v1_catalog_experiences_bulk_create_request'
       responses:
         "201":
           content:
@@ -7649,7 +8949,7 @@ paths:
       - inventory/nodes
   /v1/inventory/oems/:
     get:
-      operationId: inventory_oems_list
+      operationId: v1_inventory_oems_list
       parameters:
       - explode: true
         in: query
@@ -7722,7 +9022,7 @@ paths:
       tags:
       - inventory/oems
     post:
-      operationId: inventory_oems_create
+      operationId: v1_inventory_oems_create
       requestBody:
         content:
           application/json:
@@ -7761,7 +9061,7 @@ paths:
       - inventory/oems
   /v1/inventory/oems/{id}/:
     delete:
-      operationId: inventory_oems_destroy
+      operationId: v1_inventory_oems_destroy
       parameters:
       - description: A UUID string identifying this oem.
         explode: false
@@ -7780,7 +9080,7 @@ paths:
       tags:
       - inventory/oems
     get:
-      operationId: inventory_oems_retrieve
+      operationId: v1_inventory_oems_retrieve
       parameters:
       - description: A UUID string identifying this oem.
         explode: false
@@ -7811,7 +9111,7 @@ paths:
       tags:
       - inventory/oems
     patch:
-      operationId: inventory_oems_partial_update
+      operationId: v1_inventory_oems_partial_update
       parameters:
       - description: A UUID string identifying this oem.
         explode: false
@@ -7859,7 +9159,7 @@ paths:
       tags:
       - inventory/oems
     put:
-      operationId: inventory_oems_update
+      operationId: v1_inventory_oems_update
       parameters:
       - description: A UUID string identifying this oem.
         explode: false
@@ -7908,7 +9208,7 @@ paths:
       - inventory/oems
   /v1/inventory/oems/{id}/history/:
     get:
-      operationId: inventory_oems_history_list
+      operationId: v1_inventory_oems_history_list
       parameters:
       - explode: false
         in: path
@@ -7963,7 +9263,7 @@ paths:
       - inventory/oems
   /v1/inventory/providers/:
     get:
-      operationId: inventory_providers_list
+      operationId: v1_inventory_providers_list
       parameters:
       - explode: true
         in: query
@@ -8010,6 +9310,21 @@ paths:
         schema:
           type: string
         style: form
+      - description: |-
+          Speed of on-demand inventory provisioning
+
+          * `fast` - fast
+          * `slow` - slow
+        explode: true
+        in: query
+        name: on_demand_speed
+        required: false
+        schema:
+          enum:
+          - fast
+          - slow
+          type: string
+        style: form
       - description: Which field to use when ordering the results.
         explode: true
         in: query
@@ -8041,7 +9356,7 @@ paths:
         schema:
           type: integer
         style: form
-      - description: "Search for providers by display_name, id, name"
+      - description: "Search for providers by display_name, id, name, on_demand_speed"
         explode: true
         in: query
         name: search
@@ -8067,6 +9382,7 @@ paths:
                       instance_limit: 250
                       modified: 2024-05-03T17:03:45.380Z
                       name: my_provider
+                      on_demand_speed: slow
                       priority: 50
               schema:
                 $ref: '#/components/schemas/PaginatedProviderList'
@@ -8076,7 +9392,7 @@ paths:
       tags:
       - inventory/providers
     post:
-      operationId: inventory_providers_create
+      operationId: v1_inventory_providers_create
       requestBody:
         content:
           application/json:
@@ -8087,6 +9403,7 @@ paths:
                   display_name: My Provider
                   instance_limit: 250
                   name: my_provider
+                  on_demand_speed: slow
                   priority: 50
             schema:
               $ref: '#/components/schemas/Provider'
@@ -8111,6 +9428,7 @@ paths:
                     instance_limit: 250
                     modified: 2024-05-03T17:03:45.380Z
                     name: my_provider
+                    on_demand_speed: slow
                     priority: 50
               schema:
                 $ref: '#/components/schemas/Provider'
@@ -8121,7 +9439,7 @@ paths:
       - inventory/providers
   /v1/inventory/providers/{id}/:
     delete:
-      operationId: inventory_providers_destroy
+      operationId: v1_inventory_providers_destroy
       parameters:
       - description: A UUID string identifying this provider.
         explode: false
@@ -8140,7 +9458,7 @@ paths:
       tags:
       - inventory/providers
     get:
-      operationId: inventory_providers_retrieve
+      operationId: v1_inventory_providers_retrieve
       parameters:
       - description: Include only the specified fields in the response
         explode: true
@@ -8181,6 +9499,7 @@ paths:
                     instance_limit: 250
                     modified: 2024-05-03T17:03:45.380Z
                     name: my_provider
+                    on_demand_speed: slow
                     priority: 50
               schema:
                 $ref: '#/components/schemas/Provider'
@@ -8190,7 +9509,7 @@ paths:
       tags:
       - inventory/providers
     patch:
-      operationId: inventory_providers_partial_update
+      operationId: v1_inventory_providers_partial_update
       parameters:
       - description: A UUID string identifying this provider.
         explode: false
@@ -8211,6 +9530,7 @@ paths:
                   display_name: My Provider
                   instance_limit: 250
                   name: my_provider
+                  on_demand_speed: slow
                   priority: 50
             schema:
               $ref: '#/components/schemas/Provider'
@@ -8235,6 +9555,7 @@ paths:
                     instance_limit: 250
                     modified: 2024-05-03T17:03:45.380Z
                     name: my_provider
+                    on_demand_speed: slow
                     priority: 50
               schema:
                 $ref: '#/components/schemas/Provider'
@@ -8244,7 +9565,7 @@ paths:
       tags:
       - inventory/providers
     put:
-      operationId: inventory_providers_update
+      operationId: v1_inventory_providers_update
       parameters:
       - description: A UUID string identifying this provider.
         explode: false
@@ -8265,6 +9586,7 @@ paths:
                   display_name: My Provider
                   instance_limit: 250
                   name: my_provider
+                  on_demand_speed: slow
                   priority: 50
             schema:
               $ref: '#/components/schemas/Provider'
@@ -8289,6 +9611,7 @@ paths:
                     instance_limit: 250
                     modified: 2024-05-03T17:03:45.380Z
                     name: my_provider
+                    on_demand_speed: slow
                     priority: 50
               schema:
                 $ref: '#/components/schemas/Provider'
@@ -8299,7 +9622,7 @@ paths:
       - inventory/providers
   /v1/inventory/providers/{id}/history/:
     get:
-      operationId: inventory_providers_history_list
+      operationId: v1_inventory_providers_history_list
       parameters:
       - explode: false
         in: path
@@ -8354,7 +9677,7 @@ paths:
       - inventory/providers
   /v1/inventory/providers/bulk/:
     patch:
-      operationId: inventory_providers_bulk_partial_update
+      operationId: v1_inventory_providers_bulk_partial_update
       requestBody:
         content:
           application/json:
@@ -8367,6 +9690,7 @@ paths:
                   - f8bd1b72-c213-43ec-82ad-a56a44757a11
                   - 5b528083-ab61-42dd-a6a1-90aa9babb014
                   instance_limit: 250
+                  on_demand_speed: slow
                   priority: 50
             schema:
               $ref: '#/components/schemas/ProviderBulkUpdate'
@@ -8396,7 +9720,7 @@ paths:
       - inventory/providers
   /v1/inventory/providers/stats/:
     get:
-      operationId: inventory_providers_stats_retrieve
+      operationId: v1_inventory_providers_stats_retrieve
       responses:
         "200":
           description: No response body
@@ -8405,6 +9729,26 @@ paths:
       summary: "🚧 [Beta Feature]"
       tags:
       - inventory/providers
+  /version/:
+    get:
+      operationId: version_retrieve
+      responses:
+        "200":
+          content:
+            application/json:
+              examples:
+                ExampleResponse:
+                  summary: Example Response
+                  value:
+                    application_version: 1.0.0
+              schema:
+                $ref: '#/components/schemas/version_retrieve_200_response'
+          description: ""
+      security:
+      - TokenAuthentication: []
+      - {}
+      tags:
+      - version
 components:
   schemas:
     AuthLogin:
@@ -8470,6 +9814,7 @@ components:
     Cluster:
       example:
         mgmt_mac: mgmt_mac
+        provisioning_request: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         vlan_id: 2308
         notes: notes
         instances:
@@ -8479,6 +9824,7 @@ components:
         provider_capacity: true
         available: true
         free_by: 2000-01-23T04:56:07.000+00:00
+        provisioning_config: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         experience: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         enabled: true
         netmask: 19
@@ -8621,6 +9967,16 @@ components:
           maximum: 2147483647
           minimum: 0
           type: integer
+        provisioning_config:
+          description: Applied provisioning configuration for the cluster
+          format: uuid
+          nullable: true
+          type: string
+        provisioning_request:
+          description: Requested provisioning configuration for the cluster
+          format: uuid
+          nullable: true
+          type: string
         provisioning_state:
           allOf:
           - $ref: '#/components/schemas/ProvisioningStateEnum'
@@ -8682,6 +10038,7 @@ components:
     ClusterBulkUpdate:
       example:
         mgmt_mac: mgmt_mac
+        provisioning_request: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         vlan_id: 2308
         notes: notes
         instances:
@@ -8691,6 +10048,7 @@ components:
         provider_capacity: true
         available: true
         free_by: 2000-01-23T04:56:07.000+00:00
+        provisioning_config: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         experience: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         enabled: true
         result: result
@@ -8859,6 +10217,18 @@ components:
           minimum: 0
           type: integer
           writeOnly: true
+        provisioning_config:
+          description: Applied provisioning configuration for the cluster
+          format: uuid
+          nullable: true
+          type: string
+          writeOnly: true
+        provisioning_request:
+          description: Requested provisioning configuration for the cluster
+          format: uuid
+          nullable: true
+          type: string
+          writeOnly: true
         provisioning_state:
           allOf:
           - $ref: '#/components/schemas/ProvisioningStateEnum'
@@ -8945,6 +10315,60 @@ components:
       - request_id
       - result
       - tenant_ids
+    ClusterPipelineTrigger:
+      example:
+        created: 2000-01-23T04:56:07.000+00:00
+        pipeline_id: 0
+        action: ""
+        modified: 2000-01-23T04:56:07.000+00:00
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        request_id: request_id
+        url: https://openapi-generator.tech
+      properties:
+        action:
+          allOf:
+          - $ref: '#/components/schemas/PipelineAction'
+          description: |-
+            Action for the pipeline to run
+
+            * `apply` - apply
+            * `destroy` - destroy
+            * `notify` - notify
+        created:
+          description: Timestamp of when the object was created
+          format: date-time
+          readOnly: true
+          type: string
+        id:
+          format: uuid
+          readOnly: true
+          type: string
+        modified:
+          description: Timestamp of when the object was last modified
+          format: date-time
+          readOnly: true
+          type: string
+        pipeline_id:
+          description: GitLab pipeline ID
+          readOnly: true
+          type: integer
+        request_id:
+          description: Request ID that the pipeline was triggered for
+          readOnly: true
+          type: string
+        url:
+          description: URL for the pipeline details
+          format: uri
+          readOnly: true
+          type: string
+      required:
+      - action
+      - created
+      - id
+      - modified
+      - pipeline_id
+      - request_id
+      - url
     CpuManufacturerEnum:
       description: |-
         * `amd` - AMD
@@ -8967,24 +10391,31 @@ components:
         lifetime: 1294386358
         pipeline_branch: pipeline_branch
         gpu_os_name: gpu_os_name
+        runtime_url: https://openapi-generator.tech
         experience: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         experience_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         pipelines:
         - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        runtime_cns_nvidia_driver: true
         oem_name: oem_name
         gpu_alias: gpu_alias
         retry_count: 2
+        runtime_cns_k8s: true
         modified: 2000-01-23T04:56:07.000+00:00
         id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         state: ""
+        runtime_cns_driver_version: runtime_cns_driver_version
+        runtime_mig_profile: runtime_mig_profile
         requester_name: requester_name
         collection_branch: collection_branch
         workshop_id: workshop_id
         persona: persona
+        runtime_cns_docker: true
         ssh_port: 7
         created: 2000-01-23T04:56:07.000+00:00
-        workshop: true
+        workshop: false
+        runtime: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         requester_email: requester_email
         ip_allowlist:
         - ip_allowlist
@@ -8992,10 +10423,12 @@ components:
         priority: ""
         tags: ""
         catalog_id: catalog_id
-        gpu_count: 1
-        min_gpu_count: 2
+        gpu_count: 41
+        runtime_cns_addon_pack: true
+        min_gpu_count: 75
         catalog_id_alias: catalog_id_alias
         region: region
+        runtime_branch: runtime_branch
         gpu_model: gpu_model
         gpu_os_version: gpu_os_version
         platform: air
@@ -9005,21 +10438,23 @@ components:
         experience_branch: experience_branch
         gc_branch: gc_branch
         gpu_os_release: gpu_os_release
-        node_count: 1280358508
+        node_count: 0
         org_name: org_name
         provider_name: provider_name
         sales_id: sales_id
         ssh_user: ssh_user
         flightcontrol_release: flightcontrol_release
+        runtime_mig: true
         sales_created_date: 2000-01-23T04:56:07.000+00:00
         sales_owner_name: sales_owner_name
         overrides: ""
         services:
         - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
-        persist_on_failure: true
-        pipeline: 5199562221600970752
+        persist_on_failure: false
+        pipeline: 0
         garage_id: garage_id
+        runtime_cns_version: runtime_cns_version
         request_id: request_id
       properties:
         bastion_operating_system:
@@ -9029,14 +10464,11 @@ components:
           nullable: true
           type: string
         catalog_id:
-          description: Unique ID for this experience in the sales catalog. Must be
-            unique.
+          description: Catalog ID of the experience provisioned to the cluster
           type: string
           writeOnly: true
         catalog_id_alias:
-          description: "Human-readable identifier for the experience in the sales\
-            \ catalog (ex: LP-15). Must be unique."
-          nullable: true
+          description: Catalog ID alias of the experience provisioned to the cluster
           type: string
           writeOnly: true
         cluster:
@@ -9053,13 +10485,18 @@ components:
           readOnly: true
           type: string
         experience:
-          $ref: '#/components/schemas/Deployment_experience'
+          description: The experience being deployed for use
+          format: uuid
+          nullable: true
+          readOnly: true
+          type: string
         experience_branch:
           description: Override the experience branch
           maxLength: 255
           nullable: true
           type: string
         experience_id:
+          description: UUID of the experience provisioned to the cluster
           format: uuid
           type: string
           writeOnly: true
@@ -9088,8 +10525,9 @@ components:
           nullable: true
           type: string
         gpu_count:
+          default: 0
           description: Require a cluster with the given number of GPUs
-          maximum: 16
+          maximum: 512
           minimum: 0
           nullable: true
           type: integer
@@ -9099,10 +10537,19 @@ components:
           nullable: true
           type: string
         gpu_os_name:
+          description: Override the GPU node operating system name
+          maxLength: 16
+          nullable: true
           type: string
         gpu_os_release:
+          description: Override the GPU node operating system release
+          maxLength: 16
+          nullable: true
           type: string
         gpu_os_version:
+          description: Override the GPU node operating system version
+          maxLength: 8
+          nullable: true
           type: string
         id:
           format: uuid
@@ -9121,9 +10568,10 @@ components:
           nullable: true
           type: integer
         min_gpu_count:
+          default: 0
           description: Require a cluster whose GPU count is greater than or equal
             to the given number
-          maximum: 16
+          maximum: 512
           minimum: 0
           nullable: true
           type: integer
@@ -9133,8 +10581,8 @@ components:
           readOnly: true
           type: string
         node_count:
+          default: 0
           description: Require a cluster with the given number of nodes
-          maximum: 2147483647
           minimum: 0
           nullable: true
           type: integer
@@ -9146,19 +10594,26 @@ components:
         org_name:
           description: Requester's organization name
           type: string
-        overrides: {}
+        overrides:
+          allOf:
+          - $ref: '#/components/schemas/Overrides'
+          description: Overriden values from the original deployment request
+          readOnly: true
         persist_on_failure:
+          default: false
           description: Override the default cleanup/destroy behavior when a provisioning
             failure occurs
           nullable: true
           type: boolean
         persona:
+          description: Override the defined persona in the experience
+          maxLength: 32
+          nullable: true
           type: string
         pipeline:
+          default: 0
           description: Override the pipeline ID that will be triggered for request
             fulfillment
-          format: int64
-          maximum: 9223372036854775807
           minimum: 0
           nullable: true
           type: integer
@@ -9218,6 +10673,68 @@ components:
           description: Number of times the deployment has been retried
           readOnly: true
           type: integer
+        runtime:
+          description: Use the presets of the given runtime when provisioning this
+            experience
+          format: uuid
+          nullable: true
+          type: string
+          writeOnly: true
+        runtime_branch:
+          description: Override the runtime repository branch
+          maxLength: 255
+          nullable: true
+          type: string
+          writeOnly: true
+        runtime_cns_addon_pack:
+          description: Override the runtime's CNS add-ons flag
+          nullable: true
+          type: boolean
+          writeOnly: true
+        runtime_cns_docker:
+          description: Override the runtime's Docker with CNS flag
+          nullable: true
+          type: boolean
+          writeOnly: true
+        runtime_cns_driver_version:
+          description: Override the runtime's GPU driver version
+          maxLength: 11
+          nullable: true
+          type: string
+          writeOnly: true
+        runtime_cns_k8s:
+          description: Override the runtime's Kubernetes with CNS flag
+          nullable: true
+          type: boolean
+          writeOnly: true
+        runtime_cns_nvidia_driver:
+          description: Override the runtime's NVIDIA driver with CNS flag
+          nullable: true
+          type: boolean
+          writeOnly: true
+        runtime_cns_version:
+          description: Override the runtime's Cloud Native Stack version
+          maxLength: 11
+          nullable: true
+          type: string
+          writeOnly: true
+        runtime_mig:
+          description: Override the runtime's MIG support with CNS flag
+          nullable: true
+          type: boolean
+          writeOnly: true
+        runtime_mig_profile:
+          description: Override the runtime's MIG profile name
+          maxLength: 32
+          nullable: true
+          type: string
+          writeOnly: true
+        runtime_url:
+          description: Override the URL of the runtime repository
+          format: uri
+          nullable: true
+          type: string
+          writeOnly: true
         sales_created_date:
           format: date-time
           nullable: true
@@ -9269,6 +10786,7 @@ components:
           readOnly: true
         tags: {}
         workshop:
+          default: false
           description: Require a cluster whose workshop flag is set
           nullable: true
           type: boolean
@@ -9306,35 +10824,44 @@ components:
         lifetime: 6
         pipeline_branch: pipeline_branch
         gpu_os_name: gpu_os_name
+        runtime_url: https://openapi-generator.tech
         experience: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         pipelines:
         - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        runtime_cns_nvidia_driver: true
         oem_name: oem_name
         gpu_alias: gpu_alias
         retry_count: 494379917
+        runtime_cns_k8s: true
         modified: 2000-01-23T04:56:07.000+00:00
         id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         state: ""
+        runtime_cns_driver_version: runtime_cns_driver_version
+        runtime_mig_profile: runtime_mig_profile
         requester_name: requester_name
         collection_branch: collection_branch
         workshop_id: workshop_id
         persona: persona
+        runtime_cns_docker: true
         created: 2000-01-23T04:56:07.000+00:00
-        workshop: true
+        workshop: false
         count: 7
+        runtime: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         requester_email: requester_email
         ip_allowlist:
         - ip_allowlist
         - ip_allowlist
         priority: ""
         tags: ""
-        gpu_count: 0
+        gpu_count: 41
+        runtime_cns_addon_pack: true
         ids:
         - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
-        min_gpu_count: 1
+        min_gpu_count: 75
         region: region
+        runtime_branch: runtime_branch
         gpu_model: gpu_model
         gpu_os_version: gpu_os_version
         platform: air
@@ -9345,25 +10872,28 @@ components:
         experience_branch: experience_branch
         gc_branch: gc_branch
         gpu_os_release: gpu_os_release
-        node_count: 5
+        node_count: 0
         org_name: org_name
         provider_name: provider_name
         sales_id: sales_id
         flightcontrol_release: flightcontrol_release
+        runtime_mig: true
         sales_created_date: 2000-01-23T04:56:07.000+00:00
         sales_owner_name: sales_owner_name
         overrides: ""
         services:
         - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
-        persist_on_failure: true
-        pipeline: 5199562221600970752
+        persist_on_failure: false
+        pipeline: 0
         garage_id: garage_id
+        runtime_cns_version: runtime_cns_version
         request_id: request_id
       properties:
         bastion_operating_system:
           description: Override bastion operating system provisioned and/or configured
             by Liftoff
+          maxLength: 32
           nullable: true
           readOnly: true
           type: string
@@ -9389,7 +10919,12 @@ components:
           type: string
           writeOnly: true
         experience:
-          $ref: '#/components/schemas/Deployment_experience'
+          description: The experience being deployed for use
+          format: uuid
+          nullable: true
+          readOnly: true
+          type: string
+          writeOnly: true
         experience_branch:
           description: Override the experience branch
           maxLength: 255
@@ -9409,6 +10944,7 @@ components:
           writeOnly: true
         garage_id:
           description: Require a cluster with nodes in the given garage
+          maxLength: 128
           nullable: true
           readOnly: true
           type: string
@@ -9421,36 +10957,44 @@ components:
           writeOnly: true
         gpu_alias:
           description: Require a cluster with the given GPU alias
+          maxLength: 64
           nullable: true
           readOnly: true
           type: string
           writeOnly: true
         gpu_count:
+          default: 0
           description: Require a cluster with the given number of GPUs
+          maximum: 512
+          minimum: 0
           nullable: true
           readOnly: true
           type: integer
           writeOnly: true
         gpu_model:
           description: Require a cluster with the given GPU model
+          maxLength: 32
           nullable: true
           readOnly: true
           type: string
           writeOnly: true
         gpu_os_name:
           description: Override the GPU node operating system name
+          maxLength: 16
           nullable: true
           readOnly: true
           type: string
           writeOnly: true
         gpu_os_release:
           description: Override the GPU node operating system release
+          maxLength: 16
           nullable: true
           readOnly: true
           type: string
           writeOnly: true
         gpu_os_version:
           description: Override the GPU node operating system version
+          maxLength: 8
           nullable: true
           readOnly: true
           type: string
@@ -9473,8 +11017,11 @@ components:
           type: integer
           writeOnly: true
         min_gpu_count:
+          default: 0
           description: Require a cluster whose GPU count is greater than or equal
             to the given number
+          maximum: 512
+          minimum: 0
           nullable: true
           readOnly: true
           type: integer
@@ -9486,13 +11033,16 @@ components:
           type: string
           writeOnly: true
         node_count:
+          default: 0
           description: Require a cluster with the given number of nodes
+          minimum: 0
           nullable: true
           readOnly: true
           type: integer
           writeOnly: true
         oem_name:
           description: Require a cluster manufactured by the given OEM name
+          maxLength: 64
           nullable: true
           readOnly: true
           type: string
@@ -9501,8 +11051,14 @@ components:
           description: Requester's organization name
           type: string
           writeOnly: true
-        overrides: {}
+        overrides:
+          allOf:
+          - $ref: '#/components/schemas/Overrides'
+          description: Overriden values from the original deployment request
+          readOnly: true
+          writeOnly: true
         persist_on_failure:
+          default: false
           description: Override the default cleanup/destroy behavior when a provisioning
             failure occurs
           nullable: true
@@ -9515,10 +11071,9 @@ components:
           type: string
           writeOnly: true
         pipeline:
+          default: 0
           description: Override the pipeline ID that will be triggered for request
             fulfillment
-          format: int64
-          maximum: 9223372036854775807
           minimum: 0
           nullable: true
           type: integer
@@ -9551,6 +11106,7 @@ components:
           writeOnly: true
         provider_name:
           description: Require a cluster from the given provider name
+          maxLength: 64
           nullable: true
           readOnly: true
           type: string
@@ -9565,6 +11121,7 @@ components:
           writeOnly: true
         region:
           description: Require a cluster located in the given region
+          maxLength: 64
           nullable: true
           readOnly: true
           type: string
@@ -9587,6 +11144,68 @@ components:
           maximum: 2147483647
           minimum: 0
           type: integer
+          writeOnly: true
+        runtime:
+          description: Use the presets of the given runtime when provisioning this
+            experience
+          format: uuid
+          nullable: true
+          type: string
+          writeOnly: true
+        runtime_branch:
+          description: Override the runtime repository branch
+          maxLength: 255
+          nullable: true
+          type: string
+          writeOnly: true
+        runtime_cns_addon_pack:
+          description: Override the runtime's CNS add-ons flag
+          nullable: true
+          type: boolean
+          writeOnly: true
+        runtime_cns_docker:
+          description: Override the runtime's Docker with CNS flag
+          nullable: true
+          type: boolean
+          writeOnly: true
+        runtime_cns_driver_version:
+          description: Override the runtime's GPU driver version
+          maxLength: 11
+          nullable: true
+          type: string
+          writeOnly: true
+        runtime_cns_k8s:
+          description: Override the runtime's Kubernetes with CNS flag
+          nullable: true
+          type: boolean
+          writeOnly: true
+        runtime_cns_nvidia_driver:
+          description: Override the runtime's NVIDIA driver with CNS flag
+          nullable: true
+          type: boolean
+          writeOnly: true
+        runtime_cns_version:
+          description: Override the runtime's Cloud Native Stack version
+          maxLength: 11
+          nullable: true
+          type: string
+          writeOnly: true
+        runtime_mig:
+          description: Override the runtime's MIG support with CNS flag
+          nullable: true
+          type: boolean
+          writeOnly: true
+        runtime_mig_profile:
+          description: Override the runtime's MIG profile name
+          maxLength: 32
+          nullable: true
+          type: string
+          writeOnly: true
+        runtime_url:
+          description: Override the URL of the runtime repository
+          format: uri
+          nullable: true
+          type: string
           writeOnly: true
         sales_created_date:
           description: Timestamp when the requester's sales relationship was created
@@ -9639,6 +11258,7 @@ components:
           writeOnly: true
         tags: {}
         workshop:
+          default: false
           description: Require a cluster whose workshop flag is set
           nullable: true
           readOnly: true
@@ -9646,6 +11266,7 @@ components:
           writeOnly: true
         workshop_id:
           description: Require a cluster with the given workshop ID
+          maxLength: 64
           nullable: true
           readOnly: true
           type: string
@@ -9654,6 +11275,7 @@ components:
           description: Override the deployment's default authentication to use a static
             password. This is useful for workshops when you'd like an identical password
             associated with a collection of environments. (LaunchPad Team only)
+          maxLength: 64
           nullable: true
           readOnly: true
           type: string
@@ -9864,12 +11486,13 @@ components:
       properties:
         action:
           allOf:
-          - $ref: '#/components/schemas/DeploymentPipelineActionEnum'
+          - $ref: '#/components/schemas/PipelineAction'
           description: |-
             Action for the pipeline to run
 
             * `apply` - apply
             * `destroy` - destroy
+            * `notify` - notify
         created:
           description: Timestamp of when the object was created
           format: date-time
@@ -9905,17 +11528,6 @@ components:
       - modified
       - pipeline_id
       - url
-    DeploymentPipelineActionEnum:
-      description: |-
-        * `apply` - apply
-        * `destroy` - destroy
-      enum:
-      - apply
-      - destroy
-      type: string
-      x-enum-varnames:
-      - DeploymentPipelineActionApply
-      - DeploymentPipelineActionDestroy
     DeploymentService:
       example:
         created: 2000-01-23T04:56:07.000+00:00
@@ -10078,31 +11690,40 @@ components:
         lifetime: 6
         pipeline_branch: pipeline_branch
         gpu_os_name: gpu_os_name
+        runtime_url: https://openapi-generator.tech
         experience: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         pipelines:
         - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        runtime_cns_nvidia_driver: true
         oem_name: oem_name
         gpu_alias: gpu_alias
         retry_count: 494379917
+        runtime_cns_k8s: true
         modified: 2000-01-23T04:56:07.000+00:00
         id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         state: ""
+        runtime_cns_driver_version: runtime_cns_driver_version
+        runtime_mig_profile: runtime_mig_profile
         requester_name: requester_name
         collection_branch: collection_branch
         workshop_id: workshop_id
         persona: persona
+        runtime_cns_docker: true
         created: 2000-01-23T04:56:07.000+00:00
-        workshop: true
+        workshop: false
+        runtime: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         requester_email: requester_email
         ip_allowlist:
         - ip_allowlist
         - ip_allowlist
         priority: ""
         tags: ""
-        gpu_count: 0
-        min_gpu_count: 1
+        gpu_count: 41
+        runtime_cns_addon_pack: true
+        min_gpu_count: 75
         region: region
+        runtime_branch: runtime_branch
         gpu_model: gpu_model
         gpu_os_version: gpu_os_version
         platform: air
@@ -10112,25 +11733,28 @@ components:
         experience_branch: experience_branch
         gc_branch: gc_branch
         gpu_os_release: gpu_os_release
-        node_count: 5
+        node_count: 0
         org_name: org_name
         provider_name: provider_name
         sales_id: sales_id
         flightcontrol_release: flightcontrol_release
+        runtime_mig: true
         sales_created_date: 2000-01-23T04:56:07.000+00:00
         sales_owner_name: sales_owner_name
         overrides: ""
         services:
         - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
-        persist_on_failure: true
-        pipeline: 5199562221600970752
+        persist_on_failure: false
+        pipeline: 0
         garage_id: garage_id
+        runtime_cns_version: runtime_cns_version
         request_id: request_id
       properties:
         bastion_operating_system:
           description: Override bastion operating system provisioned and/or configured
             by Liftoff
+          maxLength: 32
           nullable: true
           readOnly: true
           type: string
@@ -10152,7 +11776,11 @@ components:
           readOnly: true
           type: string
         experience:
-          $ref: '#/components/schemas/Deployment_experience'
+          description: The experience being deployed for use
+          format: uuid
+          nullable: true
+          readOnly: true
+          type: string
         experience_branch:
           description: Override the experience branch
           maxLength: 255
@@ -10169,6 +11797,7 @@ components:
           type: string
         garage_id:
           description: Require a cluster with nodes in the given garage
+          maxLength: 128
           nullable: true
           readOnly: true
           type: string
@@ -10179,31 +11808,39 @@ components:
           type: string
         gpu_alias:
           description: Require a cluster with the given GPU alias
+          maxLength: 64
           nullable: true
           readOnly: true
           type: string
         gpu_count:
+          default: 0
           description: Require a cluster with the given number of GPUs
+          maximum: 512
+          minimum: 0
           nullable: true
           readOnly: true
           type: integer
         gpu_model:
           description: Require a cluster with the given GPU model
+          maxLength: 32
           nullable: true
           readOnly: true
           type: string
         gpu_os_name:
           description: Override the GPU node operating system name
+          maxLength: 16
           nullable: true
           readOnly: true
           type: string
         gpu_os_release:
           description: Override the GPU node operating system release
+          maxLength: 16
           nullable: true
           readOnly: true
           type: string
         gpu_os_version:
           description: Override the GPU node operating system version
+          maxLength: 8
           nullable: true
           readOnly: true
           type: string
@@ -10223,8 +11860,11 @@ components:
           readOnly: true
           type: integer
         min_gpu_count:
+          default: 0
           description: Require a cluster whose GPU count is greater than or equal
             to the given number
+          maximum: 512
+          minimum: 0
           nullable: true
           readOnly: true
           type: integer
@@ -10234,20 +11874,28 @@ components:
           readOnly: true
           type: string
         node_count:
+          default: 0
           description: Require a cluster with the given number of nodes
+          minimum: 0
           nullable: true
           readOnly: true
           type: integer
         oem_name:
           description: Require a cluster manufactured by the given OEM name
+          maxLength: 64
           nullable: true
           readOnly: true
           type: string
         org_name:
           description: Requester's organization name
           type: string
-        overrides: {}
+        overrides:
+          allOf:
+          - $ref: '#/components/schemas/Overrides'
+          description: Overriden values from the original deployment request
+          readOnly: true
         persist_on_failure:
+          default: false
           description: Override the default cleanup/destroy behavior when a provisioning
             failure occurs
           nullable: true
@@ -10258,10 +11906,9 @@ components:
           nullable: true
           type: string
         pipeline:
+          default: 0
           description: Override the pipeline ID that will be triggered for request
             fulfillment
-          format: int64
-          maximum: 9223372036854775807
           minimum: 0
           nullable: true
           type: integer
@@ -10291,6 +11938,7 @@ components:
           readOnly: true
         provider_name:
           description: Require a cluster from the given provider name
+          maxLength: 64
           nullable: true
           readOnly: true
           type: string
@@ -10303,6 +11951,7 @@ components:
           type: string
         region:
           description: Require a cluster located in the given region
+          maxLength: 64
           nullable: true
           readOnly: true
           type: string
@@ -10321,6 +11970,68 @@ components:
           maximum: 2147483647
           minimum: 0
           type: integer
+        runtime:
+          description: Use the presets of the given runtime when provisioning this
+            experience
+          format: uuid
+          nullable: true
+          type: string
+          writeOnly: true
+        runtime_branch:
+          description: Override the runtime repository branch
+          maxLength: 255
+          nullable: true
+          type: string
+          writeOnly: true
+        runtime_cns_addon_pack:
+          description: Override the runtime's CNS add-ons flag
+          nullable: true
+          type: boolean
+          writeOnly: true
+        runtime_cns_docker:
+          description: Override the runtime's Docker with CNS flag
+          nullable: true
+          type: boolean
+          writeOnly: true
+        runtime_cns_driver_version:
+          description: Override the runtime's GPU driver version
+          maxLength: 11
+          nullable: true
+          type: string
+          writeOnly: true
+        runtime_cns_k8s:
+          description: Override the runtime's Kubernetes with CNS flag
+          nullable: true
+          type: boolean
+          writeOnly: true
+        runtime_cns_nvidia_driver:
+          description: Override the runtime's NVIDIA driver with CNS flag
+          nullable: true
+          type: boolean
+          writeOnly: true
+        runtime_cns_version:
+          description: Override the runtime's Cloud Native Stack version
+          maxLength: 11
+          nullable: true
+          type: string
+          writeOnly: true
+        runtime_mig:
+          description: Override the runtime's MIG support with CNS flag
+          nullable: true
+          type: boolean
+          writeOnly: true
+        runtime_mig_profile:
+          description: Override the runtime's MIG profile name
+          maxLength: 32
+          nullable: true
+          type: string
+          writeOnly: true
+        runtime_url:
+          description: Override the URL of the runtime repository
+          format: uri
+          nullable: true
+          type: string
+          writeOnly: true
         sales_created_date:
           description: Timestamp when the requester's sales relationship was created
           format: date-time
@@ -10367,12 +12078,14 @@ components:
             * `waiting` - Waiting for deployment to be ready
         tags: {}
         workshop:
+          default: false
           description: Require a cluster whose workshop flag is set
           nullable: true
           readOnly: true
           type: boolean
         workshop_id:
           description: Require a cluster with the given workshop ID
+          maxLength: 64
           nullable: true
           readOnly: true
           type: string
@@ -10380,6 +12093,7 @@ components:
           description: Override the deployment's default authentication to use a static
             password. This is useful for workshops when you'd like an identical password
             associated with a collection of environments. (LaunchPad Team only)
+          maxLength: 64
           nullable: true
           readOnly: true
           type: string
@@ -10422,24 +12136,31 @@ components:
         lifetime: 1294386358
         pipeline_branch: pipeline_branch
         gpu_os_name: gpu_os_name
+        runtime_url: https://openapi-generator.tech
         experience: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         experience_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         pipelines:
         - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        runtime_cns_nvidia_driver: true
         oem_name: oem_name
         gpu_alias: gpu_alias
         retry_count: 2
+        runtime_cns_k8s: true
         modified: 2000-01-23T04:56:07.000+00:00
         id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         state: ""
+        runtime_cns_driver_version: runtime_cns_driver_version
+        runtime_mig_profile: runtime_mig_profile
         requester_name: requester_name
         collection_branch: collection_branch
         workshop_id: workshop_id
         persona: persona
+        runtime_cns_docker: true
         ssh_port: 7
         created: 2000-01-23T04:56:07.000+00:00
-        workshop: true
+        workshop: false
+        runtime: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         requester_email: requester_email
         ip_allowlist:
         - ip_allowlist
@@ -10447,10 +12168,12 @@ components:
         priority: ""
         tags: ""
         catalog_id: catalog_id
-        gpu_count: 1
-        min_gpu_count: 2
+        gpu_count: 41
+        runtime_cns_addon_pack: true
+        min_gpu_count: 75
         catalog_id_alias: catalog_id_alias
         region: region
+        runtime_branch: runtime_branch
         gpu_model: gpu_model
         gpu_os_version: gpu_os_version
         platform: air
@@ -10460,21 +12183,23 @@ components:
         experience_branch: experience_branch
         gc_branch: gc_branch
         gpu_os_release: gpu_os_release
-        node_count: 1280358508
+        node_count: 0
         org_name: org_name
         provider_name: provider_name
         sales_id: sales_id
         ssh_user: ssh_user
         flightcontrol_release: flightcontrol_release
+        runtime_mig: true
         sales_created_date: 2000-01-23T04:56:07.000+00:00
         sales_owner_name: sales_owner_name
         overrides: ""
         services:
         - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
-        persist_on_failure: true
-        pipeline: 5199562221600970752
+        persist_on_failure: false
+        pipeline: 0
         garage_id: garage_id
+        runtime_cns_version: runtime_cns_version
         request_id: request_id
       properties:
         bastion_operating_system:
@@ -10484,14 +12209,11 @@ components:
           nullable: true
           type: string
         catalog_id:
-          description: Unique ID for this experience in the sales catalog. Must be
-            unique.
+          description: Catalog ID of the experience provisioned to the cluster
           type: string
           writeOnly: true
         catalog_id_alias:
-          description: "Human-readable identifier for the experience in the sales\
-            \ catalog (ex: LP-15). Must be unique."
-          nullable: true
+          description: Catalog ID alias of the experience provisioned to the cluster
           type: string
           writeOnly: true
         cluster:
@@ -10508,13 +12230,18 @@ components:
           readOnly: true
           type: string
         experience:
-          $ref: '#/components/schemas/Deployment_experience'
+          description: The experience being deployed for use
+          format: uuid
+          nullable: true
+          readOnly: true
+          type: string
         experience_branch:
           description: Override the experience branch
           maxLength: 255
           nullable: true
           type: string
         experience_id:
+          description: UUID of the experience provisioned to the cluster
           format: uuid
           type: string
           writeOnly: true
@@ -10543,8 +12270,9 @@ components:
           nullable: true
           type: string
         gpu_count:
+          default: 0
           description: Require a cluster with the given number of GPUs
-          maximum: 16
+          maximum: 512
           minimum: 0
           nullable: true
           type: integer
@@ -10554,10 +12282,19 @@ components:
           nullable: true
           type: string
         gpu_os_name:
+          description: Override the GPU node operating system name
+          maxLength: 16
+          nullable: true
           type: string
         gpu_os_release:
+          description: Override the GPU node operating system release
+          maxLength: 16
+          nullable: true
           type: string
         gpu_os_version:
+          description: Override the GPU node operating system version
+          maxLength: 8
+          nullable: true
           type: string
         id:
           format: uuid
@@ -10576,9 +12313,10 @@ components:
           nullable: true
           type: integer
         min_gpu_count:
+          default: 0
           description: Require a cluster whose GPU count is greater than or equal
             to the given number
-          maximum: 16
+          maximum: 512
           minimum: 0
           nullable: true
           type: integer
@@ -10588,8 +12326,8 @@ components:
           readOnly: true
           type: string
         node_count:
+          default: 0
           description: Require a cluster with the given number of nodes
-          maximum: 2147483647
           minimum: 0
           nullable: true
           type: integer
@@ -10601,19 +12339,26 @@ components:
         org_name:
           description: Requester's organization name
           type: string
-        overrides: {}
+        overrides:
+          allOf:
+          - $ref: '#/components/schemas/Overrides'
+          description: Overriden values from the original deployment request
+          readOnly: true
         persist_on_failure:
+          default: false
           description: Override the default cleanup/destroy behavior when a provisioning
             failure occurs
           nullable: true
           type: boolean
         persona:
+          description: Override the defined persona in the experience
+          maxLength: 32
+          nullable: true
           type: string
         pipeline:
+          default: 0
           description: Override the pipeline ID that will be triggered for request
             fulfillment
-          format: int64
-          maximum: 9223372036854775807
           minimum: 0
           nullable: true
           type: integer
@@ -10673,6 +12418,68 @@ components:
           description: Number of times the deployment has been retried
           readOnly: true
           type: integer
+        runtime:
+          description: Use the presets of the given runtime when provisioning this
+            experience
+          format: uuid
+          nullable: true
+          type: string
+          writeOnly: true
+        runtime_branch:
+          description: Override the runtime repository branch
+          maxLength: 255
+          nullable: true
+          type: string
+          writeOnly: true
+        runtime_cns_addon_pack:
+          description: Override the runtime's CNS add-ons flag
+          nullable: true
+          type: boolean
+          writeOnly: true
+        runtime_cns_docker:
+          description: Override the runtime's Docker with CNS flag
+          nullable: true
+          type: boolean
+          writeOnly: true
+        runtime_cns_driver_version:
+          description: Override the runtime's GPU driver version
+          maxLength: 11
+          nullable: true
+          type: string
+          writeOnly: true
+        runtime_cns_k8s:
+          description: Override the runtime's Kubernetes with CNS flag
+          nullable: true
+          type: boolean
+          writeOnly: true
+        runtime_cns_nvidia_driver:
+          description: Override the runtime's NVIDIA driver with CNS flag
+          nullable: true
+          type: boolean
+          writeOnly: true
+        runtime_cns_version:
+          description: Override the runtime's Cloud Native Stack version
+          maxLength: 11
+          nullable: true
+          type: string
+          writeOnly: true
+        runtime_mig:
+          description: Override the runtime's MIG support with CNS flag
+          nullable: true
+          type: boolean
+          writeOnly: true
+        runtime_mig_profile:
+          description: Override the runtime's MIG profile name
+          maxLength: 32
+          nullable: true
+          type: string
+          writeOnly: true
+        runtime_url:
+          description: Override the URL of the runtime repository
+          format: uri
+          nullable: true
+          type: string
+          writeOnly: true
         sales_created_date:
           format: date-time
           nullable: true
@@ -10724,6 +12531,7 @@ components:
           readOnly: true
         tags: {}
         workshop:
+          default: false
           description: Require a cluster whose workshop flag is set
           nullable: true
           type: boolean
@@ -10781,6 +12589,7 @@ components:
         persona: persona
         autoapprove: true
         created: 2000-01-23T04:56:07.000+00:00
+        runtime: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         published: ""
         catalog_id: catalog_id
         pipeline: 5199562221600970752
@@ -10791,7 +12600,7 @@ components:
           name: name
           version: version
         autoprovision: true
-        gpu_count: 1
+        gpu_count: 41
         assignee: assignee
         catalog_id_alias: catalog_id_alias
         category: ""
@@ -10872,7 +12681,7 @@ components:
           type: string
         gpu_count:
           description: Number of GPUs used
-          maximum: 16
+          maximum: 512
           minimum: 0
           type: integer
         gpu_os:
@@ -10958,6 +12767,11 @@ components:
             format: uuid
             type: string
           type: array
+        runtime:
+          description: The default runtime to use when provisioning this experience
+          format: uuid
+          nullable: true
+          type: string
         sa_lab:
           description: Is this a persistent experience for SAs?
           type: boolean
@@ -11015,6 +12829,7 @@ components:
           persona: persona
           autoapprove: true
           created: 2000-01-23T04:56:07.000+00:00
+          runtime: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
           published: ""
           catalog_id: catalog_id
           pipeline: 5199562221600970752
@@ -11025,7 +12840,7 @@ components:
             name: name
             version: version
           autoprovision: true
-          gpu_count: 1
+          gpu_count: 41
           assignee: assignee
           catalog_id_alias: catalog_id_alias
           category: ""
@@ -11054,6 +12869,7 @@ components:
           persona: persona
           autoapprove: true
           created: 2000-01-23T04:56:07.000+00:00
+          runtime: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
           published: ""
           catalog_id: catalog_id
           pipeline: 5199562221600970752
@@ -11064,7 +12880,7 @@ components:
             name: name
             version: version
           autoprovision: true
-          gpu_count: 1
+          gpu_count: 41
           assignee: assignee
           catalog_id_alias: catalog_id_alias
           category: ""
@@ -11109,6 +12925,7 @@ components:
         autoapprove: true
         created: 2000-01-23T04:56:07.000+00:00
         count: 2
+        runtime: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         published: ""
         catalog_id: catalog_id
         pipeline: 5199562221600970752
@@ -11116,7 +12933,7 @@ components:
         garage_id: garage_id
         gpu_os: ""
         autoprovision: true
-        gpu_count: 1
+        gpu_count: 41
         ids:
         - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
@@ -11216,7 +13033,7 @@ components:
           writeOnly: true
         gpu_count:
           description: Number of GPUs used
-          maximum: 16
+          maximum: 512
           minimum: 0
           type: integer
           writeOnly: true
@@ -11315,6 +13132,12 @@ components:
             format: uuid
             type: string
           type: array
+        runtime:
+          description: The default runtime to use when provisioning this experience
+          format: uuid
+          nullable: true
+          type: string
+          writeOnly: true
         sa_lab:
           description: Is this a persistent experience for SAs?
           type: boolean
@@ -11383,7 +13206,7 @@ components:
           readOnly: true
           type: string
         experience:
-          $ref: '#/components/schemas/Deployment_experience'
+          $ref: '#/components/schemas/ExperienceNote_experience'
         id:
           format: uuid
           readOnly: true
@@ -12090,7 +13913,7 @@ components:
         rack_unit: 31
         garage_id: garage_id
         bmc_password: bmc_password
-        gpu_count: 9
+        gpu_count: 308
         nic_prefixes:
         - nic_prefixes
         - nic_prefixes
@@ -12153,7 +13976,7 @@ components:
           type: string
         gpu_count:
           description: Number of GPUs installed
-          maximum: 16
+          maximum: 512
           minimum: 0
           type: integer
         gpu_model:
@@ -12301,7 +14124,7 @@ components:
           rack_unit: 31
           garage_id: garage_id
           bmc_password: bmc_password
-          gpu_count: 9
+          gpu_count: 308
           nic_prefixes:
           - nic_prefixes
           - nic_prefixes
@@ -12340,7 +14163,7 @@ components:
           rack_unit: 31
           garage_id: garage_id
           bmc_password: bmc_password
-          gpu_count: 9
+          gpu_count: 308
           nic_prefixes:
           - nic_prefixes
           - nic_prefixes
@@ -12395,7 +14218,7 @@ components:
         rack_unit: 31
         garage_id: garage_id
         bmc_password: bmc_password
-        gpu_count: 9
+        gpu_count: 308
         nic_prefixes:
         - nic_prefixes
         - nic_prefixes
@@ -12471,7 +14294,7 @@ components:
           writeOnly: true
         gpu_count:
           description: Number of GPUs installed
-          maximum: 16
+          maximum: 512
           minimum: 0
           type: integer
           writeOnly: true
@@ -12669,6 +14492,205 @@ components:
       - id
       - modified
       - name
+    OnDemandSpeedEnum:
+      description: |-
+        * `fast` - fast
+        * `slow` - slow
+      enum:
+      - fast
+      - slow
+      type: string
+      x-enum-varnames:
+      - OnDemandSpeedFast
+      - OnDemandSpeedSlow
+    Overrides:
+      properties:
+        bastion_operating_system:
+          description: Override bastion operating system provisioned and/or configured
+            by Liftoff
+          maxLength: 32
+          nullable: true
+          type: string
+        cluster:
+          description: Target a specific cluster for provisioning
+          format: uuid
+          nullable: true
+          type: string
+        collection_branch:
+          description: Override the Ansible collection branch initialized within the
+            pipeline
+          maxLength: 255
+          nullable: true
+          type: string
+        experience_branch:
+          description: Override the experience branch
+          maxLength: 255
+          nullable: true
+          type: string
+        flightcontrol_release:
+          description: Override the image tag used for Flight Control
+          maxLength: 64
+          nullable: true
+          type: string
+        garage_id:
+          description: Require a cluster with nodes in the given garage
+          maxLength: 128
+          nullable: true
+          type: string
+        gc_branch:
+          description: Override the default Ground Control branch
+          maxLength: 255
+          nullable: true
+          type: string
+        gpu_alias:
+          description: Require a cluster with the given GPU alias
+          maxLength: 64
+          nullable: true
+          type: string
+        gpu_count:
+          description: Require a cluster with the given number of GPUs
+          maximum: 512
+          minimum: 0
+          type: integer
+        gpu_model:
+          description: Require a cluster with the given GPU model
+          maxLength: 32
+          nullable: true
+          type: string
+        gpu_os_name:
+          description: Override the GPU node operating system name
+          maxLength: 16
+          nullable: true
+          type: string
+        gpu_os_release:
+          description: Override the GPU node operating system release
+          maxLength: 16
+          nullable: true
+          type: string
+        gpu_os_version:
+          description: Override the GPU node operating system version
+          maxLength: 8
+          nullable: true
+          type: string
+        min_gpu_count:
+          description: Require a cluster whose GPU count is greater than or equal
+            to the given number
+          maximum: 512
+          minimum: 0
+          type: integer
+        node_count:
+          description: Require a cluster with the given number of nodes
+          maximum: 2147483647
+          minimum: 0
+          type: integer
+        oem_name:
+          description: Require a cluster manufactured by the given OEM name
+          maxLength: 64
+          nullable: true
+          type: string
+        persist_on_failure:
+          description: Override the default cleanup/destroy behavior when a provisioning
+            failure occurs
+          nullable: true
+          type: boolean
+        persona:
+          description: Override the defined persona in the experience
+          maxLength: 32
+          nullable: true
+          type: string
+        pipeline:
+          description: Override the pipeline ID that will be triggered for request
+            fulfillment
+          format: int64
+          maximum: 9223372036854775807
+          minimum: 0
+          type: integer
+        pipeline_branch:
+          description: Override the default pipeline branch ref used when triggering
+            a Fuselage pipeline
+          maxLength: 255
+          nullable: true
+          type: string
+        platform:
+          $ref: '#/components/schemas/PlatformEnum'
+        provider_name:
+          description: Require a cluster from the given provider name
+          maxLength: 64
+          nullable: true
+          type: string
+        region:
+          description: Require a cluster located in the given region
+          maxLength: 64
+          nullable: true
+          type: string
+        runtime:
+          description: Use the presets of the given runtime when provisioning this
+            experience
+          format: uuid
+          nullable: true
+          type: string
+        runtime_branch:
+          description: Override the runtime repository branch
+          maxLength: 255
+          nullable: true
+          type: string
+        runtime_cns_addon_pack:
+          description: Override the runtime's CNS add-ons flag
+          nullable: true
+          type: boolean
+        runtime_cns_docker:
+          description: Override the runtime's Docker with CNS flag
+          nullable: true
+          type: boolean
+        runtime_cns_driver_version:
+          description: Override the runtime's GPU driver version
+          maxLength: 11
+          nullable: true
+          type: string
+        runtime_cns_k8s:
+          description: Override the runtime's Kubernetes with CNS flag
+          nullable: true
+          type: boolean
+        runtime_cns_nvidia_driver:
+          description: Override the runtime's NVIDIA driver with CNS flag
+          nullable: true
+          type: boolean
+        runtime_cns_version:
+          description: Override the runtime's Cloud Native Stack version
+          maxLength: 11
+          nullable: true
+          type: string
+        runtime_mig:
+          description: Override the runtime's MIG support with CNS flag
+          nullable: true
+          type: boolean
+        runtime_mig_profile:
+          description: Override the runtime's MIG profile name
+          maxLength: 32
+          nullable: true
+          type: string
+        runtime_url:
+          description: Override the URL of the runtime repository
+          format: uri
+          maxLength: 200
+          nullable: true
+          type: string
+        workshop:
+          description: Require a cluster whose workshop flag is set
+          nullable: true
+          type: boolean
+        workshop_id:
+          description: Require a cluster with the given workshop ID
+          maxLength: 64
+          nullable: true
+          type: string
+        workshop_override_password:
+          description: Override the deployment's default authentication to use a static
+            password. This is useful for workshops when you'd like an identical password
+            associated with a collection of environments. (LaunchPad Team only)
+          maxLength: 64
+          nullable: true
+          type: string
     PaginatedClusterList:
       example:
         next: https://launchpad.api.nvidia.com/example/?page=4
@@ -12676,6 +14698,7 @@ components:
         count: 123
         results:
         - mgmt_mac: mgmt_mac
+          provisioning_request: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
           vlan_id: 2308
           notes: notes
           instances:
@@ -12685,6 +14708,7 @@ components:
           provider_capacity: true
           available: true
           free_by: 2000-01-23T04:56:07.000+00:00
+          provisioning_config: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
           experience: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
           enabled: true
           netmask: 19
@@ -12717,6 +14741,7 @@ components:
           maintenance: true
           request_id: request_id
         - mgmt_mac: mgmt_mac
+          provisioning_request: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
           vlan_id: 2308
           notes: notes
           instances:
@@ -12726,6 +14751,7 @@ components:
           provider_capacity: true
           available: true
           free_by: 2000-01-23T04:56:07.000+00:00
+          provisioning_config: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
           experience: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
           enabled: true
           netmask: 19
@@ -12876,24 +14902,31 @@ components:
           lifetime: 1294386358
           pipeline_branch: pipeline_branch
           gpu_os_name: gpu_os_name
+          runtime_url: https://openapi-generator.tech
           experience: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
           experience_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
           pipelines:
           - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
           - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          runtime_cns_nvidia_driver: true
           oem_name: oem_name
           gpu_alias: gpu_alias
           retry_count: 2
+          runtime_cns_k8s: true
           modified: 2000-01-23T04:56:07.000+00:00
           id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
           state: ""
+          runtime_cns_driver_version: runtime_cns_driver_version
+          runtime_mig_profile: runtime_mig_profile
           requester_name: requester_name
           collection_branch: collection_branch
           workshop_id: workshop_id
           persona: persona
+          runtime_cns_docker: true
           ssh_port: 7
           created: 2000-01-23T04:56:07.000+00:00
-          workshop: true
+          workshop: false
+          runtime: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
           requester_email: requester_email
           ip_allowlist:
           - ip_allowlist
@@ -12901,10 +14934,12 @@ components:
           priority: ""
           tags: ""
           catalog_id: catalog_id
-          gpu_count: 1
-          min_gpu_count: 2
+          gpu_count: 41
+          runtime_cns_addon_pack: true
+          min_gpu_count: 75
           catalog_id_alias: catalog_id_alias
           region: region
+          runtime_branch: runtime_branch
           gpu_model: gpu_model
           gpu_os_version: gpu_os_version
           platform: air
@@ -12914,21 +14949,23 @@ components:
           experience_branch: experience_branch
           gc_branch: gc_branch
           gpu_os_release: gpu_os_release
-          node_count: 1280358508
+          node_count: 0
           org_name: org_name
           provider_name: provider_name
           sales_id: sales_id
           ssh_user: ssh_user
           flightcontrol_release: flightcontrol_release
+          runtime_mig: true
           sales_created_date: 2000-01-23T04:56:07.000+00:00
           sales_owner_name: sales_owner_name
           overrides: ""
           services:
           - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
           - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
-          persist_on_failure: true
-          pipeline: 5199562221600970752
+          persist_on_failure: false
+          pipeline: 0
           garage_id: garage_id
+          runtime_cns_version: runtime_cns_version
           request_id: request_id
         - public_key: public_key
           cluster: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
@@ -12936,24 +14973,31 @@ components:
           lifetime: 1294386358
           pipeline_branch: pipeline_branch
           gpu_os_name: gpu_os_name
+          runtime_url: https://openapi-generator.tech
           experience: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
           experience_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
           pipelines:
           - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
           - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          runtime_cns_nvidia_driver: true
           oem_name: oem_name
           gpu_alias: gpu_alias
           retry_count: 2
+          runtime_cns_k8s: true
           modified: 2000-01-23T04:56:07.000+00:00
           id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
           state: ""
+          runtime_cns_driver_version: runtime_cns_driver_version
+          runtime_mig_profile: runtime_mig_profile
           requester_name: requester_name
           collection_branch: collection_branch
           workshop_id: workshop_id
           persona: persona
+          runtime_cns_docker: true
           ssh_port: 7
           created: 2000-01-23T04:56:07.000+00:00
-          workshop: true
+          workshop: false
+          runtime: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
           requester_email: requester_email
           ip_allowlist:
           - ip_allowlist
@@ -12961,10 +15005,12 @@ components:
           priority: ""
           tags: ""
           catalog_id: catalog_id
-          gpu_count: 1
-          min_gpu_count: 2
+          gpu_count: 41
+          runtime_cns_addon_pack: true
+          min_gpu_count: 75
           catalog_id_alias: catalog_id_alias
           region: region
+          runtime_branch: runtime_branch
           gpu_model: gpu_model
           gpu_os_version: gpu_os_version
           platform: air
@@ -12974,21 +15020,23 @@ components:
           experience_branch: experience_branch
           gc_branch: gc_branch
           gpu_os_release: gpu_os_release
-          node_count: 1280358508
+          node_count: 0
           org_name: org_name
           provider_name: provider_name
           sales_id: sales_id
           ssh_user: ssh_user
           flightcontrol_release: flightcontrol_release
+          runtime_mig: true
           sales_created_date: 2000-01-23T04:56:07.000+00:00
           sales_owner_name: sales_owner_name
           overrides: ""
           services:
           - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
           - 046b6c7f-0b8a-43b9-b35d-6489e6daee91
-          persist_on_failure: true
-          pipeline: 5199562221600970752
+          persist_on_failure: false
+          pipeline: 0
           garage_id: garage_id
+          runtime_cns_version: runtime_cns_version
           request_id: request_id
       properties:
         count:
@@ -13206,6 +15254,7 @@ components:
           persona: persona
           autoapprove: true
           created: 2000-01-23T04:56:07.000+00:00
+          runtime: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
           published: ""
           catalog_id: catalog_id
           pipeline: 5199562221600970752
@@ -13216,7 +15265,7 @@ components:
             name: name
             version: version
           autoprovision: true
-          gpu_count: 1
+          gpu_count: 41
           assignee: assignee
           catalog_id_alias: catalog_id_alias
           category: ""
@@ -13245,6 +15294,7 @@ components:
           persona: persona
           autoapprove: true
           created: 2000-01-23T04:56:07.000+00:00
+          runtime: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
           published: ""
           catalog_id: catalog_id
           pipeline: 5199562221600970752
@@ -13255,7 +15305,7 @@ components:
             name: name
             version: version
           autoprovision: true
-          gpu_count: 1
+          gpu_count: 41
           assignee: assignee
           catalog_id_alias: catalog_id_alias
           category: ""
@@ -13655,7 +15705,7 @@ components:
           rack_unit: 31
           garage_id: garage_id
           bmc_password: bmc_password
-          gpu_count: 9
+          gpu_count: 308
           nic_prefixes:
           - nic_prefixes
           - nic_prefixes
@@ -13694,7 +15744,7 @@ components:
           rack_unit: 31
           garage_id: garage_id
           bmc_password: bmc_password
-          gpu_count: 9
+          gpu_count: 308
           nic_prefixes:
           - nic_prefixes
           - nic_prefixes
@@ -13798,14 +15848,16 @@ components:
         previous: https://launchpad.api.nvidia.com/example/?page=2
         count: 123
         results:
-        - created: 2000-01-23T04:56:07.000+00:00
+        - on_demand_speed: ""
+          created: 2000-01-23T04:56:07.000+00:00
           instance_limit: 171976544
           name: name
           modified: 2000-01-23T04:56:07.000+00:00
           id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
           display_name: display_name
           priority: 60
-        - created: 2000-01-23T04:56:07.000+00:00
+        - on_demand_speed: ""
+          created: 2000-01-23T04:56:07.000+00:00
           instance_limit: 171976544
           name: name
           modified: 2000-01-23T04:56:07.000+00:00
@@ -13829,6 +15881,61 @@ components:
         results:
           items:
             $ref: '#/components/schemas/Provider'
+          type: array
+      required:
+      - count
+      - results
+    PaginatedRuntimeList:
+      example:
+        next: https://launchpad.api.nvidia.com/example/?page=4
+        previous: https://launchpad.api.nvidia.com/example/?page=2
+        count: 123
+        results:
+        - cns_docker: true
+          cns_version: cns_version
+          created: 2000-01-23T04:56:07.000+00:00
+          mig: true
+          cns_nvidia_driver: true
+          branch: branch
+          cns_driver_version: cns_driver_version
+          url: https://openapi-generator.tech
+          cns_k8s: true
+          mig_profile: mig_profile
+          cns_addon_pack: true
+          name: name
+          modified: 2000-01-23T04:56:07.000+00:00
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        - cns_docker: true
+          cns_version: cns_version
+          created: 2000-01-23T04:56:07.000+00:00
+          mig: true
+          cns_nvidia_driver: true
+          branch: branch
+          cns_driver_version: cns_driver_version
+          url: https://openapi-generator.tech
+          cns_k8s: true
+          mig_profile: mig_profile
+          cns_addon_pack: true
+          name: name
+          modified: 2000-01-23T04:56:07.000+00:00
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        count:
+          example: 123
+          type: integer
+        next:
+          example: https://launchpad.api.nvidia.com/example/?page=4
+          format: uri
+          type: string
+          nullable: true
+        previous:
+          example: https://launchpad.api.nvidia.com/example/?page=2
+          format: uri
+          type: string
+          nullable: true
+        results:
+          items:
+            $ref: '#/components/schemas/Runtime'
           type: array
       required:
       - count
@@ -13886,6 +15993,20 @@ components:
       - id
       - modified
       - name
+    PipelineAction:
+      description: |-
+        * `apply` - apply
+        * `destroy` - destroy
+        * `notify` - notify
+      enum:
+      - apply
+      - destroy
+      - notify
+      type: string
+      x-enum-varnames:
+      - PipelineActionApply
+      - PipelineActionDestroy
+      - PipelineActionNotify
     PlatformEnum:
       description: |-
         * `air` - NVIDIA Air
@@ -13992,6 +16113,7 @@ components:
       - username
     Provider:
       example:
+        on_demand_speed: ""
         created: 2000-01-23T04:56:07.000+00:00
         instance_limit: 171976544
         name: name
@@ -14028,6 +16150,14 @@ components:
         name:
           maxLength: 64
           type: string
+        on_demand_speed:
+          allOf:
+          - $ref: '#/components/schemas/OnDemandSpeedEnum'
+          description: |-
+            Speed of on-demand inventory provisioning
+
+            * `fast` - fast
+            * `slow` - slow
         priority:
           description: Weighted preference to use in selecting a provider for a deployment.
             Higher priority values will be preferred over lower ones.
@@ -14042,6 +16172,7 @@ components:
     ProviderBulkUpdate:
       example:
         result: result
+        on_demand_speed: ""
         created: 2000-01-23T04:56:07.000+00:00
         instance_limit: 171976544
         name: name
@@ -14089,6 +16220,15 @@ components:
           readOnly: true
           type: string
           writeOnly: true
+        on_demand_speed:
+          allOf:
+          - $ref: '#/components/schemas/OnDemandSpeedEnum'
+          description: |-
+            Speed of on-demand inventory provisioning
+
+            * `fast` - fast
+            * `slow` - slow
+          writeOnly: true
         priority:
           description: Weighted preference to use in selecting a provider for a deployment.
             Higher priority values will be preferred over lower ones.
@@ -14115,6 +16255,263 @@ components:
       - modified
       - name
       - result
+    ProvisioningRequest:
+      example:
+        cluster: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        gpu_model: gpu_model
+        gpu_os_version: gpu_os_version
+        pipeline_branch: pipeline_branch
+        gpu_os_name: gpu_os_name
+        runtime_url: https://openapi-generator.tech
+        experience: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        platform: air
+        bastion_operating_system: bastion_operating_system
+        experience_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        runtime_cns_nvidia_driver: true
+        oem_name: oem_name
+        gpu_alias: gpu_alias
+        workshop_override_password: workshop_override_password
+        runtime_cns_k8s: true
+        experience_branch: experience_branch
+        gc_branch: gc_branch
+        gpu_os_release: gpu_os_release
+        node_count: 314780940
+        provider_name: provider_name
+        runtime_cns_driver_version: runtime_cns_driver_version
+        runtime_mig_profile: runtime_mig_profile
+        collection_branch: collection_branch
+        workshop_id: workshop_id
+        flightcontrol_release: flightcontrol_release
+        persona: persona
+        runtime_cns_docker: true
+        runtime_mig: true
+        workshop: true
+        runtime: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        persist_on_failure: true
+        catalog_id: catalog_id
+        pipeline: 5499097924711910400
+        garage_id: garage_id
+        gpu_count: 41
+        runtime_cns_version: runtime_cns_version
+        runtime_cns_addon_pack: true
+        min_gpu_count: 308
+        catalog_id_alias: catalog_id_alias
+        region: region
+        request_id: request_id
+        runtime_branch: runtime_branch
+      properties:
+        bastion_operating_system:
+          description: Override bastion operating system provisioned and/or configured
+            by Liftoff
+          maxLength: 32
+          nullable: true
+          type: string
+        catalog_id:
+          description: Catalog ID of the experience provisioned to the cluster
+          type: string
+          writeOnly: true
+        catalog_id_alias:
+          description: Catalog ID alias of the experience provisioned to the cluster
+          type: string
+          writeOnly: true
+        cluster:
+          description: Target a specific cluster for provisioning
+          format: uuid
+          nullable: true
+          type: string
+        collection_branch:
+          description: Override the Ansible collection branch initialized within the
+            pipeline
+          maxLength: 255
+          nullable: true
+          type: string
+        experience:
+          description: The experience being deployed for use
+          format: uuid
+          nullable: true
+          readOnly: true
+          type: string
+        experience_branch:
+          description: Override the experience branch
+          maxLength: 255
+          nullable: true
+          type: string
+        experience_id:
+          description: UUID of the experience provisioned to the cluster
+          format: uuid
+          type: string
+          writeOnly: true
+        flightcontrol_release:
+          description: Override the image tag used for Flight Control
+          maxLength: 64
+          nullable: true
+          type: string
+        garage_id:
+          description: Require a cluster with nodes in the given garage
+          maxLength: 128
+          nullable: true
+          type: string
+        gc_branch:
+          description: Override the default Ground Control branch
+          maxLength: 255
+          nullable: true
+          type: string
+        gpu_alias:
+          description: Require a cluster with the given GPU alias
+          maxLength: 64
+          nullable: true
+          type: string
+        gpu_count:
+          description: Require a cluster with the given number of GPUs
+          maximum: 512
+          minimum: 0
+          type: integer
+        gpu_model:
+          description: Require a cluster with the given GPU model
+          maxLength: 32
+          nullable: true
+          type: string
+        gpu_os_name:
+          description: Override the GPU node operating system name
+          maxLength: 16
+          nullable: true
+          type: string
+        gpu_os_release:
+          description: Override the GPU node operating system release
+          maxLength: 16
+          nullable: true
+          type: string
+        gpu_os_version:
+          description: Override the GPU node operating system version
+          maxLength: 8
+          nullable: true
+          type: string
+        min_gpu_count:
+          description: Require a cluster whose GPU count is greater than or equal
+            to the given number
+          maximum: 512
+          minimum: 0
+          type: integer
+        node_count:
+          description: Require a cluster with the given number of nodes
+          maximum: 2147483647
+          minimum: 0
+          type: integer
+        oem_name:
+          description: Require a cluster manufactured by the given OEM name
+          maxLength: 64
+          nullable: true
+          type: string
+        persist_on_failure:
+          description: Override the default cleanup/destroy behavior when a provisioning
+            failure occurs
+          nullable: true
+          type: boolean
+        persona:
+          description: Override the defined persona in the experience
+          maxLength: 32
+          nullable: true
+          type: string
+        pipeline:
+          description: Override the pipeline ID that will be triggered for request
+            fulfillment
+          format: int64
+          maximum: 9223372036854775807
+          minimum: 0
+          type: integer
+        pipeline_branch:
+          description: Override the default pipeline branch ref used when triggering
+            a Fuselage pipeline
+          maxLength: 255
+          nullable: true
+          type: string
+        platform:
+          $ref: '#/components/schemas/PlatformEnum'
+        provider_name:
+          description: Require a cluster from the given provider name
+          maxLength: 64
+          nullable: true
+          type: string
+        region:
+          description: Require a cluster located in the given region
+          maxLength: 64
+          nullable: true
+          type: string
+        request_id:
+          description: "Trial request ID (ex: TRY-1234)"
+          maxLength: 32
+          type: string
+        runtime:
+          description: Use the presets of the given runtime when provisioning this
+            experience
+          format: uuid
+          nullable: true
+          type: string
+        runtime_branch:
+          description: Override the runtime repository branch
+          maxLength: 255
+          nullable: true
+          type: string
+        runtime_cns_addon_pack:
+          description: Override the runtime's CNS add-ons flag
+          nullable: true
+          type: boolean
+        runtime_cns_docker:
+          description: Override the runtime's Docker with CNS flag
+          nullable: true
+          type: boolean
+        runtime_cns_driver_version:
+          description: Override the runtime's GPU driver version
+          maxLength: 11
+          nullable: true
+          type: string
+        runtime_cns_k8s:
+          description: Override the runtime's Kubernetes with CNS flag
+          nullable: true
+          type: boolean
+        runtime_cns_nvidia_driver:
+          description: Override the runtime's NVIDIA driver with CNS flag
+          nullable: true
+          type: boolean
+        runtime_cns_version:
+          description: Override the runtime's Cloud Native Stack version
+          maxLength: 11
+          nullable: true
+          type: string
+        runtime_mig:
+          description: Override the runtime's MIG support with CNS flag
+          nullable: true
+          type: boolean
+        runtime_mig_profile:
+          description: Override the runtime's MIG profile name
+          maxLength: 32
+          nullable: true
+          type: string
+        runtime_url:
+          description: Override the URL of the runtime repository
+          format: uri
+          maxLength: 200
+          nullable: true
+          type: string
+        workshop:
+          description: Require a cluster whose workshop flag is set
+          nullable: true
+          type: boolean
+        workshop_id:
+          description: Require a cluster with the given workshop ID
+          maxLength: 64
+          nullable: true
+          type: string
+        workshop_override_password:
+          description: Override the deployment's default authentication to use a static
+            password. This is useful for workshops when you'd like an identical password
+            associated with a collection of environments. (LaunchPad Team only)
+          maxLength: 64
+          nullable: true
+          type: string
+      required:
+      - experience
+      - request_id
     ProvisioningStateEnum:
       description: |-
         * `deployed` - Cluster is in use by a deployment
@@ -14155,6 +16552,86 @@ components:
       - PublishedDraft
       - PublishedNo
       - PublishedYes
+    Runtime:
+      example:
+        cns_docker: true
+        cns_version: cns_version
+        created: 2000-01-23T04:56:07.000+00:00
+        mig: true
+        cns_nvidia_driver: true
+        branch: branch
+        cns_driver_version: cns_driver_version
+        url: https://openapi-generator.tech
+        cns_k8s: true
+        mig_profile: mig_profile
+        cns_addon_pack: true
+        name: name
+        modified: 2000-01-23T04:56:07.000+00:00
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        branch:
+          description: Runtime repository branch
+          maxLength: 255
+          type: string
+        cns_addon_pack:
+          description: Include CNS add-ons?
+          type: boolean
+        cns_docker:
+          description: Include Docker with CNS?
+          type: boolean
+        cns_driver_version:
+          description: GPU driver version
+          maxLength: 11
+          nullable: true
+          type: string
+        cns_k8s:
+          description: Include Kubernetes with CNS?
+          type: boolean
+        cns_nvidia_driver:
+          description: Include NVIDIA driver with CNS?
+          type: boolean
+        cns_version:
+          description: NVIDIA Cloud Native Stack version
+          maxLength: 11
+          nullable: true
+          type: string
+        created:
+          description: Timestamp of when the object was created
+          format: date-time
+          readOnly: true
+          type: string
+        id:
+          format: uuid
+          readOnly: true
+          type: string
+        mig:
+          description: Include MIG support with CNS?
+          type: boolean
+        mig_profile:
+          description: MIG profile name
+          maxLength: 32
+          nullable: true
+          type: string
+        modified:
+          description: Timestamp of when the object was last modified
+          format: date-time
+          readOnly: true
+          type: string
+        name:
+          description: Human-readable name of the runtime
+          maxLength: 64
+          type: string
+        url:
+          description: URL of the runtime repository
+          format: uri
+          maxLength: 200
+          type: string
+      required:
+      - created
+      - id
+      - modified
+      - name
+      - url
     StatusEnum:
       description: |-
         * `completed` - completed
@@ -14251,7 +16728,27 @@ components:
       - VgpuProfileOpenshift
       - VgpuProfilePlatformOnly
       - VgpuProfileVmwareItadmin
-    catalog_experiences_bulk_create_request:
+    health_retrieve_200_response_components:
+      example:
+        database: database
+        application: application
+      properties:
+        application:
+          type: string
+        database:
+          type: string
+    health_retrieve_200_response:
+      example:
+        components:
+          database: database
+          application: application
+        status: status
+      properties:
+        status:
+          type: string
+        components:
+          $ref: '#/components/schemas/health_retrieve_200_response_components'
+    v1_catalog_experiences_bulk_create_request:
       properties:
         csv_file:
           format: binary
@@ -14259,6 +16756,12 @@ components:
           writeOnly: true
       required:
       - csv_file
+    version_retrieve_200_response:
+      example:
+        application_version: application_version
+      properties:
+        application_version:
+          type: string
     Cluster_deployment:
       oneOf:
       - format: uuid
@@ -14289,7 +16792,7 @@ components:
         type: string
       - $ref: '#/components/schemas/Cluster'
       x-go-json-tag: "cluster,omitempty"
-    Deployment_experience:
+    ExperienceNote_experience:
       oneOf:
       - format: uuid
         type: string

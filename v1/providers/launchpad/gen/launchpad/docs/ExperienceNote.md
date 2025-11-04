@@ -7,7 +7,7 @@ Name | Type | Description | Notes
 **Content** | Pointer to **string** | Text content of the note | [optional] 
 **Created** | **time.Time** | Timestamp of when the object was created | [readonly] 
 **CreatedBy** | **string** |  | [readonly] 
-**Experience** | [**DeploymentExperience**](DeploymentExperience.md) |  | 
+**Experience** | [**ExperienceNoteExperience**](ExperienceNoteExperience.md) |  | 
 **Id** | **string** |  | [readonly] 
 **Modified** | **time.Time** | Timestamp of when the object was last modified | [readonly] 
 **ModifiedBy** | **string** |  | [readonly] 
@@ -16,7 +16,7 @@ Name | Type | Description | Notes
 
 ### NewExperienceNote
 
-`func NewExperienceNote(created time.Time, createdBy string, experience DeploymentExperience, id string, modified time.Time, modifiedBy string, ) *ExperienceNote`
+`func NewExperienceNote(created time.Time, createdBy string, experience ExperienceNoteExperience, id string, modified time.Time, modifiedBy string, ) *ExperienceNote`
 
 NewExperienceNote instantiates a new ExperienceNote object
 This constructor will assign default values to properties that have it defined,
@@ -98,20 +98,20 @@ SetCreatedBy sets CreatedBy field to given value.
 
 ### GetExperience
 
-`func (o *ExperienceNote) GetExperience() DeploymentExperience`
+`func (o *ExperienceNote) GetExperience() ExperienceNoteExperience`
 
 GetExperience returns the Experience field if non-nil, zero value otherwise.
 
 ### GetExperienceOk
 
-`func (o *ExperienceNote) GetExperienceOk() (*DeploymentExperience, bool)`
+`func (o *ExperienceNote) GetExperienceOk() (*ExperienceNoteExperience, bool)`
 
 GetExperienceOk returns a tuple with the Experience field if it's non-nil, zero value otherwise
 and a boolean to check if the value has been set.
 
 ### SetExperience
 
-`func (o *ExperienceNote) SetExperience(v DeploymentExperience)`
+`func (o *ExperienceNote) SetExperience(v ExperienceNoteExperience)`
 
 SetExperience sets Experience field to given value.
 

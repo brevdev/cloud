@@ -5,36 +5,36 @@
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **BastionOperatingSystem** | Pointer to **string** | Override bastion operating system provisioned and/or configured by Liftoff | [optional] 
-**CatalogId** | Pointer to **string** | Unique ID for this experience in the sales catalog. Must be unique. | [optional] 
-**CatalogIdAlias** | Pointer to **string** | Human-readable identifier for the experience in the sales catalog (ex: LP-15). Must be unique. | [optional] 
+**CatalogId** | Pointer to **string** | Catalog ID of the experience provisioned to the cluster | [optional] 
+**CatalogIdAlias** | Pointer to **string** | Catalog ID alias of the experience provisioned to the cluster | [optional] 
 **Cluster** | Pointer to [**DeploymentCluster**](DeploymentCluster.md) |  | [optional] 
 **CollectionBranch** | Pointer to **string** | Override the Ansible collection branch initialized within the pipeline | [optional] 
 **Created** | **time.Time** | Timestamp of when the object was created | [readonly] 
-**Experience** | Pointer to [**DeploymentExperience**](DeploymentExperience.md) |  | [optional] 
+**Experience** | Pointer to **string** | The experience being deployed for use | [optional] [readonly] 
 **ExperienceBranch** | Pointer to **string** | Override the experience branch | [optional] 
-**ExperienceId** | Pointer to **string** |  | [optional] 
+**ExperienceId** | Pointer to **string** | UUID of the experience provisioned to the cluster | [optional] 
 **ExpiresAt** | Pointer to **time.Time** |  | [optional] 
 **FlightcontrolRelease** | Pointer to **string** | Override the image tag used for Flight Control | [optional] 
 **GarageId** | Pointer to **string** | Require a cluster with nodes in the given garage | [optional] 
 **GcBranch** | Pointer to **string** | Override the default Ground Control branch | [optional] 
 **GpuAlias** | Pointer to **string** | Require a cluster with the given GPU alias | [optional] 
-**GpuCount** | Pointer to **int32** | Require a cluster with the given number of GPUs | [optional] 
+**GpuCount** | Pointer to **int32** | Require a cluster with the given number of GPUs | [optional] [default to 0]
 **GpuModel** | Pointer to **string** | Require a cluster with the given GPU model | [optional] 
-**GpuOsName** | Pointer to **string** |  | [optional] 
-**GpuOsRelease** | Pointer to **string** |  | [optional] 
-**GpuOsVersion** | Pointer to **string** |  | [optional] 
+**GpuOsName** | Pointer to **string** | Override the GPU node operating system name | [optional] 
+**GpuOsRelease** | Pointer to **string** | Override the GPU node operating system release | [optional] 
+**GpuOsVersion** | Pointer to **string** | Override the GPU node operating system version | [optional] 
 **Id** | **string** |  | [readonly] 
 **IpAllowlist** | Pointer to **[]string** | Host IP addresses that should be allowed to access the deployment | [optional] 
 **Lifetime** | Pointer to **int32** | Set expires_at value to be a given number of days from the current time. A value of 0 will cause a deployment to remain active indefinitely. | [optional] 
-**MinGpuCount** | Pointer to **int32** | Require a cluster whose GPU count is greater than or equal to the given number | [optional] 
+**MinGpuCount** | Pointer to **int32** | Require a cluster whose GPU count is greater than or equal to the given number | [optional] [default to 0]
 **Modified** | **time.Time** | Timestamp of when the object was last modified | [readonly] 
-**NodeCount** | Pointer to **int32** | Require a cluster with the given number of nodes | [optional] 
+**NodeCount** | Pointer to **int32** | Require a cluster with the given number of nodes | [optional] [default to 0]
 **OemName** | Pointer to **string** | Require a cluster manufactured by the given OEM name | [optional] 
 **OrgName** | **string** | Requester&#39;s organization name | 
-**Overrides** | **interface{}** |  | 
-**PersistOnFailure** | Pointer to **bool** | Override the default cleanup/destroy behavior when a provisioning failure occurs | [optional] 
-**Persona** | Pointer to **string** |  | [optional] 
-**Pipeline** | Pointer to **int64** | Override the pipeline ID that will be triggered for request fulfillment | [optional] 
+**Overrides** | [**Overrides**](Overrides.md) | Overriden values from the original deployment request | [readonly] 
+**PersistOnFailure** | Pointer to **bool** | Override the default cleanup/destroy behavior when a provisioning failure occurs | [optional] [default to false]
+**Persona** | Pointer to **string** | Override the defined persona in the experience | [optional] 
+**Pipeline** | Pointer to **int32** | Override the pipeline ID that will be triggered for request fulfillment | [optional] [default to 0]
 **PipelineBranch** | Pointer to **string** | Override the default pipeline branch ref used when triggering a Fuselage pipeline | [optional] 
 **Pipelines** | **[]string** |  | 
 **Platform** | Pointer to [**PlatformEnum**](PlatformEnum.md) |  | [optional] 
@@ -46,6 +46,17 @@ Name | Type | Description | Notes
 **RequesterEmail** | **string** | Email address of the user requesting the experience | 
 **RequesterName** | **string** | Name of the user requesting the experience | 
 **RetryCount** | **int32** | Number of times the deployment has been retried | [readonly] 
+**Runtime** | Pointer to **string** | Use the presets of the given runtime when provisioning this experience | [optional] 
+**RuntimeBranch** | Pointer to **string** | Override the runtime repository branch | [optional] 
+**RuntimeCnsAddonPack** | Pointer to **bool** | Override the runtime&#39;s CNS add-ons flag | [optional] 
+**RuntimeCnsDocker** | Pointer to **bool** | Override the runtime&#39;s Docker with CNS flag | [optional] 
+**RuntimeCnsDriverVersion** | Pointer to **string** | Override the runtime&#39;s GPU driver version | [optional] 
+**RuntimeCnsK8s** | Pointer to **bool** | Override the runtime&#39;s Kubernetes with CNS flag | [optional] 
+**RuntimeCnsNvidiaDriver** | Pointer to **bool** | Override the runtime&#39;s NVIDIA driver with CNS flag | [optional] 
+**RuntimeCnsVersion** | Pointer to **string** | Override the runtime&#39;s Cloud Native Stack version | [optional] 
+**RuntimeMig** | Pointer to **bool** | Override the runtime&#39;s MIG support with CNS flag | [optional] 
+**RuntimeMigProfile** | Pointer to **string** | Override the runtime&#39;s MIG profile name | [optional] 
+**RuntimeUrl** | Pointer to **string** | Override the URL of the runtime repository | [optional] 
 **SalesCreatedDate** | Pointer to **time.Time** |  | [optional] 
 **SalesId** | Pointer to **string** | Unique identifier for the requester&#39;s sales relationship | [optional] 
 **SalesOwnerEmail** | Pointer to **string** | Email address of the sales contact associated with the requester | [optional] 
@@ -55,7 +66,7 @@ Name | Type | Description | Notes
 **SshUser** | **string** |  | [readonly] 
 **State** | [**DeploymentState**](DeploymentState.md) | Current state of the deployment  * &#x60;destroyed&#x60; - Deployment has been fully destroyed * &#x60;destroying&#x60; - Deployment is being destroyed * &#x60;error&#x60; - Deployment has encountered a fatal error and will not be retried * &#x60;failed&#x60; - Deployment has failed but may be retried * &#x60;paused&#x60; - Deployment is paused but may be retried later * &#x60;ready&#x60; - Deployment is ready and all instances are running * &#x60;retrying&#x60; - Deployment is retrying * &#x60;starting&#x60; - Deployment instances are starting * &#x60;stopped&#x60; - Deployment instances are stopped * &#x60;stopping&#x60; - Deployment instances are stopping * &#x60;waiting&#x60; - Waiting for deployment to be ready | [readonly] 
 **Tags** | Pointer to **interface{}** |  | [optional] 
-**Workshop** | Pointer to **bool** | Require a cluster whose workshop flag is set | [optional] 
+**Workshop** | Pointer to **bool** | Require a cluster whose workshop flag is set | [optional] [default to false]
 **WorkshopId** | Pointer to **string** | Require a cluster with the given workshop ID | [optional] 
 **WorkshopOverridePassword** | Pointer to **string** | Override the deployment&#39;s default authentication to use a static password. This is useful for workshops when you&#39;d like an identical password associated with a collection of environments. (LaunchPad Team only) | [optional] 
 
@@ -63,7 +74,7 @@ Name | Type | Description | Notes
 
 ### NewClusterDeployment
 
-`func NewClusterDeployment(created time.Time, id string, modified time.Time, orgName string, overrides interface{}, pipelines []string, requesterEmail string, requesterName string, retryCount int32, services []string, sshPort int32, sshUser string, state DeploymentState, ) *ClusterDeployment`
+`func NewClusterDeployment(created time.Time, id string, modified time.Time, orgName string, overrides Overrides, pipelines []string, requesterEmail string, requesterName string, retryCount int32, services []string, sshPort int32, sshUser string, state DeploymentState, ) *ClusterDeployment`
 
 NewClusterDeployment instantiates a new ClusterDeployment object
 This constructor will assign default values to properties that have it defined,
@@ -225,20 +236,20 @@ SetCreated sets Created field to given value.
 
 ### GetExperience
 
-`func (o *ClusterDeployment) GetExperience() DeploymentExperience`
+`func (o *ClusterDeployment) GetExperience() string`
 
 GetExperience returns the Experience field if non-nil, zero value otherwise.
 
 ### GetExperienceOk
 
-`func (o *ClusterDeployment) GetExperienceOk() (*DeploymentExperience, bool)`
+`func (o *ClusterDeployment) GetExperienceOk() (*string, bool)`
 
 GetExperienceOk returns a tuple with the Experience field if it's non-nil, zero value otherwise
 and a boolean to check if the value has been set.
 
 ### SetExperience
 
-`func (o *ClusterDeployment) SetExperience(v DeploymentExperience)`
+`func (o *ClusterDeployment) SetExperience(v string)`
 
 SetExperience sets Experience field to given value.
 
@@ -735,34 +746,24 @@ SetOrgName sets OrgName field to given value.
 
 ### GetOverrides
 
-`func (o *ClusterDeployment) GetOverrides() interface{}`
+`func (o *ClusterDeployment) GetOverrides() Overrides`
 
 GetOverrides returns the Overrides field if non-nil, zero value otherwise.
 
 ### GetOverridesOk
 
-`func (o *ClusterDeployment) GetOverridesOk() (*interface{}, bool)`
+`func (o *ClusterDeployment) GetOverridesOk() (*Overrides, bool)`
 
 GetOverridesOk returns a tuple with the Overrides field if it's non-nil, zero value otherwise
 and a boolean to check if the value has been set.
 
 ### SetOverrides
 
-`func (o *ClusterDeployment) SetOverrides(v interface{})`
+`func (o *ClusterDeployment) SetOverrides(v Overrides)`
 
 SetOverrides sets Overrides field to given value.
 
 
-### SetOverridesNil
-
-`func (o *ClusterDeployment) SetOverridesNil(b bool)`
-
- SetOverridesNil sets the value for Overrides to be an explicit nil
-
-### UnsetOverrides
-`func (o *ClusterDeployment) UnsetOverrides()`
-
-UnsetOverrides ensures that no value is present for Overrides, not even an explicit nil
 ### GetPersistOnFailure
 
 `func (o *ClusterDeployment) GetPersistOnFailure() bool`
@@ -815,20 +816,20 @@ HasPersona returns a boolean if a field has been set.
 
 ### GetPipeline
 
-`func (o *ClusterDeployment) GetPipeline() int64`
+`func (o *ClusterDeployment) GetPipeline() int32`
 
 GetPipeline returns the Pipeline field if non-nil, zero value otherwise.
 
 ### GetPipelineOk
 
-`func (o *ClusterDeployment) GetPipelineOk() (*int64, bool)`
+`func (o *ClusterDeployment) GetPipelineOk() (*int32, bool)`
 
 GetPipelineOk returns a tuple with the Pipeline field if it's non-nil, zero value otherwise
 and a boolean to check if the value has been set.
 
 ### SetPipeline
 
-`func (o *ClusterDeployment) SetPipeline(v int64)`
+`func (o *ClusterDeployment) SetPipeline(v int32)`
 
 SetPipeline sets Pipeline field to given value.
 
@@ -1092,6 +1093,281 @@ and a boolean to check if the value has been set.
 
 SetRetryCount sets RetryCount field to given value.
 
+
+### GetRuntime
+
+`func (o *ClusterDeployment) GetRuntime() string`
+
+GetRuntime returns the Runtime field if non-nil, zero value otherwise.
+
+### GetRuntimeOk
+
+`func (o *ClusterDeployment) GetRuntimeOk() (*string, bool)`
+
+GetRuntimeOk returns a tuple with the Runtime field if it's non-nil, zero value otherwise
+and a boolean to check if the value has been set.
+
+### SetRuntime
+
+`func (o *ClusterDeployment) SetRuntime(v string)`
+
+SetRuntime sets Runtime field to given value.
+
+### HasRuntime
+
+`func (o *ClusterDeployment) HasRuntime() bool`
+
+HasRuntime returns a boolean if a field has been set.
+
+### GetRuntimeBranch
+
+`func (o *ClusterDeployment) GetRuntimeBranch() string`
+
+GetRuntimeBranch returns the RuntimeBranch field if non-nil, zero value otherwise.
+
+### GetRuntimeBranchOk
+
+`func (o *ClusterDeployment) GetRuntimeBranchOk() (*string, bool)`
+
+GetRuntimeBranchOk returns a tuple with the RuntimeBranch field if it's non-nil, zero value otherwise
+and a boolean to check if the value has been set.
+
+### SetRuntimeBranch
+
+`func (o *ClusterDeployment) SetRuntimeBranch(v string)`
+
+SetRuntimeBranch sets RuntimeBranch field to given value.
+
+### HasRuntimeBranch
+
+`func (o *ClusterDeployment) HasRuntimeBranch() bool`
+
+HasRuntimeBranch returns a boolean if a field has been set.
+
+### GetRuntimeCnsAddonPack
+
+`func (o *ClusterDeployment) GetRuntimeCnsAddonPack() bool`
+
+GetRuntimeCnsAddonPack returns the RuntimeCnsAddonPack field if non-nil, zero value otherwise.
+
+### GetRuntimeCnsAddonPackOk
+
+`func (o *ClusterDeployment) GetRuntimeCnsAddonPackOk() (*bool, bool)`
+
+GetRuntimeCnsAddonPackOk returns a tuple with the RuntimeCnsAddonPack field if it's non-nil, zero value otherwise
+and a boolean to check if the value has been set.
+
+### SetRuntimeCnsAddonPack
+
+`func (o *ClusterDeployment) SetRuntimeCnsAddonPack(v bool)`
+
+SetRuntimeCnsAddonPack sets RuntimeCnsAddonPack field to given value.
+
+### HasRuntimeCnsAddonPack
+
+`func (o *ClusterDeployment) HasRuntimeCnsAddonPack() bool`
+
+HasRuntimeCnsAddonPack returns a boolean if a field has been set.
+
+### GetRuntimeCnsDocker
+
+`func (o *ClusterDeployment) GetRuntimeCnsDocker() bool`
+
+GetRuntimeCnsDocker returns the RuntimeCnsDocker field if non-nil, zero value otherwise.
+
+### GetRuntimeCnsDockerOk
+
+`func (o *ClusterDeployment) GetRuntimeCnsDockerOk() (*bool, bool)`
+
+GetRuntimeCnsDockerOk returns a tuple with the RuntimeCnsDocker field if it's non-nil, zero value otherwise
+and a boolean to check if the value has been set.
+
+### SetRuntimeCnsDocker
+
+`func (o *ClusterDeployment) SetRuntimeCnsDocker(v bool)`
+
+SetRuntimeCnsDocker sets RuntimeCnsDocker field to given value.
+
+### HasRuntimeCnsDocker
+
+`func (o *ClusterDeployment) HasRuntimeCnsDocker() bool`
+
+HasRuntimeCnsDocker returns a boolean if a field has been set.
+
+### GetRuntimeCnsDriverVersion
+
+`func (o *ClusterDeployment) GetRuntimeCnsDriverVersion() string`
+
+GetRuntimeCnsDriverVersion returns the RuntimeCnsDriverVersion field if non-nil, zero value otherwise.
+
+### GetRuntimeCnsDriverVersionOk
+
+`func (o *ClusterDeployment) GetRuntimeCnsDriverVersionOk() (*string, bool)`
+
+GetRuntimeCnsDriverVersionOk returns a tuple with the RuntimeCnsDriverVersion field if it's non-nil, zero value otherwise
+and a boolean to check if the value has been set.
+
+### SetRuntimeCnsDriverVersion
+
+`func (o *ClusterDeployment) SetRuntimeCnsDriverVersion(v string)`
+
+SetRuntimeCnsDriverVersion sets RuntimeCnsDriverVersion field to given value.
+
+### HasRuntimeCnsDriverVersion
+
+`func (o *ClusterDeployment) HasRuntimeCnsDriverVersion() bool`
+
+HasRuntimeCnsDriverVersion returns a boolean if a field has been set.
+
+### GetRuntimeCnsK8s
+
+`func (o *ClusterDeployment) GetRuntimeCnsK8s() bool`
+
+GetRuntimeCnsK8s returns the RuntimeCnsK8s field if non-nil, zero value otherwise.
+
+### GetRuntimeCnsK8sOk
+
+`func (o *ClusterDeployment) GetRuntimeCnsK8sOk() (*bool, bool)`
+
+GetRuntimeCnsK8sOk returns a tuple with the RuntimeCnsK8s field if it's non-nil, zero value otherwise
+and a boolean to check if the value has been set.
+
+### SetRuntimeCnsK8s
+
+`func (o *ClusterDeployment) SetRuntimeCnsK8s(v bool)`
+
+SetRuntimeCnsK8s sets RuntimeCnsK8s field to given value.
+
+### HasRuntimeCnsK8s
+
+`func (o *ClusterDeployment) HasRuntimeCnsK8s() bool`
+
+HasRuntimeCnsK8s returns a boolean if a field has been set.
+
+### GetRuntimeCnsNvidiaDriver
+
+`func (o *ClusterDeployment) GetRuntimeCnsNvidiaDriver() bool`
+
+GetRuntimeCnsNvidiaDriver returns the RuntimeCnsNvidiaDriver field if non-nil, zero value otherwise.
+
+### GetRuntimeCnsNvidiaDriverOk
+
+`func (o *ClusterDeployment) GetRuntimeCnsNvidiaDriverOk() (*bool, bool)`
+
+GetRuntimeCnsNvidiaDriverOk returns a tuple with the RuntimeCnsNvidiaDriver field if it's non-nil, zero value otherwise
+and a boolean to check if the value has been set.
+
+### SetRuntimeCnsNvidiaDriver
+
+`func (o *ClusterDeployment) SetRuntimeCnsNvidiaDriver(v bool)`
+
+SetRuntimeCnsNvidiaDriver sets RuntimeCnsNvidiaDriver field to given value.
+
+### HasRuntimeCnsNvidiaDriver
+
+`func (o *ClusterDeployment) HasRuntimeCnsNvidiaDriver() bool`
+
+HasRuntimeCnsNvidiaDriver returns a boolean if a field has been set.
+
+### GetRuntimeCnsVersion
+
+`func (o *ClusterDeployment) GetRuntimeCnsVersion() string`
+
+GetRuntimeCnsVersion returns the RuntimeCnsVersion field if non-nil, zero value otherwise.
+
+### GetRuntimeCnsVersionOk
+
+`func (o *ClusterDeployment) GetRuntimeCnsVersionOk() (*string, bool)`
+
+GetRuntimeCnsVersionOk returns a tuple with the RuntimeCnsVersion field if it's non-nil, zero value otherwise
+and a boolean to check if the value has been set.
+
+### SetRuntimeCnsVersion
+
+`func (o *ClusterDeployment) SetRuntimeCnsVersion(v string)`
+
+SetRuntimeCnsVersion sets RuntimeCnsVersion field to given value.
+
+### HasRuntimeCnsVersion
+
+`func (o *ClusterDeployment) HasRuntimeCnsVersion() bool`
+
+HasRuntimeCnsVersion returns a boolean if a field has been set.
+
+### GetRuntimeMig
+
+`func (o *ClusterDeployment) GetRuntimeMig() bool`
+
+GetRuntimeMig returns the RuntimeMig field if non-nil, zero value otherwise.
+
+### GetRuntimeMigOk
+
+`func (o *ClusterDeployment) GetRuntimeMigOk() (*bool, bool)`
+
+GetRuntimeMigOk returns a tuple with the RuntimeMig field if it's non-nil, zero value otherwise
+and a boolean to check if the value has been set.
+
+### SetRuntimeMig
+
+`func (o *ClusterDeployment) SetRuntimeMig(v bool)`
+
+SetRuntimeMig sets RuntimeMig field to given value.
+
+### HasRuntimeMig
+
+`func (o *ClusterDeployment) HasRuntimeMig() bool`
+
+HasRuntimeMig returns a boolean if a field has been set.
+
+### GetRuntimeMigProfile
+
+`func (o *ClusterDeployment) GetRuntimeMigProfile() string`
+
+GetRuntimeMigProfile returns the RuntimeMigProfile field if non-nil, zero value otherwise.
+
+### GetRuntimeMigProfileOk
+
+`func (o *ClusterDeployment) GetRuntimeMigProfileOk() (*string, bool)`
+
+GetRuntimeMigProfileOk returns a tuple with the RuntimeMigProfile field if it's non-nil, zero value otherwise
+and a boolean to check if the value has been set.
+
+### SetRuntimeMigProfile
+
+`func (o *ClusterDeployment) SetRuntimeMigProfile(v string)`
+
+SetRuntimeMigProfile sets RuntimeMigProfile field to given value.
+
+### HasRuntimeMigProfile
+
+`func (o *ClusterDeployment) HasRuntimeMigProfile() bool`
+
+HasRuntimeMigProfile returns a boolean if a field has been set.
+
+### GetRuntimeUrl
+
+`func (o *ClusterDeployment) GetRuntimeUrl() string`
+
+GetRuntimeUrl returns the RuntimeUrl field if non-nil, zero value otherwise.
+
+### GetRuntimeUrlOk
+
+`func (o *ClusterDeployment) GetRuntimeUrlOk() (*string, bool)`
+
+GetRuntimeUrlOk returns a tuple with the RuntimeUrl field if it's non-nil, zero value otherwise
+and a boolean to check if the value has been set.
+
+### SetRuntimeUrl
+
+`func (o *ClusterDeployment) SetRuntimeUrl(v string)`
+
+SetRuntimeUrl sets RuntimeUrl field to given value.
+
+### HasRuntimeUrl
+
+`func (o *ClusterDeployment) HasRuntimeUrl() bool`
+
+HasRuntimeUrl returns a boolean if a field has been set.
 
 ### GetSalesCreatedDate
 

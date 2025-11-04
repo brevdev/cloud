@@ -4,7 +4,7 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**Action** | [**DeploymentPipelineActionEnum**](DeploymentPipelineActionEnum.md) | Action for the pipeline to run  * &#x60;apply&#x60; - apply * &#x60;destroy&#x60; - destroy | 
+**Action** | [**PipelineAction**](PipelineAction.md) | Action for the pipeline to run  * &#x60;apply&#x60; - apply * &#x60;destroy&#x60; - destroy * &#x60;notify&#x60; - notify | 
 **Created** | **time.Time** | Timestamp of when the object was created | [readonly] 
 **Deployment** | [**ClusterDeployment**](ClusterDeployment.md) |  | 
 **Id** | **string** |  | [readonly] 
@@ -16,7 +16,7 @@ Name | Type | Description | Notes
 
 ### NewDeploymentPipeline
 
-`func NewDeploymentPipeline(action DeploymentPipelineActionEnum, created time.Time, deployment ClusterDeployment, id string, modified time.Time, pipelineId int64, url string, ) *DeploymentPipeline`
+`func NewDeploymentPipeline(action PipelineAction, created time.Time, deployment ClusterDeployment, id string, modified time.Time, pipelineId int64, url string, ) *DeploymentPipeline`
 
 NewDeploymentPipeline instantiates a new DeploymentPipeline object
 This constructor will assign default values to properties that have it defined,
@@ -33,20 +33,20 @@ but it doesn't guarantee that properties required by API are set
 
 ### GetAction
 
-`func (o *DeploymentPipeline) GetAction() DeploymentPipelineActionEnum`
+`func (o *DeploymentPipeline) GetAction() PipelineAction`
 
 GetAction returns the Action field if non-nil, zero value otherwise.
 
 ### GetActionOk
 
-`func (o *DeploymentPipeline) GetActionOk() (*DeploymentPipelineActionEnum, bool)`
+`func (o *DeploymentPipeline) GetActionOk() (*PipelineAction, bool)`
 
 GetActionOk returns a tuple with the Action field if it's non-nil, zero value otherwise
 and a boolean to check if the value has been set.
 
 ### SetAction
 
-`func (o *DeploymentPipeline) SetAction(v DeploymentPipelineActionEnum)`
+`func (o *DeploymentPipeline) SetAction(v PipelineAction)`
 
 SetAction sets Action field to given value.
 

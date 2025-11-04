@@ -4,23 +4,27 @@ All URIs are relative to *http://localhost*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
-[**InventoryClustersBulkPartialUpdate**](InventoryClustersAPI.md#InventoryClustersBulkPartialUpdate) | **Patch** /v1/inventory/clusters/bulk/ | 
-[**InventoryClustersCreate**](InventoryClustersAPI.md#InventoryClustersCreate) | **Post** /v1/inventory/clusters/ | 
-[**InventoryClustersDestroy**](InventoryClustersAPI.md#InventoryClustersDestroy) | **Delete** /v1/inventory/clusters/{id}/ | 
-[**InventoryClustersHistoryList**](InventoryClustersAPI.md#InventoryClustersHistoryList) | **Get** /v1/inventory/clusters/{id}/history/ | 
-[**InventoryClustersList**](InventoryClustersAPI.md#InventoryClustersList) | **Get** /v1/inventory/clusters/ | 
-[**InventoryClustersPartialUpdate**](InventoryClustersAPI.md#InventoryClustersPartialUpdate) | **Patch** /v1/inventory/clusters/{id}/ | 
-[**InventoryClustersRetrieve**](InventoryClustersAPI.md#InventoryClustersRetrieve) | **Get** /v1/inventory/clusters/{id}/ | 
-[**InventoryClustersStatsRetrieve**](InventoryClustersAPI.md#InventoryClustersStatsRetrieve) | **Get** /v1/inventory/clusters/stats/ | 🚧 [Beta Feature]
-[**InventoryClustersTenantsCreate**](InventoryClustersAPI.md#InventoryClustersTenantsCreate) | **Post** /v1/inventory/clusters/{cluster_id}/tenants/ | 
-[**InventoryClustersTenantsDestroy**](InventoryClustersAPI.md#InventoryClustersTenantsDestroy) | **Delete** /v1/inventory/clusters/{cluster_id}/tenants/{id}/ | 
-[**InventoryClustersUpdate**](InventoryClustersAPI.md#InventoryClustersUpdate) | **Put** /v1/inventory/clusters/{id}/ | 
+[**V1InventoryClustersBulkPartialUpdate**](InventoryClustersAPI.md#V1InventoryClustersBulkPartialUpdate) | **Patch** /v1/inventory/clusters/bulk/ | 
+[**V1InventoryClustersCreate**](InventoryClustersAPI.md#V1InventoryClustersCreate) | **Post** /v1/inventory/clusters/ | 
+[**V1InventoryClustersDestroy**](InventoryClustersAPI.md#V1InventoryClustersDestroy) | **Delete** /v1/inventory/clusters/{id}/ | 
+[**V1InventoryClustersHistoryList**](InventoryClustersAPI.md#V1InventoryClustersHistoryList) | **Get** /v1/inventory/clusters/{id}/history/ | 
+[**V1InventoryClustersList**](InventoryClustersAPI.md#V1InventoryClustersList) | **Get** /v1/inventory/clusters/ | 
+[**V1InventoryClustersPartialUpdate**](InventoryClustersAPI.md#V1InventoryClustersPartialUpdate) | **Patch** /v1/inventory/clusters/{id}/ | 
+[**V1InventoryClustersPipelinesTriggerCreate**](InventoryClustersAPI.md#V1InventoryClustersPipelinesTriggerCreate) | **Post** /v1/inventory/clusters/{id}/pipelines/trigger/ | 
+[**V1InventoryClustersProvisionCreate**](InventoryClustersAPI.md#V1InventoryClustersProvisionCreate) | **Post** /v1/inventory/clusters/provision/ | 
+[**V1InventoryClustersProvisionDestroy**](InventoryClustersAPI.md#V1InventoryClustersProvisionDestroy) | **Delete** /v1/inventory/clusters/{id}/provision/ | 
+[**V1InventoryClustersProvisionPartialUpdate**](InventoryClustersAPI.md#V1InventoryClustersProvisionPartialUpdate) | **Patch** /v1/inventory/clusters/{id}/provision/ | 
+[**V1InventoryClustersRetrieve**](InventoryClustersAPI.md#V1InventoryClustersRetrieve) | **Get** /v1/inventory/clusters/{id}/ | 
+[**V1InventoryClustersStatsRetrieve**](InventoryClustersAPI.md#V1InventoryClustersStatsRetrieve) | **Get** /v1/inventory/clusters/stats/ | 🚧 [Beta Feature]
+[**V1InventoryClustersTenantsCreate**](InventoryClustersAPI.md#V1InventoryClustersTenantsCreate) | **Post** /v1/inventory/clusters/{cluster_id}/tenants/ | 
+[**V1InventoryClustersTenantsDestroy**](InventoryClustersAPI.md#V1InventoryClustersTenantsDestroy) | **Delete** /v1/inventory/clusters/{cluster_id}/tenants/{id}/ | 
+[**V1InventoryClustersUpdate**](InventoryClustersAPI.md#V1InventoryClustersUpdate) | **Put** /v1/inventory/clusters/{id}/ | 
 
 
 
-## InventoryClustersBulkPartialUpdate
+## V1InventoryClustersBulkPartialUpdate
 
-> ClusterBulkUpdate InventoryClustersBulkPartialUpdate(ctx).ClusterBulkUpdate(clusterBulkUpdate).Execute()
+> ClusterBulkUpdate V1InventoryClustersBulkPartialUpdate(ctx).ClusterBulkUpdate(clusterBulkUpdate).Execute()
 
 
 
@@ -38,17 +42,17 @@ import (
 )
 
 func main() {
-	clusterBulkUpdate := *openapiclient.NewClusterBulkUpdate(false, time.Now(), openapiclient.Cluster_deployment{Deployment: openapiclient.NewDeployment(time.Now(), "Id_example", time.Now(), "OrgName_example", interface{}(123), []string{"Pipelines_example"}, "RequesterEmail_example", "RequesterName_example", int32(123), []string{"Services_example"}, int32(123), "SshUser_example", openapiclient.DeploymentState("destroyed"))}, []openapiclient.ClusterGpusInner{openapiclient.Cluster_gpus_inner{Gpu: openapiclient.NewGpu(time.Now(), "Id_example", "Model_example", time.Now())}}, "GpuAlias_example", int32(123), "Id_example", []openapiclient.ClusterInstancesInner{openapiclient.Cluster_instances_inner{Instance: openapiclient.NewInstance(openapiclient.Deployment_cluster{Cluster: openapiclient.NewCluster(false, time.Now(), openapiclient.Cluster_deployment{Deployment: openapiclient.NewDeployment(time.Now(), "Id_example", time.Now(), "OrgName_example", interface{}(123), []string{"Pipelines_example"}, "RequesterEmail_example", "RequesterName_example", int32(123), []string{"Services_example"}, int32(123), "SshUser_example", openapiclient.DeploymentState("destroyed"))}, []openapiclient.ClusterGpusInner{openapiclient.Cluster_gpus_inner{Gpu: openapiclient.NewGpu(time.Now(), "Id_example", "Model_example", time.Now())}}, "Id_example", []openapiclient.ClusterInstancesInner{openapiclient.Cluster_instances_inner{Instance: openapiclient.NewInstance(openapiclient.Deployment_cluster{Cluster: openapiclient.NewCluster(false, time.Now(), openapiclient.Cluster_deployment{Deployment: }, []openapiclient.ClusterGpusInner{openapiclient.Cluster_gpus_inner{Gpu: }}, "Id_example", []openapiclient.ClusterInstancesInner{openapiclient.Cluster_instances_inner{Instance: }}, time.Now(), time.Now(), false, []string{"TenantIds_example"})}, time.Now(), "Id_example", "InstanceId_example", time.Now(), time.Now())}}, time.Now(), time.Now(), false, []string{"TenantIds_example"})}, time.Now(), "Id_example", "InstanceId_example", time.Now(), time.Now())}}, time.Now(), time.Now(), int32(123), false, "PublicAddress_example", "RequestId_example", []string{"TenantIds_example"}, int32(123), []string{"Ids_example"}, "Result_example") // ClusterBulkUpdate | 
+	clusterBulkUpdate := *openapiclient.NewClusterBulkUpdate(false, time.Now(), openapiclient.Cluster_deployment{Deployment: openapiclient.NewDeployment(time.Now(), "Id_example", time.Now(), "OrgName_example", *openapiclient.NewOverrides(), []string{"Pipelines_example"}, "RequesterEmail_example", "RequesterName_example", int32(123), []string{"Services_example"}, int32(123), "SshUser_example", openapiclient.DeploymentState("destroyed"))}, []openapiclient.ClusterGpusInner{openapiclient.Cluster_gpus_inner{Gpu: openapiclient.NewGpu(time.Now(), "Id_example", "Model_example", time.Now())}}, "GpuAlias_example", int32(123), "Id_example", []openapiclient.ClusterInstancesInner{openapiclient.Cluster_instances_inner{Instance: openapiclient.NewInstance(openapiclient.Deployment_cluster{Cluster: openapiclient.NewCluster(false, time.Now(), openapiclient.Cluster_deployment{Deployment: openapiclient.NewDeployment(time.Now(), "Id_example", time.Now(), "OrgName_example", *openapiclient.NewOverrides(), []string{"Pipelines_example"}, "RequesterEmail_example", "RequesterName_example", int32(123), []string{"Services_example"}, int32(123), "SshUser_example", openapiclient.DeploymentState("destroyed"))}, []openapiclient.ClusterGpusInner{openapiclient.Cluster_gpus_inner{Gpu: openapiclient.NewGpu(time.Now(), "Id_example", "Model_example", time.Now())}}, "Id_example", []openapiclient.ClusterInstancesInner{openapiclient.Cluster_instances_inner{Instance: openapiclient.NewInstance(openapiclient.Deployment_cluster{Cluster: openapiclient.NewCluster(false, time.Now(), openapiclient.Cluster_deployment{Deployment: }, []openapiclient.ClusterGpusInner{openapiclient.Cluster_gpus_inner{Gpu: }}, "Id_example", []openapiclient.ClusterInstancesInner{openapiclient.Cluster_instances_inner{Instance: }}, time.Now(), time.Now(), false, []string{"TenantIds_example"})}, time.Now(), "Id_example", "InstanceId_example", time.Now(), time.Now())}}, time.Now(), time.Now(), false, []string{"TenantIds_example"})}, time.Now(), "Id_example", "InstanceId_example", time.Now(), time.Now())}}, time.Now(), time.Now(), int32(123), false, "PublicAddress_example", "RequestId_example", []string{"TenantIds_example"}, int32(123), []string{"Ids_example"}, "Result_example") // ClusterBulkUpdate | 
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.InventoryClustersAPI.InventoryClustersBulkPartialUpdate(context.Background()).ClusterBulkUpdate(clusterBulkUpdate).Execute()
+	resp, r, err := apiClient.InventoryClustersAPI.V1InventoryClustersBulkPartialUpdate(context.Background()).ClusterBulkUpdate(clusterBulkUpdate).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `InventoryClustersAPI.InventoryClustersBulkPartialUpdate``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryClustersAPI.V1InventoryClustersBulkPartialUpdate``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `InventoryClustersBulkPartialUpdate`: ClusterBulkUpdate
-	fmt.Fprintf(os.Stdout, "Response from `InventoryClustersAPI.InventoryClustersBulkPartialUpdate`: %v\n", resp)
+	// response from `V1InventoryClustersBulkPartialUpdate`: ClusterBulkUpdate
+	fmt.Fprintf(os.Stdout, "Response from `InventoryClustersAPI.V1InventoryClustersBulkPartialUpdate`: %v\n", resp)
 }
 ```
 
@@ -58,7 +62,7 @@ func main() {
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiInventoryClustersBulkPartialUpdateRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1InventoryClustersBulkPartialUpdateRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -83,9 +87,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## InventoryClustersCreate
+## V1InventoryClustersCreate
 
-> Cluster InventoryClustersCreate(ctx).Cluster(cluster).Execute()
+> Cluster V1InventoryClustersCreate(ctx).Cluster(cluster).Execute()
 
 
 
@@ -103,17 +107,17 @@ import (
 )
 
 func main() {
-	cluster := *openapiclient.NewCluster(false, time.Now(), openapiclient.Cluster_deployment{Deployment: openapiclient.NewDeployment(time.Now(), "Id_example", time.Now(), "OrgName_example", interface{}(123), []string{"Pipelines_example"}, "RequesterEmail_example", "RequesterName_example", int32(123), []string{"Services_example"}, int32(123), "SshUser_example", openapiclient.DeploymentState("destroyed"))}, []openapiclient.ClusterGpusInner{openapiclient.Cluster_gpus_inner{Gpu: openapiclient.NewGpu(time.Now(), "Id_example", "Model_example", time.Now())}}, "Id_example", []openapiclient.ClusterInstancesInner{openapiclient.Cluster_instances_inner{Instance: openapiclient.NewInstance(openapiclient.Deployment_cluster{Cluster: openapiclient.NewCluster(false, time.Now(), openapiclient.Cluster_deployment{Deployment: openapiclient.NewDeployment(time.Now(), "Id_example", time.Now(), "OrgName_example", interface{}(123), []string{"Pipelines_example"}, "RequesterEmail_example", "RequesterName_example", int32(123), []string{"Services_example"}, int32(123), "SshUser_example", openapiclient.DeploymentState("destroyed"))}, []openapiclient.ClusterGpusInner{openapiclient.Cluster_gpus_inner{Gpu: openapiclient.NewGpu(time.Now(), "Id_example", "Model_example", time.Now())}}, "Id_example", []openapiclient.ClusterInstancesInner{openapiclient.Cluster_instances_inner{Instance: openapiclient.NewInstance(openapiclient.Deployment_cluster{Cluster: }, time.Now(), "Id_example", "InstanceId_example", time.Now(), time.Now())}}, time.Now(), time.Now(), false, []string{"TenantIds_example"})}, time.Now(), "Id_example", "InstanceId_example", time.Now(), time.Now())}}, time.Now(), time.Now(), false, []string{"TenantIds_example"}) // Cluster |  (optional)
+	cluster := *openapiclient.NewCluster(false, time.Now(), openapiclient.Cluster_deployment{Deployment: openapiclient.NewDeployment(time.Now(), "Id_example", time.Now(), "OrgName_example", *openapiclient.NewOverrides(), []string{"Pipelines_example"}, "RequesterEmail_example", "RequesterName_example", int32(123), []string{"Services_example"}, int32(123), "SshUser_example", openapiclient.DeploymentState("destroyed"))}, []openapiclient.ClusterGpusInner{openapiclient.Cluster_gpus_inner{Gpu: openapiclient.NewGpu(time.Now(), "Id_example", "Model_example", time.Now())}}, "Id_example", []openapiclient.ClusterInstancesInner{openapiclient.Cluster_instances_inner{Instance: openapiclient.NewInstance(openapiclient.Deployment_cluster{Cluster: openapiclient.NewCluster(false, time.Now(), openapiclient.Cluster_deployment{Deployment: openapiclient.NewDeployment(time.Now(), "Id_example", time.Now(), "OrgName_example", *openapiclient.NewOverrides(), []string{"Pipelines_example"}, "RequesterEmail_example", "RequesterName_example", int32(123), []string{"Services_example"}, int32(123), "SshUser_example", openapiclient.DeploymentState("destroyed"))}, []openapiclient.ClusterGpusInner{openapiclient.Cluster_gpus_inner{Gpu: openapiclient.NewGpu(time.Now(), "Id_example", "Model_example", time.Now())}}, "Id_example", []openapiclient.ClusterInstancesInner{openapiclient.Cluster_instances_inner{Instance: openapiclient.NewInstance(openapiclient.Deployment_cluster{Cluster: }, time.Now(), "Id_example", "InstanceId_example", time.Now(), time.Now())}}, time.Now(), time.Now(), false, []string{"TenantIds_example"})}, time.Now(), "Id_example", "InstanceId_example", time.Now(), time.Now())}}, time.Now(), time.Now(), false, []string{"TenantIds_example"}) // Cluster |  (optional)
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.InventoryClustersAPI.InventoryClustersCreate(context.Background()).Cluster(cluster).Execute()
+	resp, r, err := apiClient.InventoryClustersAPI.V1InventoryClustersCreate(context.Background()).Cluster(cluster).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `InventoryClustersAPI.InventoryClustersCreate``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryClustersAPI.V1InventoryClustersCreate``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `InventoryClustersCreate`: Cluster
-	fmt.Fprintf(os.Stdout, "Response from `InventoryClustersAPI.InventoryClustersCreate`: %v\n", resp)
+	// response from `V1InventoryClustersCreate`: Cluster
+	fmt.Fprintf(os.Stdout, "Response from `InventoryClustersAPI.V1InventoryClustersCreate`: %v\n", resp)
 }
 ```
 
@@ -123,7 +127,7 @@ func main() {
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiInventoryClustersCreateRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1InventoryClustersCreateRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -148,9 +152,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## InventoryClustersDestroy
+## V1InventoryClustersDestroy
 
-> InventoryClustersDestroy(ctx, id).Execute()
+> V1InventoryClustersDestroy(ctx, id).Execute()
 
 
 
@@ -171,9 +175,9 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	r, err := apiClient.InventoryClustersAPI.InventoryClustersDestroy(context.Background(), id).Execute()
+	r, err := apiClient.InventoryClustersAPI.V1InventoryClustersDestroy(context.Background(), id).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `InventoryClustersAPI.InventoryClustersDestroy``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryClustersAPI.V1InventoryClustersDestroy``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
 }
@@ -189,7 +193,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiInventoryClustersDestroyRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1InventoryClustersDestroyRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -214,9 +218,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## InventoryClustersHistoryList
+## V1InventoryClustersHistoryList
 
-> PaginatedModelChangeList InventoryClustersHistoryList(ctx, id).Page(page).PageSize(pageSize).Execute()
+> PaginatedModelChangeList V1InventoryClustersHistoryList(ctx, id).Page(page).PageSize(pageSize).Execute()
 
 
 
@@ -239,13 +243,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.InventoryClustersAPI.InventoryClustersHistoryList(context.Background(), id).Page(page).PageSize(pageSize).Execute()
+	resp, r, err := apiClient.InventoryClustersAPI.V1InventoryClustersHistoryList(context.Background(), id).Page(page).PageSize(pageSize).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `InventoryClustersAPI.InventoryClustersHistoryList``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryClustersAPI.V1InventoryClustersHistoryList``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `InventoryClustersHistoryList`: PaginatedModelChangeList
-	fmt.Fprintf(os.Stdout, "Response from `InventoryClustersAPI.InventoryClustersHistoryList`: %v\n", resp)
+	// response from `V1InventoryClustersHistoryList`: PaginatedModelChangeList
+	fmt.Fprintf(os.Stdout, "Response from `InventoryClustersAPI.V1InventoryClustersHistoryList`: %v\n", resp)
 }
 ```
 
@@ -259,7 +263,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiInventoryClustersHistoryListRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1InventoryClustersHistoryListRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -286,9 +290,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## InventoryClustersList
+## V1InventoryClustersList
 
-> PaginatedClusterList InventoryClustersList(ctx).Available(available).BastionName(bastionName).Deployment(deployment).Enabled(enabled).Expand(expand).Experience(experience).Fields(fields).GarageId(garageId).Gpu(gpu).GpuAlias(gpuAlias).GpuCount(gpuCount).GpuModel(gpuModel).HasDeployment(hasDeployment).HasRequestId(hasRequestId).HasWorkshopId(hasWorkshopId).Id(id).Location(location).LocationName(locationName).LocationRegion(locationRegion).Maintenance(maintenance).MgmtIp(mgmtIp).MgmtMac(mgmtMac).MinGpuCount(minGpuCount).MinNodeCount(minNodeCount).MinProvisioningAttempts(minProvisioningAttempts).MinTenantCount(minTenantCount).Netmask(netmask).NodeCount(nodeCount).Oem(oem).Omit(omit).Ordering(ordering).Page(page).PageSize(pageSize).Persist(persist).Provider(provider).ProviderCapacity(providerCapacity).ProviderName(providerName).ProviderNodeId(providerNodeId).ProvisionUser(provisionUser).ProvisioningAttempts(provisioningAttempts).ProvisioningState(provisioningState).PublicAddress(publicAddress).Rack(rack).RequestId(requestId).Reservation(reservation).Search(search).SystemArch(systemArch).VlanId(vlanId).Workshop(workshop).WorkshopId(workshopId).WorkshopIdNot(workshopIdNot).Execute()
+> PaginatedClusterList V1InventoryClustersList(ctx).Available(available).BastionName(bastionName).Deployment(deployment).Enabled(enabled).Expand(expand).Experience(experience).Fields(fields).GarageId(garageId).Gpu(gpu).GpuAlias(gpuAlias).GpuCount(gpuCount).GpuModel(gpuModel).HasDeployment(hasDeployment).HasRequestId(hasRequestId).HasWorkshopId(hasWorkshopId).Id(id).Location(location).LocationName(locationName).LocationRegion(locationRegion).Maintenance(maintenance).MgmtIp(mgmtIp).MgmtMac(mgmtMac).MinGpuCount(minGpuCount).MinNodeCount(minNodeCount).MinProvisioningAttempts(minProvisioningAttempts).MinTenantCount(minTenantCount).Netmask(netmask).NodeCount(nodeCount).Oem(oem).Omit(omit).Ordering(ordering).Page(page).PageSize(pageSize).Persist(persist).Provider(provider).ProviderCapacity(providerCapacity).ProviderName(providerName).ProviderNodeId(providerNodeId).ProvisionUser(provisionUser).ProvisioningAttempts(provisioningAttempts).ProvisioningState(provisioningState).PublicAddress(publicAddress).Rack(rack).RequestId(requestId).Reservation(reservation).Search(search).SystemArch(systemArch).VlanId(vlanId).Workshop(workshop).WorkshopId(workshopId).WorkshopIdNot(workshopIdNot).Execute()
 
 
 
@@ -359,13 +363,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.InventoryClustersAPI.InventoryClustersList(context.Background()).Available(available).BastionName(bastionName).Deployment(deployment).Enabled(enabled).Expand(expand).Experience(experience).Fields(fields).GarageId(garageId).Gpu(gpu).GpuAlias(gpuAlias).GpuCount(gpuCount).GpuModel(gpuModel).HasDeployment(hasDeployment).HasRequestId(hasRequestId).HasWorkshopId(hasWorkshopId).Id(id).Location(location).LocationName(locationName).LocationRegion(locationRegion).Maintenance(maintenance).MgmtIp(mgmtIp).MgmtMac(mgmtMac).MinGpuCount(minGpuCount).MinNodeCount(minNodeCount).MinProvisioningAttempts(minProvisioningAttempts).MinTenantCount(minTenantCount).Netmask(netmask).NodeCount(nodeCount).Oem(oem).Omit(omit).Ordering(ordering).Page(page).PageSize(pageSize).Persist(persist).Provider(provider).ProviderCapacity(providerCapacity).ProviderName(providerName).ProviderNodeId(providerNodeId).ProvisionUser(provisionUser).ProvisioningAttempts(provisioningAttempts).ProvisioningState(provisioningState).PublicAddress(publicAddress).Rack(rack).RequestId(requestId).Reservation(reservation).Search(search).SystemArch(systemArch).VlanId(vlanId).Workshop(workshop).WorkshopId(workshopId).WorkshopIdNot(workshopIdNot).Execute()
+	resp, r, err := apiClient.InventoryClustersAPI.V1InventoryClustersList(context.Background()).Available(available).BastionName(bastionName).Deployment(deployment).Enabled(enabled).Expand(expand).Experience(experience).Fields(fields).GarageId(garageId).Gpu(gpu).GpuAlias(gpuAlias).GpuCount(gpuCount).GpuModel(gpuModel).HasDeployment(hasDeployment).HasRequestId(hasRequestId).HasWorkshopId(hasWorkshopId).Id(id).Location(location).LocationName(locationName).LocationRegion(locationRegion).Maintenance(maintenance).MgmtIp(mgmtIp).MgmtMac(mgmtMac).MinGpuCount(minGpuCount).MinNodeCount(minNodeCount).MinProvisioningAttempts(minProvisioningAttempts).MinTenantCount(minTenantCount).Netmask(netmask).NodeCount(nodeCount).Oem(oem).Omit(omit).Ordering(ordering).Page(page).PageSize(pageSize).Persist(persist).Provider(provider).ProviderCapacity(providerCapacity).ProviderName(providerName).ProviderNodeId(providerNodeId).ProvisionUser(provisionUser).ProvisioningAttempts(provisioningAttempts).ProvisioningState(provisioningState).PublicAddress(publicAddress).Rack(rack).RequestId(requestId).Reservation(reservation).Search(search).SystemArch(systemArch).VlanId(vlanId).Workshop(workshop).WorkshopId(workshopId).WorkshopIdNot(workshopIdNot).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `InventoryClustersAPI.InventoryClustersList``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryClustersAPI.V1InventoryClustersList``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `InventoryClustersList`: PaginatedClusterList
-	fmt.Fprintf(os.Stdout, "Response from `InventoryClustersAPI.InventoryClustersList`: %v\n", resp)
+	// response from `V1InventoryClustersList`: PaginatedClusterList
+	fmt.Fprintf(os.Stdout, "Response from `InventoryClustersAPI.V1InventoryClustersList`: %v\n", resp)
 }
 ```
 
@@ -375,7 +379,7 @@ func main() {
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiInventoryClustersListRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1InventoryClustersListRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -450,9 +454,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## InventoryClustersPartialUpdate
+## V1InventoryClustersPartialUpdate
 
-> Cluster InventoryClustersPartialUpdate(ctx, id).Cluster(cluster).Execute()
+> Cluster V1InventoryClustersPartialUpdate(ctx, id).Cluster(cluster).Execute()
 
 
 
@@ -471,17 +475,17 @@ import (
 
 func main() {
 	id := "38400000-8cf0-11bd-b23e-10b96e4ef00d" // string | A UUID string identifying this cluster.
-	cluster := *openapiclient.NewCluster(false, time.Now(), openapiclient.Cluster_deployment{Deployment: openapiclient.NewDeployment(time.Now(), "Id_example", time.Now(), "OrgName_example", interface{}(123), []string{"Pipelines_example"}, "RequesterEmail_example", "RequesterName_example", int32(123), []string{"Services_example"}, int32(123), "SshUser_example", openapiclient.DeploymentState("destroyed"))}, []openapiclient.ClusterGpusInner{openapiclient.Cluster_gpus_inner{Gpu: openapiclient.NewGpu(time.Now(), "Id_example", "Model_example", time.Now())}}, "Id_example", []openapiclient.ClusterInstancesInner{openapiclient.Cluster_instances_inner{Instance: openapiclient.NewInstance(openapiclient.Deployment_cluster{Cluster: openapiclient.NewCluster(false, time.Now(), openapiclient.Cluster_deployment{Deployment: openapiclient.NewDeployment(time.Now(), "Id_example", time.Now(), "OrgName_example", interface{}(123), []string{"Pipelines_example"}, "RequesterEmail_example", "RequesterName_example", int32(123), []string{"Services_example"}, int32(123), "SshUser_example", openapiclient.DeploymentState("destroyed"))}, []openapiclient.ClusterGpusInner{openapiclient.Cluster_gpus_inner{Gpu: openapiclient.NewGpu(time.Now(), "Id_example", "Model_example", time.Now())}}, "Id_example", []openapiclient.ClusterInstancesInner{openapiclient.Cluster_instances_inner{Instance: openapiclient.NewInstance(openapiclient.Deployment_cluster{Cluster: }, time.Now(), "Id_example", "InstanceId_example", time.Now(), time.Now())}}, time.Now(), time.Now(), false, []string{"TenantIds_example"})}, time.Now(), "Id_example", "InstanceId_example", time.Now(), time.Now())}}, time.Now(), time.Now(), false, []string{"TenantIds_example"}) // Cluster |  (optional)
+	cluster := *openapiclient.NewCluster(false, time.Now(), openapiclient.Cluster_deployment{Deployment: openapiclient.NewDeployment(time.Now(), "Id_example", time.Now(), "OrgName_example", *openapiclient.NewOverrides(), []string{"Pipelines_example"}, "RequesterEmail_example", "RequesterName_example", int32(123), []string{"Services_example"}, int32(123), "SshUser_example", openapiclient.DeploymentState("destroyed"))}, []openapiclient.ClusterGpusInner{openapiclient.Cluster_gpus_inner{Gpu: openapiclient.NewGpu(time.Now(), "Id_example", "Model_example", time.Now())}}, "Id_example", []openapiclient.ClusterInstancesInner{openapiclient.Cluster_instances_inner{Instance: openapiclient.NewInstance(openapiclient.Deployment_cluster{Cluster: openapiclient.NewCluster(false, time.Now(), openapiclient.Cluster_deployment{Deployment: openapiclient.NewDeployment(time.Now(), "Id_example", time.Now(), "OrgName_example", *openapiclient.NewOverrides(), []string{"Pipelines_example"}, "RequesterEmail_example", "RequesterName_example", int32(123), []string{"Services_example"}, int32(123), "SshUser_example", openapiclient.DeploymentState("destroyed"))}, []openapiclient.ClusterGpusInner{openapiclient.Cluster_gpus_inner{Gpu: openapiclient.NewGpu(time.Now(), "Id_example", "Model_example", time.Now())}}, "Id_example", []openapiclient.ClusterInstancesInner{openapiclient.Cluster_instances_inner{Instance: openapiclient.NewInstance(openapiclient.Deployment_cluster{Cluster: }, time.Now(), "Id_example", "InstanceId_example", time.Now(), time.Now())}}, time.Now(), time.Now(), false, []string{"TenantIds_example"})}, time.Now(), "Id_example", "InstanceId_example", time.Now(), time.Now())}}, time.Now(), time.Now(), false, []string{"TenantIds_example"}) // Cluster |  (optional)
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.InventoryClustersAPI.InventoryClustersPartialUpdate(context.Background(), id).Cluster(cluster).Execute()
+	resp, r, err := apiClient.InventoryClustersAPI.V1InventoryClustersPartialUpdate(context.Background(), id).Cluster(cluster).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `InventoryClustersAPI.InventoryClustersPartialUpdate``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryClustersAPI.V1InventoryClustersPartialUpdate``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `InventoryClustersPartialUpdate`: Cluster
-	fmt.Fprintf(os.Stdout, "Response from `InventoryClustersAPI.InventoryClustersPartialUpdate`: %v\n", resp)
+	// response from `V1InventoryClustersPartialUpdate`: Cluster
+	fmt.Fprintf(os.Stdout, "Response from `InventoryClustersAPI.V1InventoryClustersPartialUpdate`: %v\n", resp)
 }
 ```
 
@@ -495,7 +499,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiInventoryClustersPartialUpdateRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1InventoryClustersPartialUpdateRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -521,9 +525,286 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## InventoryClustersRetrieve
+## V1InventoryClustersPipelinesTriggerCreate
 
-> Cluster InventoryClustersRetrieve(ctx, id).Expand(expand).Fields(fields).Omit(omit).Execute()
+> ClusterPipelineTrigger V1InventoryClustersPipelinesTriggerCreate(ctx, id).ClusterPipelineTrigger(clusterPipelineTrigger).Execute()
+
+
+
+### Example
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+	"os"
+    "time"
+	openapiclient "github.com/brevdev/cloud"
+)
+
+func main() {
+	id := "38400000-8cf0-11bd-b23e-10b96e4ef00d" // string | 
+	clusterPipelineTrigger := *openapiclient.NewClusterPipelineTrigger(openapiclient.PipelineAction("apply"), time.Now(), "Id_example", time.Now(), int32(123), "RequestId_example", "Url_example") // ClusterPipelineTrigger | 
+
+	configuration := openapiclient.NewConfiguration()
+	apiClient := openapiclient.NewAPIClient(configuration)
+	resp, r, err := apiClient.InventoryClustersAPI.V1InventoryClustersPipelinesTriggerCreate(context.Background(), id).ClusterPipelineTrigger(clusterPipelineTrigger).Execute()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryClustersAPI.V1InventoryClustersPipelinesTriggerCreate``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
+	}
+	// response from `V1InventoryClustersPipelinesTriggerCreate`: ClusterPipelineTrigger
+	fmt.Fprintf(os.Stdout, "Response from `InventoryClustersAPI.V1InventoryClustersPipelinesTriggerCreate`: %v\n", resp)
+}
+```
+
+### Path Parameters
+
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+**ctx** | **context.Context** | context for authentication, logging, cancellation, deadlines, tracing, etc.
+**id** | **string** |  | 
+
+### Other Parameters
+
+Other parameters are passed through a pointer to a apiV1InventoryClustersPipelinesTriggerCreateRequest struct via the builder pattern
+
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+
+ **clusterPipelineTrigger** | [**ClusterPipelineTrigger**](ClusterPipelineTrigger.md) |  | 
+
+### Return type
+
+[**ClusterPipelineTrigger**](ClusterPipelineTrigger.md)
+
+### Authorization
+
+[TokenAuthentication](../README.md#TokenAuthentication)
+
+### HTTP request headers
+
+- **Content-Type**: application/json, application/x-www-form-urlencoded, multipart/form-data
+- **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints)
+[[Back to Model list]](../README.md#documentation-for-models)
+[[Back to README]](../README.md)
+
+
+## V1InventoryClustersProvisionCreate
+
+> ProvisioningRequest V1InventoryClustersProvisionCreate(ctx).ProvisioningRequest(provisioningRequest).Expand(expand).Execute()
+
+
+
+### Example
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+	"os"
+	openapiclient "github.com/brevdev/cloud"
+)
+
+func main() {
+	provisioningRequest := *openapiclient.NewProvisioningRequest("Experience_example", "RequestId_example") // ProvisioningRequest | 
+	expand := "expand_example" // string | Expand related field(s) instead of only showing a UUID (ex: \"cluster,experience\"). (optional)
+
+	configuration := openapiclient.NewConfiguration()
+	apiClient := openapiclient.NewAPIClient(configuration)
+	resp, r, err := apiClient.InventoryClustersAPI.V1InventoryClustersProvisionCreate(context.Background()).ProvisioningRequest(provisioningRequest).Expand(expand).Execute()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryClustersAPI.V1InventoryClustersProvisionCreate``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
+	}
+	// response from `V1InventoryClustersProvisionCreate`: ProvisioningRequest
+	fmt.Fprintf(os.Stdout, "Response from `InventoryClustersAPI.V1InventoryClustersProvisionCreate`: %v\n", resp)
+}
+```
+
+### Path Parameters
+
+
+
+### Other Parameters
+
+Other parameters are passed through a pointer to a apiV1InventoryClustersProvisionCreateRequest struct via the builder pattern
+
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **provisioningRequest** | [**ProvisioningRequest**](ProvisioningRequest.md) |  | 
+ **expand** | **string** | Expand related field(s) instead of only showing a UUID (ex: \&quot;cluster,experience\&quot;). | 
+
+### Return type
+
+[**ProvisioningRequest**](ProvisioningRequest.md)
+
+### Authorization
+
+[TokenAuthentication](../README.md#TokenAuthentication)
+
+### HTTP request headers
+
+- **Content-Type**: application/json, application/x-www-form-urlencoded, multipart/form-data
+- **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints)
+[[Back to Model list]](../README.md#documentation-for-models)
+[[Back to README]](../README.md)
+
+
+## V1InventoryClustersProvisionDestroy
+
+> Cluster V1InventoryClustersProvisionDestroy(ctx, id).Expand(expand).Execute()
+
+
+
+### Example
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+	"os"
+	openapiclient "github.com/brevdev/cloud"
+)
+
+func main() {
+	id := "38400000-8cf0-11bd-b23e-10b96e4ef00d" // string | 
+	expand := "expand_example" // string | Expand related field(s) instead of only showing a UUID (ex: \"cluster,experience\"). (optional)
+
+	configuration := openapiclient.NewConfiguration()
+	apiClient := openapiclient.NewAPIClient(configuration)
+	resp, r, err := apiClient.InventoryClustersAPI.V1InventoryClustersProvisionDestroy(context.Background(), id).Expand(expand).Execute()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryClustersAPI.V1InventoryClustersProvisionDestroy``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
+	}
+	// response from `V1InventoryClustersProvisionDestroy`: Cluster
+	fmt.Fprintf(os.Stdout, "Response from `InventoryClustersAPI.V1InventoryClustersProvisionDestroy`: %v\n", resp)
+}
+```
+
+### Path Parameters
+
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+**ctx** | **context.Context** | context for authentication, logging, cancellation, deadlines, tracing, etc.
+**id** | **string** |  | 
+
+### Other Parameters
+
+Other parameters are passed through a pointer to a apiV1InventoryClustersProvisionDestroyRequest struct via the builder pattern
+
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+
+ **expand** | **string** | Expand related field(s) instead of only showing a UUID (ex: \&quot;cluster,experience\&quot;). | 
+
+### Return type
+
+[**Cluster**](Cluster.md)
+
+### Authorization
+
+[TokenAuthentication](../README.md#TokenAuthentication)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints)
+[[Back to Model list]](../README.md#documentation-for-models)
+[[Back to README]](../README.md)
+
+
+## V1InventoryClustersProvisionPartialUpdate
+
+> ProvisioningRequest V1InventoryClustersProvisionPartialUpdate(ctx, id).ProvisioningRequest(provisioningRequest).Execute()
+
+
+
+### Example
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+	"os"
+	openapiclient "github.com/brevdev/cloud"
+)
+
+func main() {
+	id := "38400000-8cf0-11bd-b23e-10b96e4ef00d" // string | 
+	provisioningRequest := *openapiclient.NewProvisioningRequest("Experience_example", "RequestId_example") // ProvisioningRequest | 
+
+	configuration := openapiclient.NewConfiguration()
+	apiClient := openapiclient.NewAPIClient(configuration)
+	resp, r, err := apiClient.InventoryClustersAPI.V1InventoryClustersProvisionPartialUpdate(context.Background(), id).ProvisioningRequest(provisioningRequest).Execute()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryClustersAPI.V1InventoryClustersProvisionPartialUpdate``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
+	}
+	// response from `V1InventoryClustersProvisionPartialUpdate`: ProvisioningRequest
+	fmt.Fprintf(os.Stdout, "Response from `InventoryClustersAPI.V1InventoryClustersProvisionPartialUpdate`: %v\n", resp)
+}
+```
+
+### Path Parameters
+
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+**ctx** | **context.Context** | context for authentication, logging, cancellation, deadlines, tracing, etc.
+**id** | **string** |  | 
+
+### Other Parameters
+
+Other parameters are passed through a pointer to a apiV1InventoryClustersProvisionPartialUpdateRequest struct via the builder pattern
+
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+
+ **provisioningRequest** | [**ProvisioningRequest**](ProvisioningRequest.md) |  | 
+
+### Return type
+
+[**ProvisioningRequest**](ProvisioningRequest.md)
+
+### Authorization
+
+[TokenAuthentication](../README.md#TokenAuthentication)
+
+### HTTP request headers
+
+- **Content-Type**: application/json, application/x-www-form-urlencoded, multipart/form-data
+- **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints)
+[[Back to Model list]](../README.md#documentation-for-models)
+[[Back to README]](../README.md)
+
+
+## V1InventoryClustersRetrieve
+
+> Cluster V1InventoryClustersRetrieve(ctx, id).Expand(expand).Fields(fields).Omit(omit).Execute()
 
 
 
@@ -547,13 +828,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.InventoryClustersAPI.InventoryClustersRetrieve(context.Background(), id).Expand(expand).Fields(fields).Omit(omit).Execute()
+	resp, r, err := apiClient.InventoryClustersAPI.V1InventoryClustersRetrieve(context.Background(), id).Expand(expand).Fields(fields).Omit(omit).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `InventoryClustersAPI.InventoryClustersRetrieve``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryClustersAPI.V1InventoryClustersRetrieve``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `InventoryClustersRetrieve`: Cluster
-	fmt.Fprintf(os.Stdout, "Response from `InventoryClustersAPI.InventoryClustersRetrieve`: %v\n", resp)
+	// response from `V1InventoryClustersRetrieve`: Cluster
+	fmt.Fprintf(os.Stdout, "Response from `InventoryClustersAPI.V1InventoryClustersRetrieve`: %v\n", resp)
 }
 ```
 
@@ -567,7 +848,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiInventoryClustersRetrieveRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1InventoryClustersRetrieveRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -595,9 +876,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## InventoryClustersStatsRetrieve
+## V1InventoryClustersStatsRetrieve
 
-> InventoryClustersStatsRetrieve(ctx).Execute()
+> V1InventoryClustersStatsRetrieve(ctx).Execute()
 
 🚧 [Beta Feature]
 
@@ -617,9 +898,9 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	r, err := apiClient.InventoryClustersAPI.InventoryClustersStatsRetrieve(context.Background()).Execute()
+	r, err := apiClient.InventoryClustersAPI.V1InventoryClustersStatsRetrieve(context.Background()).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `InventoryClustersAPI.InventoryClustersStatsRetrieve``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryClustersAPI.V1InventoryClustersStatsRetrieve``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
 }
@@ -631,7 +912,7 @@ This endpoint does not need any parameter.
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiInventoryClustersStatsRetrieveRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1InventoryClustersStatsRetrieveRequest struct via the builder pattern
 
 
 ### Return type
@@ -652,9 +933,9 @@ Other parameters are passed through a pointer to a apiInventoryClustersStatsRetr
 [[Back to README]](../README.md)
 
 
-## InventoryClustersTenantsCreate
+## V1InventoryClustersTenantsCreate
 
-> Cluster InventoryClustersTenantsCreate(ctx, clusterId).Tenant(tenant).Execute()
+> Cluster V1InventoryClustersTenantsCreate(ctx, clusterId).Tenant(tenant).Execute()
 
 
 
@@ -676,13 +957,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.InventoryClustersAPI.InventoryClustersTenantsCreate(context.Background(), clusterId).Tenant(tenant).Execute()
+	resp, r, err := apiClient.InventoryClustersAPI.V1InventoryClustersTenantsCreate(context.Background(), clusterId).Tenant(tenant).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `InventoryClustersAPI.InventoryClustersTenantsCreate``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryClustersAPI.V1InventoryClustersTenantsCreate``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `InventoryClustersTenantsCreate`: Cluster
-	fmt.Fprintf(os.Stdout, "Response from `InventoryClustersAPI.InventoryClustersTenantsCreate`: %v\n", resp)
+	// response from `V1InventoryClustersTenantsCreate`: Cluster
+	fmt.Fprintf(os.Stdout, "Response from `InventoryClustersAPI.V1InventoryClustersTenantsCreate`: %v\n", resp)
 }
 ```
 
@@ -696,7 +977,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiInventoryClustersTenantsCreateRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1InventoryClustersTenantsCreateRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -722,9 +1003,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## InventoryClustersTenantsDestroy
+## V1InventoryClustersTenantsDestroy
 
-> InventoryClustersTenantsDestroy(ctx, clusterId, id).Execute()
+> V1InventoryClustersTenantsDestroy(ctx, clusterId, id).Execute()
 
 
 
@@ -746,9 +1027,9 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	r, err := apiClient.InventoryClustersAPI.InventoryClustersTenantsDestroy(context.Background(), clusterId, id).Execute()
+	r, err := apiClient.InventoryClustersAPI.V1InventoryClustersTenantsDestroy(context.Background(), clusterId, id).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `InventoryClustersAPI.InventoryClustersTenantsDestroy``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryClustersAPI.V1InventoryClustersTenantsDestroy``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
 }
@@ -765,7 +1046,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiInventoryClustersTenantsDestroyRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1InventoryClustersTenantsDestroyRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -791,9 +1072,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## InventoryClustersUpdate
+## V1InventoryClustersUpdate
 
-> Cluster InventoryClustersUpdate(ctx, id).Cluster(cluster).Execute()
+> Cluster V1InventoryClustersUpdate(ctx, id).Cluster(cluster).Execute()
 
 
 
@@ -812,17 +1093,17 @@ import (
 
 func main() {
 	id := "38400000-8cf0-11bd-b23e-10b96e4ef00d" // string | A UUID string identifying this cluster.
-	cluster := *openapiclient.NewCluster(false, time.Now(), openapiclient.Cluster_deployment{Deployment: openapiclient.NewDeployment(time.Now(), "Id_example", time.Now(), "OrgName_example", interface{}(123), []string{"Pipelines_example"}, "RequesterEmail_example", "RequesterName_example", int32(123), []string{"Services_example"}, int32(123), "SshUser_example", openapiclient.DeploymentState("destroyed"))}, []openapiclient.ClusterGpusInner{openapiclient.Cluster_gpus_inner{Gpu: openapiclient.NewGpu(time.Now(), "Id_example", "Model_example", time.Now())}}, "Id_example", []openapiclient.ClusterInstancesInner{openapiclient.Cluster_instances_inner{Instance: openapiclient.NewInstance(openapiclient.Deployment_cluster{Cluster: openapiclient.NewCluster(false, time.Now(), openapiclient.Cluster_deployment{Deployment: openapiclient.NewDeployment(time.Now(), "Id_example", time.Now(), "OrgName_example", interface{}(123), []string{"Pipelines_example"}, "RequesterEmail_example", "RequesterName_example", int32(123), []string{"Services_example"}, int32(123), "SshUser_example", openapiclient.DeploymentState("destroyed"))}, []openapiclient.ClusterGpusInner{openapiclient.Cluster_gpus_inner{Gpu: openapiclient.NewGpu(time.Now(), "Id_example", "Model_example", time.Now())}}, "Id_example", []openapiclient.ClusterInstancesInner{openapiclient.Cluster_instances_inner{Instance: openapiclient.NewInstance(openapiclient.Deployment_cluster{Cluster: }, time.Now(), "Id_example", "InstanceId_example", time.Now(), time.Now())}}, time.Now(), time.Now(), false, []string{"TenantIds_example"})}, time.Now(), "Id_example", "InstanceId_example", time.Now(), time.Now())}}, time.Now(), time.Now(), false, []string{"TenantIds_example"}) // Cluster |  (optional)
+	cluster := *openapiclient.NewCluster(false, time.Now(), openapiclient.Cluster_deployment{Deployment: openapiclient.NewDeployment(time.Now(), "Id_example", time.Now(), "OrgName_example", *openapiclient.NewOverrides(), []string{"Pipelines_example"}, "RequesterEmail_example", "RequesterName_example", int32(123), []string{"Services_example"}, int32(123), "SshUser_example", openapiclient.DeploymentState("destroyed"))}, []openapiclient.ClusterGpusInner{openapiclient.Cluster_gpus_inner{Gpu: openapiclient.NewGpu(time.Now(), "Id_example", "Model_example", time.Now())}}, "Id_example", []openapiclient.ClusterInstancesInner{openapiclient.Cluster_instances_inner{Instance: openapiclient.NewInstance(openapiclient.Deployment_cluster{Cluster: openapiclient.NewCluster(false, time.Now(), openapiclient.Cluster_deployment{Deployment: openapiclient.NewDeployment(time.Now(), "Id_example", time.Now(), "OrgName_example", *openapiclient.NewOverrides(), []string{"Pipelines_example"}, "RequesterEmail_example", "RequesterName_example", int32(123), []string{"Services_example"}, int32(123), "SshUser_example", openapiclient.DeploymentState("destroyed"))}, []openapiclient.ClusterGpusInner{openapiclient.Cluster_gpus_inner{Gpu: openapiclient.NewGpu(time.Now(), "Id_example", "Model_example", time.Now())}}, "Id_example", []openapiclient.ClusterInstancesInner{openapiclient.Cluster_instances_inner{Instance: openapiclient.NewInstance(openapiclient.Deployment_cluster{Cluster: }, time.Now(), "Id_example", "InstanceId_example", time.Now(), time.Now())}}, time.Now(), time.Now(), false, []string{"TenantIds_example"})}, time.Now(), "Id_example", "InstanceId_example", time.Now(), time.Now())}}, time.Now(), time.Now(), false, []string{"TenantIds_example"}) // Cluster |  (optional)
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.InventoryClustersAPI.InventoryClustersUpdate(context.Background(), id).Cluster(cluster).Execute()
+	resp, r, err := apiClient.InventoryClustersAPI.V1InventoryClustersUpdate(context.Background(), id).Cluster(cluster).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `InventoryClustersAPI.InventoryClustersUpdate``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryClustersAPI.V1InventoryClustersUpdate``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `InventoryClustersUpdate`: Cluster
-	fmt.Fprintf(os.Stdout, "Response from `InventoryClustersAPI.InventoryClustersUpdate`: %v\n", resp)
+	// response from `V1InventoryClustersUpdate`: Cluster
+	fmt.Fprintf(os.Stdout, "Response from `InventoryClustersAPI.V1InventoryClustersUpdate`: %v\n", resp)
 }
 ```
 
@@ -836,7 +1117,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiInventoryClustersUpdateRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1InventoryClustersUpdateRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
