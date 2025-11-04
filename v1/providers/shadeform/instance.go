@@ -2,6 +2,7 @@ package v1
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"strings"
@@ -20,6 +21,15 @@ const (
 	instanceNameFormat    = "%v_%v"
 	instanceNameSeparator = "_"
 )
+
+const (
+	OutOfStockErrorCode = "OUT_OF_STOCK"
+)
+
+type DefaultErrorResponse struct {
+	ErrorCode string `json:"error_code"`
+	Error     string `json:"error"`
+}
 
 func (c *ShadeformClient) CreateInstance(ctx context.Context, attrs v1.CreateInstanceAttrs) (*v1.Instance, error) { //nolint:gocyclo,funlen // ok
 	authCtx := c.makeAuthContext(ctx)
@@ -110,8 +120,26 @@ func (c *ShadeformClient) CreateInstance(ctx context.Context, attrs v1.CreateIns
 		defer func() { _ = httpResp.Body.Close() }()
 	}
 	if err != nil {
-		httpMessage, _ := io.ReadAll(httpResp.Body)
-		return nil, errors.WrapAndTrace(fmt.Errorf("failed to create instance: %w, %s", err, string(httpMessage)))
+		if httpResp.StatusCode == 409 {
+			// Shadeform provides more details on 409 errors in the response body
+			httpMessage, _ := io.ReadAll(httpResp.Body)
+			jsonStr := string(httpMessage)
+
+			var errorResponse DefaultErrorResponse
+			err = json.Unmarshal([]byte(jsonStr), &errorResponse)
+			if err != nil {
+				return nil, errors.WrapAndTrace(fmt.Errorf("failed to create instance: %w, %s", err, string(httpMessage)))
+			}
+
+			if errorResponse.ErrorCode == OutOfStockErrorCode {
+				return nil, v1.ErrInsufficientResources
+			} else {
+				return nil, errors.WrapAndTrace(fmt.Errorf("failed to create instance: %w, %s", err, string(httpMessage)))
+			}
+		} else {
+			httpMessage, _ := io.ReadAll(httpResp.Body)
+			return nil, errors.WrapAndTrace(fmt.Errorf("failed to create instance: %w, %s", err, string(httpMessage)))
+		}
 	}
 
 	if resp == nil {
