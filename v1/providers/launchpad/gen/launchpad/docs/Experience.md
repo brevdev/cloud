@@ -34,6 +34,7 @@ Name | Type | Description | Notes
 **Published** | Pointer to [**PublishedEnum**](PublishedEnum.md) | Is the experience published for use?  * &#x60;draft&#x60; - draft * &#x60;no&#x60; - no * &#x60;yes&#x60; - yes | [optional] 
 **Repo** | Pointer to **NullableString** | URL of the repository for provisioning automation | [optional] 
 **RequiredGpus** | Pointer to **[]string** | If set, the experience must be provisioned using one of the given GPU types. GPU requirements are evaluated in the order they are set (ex: [\&quot;{l40s_gpu_uuid}\&quot;, \&quot;{a100_gpu_uuid}\&quot;] will prefer an l40s). | [optional] 
+**Runtime** | Pointer to **NullableString** | The default runtime to use when provisioning this experience | [optional] 
 **SaLab** | Pointer to **bool** | Is this a persistent experience for SAs? | [optional] 
 **SystemArch** | [**SystemArchEnum**](SystemArchEnum.md) | Required CPU architecture  * &#x60;amd64&#x60; - amd64 * &#x60;arm64&#x60; - arm64 | 
 **Title** | **string** |  | 
@@ -838,6 +839,41 @@ SetRequiredGpus sets RequiredGpus field to given value.
 
 HasRequiredGpus returns a boolean if a field has been set.
 
+### GetRuntime
+
+`func (o *Experience) GetRuntime() string`
+
+GetRuntime returns the Runtime field if non-nil, zero value otherwise.
+
+### GetRuntimeOk
+
+`func (o *Experience) GetRuntimeOk() (*string, bool)`
+
+GetRuntimeOk returns a tuple with the Runtime field if it's non-nil, zero value otherwise
+and a boolean to check if the value has been set.
+
+### SetRuntime
+
+`func (o *Experience) SetRuntime(v string)`
+
+SetRuntime sets Runtime field to given value.
+
+### HasRuntime
+
+`func (o *Experience) HasRuntime() bool`
+
+HasRuntime returns a boolean if a field has been set.
+
+### SetRuntimeNil
+
+`func (o *Experience) SetRuntimeNil(b bool)`
+
+ SetRuntimeNil sets the value for Runtime to be an explicit nil
+
+### UnsetRuntime
+`func (o *Experience) UnsetRuntime()`
+
+UnsetRuntime ensures that no value is present for Runtime, not even an explicit nil
 ### GetSaLab
 
 `func (o *Experience) GetSaLab() bool`

@@ -38,7 +38,7 @@ func (c *LaunchpadClient) paginateListDeployments(ctx context.Context, pageSize 
 	deployments := make([]openapi.Deployment, 0, pageSize)
 	var page int32 = 1
 	for {
-		listRes, resp, err := c.client.CatalogDeploymentsAPI.CatalogDeploymentsList(c.makeAuthContext(ctx)).
+		listRes, resp, err := c.client.CatalogDeploymentsAPI.V1CatalogDeploymentsList(c.makeAuthContext(ctx)).
 			Expand(clusterExpandParameter).
 			PageSize(pageSize).
 			Page(page).

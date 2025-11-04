@@ -4,21 +4,21 @@ All URIs are relative to *http://localhost*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
-[**InventoryProvidersBulkPartialUpdate**](InventoryProvidersAPI.md#InventoryProvidersBulkPartialUpdate) | **Patch** /v1/inventory/providers/bulk/ | 
-[**InventoryProvidersCreate**](InventoryProvidersAPI.md#InventoryProvidersCreate) | **Post** /v1/inventory/providers/ | 
-[**InventoryProvidersDestroy**](InventoryProvidersAPI.md#InventoryProvidersDestroy) | **Delete** /v1/inventory/providers/{id}/ | 
-[**InventoryProvidersHistoryList**](InventoryProvidersAPI.md#InventoryProvidersHistoryList) | **Get** /v1/inventory/providers/{id}/history/ | 
-[**InventoryProvidersList**](InventoryProvidersAPI.md#InventoryProvidersList) | **Get** /v1/inventory/providers/ | 
-[**InventoryProvidersPartialUpdate**](InventoryProvidersAPI.md#InventoryProvidersPartialUpdate) | **Patch** /v1/inventory/providers/{id}/ | 
-[**InventoryProvidersRetrieve**](InventoryProvidersAPI.md#InventoryProvidersRetrieve) | **Get** /v1/inventory/providers/{id}/ | 
-[**InventoryProvidersStatsRetrieve**](InventoryProvidersAPI.md#InventoryProvidersStatsRetrieve) | **Get** /v1/inventory/providers/stats/ | 🚧 [Beta Feature]
-[**InventoryProvidersUpdate**](InventoryProvidersAPI.md#InventoryProvidersUpdate) | **Put** /v1/inventory/providers/{id}/ | 
+[**V1InventoryProvidersBulkPartialUpdate**](InventoryProvidersAPI.md#V1InventoryProvidersBulkPartialUpdate) | **Patch** /v1/inventory/providers/bulk/ | 
+[**V1InventoryProvidersCreate**](InventoryProvidersAPI.md#V1InventoryProvidersCreate) | **Post** /v1/inventory/providers/ | 
+[**V1InventoryProvidersDestroy**](InventoryProvidersAPI.md#V1InventoryProvidersDestroy) | **Delete** /v1/inventory/providers/{id}/ | 
+[**V1InventoryProvidersHistoryList**](InventoryProvidersAPI.md#V1InventoryProvidersHistoryList) | **Get** /v1/inventory/providers/{id}/history/ | 
+[**V1InventoryProvidersList**](InventoryProvidersAPI.md#V1InventoryProvidersList) | **Get** /v1/inventory/providers/ | 
+[**V1InventoryProvidersPartialUpdate**](InventoryProvidersAPI.md#V1InventoryProvidersPartialUpdate) | **Patch** /v1/inventory/providers/{id}/ | 
+[**V1InventoryProvidersRetrieve**](InventoryProvidersAPI.md#V1InventoryProvidersRetrieve) | **Get** /v1/inventory/providers/{id}/ | 
+[**V1InventoryProvidersStatsRetrieve**](InventoryProvidersAPI.md#V1InventoryProvidersStatsRetrieve) | **Get** /v1/inventory/providers/stats/ | 🚧 [Beta Feature]
+[**V1InventoryProvidersUpdate**](InventoryProvidersAPI.md#V1InventoryProvidersUpdate) | **Put** /v1/inventory/providers/{id}/ | 
 
 
 
-## InventoryProvidersBulkPartialUpdate
+## V1InventoryProvidersBulkPartialUpdate
 
-> ProviderBulkUpdate InventoryProvidersBulkPartialUpdate(ctx).ProviderBulkUpdate(providerBulkUpdate).Execute()
+> ProviderBulkUpdate V1InventoryProvidersBulkPartialUpdate(ctx).ProviderBulkUpdate(providerBulkUpdate).Execute()
 
 
 
@@ -40,13 +40,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.InventoryProvidersAPI.InventoryProvidersBulkPartialUpdate(context.Background()).ProviderBulkUpdate(providerBulkUpdate).Execute()
+	resp, r, err := apiClient.InventoryProvidersAPI.V1InventoryProvidersBulkPartialUpdate(context.Background()).ProviderBulkUpdate(providerBulkUpdate).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `InventoryProvidersAPI.InventoryProvidersBulkPartialUpdate``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryProvidersAPI.V1InventoryProvidersBulkPartialUpdate``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `InventoryProvidersBulkPartialUpdate`: ProviderBulkUpdate
-	fmt.Fprintf(os.Stdout, "Response from `InventoryProvidersAPI.InventoryProvidersBulkPartialUpdate`: %v\n", resp)
+	// response from `V1InventoryProvidersBulkPartialUpdate`: ProviderBulkUpdate
+	fmt.Fprintf(os.Stdout, "Response from `InventoryProvidersAPI.V1InventoryProvidersBulkPartialUpdate`: %v\n", resp)
 }
 ```
 
@@ -56,7 +56,7 @@ func main() {
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiInventoryProvidersBulkPartialUpdateRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1InventoryProvidersBulkPartialUpdateRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -81,9 +81,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## InventoryProvidersCreate
+## V1InventoryProvidersCreate
 
-> Provider InventoryProvidersCreate(ctx).Provider(provider).Execute()
+> Provider V1InventoryProvidersCreate(ctx).Provider(provider).Execute()
 
 
 
@@ -105,13 +105,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.InventoryProvidersAPI.InventoryProvidersCreate(context.Background()).Provider(provider).Execute()
+	resp, r, err := apiClient.InventoryProvidersAPI.V1InventoryProvidersCreate(context.Background()).Provider(provider).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `InventoryProvidersAPI.InventoryProvidersCreate``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryProvidersAPI.V1InventoryProvidersCreate``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `InventoryProvidersCreate`: Provider
-	fmt.Fprintf(os.Stdout, "Response from `InventoryProvidersAPI.InventoryProvidersCreate`: %v\n", resp)
+	// response from `V1InventoryProvidersCreate`: Provider
+	fmt.Fprintf(os.Stdout, "Response from `InventoryProvidersAPI.V1InventoryProvidersCreate`: %v\n", resp)
 }
 ```
 
@@ -121,7 +121,7 @@ func main() {
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiInventoryProvidersCreateRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1InventoryProvidersCreateRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -146,9 +146,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## InventoryProvidersDestroy
+## V1InventoryProvidersDestroy
 
-> InventoryProvidersDestroy(ctx, id).Execute()
+> V1InventoryProvidersDestroy(ctx, id).Execute()
 
 
 
@@ -169,9 +169,9 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	r, err := apiClient.InventoryProvidersAPI.InventoryProvidersDestroy(context.Background(), id).Execute()
+	r, err := apiClient.InventoryProvidersAPI.V1InventoryProvidersDestroy(context.Background(), id).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `InventoryProvidersAPI.InventoryProvidersDestroy``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryProvidersAPI.V1InventoryProvidersDestroy``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
 }
@@ -187,7 +187,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiInventoryProvidersDestroyRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1InventoryProvidersDestroyRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -212,9 +212,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## InventoryProvidersHistoryList
+## V1InventoryProvidersHistoryList
 
-> PaginatedModelChangeList InventoryProvidersHistoryList(ctx, id).Page(page).PageSize(pageSize).Execute()
+> PaginatedModelChangeList V1InventoryProvidersHistoryList(ctx, id).Page(page).PageSize(pageSize).Execute()
 
 
 
@@ -237,13 +237,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.InventoryProvidersAPI.InventoryProvidersHistoryList(context.Background(), id).Page(page).PageSize(pageSize).Execute()
+	resp, r, err := apiClient.InventoryProvidersAPI.V1InventoryProvidersHistoryList(context.Background(), id).Page(page).PageSize(pageSize).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `InventoryProvidersAPI.InventoryProvidersHistoryList``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryProvidersAPI.V1InventoryProvidersHistoryList``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `InventoryProvidersHistoryList`: PaginatedModelChangeList
-	fmt.Fprintf(os.Stdout, "Response from `InventoryProvidersAPI.InventoryProvidersHistoryList`: %v\n", resp)
+	// response from `V1InventoryProvidersHistoryList`: PaginatedModelChangeList
+	fmt.Fprintf(os.Stdout, "Response from `InventoryProvidersAPI.V1InventoryProvidersHistoryList`: %v\n", resp)
 }
 ```
 
@@ -257,7 +257,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiInventoryProvidersHistoryListRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1InventoryProvidersHistoryListRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -284,9 +284,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## InventoryProvidersList
+## V1InventoryProvidersList
 
-> PaginatedProviderList InventoryProvidersList(ctx).DisplayName(displayName).Fields(fields).Id(id).InstanceLimit(instanceLimit).Name(name).Omit(omit).Ordering(ordering).Page(page).PageSize(pageSize).Priority(priority).Search(search).Execute()
+> PaginatedProviderList V1InventoryProvidersList(ctx).DisplayName(displayName).Fields(fields).Id(id).InstanceLimit(instanceLimit).Name(name).Omit(omit).OnDemandSpeed(onDemandSpeed).Ordering(ordering).Page(page).PageSize(pageSize).Priority(priority).Search(search).Execute()
 
 
 
@@ -309,21 +309,22 @@ func main() {
 	instanceLimit := int32(56) // int32 |  (optional)
 	name := "name_example" // string |  (optional)
 	omit := "omit_example" // string | Exclude the specified fields in the response (optional)
+	onDemandSpeed := "onDemandSpeed_example" // string | Speed of on-demand inventory provisioning  * `fast` - fast * `slow` - slow (optional)
 	ordering := "ordering_example" // string | Which field to use when ordering the results. (optional)
 	page := int32(56) // int32 | A page number within the paginated result set. (optional)
 	pageSize := int32(56) // int32 | Number of results to return per page. (optional)
 	priority := int32(56) // int32 |  (optional)
-	search := "search_example" // string | Search for providers by display_name, id, name (optional)
+	search := "search_example" // string | Search for providers by display_name, id, name, on_demand_speed (optional)
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.InventoryProvidersAPI.InventoryProvidersList(context.Background()).DisplayName(displayName).Fields(fields).Id(id).InstanceLimit(instanceLimit).Name(name).Omit(omit).Ordering(ordering).Page(page).PageSize(pageSize).Priority(priority).Search(search).Execute()
+	resp, r, err := apiClient.InventoryProvidersAPI.V1InventoryProvidersList(context.Background()).DisplayName(displayName).Fields(fields).Id(id).InstanceLimit(instanceLimit).Name(name).Omit(omit).OnDemandSpeed(onDemandSpeed).Ordering(ordering).Page(page).PageSize(pageSize).Priority(priority).Search(search).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `InventoryProvidersAPI.InventoryProvidersList``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryProvidersAPI.V1InventoryProvidersList``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `InventoryProvidersList`: PaginatedProviderList
-	fmt.Fprintf(os.Stdout, "Response from `InventoryProvidersAPI.InventoryProvidersList`: %v\n", resp)
+	// response from `V1InventoryProvidersList`: PaginatedProviderList
+	fmt.Fprintf(os.Stdout, "Response from `InventoryProvidersAPI.V1InventoryProvidersList`: %v\n", resp)
 }
 ```
 
@@ -333,7 +334,7 @@ func main() {
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiInventoryProvidersListRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1InventoryProvidersListRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -344,11 +345,12 @@ Name | Type | Description  | Notes
  **instanceLimit** | **int32** |  | 
  **name** | **string** |  | 
  **omit** | **string** | Exclude the specified fields in the response | 
+ **onDemandSpeed** | **string** | Speed of on-demand inventory provisioning  * &#x60;fast&#x60; - fast * &#x60;slow&#x60; - slow | 
  **ordering** | **string** | Which field to use when ordering the results. | 
  **page** | **int32** | A page number within the paginated result set. | 
  **pageSize** | **int32** | Number of results to return per page. | 
  **priority** | **int32** |  | 
- **search** | **string** | Search for providers by display_name, id, name | 
+ **search** | **string** | Search for providers by display_name, id, name, on_demand_speed | 
 
 ### Return type
 
@@ -368,9 +370,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## InventoryProvidersPartialUpdate
+## V1InventoryProvidersPartialUpdate
 
-> Provider InventoryProvidersPartialUpdate(ctx, id).Provider(provider).Execute()
+> Provider V1InventoryProvidersPartialUpdate(ctx, id).Provider(provider).Execute()
 
 
 
@@ -393,13 +395,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.InventoryProvidersAPI.InventoryProvidersPartialUpdate(context.Background(), id).Provider(provider).Execute()
+	resp, r, err := apiClient.InventoryProvidersAPI.V1InventoryProvidersPartialUpdate(context.Background(), id).Provider(provider).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `InventoryProvidersAPI.InventoryProvidersPartialUpdate``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryProvidersAPI.V1InventoryProvidersPartialUpdate``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `InventoryProvidersPartialUpdate`: Provider
-	fmt.Fprintf(os.Stdout, "Response from `InventoryProvidersAPI.InventoryProvidersPartialUpdate`: %v\n", resp)
+	// response from `V1InventoryProvidersPartialUpdate`: Provider
+	fmt.Fprintf(os.Stdout, "Response from `InventoryProvidersAPI.V1InventoryProvidersPartialUpdate`: %v\n", resp)
 }
 ```
 
@@ -413,7 +415,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiInventoryProvidersPartialUpdateRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1InventoryProvidersPartialUpdateRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -439,9 +441,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## InventoryProvidersRetrieve
+## V1InventoryProvidersRetrieve
 
-> Provider InventoryProvidersRetrieve(ctx, id).Fields(fields).Omit(omit).Execute()
+> Provider V1InventoryProvidersRetrieve(ctx, id).Fields(fields).Omit(omit).Execute()
 
 
 
@@ -464,13 +466,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.InventoryProvidersAPI.InventoryProvidersRetrieve(context.Background(), id).Fields(fields).Omit(omit).Execute()
+	resp, r, err := apiClient.InventoryProvidersAPI.V1InventoryProvidersRetrieve(context.Background(), id).Fields(fields).Omit(omit).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `InventoryProvidersAPI.InventoryProvidersRetrieve``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryProvidersAPI.V1InventoryProvidersRetrieve``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `InventoryProvidersRetrieve`: Provider
-	fmt.Fprintf(os.Stdout, "Response from `InventoryProvidersAPI.InventoryProvidersRetrieve`: %v\n", resp)
+	// response from `V1InventoryProvidersRetrieve`: Provider
+	fmt.Fprintf(os.Stdout, "Response from `InventoryProvidersAPI.V1InventoryProvidersRetrieve`: %v\n", resp)
 }
 ```
 
@@ -484,7 +486,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiInventoryProvidersRetrieveRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1InventoryProvidersRetrieveRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -511,9 +513,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## InventoryProvidersStatsRetrieve
+## V1InventoryProvidersStatsRetrieve
 
-> InventoryProvidersStatsRetrieve(ctx).Execute()
+> V1InventoryProvidersStatsRetrieve(ctx).Execute()
 
 🚧 [Beta Feature]
 
@@ -533,9 +535,9 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	r, err := apiClient.InventoryProvidersAPI.InventoryProvidersStatsRetrieve(context.Background()).Execute()
+	r, err := apiClient.InventoryProvidersAPI.V1InventoryProvidersStatsRetrieve(context.Background()).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `InventoryProvidersAPI.InventoryProvidersStatsRetrieve``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryProvidersAPI.V1InventoryProvidersStatsRetrieve``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
 }
@@ -547,7 +549,7 @@ This endpoint does not need any parameter.
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiInventoryProvidersStatsRetrieveRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1InventoryProvidersStatsRetrieveRequest struct via the builder pattern
 
 
 ### Return type
@@ -568,9 +570,9 @@ Other parameters are passed through a pointer to a apiInventoryProvidersStatsRet
 [[Back to README]](../README.md)
 
 
-## InventoryProvidersUpdate
+## V1InventoryProvidersUpdate
 
-> Provider InventoryProvidersUpdate(ctx, id).Provider(provider).Execute()
+> Provider V1InventoryProvidersUpdate(ctx, id).Provider(provider).Execute()
 
 
 
@@ -593,13 +595,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.InventoryProvidersAPI.InventoryProvidersUpdate(context.Background(), id).Provider(provider).Execute()
+	resp, r, err := apiClient.InventoryProvidersAPI.V1InventoryProvidersUpdate(context.Background(), id).Provider(provider).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `InventoryProvidersAPI.InventoryProvidersUpdate``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryProvidersAPI.V1InventoryProvidersUpdate``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `InventoryProvidersUpdate`: Provider
-	fmt.Fprintf(os.Stdout, "Response from `InventoryProvidersAPI.InventoryProvidersUpdate`: %v\n", resp)
+	// response from `V1InventoryProvidersUpdate`: Provider
+	fmt.Fprintf(os.Stdout, "Response from `InventoryProvidersAPI.V1InventoryProvidersUpdate`: %v\n", resp)
 }
 ```
 
@@ -613,7 +615,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiInventoryProvidersUpdateRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1InventoryProvidersUpdateRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes

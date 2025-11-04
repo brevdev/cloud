@@ -15,7 +15,7 @@ const (
 )
 
 func (c *LaunchpadClient) GetInstance(ctx context.Context, id v1.CloudProviderInstanceID) (*v1.Instance, error) {
-	getDeployment, resp, err := c.client.CatalogDeploymentsAPI.CatalogDeploymentsRetrieve(c.makeAuthContext(ctx), string(id)).
+	getDeployment, resp, err := c.client.CatalogDeploymentsAPI.V1CatalogDeploymentsRetrieve(c.makeAuthContext(ctx), string(id)).
 		Expand(clusterExpandParameter).
 		Execute()
 	if resp != nil {

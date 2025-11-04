@@ -4,22 +4,22 @@ All URIs are relative to *http://localhost*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
-[**CatalogExperiencesBulkCreate**](CatalogExperiencesAPI.md#CatalogExperiencesBulkCreate) | **Post** /v1/catalog/experiences/bulk/ | 
-[**CatalogExperiencesBulkPartialUpdate**](CatalogExperiencesAPI.md#CatalogExperiencesBulkPartialUpdate) | **Patch** /v1/catalog/experiences/bulk/ | 
-[**CatalogExperiencesCreate**](CatalogExperiencesAPI.md#CatalogExperiencesCreate) | **Post** /v1/catalog/experiences/ | 
-[**CatalogExperiencesDestroy**](CatalogExperiencesAPI.md#CatalogExperiencesDestroy) | **Delete** /v1/catalog/experiences/{id}/ | 
-[**CatalogExperiencesHistoryList**](CatalogExperiencesAPI.md#CatalogExperiencesHistoryList) | **Get** /v1/catalog/experiences/{id}/history/ | 
-[**CatalogExperiencesList**](CatalogExperiencesAPI.md#CatalogExperiencesList) | **Get** /v1/catalog/experiences/ | 
-[**CatalogExperiencesPartialUpdate**](CatalogExperiencesAPI.md#CatalogExperiencesPartialUpdate) | **Patch** /v1/catalog/experiences/{id}/ | 
-[**CatalogExperiencesRetrieve**](CatalogExperiencesAPI.md#CatalogExperiencesRetrieve) | **Get** /v1/catalog/experiences/{id}/ | 
-[**CatalogExperiencesStatsRetrieve**](CatalogExperiencesAPI.md#CatalogExperiencesStatsRetrieve) | **Get** /v1/catalog/experiences/stats/ | 🚧 [Beta Feature]
-[**CatalogExperiencesUpdate**](CatalogExperiencesAPI.md#CatalogExperiencesUpdate) | **Put** /v1/catalog/experiences/{id}/ | 
+[**V1CatalogExperiencesBulkCreate**](CatalogExperiencesAPI.md#V1CatalogExperiencesBulkCreate) | **Post** /v1/catalog/experiences/bulk/ | 
+[**V1CatalogExperiencesBulkPartialUpdate**](CatalogExperiencesAPI.md#V1CatalogExperiencesBulkPartialUpdate) | **Patch** /v1/catalog/experiences/bulk/ | 
+[**V1CatalogExperiencesCreate**](CatalogExperiencesAPI.md#V1CatalogExperiencesCreate) | **Post** /v1/catalog/experiences/ | 
+[**V1CatalogExperiencesDestroy**](CatalogExperiencesAPI.md#V1CatalogExperiencesDestroy) | **Delete** /v1/catalog/experiences/{id}/ | 
+[**V1CatalogExperiencesHistoryList**](CatalogExperiencesAPI.md#V1CatalogExperiencesHistoryList) | **Get** /v1/catalog/experiences/{id}/history/ | 
+[**V1CatalogExperiencesList**](CatalogExperiencesAPI.md#V1CatalogExperiencesList) | **Get** /v1/catalog/experiences/ | 
+[**V1CatalogExperiencesPartialUpdate**](CatalogExperiencesAPI.md#V1CatalogExperiencesPartialUpdate) | **Patch** /v1/catalog/experiences/{id}/ | 
+[**V1CatalogExperiencesRetrieve**](CatalogExperiencesAPI.md#V1CatalogExperiencesRetrieve) | **Get** /v1/catalog/experiences/{id}/ | 
+[**V1CatalogExperiencesStatsRetrieve**](CatalogExperiencesAPI.md#V1CatalogExperiencesStatsRetrieve) | **Get** /v1/catalog/experiences/stats/ | 🚧 [Beta Feature]
+[**V1CatalogExperiencesUpdate**](CatalogExperiencesAPI.md#V1CatalogExperiencesUpdate) | **Put** /v1/catalog/experiences/{id}/ | 
 
 
 
-## CatalogExperiencesBulkCreate
+## V1CatalogExperiencesBulkCreate
 
-> ExperienceBulk CatalogExperiencesBulkCreate(ctx).CsvFile(csvFile).Execute()
+> ExperienceBulk V1CatalogExperiencesBulkCreate(ctx).CsvFile(csvFile).Execute()
 
 
 
@@ -42,13 +42,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.CatalogExperiencesAPI.CatalogExperiencesBulkCreate(context.Background()).CsvFile(csvFile).Execute()
+	resp, r, err := apiClient.CatalogExperiencesAPI.V1CatalogExperiencesBulkCreate(context.Background()).CsvFile(csvFile).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `CatalogExperiencesAPI.CatalogExperiencesBulkCreate``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `CatalogExperiencesAPI.V1CatalogExperiencesBulkCreate``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `CatalogExperiencesBulkCreate`: ExperienceBulk
-	fmt.Fprintf(os.Stdout, "Response from `CatalogExperiencesAPI.CatalogExperiencesBulkCreate`: %v\n", resp)
+	// response from `V1CatalogExperiencesBulkCreate`: ExperienceBulk
+	fmt.Fprintf(os.Stdout, "Response from `CatalogExperiencesAPI.V1CatalogExperiencesBulkCreate`: %v\n", resp)
 }
 ```
 
@@ -58,7 +58,7 @@ func main() {
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiCatalogExperiencesBulkCreateRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1CatalogExperiencesBulkCreateRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -83,9 +83,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## CatalogExperiencesBulkPartialUpdate
+## V1CatalogExperiencesBulkPartialUpdate
 
-> ExperienceBulkUpdate CatalogExperiencesBulkPartialUpdate(ctx).ExperienceBulkUpdate(experienceBulkUpdate).Execute()
+> ExperienceBulkUpdate V1CatalogExperiencesBulkPartialUpdate(ctx).ExperienceBulkUpdate(experienceBulkUpdate).Execute()
 
 
 
@@ -107,13 +107,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.CatalogExperiencesAPI.CatalogExperiencesBulkPartialUpdate(context.Background()).ExperienceBulkUpdate(experienceBulkUpdate).Execute()
+	resp, r, err := apiClient.CatalogExperiencesAPI.V1CatalogExperiencesBulkPartialUpdate(context.Background()).ExperienceBulkUpdate(experienceBulkUpdate).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `CatalogExperiencesAPI.CatalogExperiencesBulkPartialUpdate``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `CatalogExperiencesAPI.V1CatalogExperiencesBulkPartialUpdate``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `CatalogExperiencesBulkPartialUpdate`: ExperienceBulkUpdate
-	fmt.Fprintf(os.Stdout, "Response from `CatalogExperiencesAPI.CatalogExperiencesBulkPartialUpdate`: %v\n", resp)
+	// response from `V1CatalogExperiencesBulkPartialUpdate`: ExperienceBulkUpdate
+	fmt.Fprintf(os.Stdout, "Response from `CatalogExperiencesAPI.V1CatalogExperiencesBulkPartialUpdate`: %v\n", resp)
 }
 ```
 
@@ -123,7 +123,7 @@ func main() {
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiCatalogExperiencesBulkPartialUpdateRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1CatalogExperiencesBulkPartialUpdateRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -148,9 +148,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## CatalogExperiencesCreate
+## V1CatalogExperiencesCreate
 
-> Experience CatalogExperiencesCreate(ctx).Experience(experience).Execute()
+> Experience V1CatalogExperiencesCreate(ctx).Experience(experience).Execute()
 
 
 
@@ -172,13 +172,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.CatalogExperiencesAPI.CatalogExperiencesCreate(context.Background()).Experience(experience).Execute()
+	resp, r, err := apiClient.CatalogExperiencesAPI.V1CatalogExperiencesCreate(context.Background()).Experience(experience).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `CatalogExperiencesAPI.CatalogExperiencesCreate``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `CatalogExperiencesAPI.V1CatalogExperiencesCreate``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `CatalogExperiencesCreate`: Experience
-	fmt.Fprintf(os.Stdout, "Response from `CatalogExperiencesAPI.CatalogExperiencesCreate`: %v\n", resp)
+	// response from `V1CatalogExperiencesCreate`: Experience
+	fmt.Fprintf(os.Stdout, "Response from `CatalogExperiencesAPI.V1CatalogExperiencesCreate`: %v\n", resp)
 }
 ```
 
@@ -188,7 +188,7 @@ func main() {
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiCatalogExperiencesCreateRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1CatalogExperiencesCreateRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -213,9 +213,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## CatalogExperiencesDestroy
+## V1CatalogExperiencesDestroy
 
-> CatalogExperiencesDestroy(ctx, id).Execute()
+> V1CatalogExperiencesDestroy(ctx, id).Execute()
 
 
 
@@ -236,9 +236,9 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	r, err := apiClient.CatalogExperiencesAPI.CatalogExperiencesDestroy(context.Background(), id).Execute()
+	r, err := apiClient.CatalogExperiencesAPI.V1CatalogExperiencesDestroy(context.Background(), id).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `CatalogExperiencesAPI.CatalogExperiencesDestroy``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `CatalogExperiencesAPI.V1CatalogExperiencesDestroy``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
 }
@@ -254,7 +254,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiCatalogExperiencesDestroyRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1CatalogExperiencesDestroyRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -279,9 +279,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## CatalogExperiencesHistoryList
+## V1CatalogExperiencesHistoryList
 
-> PaginatedModelChangeList CatalogExperiencesHistoryList(ctx, id).Page(page).PageSize(pageSize).Execute()
+> PaginatedModelChangeList V1CatalogExperiencesHistoryList(ctx, id).Page(page).PageSize(pageSize).Execute()
 
 
 
@@ -304,13 +304,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.CatalogExperiencesAPI.CatalogExperiencesHistoryList(context.Background(), id).Page(page).PageSize(pageSize).Execute()
+	resp, r, err := apiClient.CatalogExperiencesAPI.V1CatalogExperiencesHistoryList(context.Background(), id).Page(page).PageSize(pageSize).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `CatalogExperiencesAPI.CatalogExperiencesHistoryList``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `CatalogExperiencesAPI.V1CatalogExperiencesHistoryList``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `CatalogExperiencesHistoryList`: PaginatedModelChangeList
-	fmt.Fprintf(os.Stdout, "Response from `CatalogExperiencesAPI.CatalogExperiencesHistoryList`: %v\n", resp)
+	// response from `V1CatalogExperiencesHistoryList`: PaginatedModelChangeList
+	fmt.Fprintf(os.Stdout, "Response from `CatalogExperiencesAPI.V1CatalogExperiencesHistoryList`: %v\n", resp)
 }
 ```
 
@@ -324,7 +324,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiCatalogExperiencesHistoryListRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1CatalogExperiencesHistoryListRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -351,9 +351,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## CatalogExperiencesList
+## V1CatalogExperiencesList
 
-> PaginatedExperienceList CatalogExperiencesList(ctx).Assignee(assignee).Autoapprove(autoapprove).Autoprovision(autoprovision).Bootstrap(bootstrap).CatalogId(catalogId).CatalogIdAlias(catalogIdAlias).Category(category).CollectionBranch(collectionBranch).Expand(expand).Experience(experience).ExperienceBranch(experienceBranch).Fields(fields).GarageId(garageId).GcBranch(gcBranch).GpuCount(gpuCount).GpuOsName(gpuOsName).GpuOsRelease(gpuOsRelease).GpuOsVersion(gpuOsVersion).Id(id).NodeCount(nodeCount).Omit(omit).Ordering(ordering).Page(page).PageSize(pageSize).Persona(persona).Pipeline(pipeline).Platform(platform).Provider(provider).Published(published).RequiresGpu(requiresGpu).SaLab(saLab).Search(search).SystemArch(systemArch).VgpuProfile(vgpuProfile).Execute()
+> PaginatedExperienceList V1CatalogExperiencesList(ctx).Assignee(assignee).Autoapprove(autoapprove).Autoprovision(autoprovision).Bootstrap(bootstrap).CatalogId(catalogId).CatalogIdAlias(catalogIdAlias).Category(category).CollectionBranch(collectionBranch).Expand(expand).Experience(experience).ExperienceBranch(experienceBranch).Fields(fields).GarageId(garageId).GcBranch(gcBranch).GpuCount(gpuCount).GpuOsName(gpuOsName).GpuOsRelease(gpuOsRelease).GpuOsVersion(gpuOsVersion).Id(id).NodeCount(nodeCount).Omit(omit).Ordering(ordering).Page(page).PageSize(pageSize).Persona(persona).Pipeline(pipeline).Platform(platform).Provider(provider).Published(published).RequiresGpu(requiresGpu).SaLab(saLab).Search(search).SystemArch(systemArch).VgpuProfile(vgpuProfile).Execute()
 
 
 
@@ -407,13 +407,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.CatalogExperiencesAPI.CatalogExperiencesList(context.Background()).Assignee(assignee).Autoapprove(autoapprove).Autoprovision(autoprovision).Bootstrap(bootstrap).CatalogId(catalogId).CatalogIdAlias(catalogIdAlias).Category(category).CollectionBranch(collectionBranch).Expand(expand).Experience(experience).ExperienceBranch(experienceBranch).Fields(fields).GarageId(garageId).GcBranch(gcBranch).GpuCount(gpuCount).GpuOsName(gpuOsName).GpuOsRelease(gpuOsRelease).GpuOsVersion(gpuOsVersion).Id(id).NodeCount(nodeCount).Omit(omit).Ordering(ordering).Page(page).PageSize(pageSize).Persona(persona).Pipeline(pipeline).Platform(platform).Provider(provider).Published(published).RequiresGpu(requiresGpu).SaLab(saLab).Search(search).SystemArch(systemArch).VgpuProfile(vgpuProfile).Execute()
+	resp, r, err := apiClient.CatalogExperiencesAPI.V1CatalogExperiencesList(context.Background()).Assignee(assignee).Autoapprove(autoapprove).Autoprovision(autoprovision).Bootstrap(bootstrap).CatalogId(catalogId).CatalogIdAlias(catalogIdAlias).Category(category).CollectionBranch(collectionBranch).Expand(expand).Experience(experience).ExperienceBranch(experienceBranch).Fields(fields).GarageId(garageId).GcBranch(gcBranch).GpuCount(gpuCount).GpuOsName(gpuOsName).GpuOsRelease(gpuOsRelease).GpuOsVersion(gpuOsVersion).Id(id).NodeCount(nodeCount).Omit(omit).Ordering(ordering).Page(page).PageSize(pageSize).Persona(persona).Pipeline(pipeline).Platform(platform).Provider(provider).Published(published).RequiresGpu(requiresGpu).SaLab(saLab).Search(search).SystemArch(systemArch).VgpuProfile(vgpuProfile).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `CatalogExperiencesAPI.CatalogExperiencesList``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `CatalogExperiencesAPI.V1CatalogExperiencesList``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `CatalogExperiencesList`: PaginatedExperienceList
-	fmt.Fprintf(os.Stdout, "Response from `CatalogExperiencesAPI.CatalogExperiencesList`: %v\n", resp)
+	// response from `V1CatalogExperiencesList`: PaginatedExperienceList
+	fmt.Fprintf(os.Stdout, "Response from `CatalogExperiencesAPI.V1CatalogExperiencesList`: %v\n", resp)
 }
 ```
 
@@ -423,7 +423,7 @@ func main() {
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiCatalogExperiencesListRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1CatalogExperiencesListRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -481,9 +481,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## CatalogExperiencesPartialUpdate
+## V1CatalogExperiencesPartialUpdate
 
-> Experience CatalogExperiencesPartialUpdate(ctx, id).Experience(experience).Execute()
+> Experience V1CatalogExperiencesPartialUpdate(ctx, id).Experience(experience).Execute()
 
 
 
@@ -506,13 +506,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.CatalogExperiencesAPI.CatalogExperiencesPartialUpdate(context.Background(), id).Experience(experience).Execute()
+	resp, r, err := apiClient.CatalogExperiencesAPI.V1CatalogExperiencesPartialUpdate(context.Background(), id).Experience(experience).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `CatalogExperiencesAPI.CatalogExperiencesPartialUpdate``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `CatalogExperiencesAPI.V1CatalogExperiencesPartialUpdate``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `CatalogExperiencesPartialUpdate`: Experience
-	fmt.Fprintf(os.Stdout, "Response from `CatalogExperiencesAPI.CatalogExperiencesPartialUpdate`: %v\n", resp)
+	// response from `V1CatalogExperiencesPartialUpdate`: Experience
+	fmt.Fprintf(os.Stdout, "Response from `CatalogExperiencesAPI.V1CatalogExperiencesPartialUpdate`: %v\n", resp)
 }
 ```
 
@@ -526,7 +526,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiCatalogExperiencesPartialUpdateRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1CatalogExperiencesPartialUpdateRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -552,9 +552,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## CatalogExperiencesRetrieve
+## V1CatalogExperiencesRetrieve
 
-> Experience CatalogExperiencesRetrieve(ctx, id).Expand(expand).Fields(fields).Omit(omit).Execute()
+> Experience V1CatalogExperiencesRetrieve(ctx, id).Expand(expand).Fields(fields).Omit(omit).Execute()
 
 
 
@@ -578,13 +578,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.CatalogExperiencesAPI.CatalogExperiencesRetrieve(context.Background(), id).Expand(expand).Fields(fields).Omit(omit).Execute()
+	resp, r, err := apiClient.CatalogExperiencesAPI.V1CatalogExperiencesRetrieve(context.Background(), id).Expand(expand).Fields(fields).Omit(omit).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `CatalogExperiencesAPI.CatalogExperiencesRetrieve``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `CatalogExperiencesAPI.V1CatalogExperiencesRetrieve``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `CatalogExperiencesRetrieve`: Experience
-	fmt.Fprintf(os.Stdout, "Response from `CatalogExperiencesAPI.CatalogExperiencesRetrieve`: %v\n", resp)
+	// response from `V1CatalogExperiencesRetrieve`: Experience
+	fmt.Fprintf(os.Stdout, "Response from `CatalogExperiencesAPI.V1CatalogExperiencesRetrieve`: %v\n", resp)
 }
 ```
 
@@ -598,7 +598,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiCatalogExperiencesRetrieveRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1CatalogExperiencesRetrieveRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -626,9 +626,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## CatalogExperiencesStatsRetrieve
+## V1CatalogExperiencesStatsRetrieve
 
-> CatalogExperiencesStatsRetrieve(ctx).Execute()
+> V1CatalogExperiencesStatsRetrieve(ctx).Execute()
 
 🚧 [Beta Feature]
 
@@ -648,9 +648,9 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	r, err := apiClient.CatalogExperiencesAPI.CatalogExperiencesStatsRetrieve(context.Background()).Execute()
+	r, err := apiClient.CatalogExperiencesAPI.V1CatalogExperiencesStatsRetrieve(context.Background()).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `CatalogExperiencesAPI.CatalogExperiencesStatsRetrieve``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `CatalogExperiencesAPI.V1CatalogExperiencesStatsRetrieve``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
 }
@@ -662,7 +662,7 @@ This endpoint does not need any parameter.
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiCatalogExperiencesStatsRetrieveRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1CatalogExperiencesStatsRetrieveRequest struct via the builder pattern
 
 
 ### Return type
@@ -683,9 +683,9 @@ Other parameters are passed through a pointer to a apiCatalogExperiencesStatsRet
 [[Back to README]](../README.md)
 
 
-## CatalogExperiencesUpdate
+## V1CatalogExperiencesUpdate
 
-> Experience CatalogExperiencesUpdate(ctx, id).Experience(experience).Execute()
+> Experience V1CatalogExperiencesUpdate(ctx, id).Experience(experience).Execute()
 
 
 
@@ -708,13 +708,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.CatalogExperiencesAPI.CatalogExperiencesUpdate(context.Background(), id).Experience(experience).Execute()
+	resp, r, err := apiClient.CatalogExperiencesAPI.V1CatalogExperiencesUpdate(context.Background(), id).Experience(experience).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `CatalogExperiencesAPI.CatalogExperiencesUpdate``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `CatalogExperiencesAPI.V1CatalogExperiencesUpdate``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `CatalogExperiencesUpdate`: Experience
-	fmt.Fprintf(os.Stdout, "Response from `CatalogExperiencesAPI.CatalogExperiencesUpdate`: %v\n", resp)
+	// response from `V1CatalogExperiencesUpdate`: Experience
+	fmt.Fprintf(os.Stdout, "Response from `CatalogExperiencesAPI.V1CatalogExperiencesUpdate`: %v\n", resp)
 }
 ```
 
@@ -728,7 +728,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiCatalogExperiencesUpdateRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1CatalogExperiencesUpdateRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes

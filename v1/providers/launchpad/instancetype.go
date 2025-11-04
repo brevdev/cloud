@@ -89,7 +89,8 @@ func (c *LaunchpadClient) paginateInstanceTypes(ctx context.Context, pageSize in
 	var page int32 = 1
 	for {
 		// Fetch page
-		instanceTypesRes, resp, err := c.client.CatalogInstanceTypesAPI.CatalogInstanceTypesList(c.makeAuthContext(ctx)).
+		instanceTypesRes, resp, err := c.client.CatalogInstanceTypesAPI.V1CatalogInstanceTypesList(c.makeAuthContext(ctx)).
+			Delivery(string(openapi.OnDemandSpeedFast)).
 			PageSize(pageSize).
 			Page(page).
 			Execute()

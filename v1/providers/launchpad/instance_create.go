@@ -64,7 +64,7 @@ func (c *LaunchpadClient) CreateInstance(ctx context.Context, attrs v1.CreateIns
 		deployment.WorkshopId = *openapi.NewNullableString(nil)
 	}
 
-	createDeployment, resp, err := c.client.CatalogDeploymentsAPI.CatalogDeploymentsCreate(c.makeAuthContext(ctx)).
+	createDeployment, resp, err := c.client.CatalogDeploymentsAPI.V1CatalogDeploymentsCreate(c.makeAuthContext(ctx)).
 		Deployment(deployment).
 		Execute()
 	if resp != nil {

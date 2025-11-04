@@ -11,396 +11,461 @@ package openapi
 
 import (
 	"context"
-	"testing"
-
 	openapiclient "github.com/brevdev/cloud/v1/providers/launchpad/gen/launchpad"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"testing"
 )
 
 func Test_openapi_CatalogDeploymentsAPIService(t *testing.T) {
+
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
 
-	t.Run("Test CatalogDeploymentsAPIService CatalogDeploymentsBulkPartialUpdate", func(t *testing.T) {
+	t.Run("Test CatalogDeploymentsAPIService V1CatalogDeploymentsBulkPartialUpdate", func(t *testing.T) {
+
 		t.Skip("skip test") // remove to run test
 
-		resp, httpRes, err := apiClient.CatalogDeploymentsAPI.CatalogDeploymentsBulkPartialUpdate(context.Background()).Execute()
+		resp, httpRes, err := apiClient.CatalogDeploymentsAPI.V1CatalogDeploymentsBulkPartialUpdate(context.Background()).Execute()
 
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
 
-	t.Run("Test CatalogDeploymentsAPIService CatalogDeploymentsCreate", func(t *testing.T) {
+	t.Run("Test CatalogDeploymentsAPIService V1CatalogDeploymentsCreate", func(t *testing.T) {
+
 		t.Skip("skip test") // remove to run test
 
-		resp, httpRes, err := apiClient.CatalogDeploymentsAPI.CatalogDeploymentsCreate(context.Background()).Execute()
+		resp, httpRes, err := apiClient.CatalogDeploymentsAPI.V1CatalogDeploymentsCreate(context.Background()).Execute()
 
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
 
-	t.Run("Test CatalogDeploymentsAPIService CatalogDeploymentsDestroy", func(t *testing.T) {
+	t.Run("Test CatalogDeploymentsAPIService V1CatalogDeploymentsDestroy", func(t *testing.T) {
+
 		t.Skip("skip test") // remove to run test
 
 		var id string
 
-		resp, httpRes, err := apiClient.CatalogDeploymentsAPI.CatalogDeploymentsDestroy(context.Background(), id).Execute()
+		resp, httpRes, err := apiClient.CatalogDeploymentsAPI.V1CatalogDeploymentsDestroy(context.Background(), id).Execute()
 
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
 
-	t.Run("Test CatalogDeploymentsAPIService CatalogDeploymentsHistoryList", func(t *testing.T) {
+	t.Run("Test CatalogDeploymentsAPIService V1CatalogDeploymentsHistoryList", func(t *testing.T) {
+
 		t.Skip("skip test") // remove to run test
 
 		var id string
 
-		resp, httpRes, err := apiClient.CatalogDeploymentsAPI.CatalogDeploymentsHistoryList(context.Background(), id).Execute()
+		resp, httpRes, err := apiClient.CatalogDeploymentsAPI.V1CatalogDeploymentsHistoryList(context.Background(), id).Execute()
 
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
 
-	t.Run("Test CatalogDeploymentsAPIService CatalogDeploymentsInstancesList", func(t *testing.T) {
+	t.Run("Test CatalogDeploymentsAPIService V1CatalogDeploymentsInstancesList", func(t *testing.T) {
+
 		t.Skip("skip test") // remove to run test
 
 		var deploymentId string
 
-		resp, httpRes, err := apiClient.CatalogDeploymentsAPI.CatalogDeploymentsInstancesList(context.Background(), deploymentId).Execute()
+		resp, httpRes, err := apiClient.CatalogDeploymentsAPI.V1CatalogDeploymentsInstancesList(context.Background(), deploymentId).Execute()
 
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
 
-	t.Run("Test CatalogDeploymentsAPIService CatalogDeploymentsList", func(t *testing.T) {
+	t.Run("Test CatalogDeploymentsAPIService V1CatalogDeploymentsList", func(t *testing.T) {
+
 		t.Skip("skip test") // remove to run test
 
-		resp, httpRes, err := apiClient.CatalogDeploymentsAPI.CatalogDeploymentsList(context.Background()).Execute()
+		resp, httpRes, err := apiClient.CatalogDeploymentsAPI.V1CatalogDeploymentsList(context.Background()).Execute()
 
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
 
-	t.Run("Test CatalogDeploymentsAPIService CatalogDeploymentsNotesCreate", func(t *testing.T) {
-		t.Skip("skip test") // remove to run test
+	t.Run("Test CatalogDeploymentsAPIService V1CatalogDeploymentsNotesCreate", func(t *testing.T) {
 
-		var deploymentId string
-
-		resp, httpRes, err := apiClient.CatalogDeploymentsAPI.CatalogDeploymentsNotesCreate(context.Background(), deploymentId).Execute()
-
-		require.Nil(t, err)
-		require.NotNil(t, resp)
-		assert.Equal(t, 200, httpRes.StatusCode)
-	})
-
-	t.Run("Test CatalogDeploymentsAPIService CatalogDeploymentsNotesDestroy", func(t *testing.T) {
-		t.Skip("skip test") // remove to run test
-
-		var deploymentId string
-		var id string
-
-		httpRes, err := apiClient.CatalogDeploymentsAPI.CatalogDeploymentsNotesDestroy(context.Background(), deploymentId, id).Execute()
-
-		require.Nil(t, err)
-		assert.Equal(t, 200, httpRes.StatusCode)
-	})
-
-	t.Run("Test CatalogDeploymentsAPIService CatalogDeploymentsNotesList", func(t *testing.T) {
 		t.Skip("skip test") // remove to run test
 
 		var deploymentId string
 
-		resp, httpRes, err := apiClient.CatalogDeploymentsAPI.CatalogDeploymentsNotesList(context.Background(), deploymentId).Execute()
+		resp, httpRes, err := apiClient.CatalogDeploymentsAPI.V1CatalogDeploymentsNotesCreate(context.Background(), deploymentId).Execute()
 
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
 
-	t.Run("Test CatalogDeploymentsAPIService CatalogDeploymentsNotesPartialUpdate", func(t *testing.T) {
+	t.Run("Test CatalogDeploymentsAPIService V1CatalogDeploymentsNotesDestroy", func(t *testing.T) {
+
 		t.Skip("skip test") // remove to run test
 
 		var deploymentId string
 		var id string
 
-		resp, httpRes, err := apiClient.CatalogDeploymentsAPI.CatalogDeploymentsNotesPartialUpdate(context.Background(), deploymentId, id).Execute()
+		httpRes, err := apiClient.CatalogDeploymentsAPI.V1CatalogDeploymentsNotesDestroy(context.Background(), deploymentId, id).Execute()
+
+		require.Nil(t, err)
+		assert.Equal(t, 200, httpRes.StatusCode)
+
+	})
+
+	t.Run("Test CatalogDeploymentsAPIService V1CatalogDeploymentsNotesList", func(t *testing.T) {
+
+		t.Skip("skip test") // remove to run test
+
+		var deploymentId string
+
+		resp, httpRes, err := apiClient.CatalogDeploymentsAPI.V1CatalogDeploymentsNotesList(context.Background(), deploymentId).Execute()
 
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
 
-	t.Run("Test CatalogDeploymentsAPIService CatalogDeploymentsNotesRetrieve", func(t *testing.T) {
+	t.Run("Test CatalogDeploymentsAPIService V1CatalogDeploymentsNotesPartialUpdate", func(t *testing.T) {
+
 		t.Skip("skip test") // remove to run test
 
 		var deploymentId string
 		var id string
 
-		resp, httpRes, err := apiClient.CatalogDeploymentsAPI.CatalogDeploymentsNotesRetrieve(context.Background(), deploymentId, id).Execute()
+		resp, httpRes, err := apiClient.CatalogDeploymentsAPI.V1CatalogDeploymentsNotesPartialUpdate(context.Background(), deploymentId, id).Execute()
 
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
 
-	t.Run("Test CatalogDeploymentsAPIService CatalogDeploymentsNotesUpdate", func(t *testing.T) {
+	t.Run("Test CatalogDeploymentsAPIService V1CatalogDeploymentsNotesRetrieve", func(t *testing.T) {
+
 		t.Skip("skip test") // remove to run test
 
 		var deploymentId string
 		var id string
 
-		resp, httpRes, err := apiClient.CatalogDeploymentsAPI.CatalogDeploymentsNotesUpdate(context.Background(), deploymentId, id).Execute()
+		resp, httpRes, err := apiClient.CatalogDeploymentsAPI.V1CatalogDeploymentsNotesRetrieve(context.Background(), deploymentId, id).Execute()
 
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
 
-	t.Run("Test CatalogDeploymentsAPIService CatalogDeploymentsPartialUpdate", func(t *testing.T) {
-		t.Skip("skip test") // remove to run test
+	t.Run("Test CatalogDeploymentsAPIService V1CatalogDeploymentsNotesUpdate", func(t *testing.T) {
 
-		var id string
-
-		resp, httpRes, err := apiClient.CatalogDeploymentsAPI.CatalogDeploymentsPartialUpdate(context.Background(), id).Execute()
-
-		require.Nil(t, err)
-		require.NotNil(t, resp)
-		assert.Equal(t, 200, httpRes.StatusCode)
-	})
-
-	t.Run("Test CatalogDeploymentsAPIService CatalogDeploymentsPipelinesCreate", func(t *testing.T) {
-		t.Skip("skip test") // remove to run test
-
-		var deploymentId string
-
-		resp, httpRes, err := apiClient.CatalogDeploymentsAPI.CatalogDeploymentsPipelinesCreate(context.Background(), deploymentId).Execute()
-
-		require.Nil(t, err)
-		require.NotNil(t, resp)
-		assert.Equal(t, 200, httpRes.StatusCode)
-	})
-
-	t.Run("Test CatalogDeploymentsAPIService CatalogDeploymentsPipelinesList", func(t *testing.T) {
-		t.Skip("skip test") // remove to run test
-
-		var deploymentId string
-
-		resp, httpRes, err := apiClient.CatalogDeploymentsAPI.CatalogDeploymentsPipelinesList(context.Background(), deploymentId).Execute()
-
-		require.Nil(t, err)
-		require.NotNil(t, resp)
-		assert.Equal(t, 200, httpRes.StatusCode)
-	})
-
-	t.Run("Test CatalogDeploymentsAPIService CatalogDeploymentsRetrieve", func(t *testing.T) {
-		t.Skip("skip test") // remove to run test
-
-		var id string
-
-		resp, httpRes, err := apiClient.CatalogDeploymentsAPI.CatalogDeploymentsRetrieve(context.Background(), id).Execute()
-
-		require.Nil(t, err)
-		require.NotNil(t, resp)
-		assert.Equal(t, 200, httpRes.StatusCode)
-	})
-
-	t.Run("Test CatalogDeploymentsAPIService CatalogDeploymentsServicesCreate", func(t *testing.T) {
-		t.Skip("skip test") // remove to run test
-
-		var deploymentId string
-
-		resp, httpRes, err := apiClient.CatalogDeploymentsAPI.CatalogDeploymentsServicesCreate(context.Background(), deploymentId).Execute()
-
-		require.Nil(t, err)
-		require.NotNil(t, resp)
-		assert.Equal(t, 200, httpRes.StatusCode)
-	})
-
-	t.Run("Test CatalogDeploymentsAPIService CatalogDeploymentsServicesList", func(t *testing.T) {
-		t.Skip("skip test") // remove to run test
-
-		var deploymentId string
-
-		resp, httpRes, err := apiClient.CatalogDeploymentsAPI.CatalogDeploymentsServicesList(context.Background(), deploymentId).Execute()
-
-		require.Nil(t, err)
-		require.NotNil(t, resp)
-		assert.Equal(t, 200, httpRes.StatusCode)
-	})
-
-	t.Run("Test CatalogDeploymentsAPIService CatalogDeploymentsSshKeysCreate", func(t *testing.T) {
-		t.Skip("skip test") // remove to run test
-
-		var deploymentId string
-
-		resp, httpRes, err := apiClient.CatalogDeploymentsAPI.CatalogDeploymentsSshKeysCreate(context.Background(), deploymentId).Execute()
-
-		require.Nil(t, err)
-		require.NotNil(t, resp)
-		assert.Equal(t, 200, httpRes.StatusCode)
-	})
-
-	t.Run("Test CatalogDeploymentsAPIService CatalogDeploymentsSshKeysDestroy", func(t *testing.T) {
 		t.Skip("skip test") // remove to run test
 
 		var deploymentId string
 		var id string
 
-		httpRes, err := apiClient.CatalogDeploymentsAPI.CatalogDeploymentsSshKeysDestroy(context.Background(), deploymentId, id).Execute()
-
-		require.Nil(t, err)
-		assert.Equal(t, 200, httpRes.StatusCode)
-	})
-
-	t.Run("Test CatalogDeploymentsAPIService CatalogDeploymentsSshKeysList", func(t *testing.T) {
-		t.Skip("skip test") // remove to run test
-
-		var deploymentId string
-
-		resp, httpRes, err := apiClient.CatalogDeploymentsAPI.CatalogDeploymentsSshKeysList(context.Background(), deploymentId).Execute()
+		resp, httpRes, err := apiClient.CatalogDeploymentsAPI.V1CatalogDeploymentsNotesUpdate(context.Background(), deploymentId, id).Execute()
 
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
 
-	t.Run("Test CatalogDeploymentsAPIService CatalogDeploymentsStatsRetrieve", func(t *testing.T) {
+	t.Run("Test CatalogDeploymentsAPIService V1CatalogDeploymentsPartialUpdate", func(t *testing.T) {
+
 		t.Skip("skip test") // remove to run test
 
-		httpRes, err := apiClient.CatalogDeploymentsAPI.CatalogDeploymentsStatsRetrieve(context.Background()).Execute()
+		var id string
 
-		require.Nil(t, err)
-		assert.Equal(t, 200, httpRes.StatusCode)
-	})
-
-	t.Run("Test CatalogDeploymentsAPIService CatalogDeploymentsTasksCreate", func(t *testing.T) {
-		t.Skip("skip test") // remove to run test
-
-		var deploymentId string
-
-		resp, httpRes, err := apiClient.CatalogDeploymentsAPI.CatalogDeploymentsTasksCreate(context.Background(), deploymentId).Execute()
+		resp, httpRes, err := apiClient.CatalogDeploymentsAPI.V1CatalogDeploymentsPartialUpdate(context.Background(), id).Execute()
 
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
 
-	t.Run("Test CatalogDeploymentsAPIService CatalogDeploymentsTasksList", func(t *testing.T) {
+	t.Run("Test CatalogDeploymentsAPIService V1CatalogDeploymentsPipelinesCreate", func(t *testing.T) {
+
 		t.Skip("skip test") // remove to run test
 
 		var deploymentId string
 
-		resp, httpRes, err := apiClient.CatalogDeploymentsAPI.CatalogDeploymentsTasksList(context.Background(), deploymentId).Execute()
+		resp, httpRes, err := apiClient.CatalogDeploymentsAPI.V1CatalogDeploymentsPipelinesCreate(context.Background(), deploymentId).Execute()
 
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
 
-	t.Run("Test CatalogDeploymentsAPIService CatalogDeploymentsTasksRetrieve", func(t *testing.T) {
+	t.Run("Test CatalogDeploymentsAPIService V1CatalogDeploymentsPipelinesList", func(t *testing.T) {
+
+		t.Skip("skip test") // remove to run test
+
+		var deploymentId string
+
+		resp, httpRes, err := apiClient.CatalogDeploymentsAPI.V1CatalogDeploymentsPipelinesList(context.Background(), deploymentId).Execute()
+
+		require.Nil(t, err)
+		require.NotNil(t, resp)
+		assert.Equal(t, 200, httpRes.StatusCode)
+
+	})
+
+	t.Run("Test CatalogDeploymentsAPIService V1CatalogDeploymentsRetrieve", func(t *testing.T) {
+
+		t.Skip("skip test") // remove to run test
+
+		var id string
+
+		resp, httpRes, err := apiClient.CatalogDeploymentsAPI.V1CatalogDeploymentsRetrieve(context.Background(), id).Execute()
+
+		require.Nil(t, err)
+		require.NotNil(t, resp)
+		assert.Equal(t, 200, httpRes.StatusCode)
+
+	})
+
+	t.Run("Test CatalogDeploymentsAPIService V1CatalogDeploymentsServicesCreate", func(t *testing.T) {
+
+		t.Skip("skip test") // remove to run test
+
+		var deploymentId string
+
+		resp, httpRes, err := apiClient.CatalogDeploymentsAPI.V1CatalogDeploymentsServicesCreate(context.Background(), deploymentId).Execute()
+
+		require.Nil(t, err)
+		require.NotNil(t, resp)
+		assert.Equal(t, 200, httpRes.StatusCode)
+
+	})
+
+	t.Run("Test CatalogDeploymentsAPIService V1CatalogDeploymentsServicesList", func(t *testing.T) {
+
+		t.Skip("skip test") // remove to run test
+
+		var deploymentId string
+
+		resp, httpRes, err := apiClient.CatalogDeploymentsAPI.V1CatalogDeploymentsServicesList(context.Background(), deploymentId).Execute()
+
+		require.Nil(t, err)
+		require.NotNil(t, resp)
+		assert.Equal(t, 200, httpRes.StatusCode)
+
+	})
+
+	t.Run("Test CatalogDeploymentsAPIService V1CatalogDeploymentsSshKeysCreate", func(t *testing.T) {
+
+		t.Skip("skip test") // remove to run test
+
+		var deploymentId string
+
+		resp, httpRes, err := apiClient.CatalogDeploymentsAPI.V1CatalogDeploymentsSshKeysCreate(context.Background(), deploymentId).Execute()
+
+		require.Nil(t, err)
+		require.NotNil(t, resp)
+		assert.Equal(t, 200, httpRes.StatusCode)
+
+	})
+
+	t.Run("Test CatalogDeploymentsAPIService V1CatalogDeploymentsSshKeysDestroy", func(t *testing.T) {
+
 		t.Skip("skip test") // remove to run test
 
 		var deploymentId string
 		var id string
 
-		resp, httpRes, err := apiClient.CatalogDeploymentsAPI.CatalogDeploymentsTasksRetrieve(context.Background(), deploymentId, id).Execute()
+		httpRes, err := apiClient.CatalogDeploymentsAPI.V1CatalogDeploymentsSshKeysDestroy(context.Background(), deploymentId, id).Execute()
+
+		require.Nil(t, err)
+		assert.Equal(t, 200, httpRes.StatusCode)
+
+	})
+
+	t.Run("Test CatalogDeploymentsAPIService V1CatalogDeploymentsSshKeysList", func(t *testing.T) {
+
+		t.Skip("skip test") // remove to run test
+
+		var deploymentId string
+
+		resp, httpRes, err := apiClient.CatalogDeploymentsAPI.V1CatalogDeploymentsSshKeysList(context.Background(), deploymentId).Execute()
 
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
 
-	t.Run("Test CatalogDeploymentsAPIService CatalogDeploymentsUpdate", func(t *testing.T) {
+	t.Run("Test CatalogDeploymentsAPIService V1CatalogDeploymentsStatsRetrieve", func(t *testing.T) {
+
+		t.Skip("skip test") // remove to run test
+
+		httpRes, err := apiClient.CatalogDeploymentsAPI.V1CatalogDeploymentsStatsRetrieve(context.Background()).Execute()
+
+		require.Nil(t, err)
+		assert.Equal(t, 200, httpRes.StatusCode)
+
+	})
+
+	t.Run("Test CatalogDeploymentsAPIService V1CatalogDeploymentsTasksCreate", func(t *testing.T) {
+
+		t.Skip("skip test") // remove to run test
+
+		var deploymentId string
+
+		resp, httpRes, err := apiClient.CatalogDeploymentsAPI.V1CatalogDeploymentsTasksCreate(context.Background(), deploymentId).Execute()
+
+		require.Nil(t, err)
+		require.NotNil(t, resp)
+		assert.Equal(t, 200, httpRes.StatusCode)
+
+	})
+
+	t.Run("Test CatalogDeploymentsAPIService V1CatalogDeploymentsTasksList", func(t *testing.T) {
+
+		t.Skip("skip test") // remove to run test
+
+		var deploymentId string
+
+		resp, httpRes, err := apiClient.CatalogDeploymentsAPI.V1CatalogDeploymentsTasksList(context.Background(), deploymentId).Execute()
+
+		require.Nil(t, err)
+		require.NotNil(t, resp)
+		assert.Equal(t, 200, httpRes.StatusCode)
+
+	})
+
+	t.Run("Test CatalogDeploymentsAPIService V1CatalogDeploymentsTasksRetrieve", func(t *testing.T) {
+
+		t.Skip("skip test") // remove to run test
+
+		var deploymentId string
+		var id string
+
+		resp, httpRes, err := apiClient.CatalogDeploymentsAPI.V1CatalogDeploymentsTasksRetrieve(context.Background(), deploymentId, id).Execute()
+
+		require.Nil(t, err)
+		require.NotNil(t, resp)
+		assert.Equal(t, 200, httpRes.StatusCode)
+
+	})
+
+	t.Run("Test CatalogDeploymentsAPIService V1CatalogDeploymentsUpdate", func(t *testing.T) {
+
 		t.Skip("skip test") // remove to run test
 
 		var id string
 
-		resp, httpRes, err := apiClient.CatalogDeploymentsAPI.CatalogDeploymentsUpdate(context.Background(), id).Execute()
+		resp, httpRes, err := apiClient.CatalogDeploymentsAPI.V1CatalogDeploymentsUpdate(context.Background(), id).Execute()
 
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
 
-	t.Run("Test CatalogDeploymentsAPIService CatalogExperiencesNotesCreate", func(t *testing.T) {
+	t.Run("Test CatalogDeploymentsAPIService V1CatalogExperiencesNotesCreate", func(t *testing.T) {
+
 		t.Skip("skip test") // remove to run test
 
 		var experienceId string
 
-		resp, httpRes, err := apiClient.CatalogDeploymentsAPI.CatalogExperiencesNotesCreate(context.Background(), experienceId).Execute()
+		resp, httpRes, err := apiClient.CatalogDeploymentsAPI.V1CatalogExperiencesNotesCreate(context.Background(), experienceId).Execute()
 
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
 
-	t.Run("Test CatalogDeploymentsAPIService CatalogExperiencesNotesDestroy", func(t *testing.T) {
+	t.Run("Test CatalogDeploymentsAPIService V1CatalogExperiencesNotesDestroy", func(t *testing.T) {
+
 		t.Skip("skip test") // remove to run test
 
 		var experienceId string
 		var id string
 
-		httpRes, err := apiClient.CatalogDeploymentsAPI.CatalogExperiencesNotesDestroy(context.Background(), experienceId, id).Execute()
+		httpRes, err := apiClient.CatalogDeploymentsAPI.V1CatalogExperiencesNotesDestroy(context.Background(), experienceId, id).Execute()
 
 		require.Nil(t, err)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
 
-	t.Run("Test CatalogDeploymentsAPIService CatalogExperiencesNotesList", func(t *testing.T) {
+	t.Run("Test CatalogDeploymentsAPIService V1CatalogExperiencesNotesList", func(t *testing.T) {
+
 		t.Skip("skip test") // remove to run test
 
 		var experienceId string
 
-		resp, httpRes, err := apiClient.CatalogDeploymentsAPI.CatalogExperiencesNotesList(context.Background(), experienceId).Execute()
+		resp, httpRes, err := apiClient.CatalogDeploymentsAPI.V1CatalogExperiencesNotesList(context.Background(), experienceId).Execute()
 
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
 
-	t.Run("Test CatalogDeploymentsAPIService CatalogExperiencesNotesPartialUpdate", func(t *testing.T) {
-		t.Skip("skip test") // remove to run test
+	t.Run("Test CatalogDeploymentsAPIService V1CatalogExperiencesNotesPartialUpdate", func(t *testing.T) {
 
-		var experienceId string
-		var id string
-
-		resp, httpRes, err := apiClient.CatalogDeploymentsAPI.CatalogExperiencesNotesPartialUpdate(context.Background(), experienceId, id).Execute()
-
-		require.Nil(t, err)
-		require.NotNil(t, resp)
-		assert.Equal(t, 200, httpRes.StatusCode)
-	})
-
-	t.Run("Test CatalogDeploymentsAPIService CatalogExperiencesNotesRetrieve", func(t *testing.T) {
 		t.Skip("skip test") // remove to run test
 
 		var experienceId string
 		var id string
 
-		resp, httpRes, err := apiClient.CatalogDeploymentsAPI.CatalogExperiencesNotesRetrieve(context.Background(), experienceId, id).Execute()
+		resp, httpRes, err := apiClient.CatalogDeploymentsAPI.V1CatalogExperiencesNotesPartialUpdate(context.Background(), experienceId, id).Execute()
 
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
 
-	t.Run("Test CatalogDeploymentsAPIService CatalogExperiencesNotesUpdate", func(t *testing.T) {
+	t.Run("Test CatalogDeploymentsAPIService V1CatalogExperiencesNotesRetrieve", func(t *testing.T) {
+
 		t.Skip("skip test") // remove to run test
 
 		var experienceId string
 		var id string
 
-		resp, httpRes, err := apiClient.CatalogDeploymentsAPI.CatalogExperiencesNotesUpdate(context.Background(), experienceId, id).Execute()
+		resp, httpRes, err := apiClient.CatalogDeploymentsAPI.V1CatalogExperiencesNotesRetrieve(context.Background(), experienceId, id).Execute()
 
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
+
+	t.Run("Test CatalogDeploymentsAPIService V1CatalogExperiencesNotesUpdate", func(t *testing.T) {
+
+		t.Skip("skip test") // remove to run test
+
+		var experienceId string
+		var id string
+
+		resp, httpRes, err := apiClient.CatalogDeploymentsAPI.V1CatalogExperiencesNotesUpdate(context.Background(), experienceId, id).Execute()
+
+		require.Nil(t, err)
+		require.NotNil(t, resp)
+		assert.Equal(t, 200, httpRes.StatusCode)
+
+	})
+
 }

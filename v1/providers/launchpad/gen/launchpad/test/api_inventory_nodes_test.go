@@ -11,113 +11,132 @@ package openapi
 
 import (
 	"context"
-	"testing"
-
 	openapiclient "github.com/brevdev/cloud/v1/providers/launchpad/gen/launchpad"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"testing"
 )
 
 func Test_openapi_InventoryNodesAPIService(t *testing.T) {
+
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
 
-	t.Run("Test InventoryNodesAPIService InventoryNodesBulkCreate", func(t *testing.T) {
+	t.Run("Test InventoryNodesAPIService V1InventoryNodesBulkCreate", func(t *testing.T) {
+
 		t.Skip("skip test") // remove to run test
 
-		resp, httpRes, err := apiClient.InventoryNodesAPI.InventoryNodesBulkCreate(context.Background()).Execute()
+		resp, httpRes, err := apiClient.InventoryNodesAPI.V1InventoryNodesBulkCreate(context.Background()).Execute()
 
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
 
-	t.Run("Test InventoryNodesAPIService InventoryNodesBulkPartialUpdate", func(t *testing.T) {
+	t.Run("Test InventoryNodesAPIService V1InventoryNodesBulkPartialUpdate", func(t *testing.T) {
+
 		t.Skip("skip test") // remove to run test
 
-		resp, httpRes, err := apiClient.InventoryNodesAPI.InventoryNodesBulkPartialUpdate(context.Background()).Execute()
+		resp, httpRes, err := apiClient.InventoryNodesAPI.V1InventoryNodesBulkPartialUpdate(context.Background()).Execute()
 
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
 
-	t.Run("Test InventoryNodesAPIService InventoryNodesCreate", func(t *testing.T) {
+	t.Run("Test InventoryNodesAPIService V1InventoryNodesCreate", func(t *testing.T) {
+
 		t.Skip("skip test") // remove to run test
 
-		resp, httpRes, err := apiClient.InventoryNodesAPI.InventoryNodesCreate(context.Background()).Execute()
+		resp, httpRes, err := apiClient.InventoryNodesAPI.V1InventoryNodesCreate(context.Background()).Execute()
 
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
 
-	t.Run("Test InventoryNodesAPIService InventoryNodesDestroy", func(t *testing.T) {
+	t.Run("Test InventoryNodesAPIService V1InventoryNodesDestroy", func(t *testing.T) {
+
 		t.Skip("skip test") // remove to run test
 
 		var id string
 
-		httpRes, err := apiClient.InventoryNodesAPI.InventoryNodesDestroy(context.Background(), id).Execute()
+		httpRes, err := apiClient.InventoryNodesAPI.V1InventoryNodesDestroy(context.Background(), id).Execute()
 
 		require.Nil(t, err)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
 
-	t.Run("Test InventoryNodesAPIService InventoryNodesHistoryList", func(t *testing.T) {
+	t.Run("Test InventoryNodesAPIService V1InventoryNodesHistoryList", func(t *testing.T) {
+
 		t.Skip("skip test") // remove to run test
 
 		var id string
 
-		resp, httpRes, err := apiClient.InventoryNodesAPI.InventoryNodesHistoryList(context.Background(), id).Execute()
+		resp, httpRes, err := apiClient.InventoryNodesAPI.V1InventoryNodesHistoryList(context.Background(), id).Execute()
 
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
 
-	t.Run("Test InventoryNodesAPIService InventoryNodesList", func(t *testing.T) {
+	t.Run("Test InventoryNodesAPIService V1InventoryNodesList", func(t *testing.T) {
+
 		t.Skip("skip test") // remove to run test
 
-		resp, httpRes, err := apiClient.InventoryNodesAPI.InventoryNodesList(context.Background()).Execute()
+		resp, httpRes, err := apiClient.InventoryNodesAPI.V1InventoryNodesList(context.Background()).Execute()
 
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
 
-	t.Run("Test InventoryNodesAPIService InventoryNodesPartialUpdate", func(t *testing.T) {
-		t.Skip("skip test") // remove to run test
+	t.Run("Test InventoryNodesAPIService V1InventoryNodesPartialUpdate", func(t *testing.T) {
 
-		var id string
-
-		resp, httpRes, err := apiClient.InventoryNodesAPI.InventoryNodesPartialUpdate(context.Background(), id).Execute()
-
-		require.Nil(t, err)
-		require.NotNil(t, resp)
-		assert.Equal(t, 200, httpRes.StatusCode)
-	})
-
-	t.Run("Test InventoryNodesAPIService InventoryNodesRetrieve", func(t *testing.T) {
 		t.Skip("skip test") // remove to run test
 
 		var id string
 
-		resp, httpRes, err := apiClient.InventoryNodesAPI.InventoryNodesRetrieve(context.Background(), id).Execute()
+		resp, httpRes, err := apiClient.InventoryNodesAPI.V1InventoryNodesPartialUpdate(context.Background(), id).Execute()
 
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
 
-	t.Run("Test InventoryNodesAPIService InventoryNodesUpdate", func(t *testing.T) {
+	t.Run("Test InventoryNodesAPIService V1InventoryNodesRetrieve", func(t *testing.T) {
+
 		t.Skip("skip test") // remove to run test
 
 		var id string
 
-		resp, httpRes, err := apiClient.InventoryNodesAPI.InventoryNodesUpdate(context.Background(), id).Execute()
+		resp, httpRes, err := apiClient.InventoryNodesAPI.V1InventoryNodesRetrieve(context.Background(), id).Execute()
 
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
+
+	t.Run("Test InventoryNodesAPIService V1InventoryNodesUpdate", func(t *testing.T) {
+
+		t.Skip("skip test") // remove to run test
+
+		var id string
+
+		resp, httpRes, err := apiClient.InventoryNodesAPI.V1InventoryNodesUpdate(context.Background(), id).Execute()
+
+		require.Nil(t, err)
+		require.NotNil(t, resp)
+		assert.Equal(t, 200, httpRes.StatusCode)
+
+	})
+
 }

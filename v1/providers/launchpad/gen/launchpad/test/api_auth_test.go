@@ -11,54 +11,63 @@ package openapi
 
 import (
 	"context"
-	"testing"
-
 	openapiclient "github.com/brevdev/cloud/v1/providers/launchpad/gen/launchpad"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"testing"
 )
 
 func Test_openapi_AuthAPIService(t *testing.T) {
+
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
 
-	t.Run("Test AuthAPIService AuthLoginCreate", func(t *testing.T) {
+	t.Run("Test AuthAPIService V1AuthLoginCreate", func(t *testing.T) {
+
 		t.Skip("skip test") // remove to run test
 
-		resp, httpRes, err := apiClient.AuthAPI.AuthLoginCreate(context.Background()).Execute()
+		resp, httpRes, err := apiClient.AuthAPI.V1AuthLoginCreate(context.Background()).Execute()
 
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
 
-	t.Run("Test AuthAPIService AuthLogoutCreate", func(t *testing.T) {
+	t.Run("Test AuthAPIService V1AuthLogoutCreate", func(t *testing.T) {
+
 		t.Skip("skip test") // remove to run test
 
-		resp, httpRes, err := apiClient.AuthAPI.AuthLogoutCreate(context.Background()).Execute()
+		resp, httpRes, err := apiClient.AuthAPI.V1AuthLogoutCreate(context.Background()).Execute()
 
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
 
-	t.Run("Test AuthAPIService AuthPasswordChangeCreate", func(t *testing.T) {
+	t.Run("Test AuthAPIService V1AuthPasswordChangeCreate", func(t *testing.T) {
+
 		t.Skip("skip test") // remove to run test
 
-		resp, httpRes, err := apiClient.AuthAPI.AuthPasswordChangeCreate(context.Background()).Execute()
+		resp, httpRes, err := apiClient.AuthAPI.V1AuthPasswordChangeCreate(context.Background()).Execute()
 
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
 
-	t.Run("Test AuthAPIService AuthRedirectRetrieve", func(t *testing.T) {
+	t.Run("Test AuthAPIService V1AuthRedirectRetrieve", func(t *testing.T) {
+
 		t.Skip("skip test") // remove to run test
 
-		resp, httpRes, err := apiClient.AuthAPI.AuthRedirectRetrieve(context.Background()).Execute()
+		resp, httpRes, err := apiClient.AuthAPI.V1AuthRedirectRetrieve(context.Background()).Execute()
 
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
+
 }

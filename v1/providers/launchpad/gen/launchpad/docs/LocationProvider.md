@@ -10,6 +10,7 @@ Name | Type | Description | Notes
 **InstanceLimit** | Pointer to **int32** | The maximum number of provisionined instances allowed globally for the provider (0 &#x3D; unlimited) | [optional] 
 **Modified** | **time.Time** | Timestamp of when the object was last modified | [readonly] 
 **Name** | **string** |  | 
+**OnDemandSpeed** | Pointer to [**OnDemandSpeedEnum**](OnDemandSpeedEnum.md) | Speed of on-demand inventory provisioning  * &#x60;fast&#x60; - fast * &#x60;slow&#x60; - slow | [optional] 
 **Priority** | Pointer to **int32** | Weighted preference to use in selecting a provider for a deployment. Higher priority values will be preferred over lower ones. | [optional] 
 
 ## Methods
@@ -160,6 +161,31 @@ and a boolean to check if the value has been set.
 
 SetName sets Name field to given value.
 
+
+### GetOnDemandSpeed
+
+`func (o *LocationProvider) GetOnDemandSpeed() OnDemandSpeedEnum`
+
+GetOnDemandSpeed returns the OnDemandSpeed field if non-nil, zero value otherwise.
+
+### GetOnDemandSpeedOk
+
+`func (o *LocationProvider) GetOnDemandSpeedOk() (*OnDemandSpeedEnum, bool)`
+
+GetOnDemandSpeedOk returns a tuple with the OnDemandSpeed field if it's non-nil, zero value otherwise
+and a boolean to check if the value has been set.
+
+### SetOnDemandSpeed
+
+`func (o *LocationProvider) SetOnDemandSpeed(v OnDemandSpeedEnum)`
+
+SetOnDemandSpeed sets OnDemandSpeed field to given value.
+
+### HasOnDemandSpeed
+
+`func (o *LocationProvider) HasOnDemandSpeed() bool`
+
+HasOnDemandSpeed returns a boolean if a field has been set.
 
 ### GetPriority
 
