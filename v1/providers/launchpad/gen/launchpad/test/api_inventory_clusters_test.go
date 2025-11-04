@@ -11,19 +11,18 @@ package openapi
 
 import (
 	"context"
+	"testing"
+
 	openapiclient "github.com/brevdev/cloud/v1/providers/launchpad/gen/launchpad"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func Test_openapi_InventoryClustersAPIService(t *testing.T) {
-
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
 
 	t.Run("Test InventoryClustersAPIService V1InventoryClustersBulkPartialUpdate", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		resp, httpRes, err := apiClient.InventoryClustersAPI.V1InventoryClustersBulkPartialUpdate(context.Background()).Execute()
@@ -31,11 +30,9 @@ func Test_openapi_InventoryClustersAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test InventoryClustersAPIService V1InventoryClustersCreate", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		resp, httpRes, err := apiClient.InventoryClustersAPI.V1InventoryClustersCreate(context.Background()).Execute()
@@ -43,11 +40,9 @@ func Test_openapi_InventoryClustersAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test InventoryClustersAPIService V1InventoryClustersDestroy", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		var id string
@@ -56,11 +51,9 @@ func Test_openapi_InventoryClustersAPIService(t *testing.T) {
 
 		require.Nil(t, err)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test InventoryClustersAPIService V1InventoryClustersHistoryList", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		var id string
@@ -70,11 +63,9 @@ func Test_openapi_InventoryClustersAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test InventoryClustersAPIService V1InventoryClustersList", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		resp, httpRes, err := apiClient.InventoryClustersAPI.V1InventoryClustersList(context.Background()).Execute()
@@ -82,11 +73,9 @@ func Test_openapi_InventoryClustersAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test InventoryClustersAPIService V1InventoryClustersPartialUpdate", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		var id string
@@ -96,11 +85,9 @@ func Test_openapi_InventoryClustersAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test InventoryClustersAPIService V1InventoryClustersPipelinesTriggerCreate", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		var id string
@@ -110,11 +97,9 @@ func Test_openapi_InventoryClustersAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test InventoryClustersAPIService V1InventoryClustersProvisionCreate", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		resp, httpRes, err := apiClient.InventoryClustersAPI.V1InventoryClustersProvisionCreate(context.Background()).Execute()
@@ -122,11 +107,9 @@ func Test_openapi_InventoryClustersAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test InventoryClustersAPIService V1InventoryClustersProvisionDestroy", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		var id string
@@ -136,11 +119,9 @@ func Test_openapi_InventoryClustersAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test InventoryClustersAPIService V1InventoryClustersProvisionPartialUpdate", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		var id string
@@ -150,11 +131,9 @@ func Test_openapi_InventoryClustersAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test InventoryClustersAPIService V1InventoryClustersRetrieve", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		var id string
@@ -164,22 +143,18 @@ func Test_openapi_InventoryClustersAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test InventoryClustersAPIService V1InventoryClustersStatsRetrieve", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		httpRes, err := apiClient.InventoryClustersAPI.V1InventoryClustersStatsRetrieve(context.Background()).Execute()
 
 		require.Nil(t, err)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test InventoryClustersAPIService V1InventoryClustersTenantsCreate", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		var clusterId string
@@ -189,11 +164,9 @@ func Test_openapi_InventoryClustersAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test InventoryClustersAPIService V1InventoryClustersTenantsDestroy", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		var clusterId string
@@ -203,11 +176,9 @@ func Test_openapi_InventoryClustersAPIService(t *testing.T) {
 
 		require.Nil(t, err)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test InventoryClustersAPIService V1InventoryClustersUpdate", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		var id string
@@ -217,7 +188,5 @@ func Test_openapi_InventoryClustersAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
-
 }
