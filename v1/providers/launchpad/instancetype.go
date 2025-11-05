@@ -259,12 +259,13 @@ func launchpadGpusToGpus(lpGpus []openapi.InstanceTypeGpu) []v1.GPU {
 	gpus := make([]v1.GPU, len(lpGpus))
 	for i, gp := range lpGpus {
 		gpus[i] = v1.GPU{
-			Name:           strings.ToUpper(gp.Family),
-			Manufacturer:   v1.GetManufacturer(gp.Manufacturer),
-			Count:          gp.Count,
-			Memory:         gbToBytes(gp.MemoryGb),
-			NetworkDetails: string(gp.InterconnectionType),
-			Type:           strings.ToUpper(gp.Model),
+			Name:            strings.ToUpper(gp.Family),
+			Manufacturer:    v1.GetManufacturer(gp.Manufacturer),
+			Count:           gp.Count,
+			Memory:          gbToBytes(gp.MemoryGb),
+			MemoryByteValue: v1.NewByteValue(gp.MemoryGb, v1.Gigabyte),
+			NetworkDetails:  string(gp.InterconnectionType),
+			Type:            strings.ToUpper(gp.Model),
 		}
 	}
 	return gpus

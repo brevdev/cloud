@@ -114,13 +114,14 @@ func MakeGenericInstanceTypeIDFromInstance(instance Instance) InstanceTypeID {
 }
 
 type GPU struct {
-	Count          int32
-	Memory         units.Base2Bytes
-	MemoryDetails  string // "", "HBM", "GDDR", "DDR", etc.
-	NetworkDetails string // "PCIe", "SXM4", "SXM5", etc.
-	Manufacturer   Manufacturer
-	Name           string
-	Type           string
+	Count           int32
+	Memory          units.Base2Bytes // TODO: deprecate in favor of MemoryByteValue
+	MemoryByteValue ByteValue
+	MemoryDetails   string // "", "HBM", "GDDR", "DDR", etc.
+	NetworkDetails  string // "PCIe", "SXM4", "SXM5", etc.
+	Manufacturer    Manufacturer
+	Name            string
+	Type            string
 }
 
 type InstanceTypeQuota struct {

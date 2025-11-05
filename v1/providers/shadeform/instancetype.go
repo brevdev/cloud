@@ -232,13 +232,14 @@ func (c *ShadeformClient) convertShadeformInstanceTypeToV1InstanceType(shadeform
 			MemoryByteValue: v1.NewByteValue(shadeformInstanceType.Configuration.MemoryInGb, v1.Gigabyte),
 			SupportedGPUs: []v1.GPU{
 				{
-					Count:          shadeformInstanceType.Configuration.NumGpus,
-					Memory:         units.Base2Bytes(shadeformInstanceType.Configuration.VramPerGpuInGb) * units.GiB,
-					MemoryDetails:  "",
-					NetworkDetails: shadeformInstanceType.Configuration.Interconnect,
-					Manufacturer:   gpuManufacturer,
-					Name:           gpuName,
-					Type:           shadeformInstanceType.Configuration.GpuType,
+					Count:           shadeformInstanceType.Configuration.NumGpus,
+					Memory:          units.Base2Bytes(shadeformInstanceType.Configuration.VramPerGpuInGb) * units.GiB,
+					MemoryByteValue: v1.NewByteValue(shadeformInstanceType.Configuration.VramPerGpuInGb, v1.Gigabyte),
+					MemoryDetails:   "",
+					NetworkDetails:  shadeformInstanceType.Configuration.Interconnect,
+					Manufacturer:    gpuManufacturer,
+					Name:            gpuName,
+					Type:            shadeformInstanceType.Configuration.GpuType,
 				},
 			},
 			SupportedStorage: []v1.Storage{ // TODO: add storage (look in configuration)

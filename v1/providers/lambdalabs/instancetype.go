@@ -128,6 +128,7 @@ func parseGPUFromDescription(input string) (v1.GPU, error) {
 	memoryStr := memoryMatch[1]
 	memoryGiB, _ := strconv.Atoi(memoryStr)
 	gpu.Memory = units.GiB * units.Base2Bytes(memoryGiB)
+	gpu.MemoryByteValue = v1.NewByteValue(int32(memoryGiB), v1.Gibibyte)
 
 	// Extract the network details
 	networkRegex := regexp.MustCompile(`(\w+\s?)+\)`)
