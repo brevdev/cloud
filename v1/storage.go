@@ -24,9 +24,10 @@ type Storage struct {
 }
 
 type Disk struct {
-	Size      units.Base2Bytes
-	Type      string
-	MountPath string
+	Size          units.Base2Bytes // TODO: deprecate in favor of SizeByteValue
+	SizeByteValue ByteValue
+	Type          string
+	MountPath     string
 }
 
 type CloudResizeInstanceVolume interface {
@@ -35,6 +36,7 @@ type CloudResizeInstanceVolume interface {
 
 type ResizeInstanceVolumeArgs struct {
 	InstanceID        CloudProviderInstanceID
-	Size              units.Base2Bytes
+	Size              units.Base2Bytes // TODO: deprecate in favor of SizeByteValue
+	SizeByteValue     ByteValue
 	WaitForOptimizing bool
 }
