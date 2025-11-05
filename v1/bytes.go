@@ -1,18 +1,21 @@
 package v1
 
-var ZeroBytes = NewByteValue(0, Byte)
+var zeroBytes ByteValue = ByteValue{value: 0, unit: Byte}
 
 type ByteValue struct {
 	// Value is the whole non-negative number of bytes of the specified unit
-	value uint64
+	value uint32
 
 	// Unit is the unit of the byte value
 	unit ByteUnit
 }
 
-func NewByteValue(value uint64, unit ByteUnit) ByteValue {
+func NewByteValue(value int32, unit ByteUnit) ByteValue {
+	if value < 0 {
+		return zeroBytes
+	}
 	return ByteValue{
-		value: value,
+		value: uint32(value),
 		unit:  unit,
 	}
 }

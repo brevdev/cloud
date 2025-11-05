@@ -164,13 +164,6 @@ func convertLambdaLabsInstanceToV1Instance(instance openapi.Instance) *v1.Instan
 		instancePrivateIP = *instance.PrivateIp.Get()
 	}
 
-	var diskSizeByteValue v1.ByteValue
-	if instance.InstanceType.Specs.StorageGib > 0 {
-		diskSizeByteValue = v1.NewByteValue(uint64(instance.InstanceType.Specs.StorageGib), v1.Gibibyte)
-	} else {
-		diskSizeByteValue = v1.ZeroBytes
-	}
-
 	inst := v1.Instance{
 		RefID:          instance.SshKeyNames[0],
 		CloudCredRefID: cloudCredRefID,
@@ -187,7 +180,7 @@ func convertLambdaLabsInstanceToV1Instance(instance openapi.Instance) *v1.Instan
 		InstanceType:      instance.InstanceType.Name,
 		VolumeType:        "ssd",
 		DiskSize:          units.GiB * units.Base2Bytes(instance.InstanceType.Specs.StorageGib),
-		DiskSizeByteValue: diskSizeByteValue,
+		DiskSizeByteValue: v1.NewByteValue(instance.InstanceType.Specs.StorageGib, v1.Gibibyte),
 		FirewallRules: v1.FirewallRules{
 			IngressRules: []v1.FirewallRule{generateFirewallRouteFromPort(22), generateFirewallRouteFromPort(2222)}, // TODO pull from api
 			EgressRules:  []v1.FirewallRule{generateFirewallRouteFromPort(22), generateFirewallRouteFromPort(2222)}, // TODO pull from api

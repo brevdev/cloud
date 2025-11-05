@@ -284,13 +284,6 @@ func (c *ShadeformClient) convertInstanceInfoResponseToV1Instance(ctx context.Co
 	diskSize := units.Base2Bytes(instanceInfo.Configuration.StorageInGb) * units.GiB
 	c.logger.Debug(ctx, "calculated diskSize", v1.LogField("diskSize", diskSize), v1.LogField("storageInGb", instanceInfo.Configuration.StorageInGb))
 
-	var diskSizeByteValue v1.ByteValue
-	if instanceInfo.Configuration.StorageInGb > 0 {
-		diskSizeByteValue = v1.NewByteValue(uint64(instanceInfo.Configuration.StorageInGb), v1.Gigabyte)
-	} else {
-		diskSizeByteValue = v1.ZeroBytes
-	}
-
 	instance := &v1.Instance{
 		Name:              c.getProvidedInstanceName(instanceInfo.Name),
 		CreatedAt:         instanceInfo.CreatedAt,
@@ -302,7 +295,7 @@ func (c *ShadeformClient) convertInstanceInfoResponseToV1Instance(ctx context.Co
 		InstanceType:      instanceType,
 		InstanceTypeID:    v1.InstanceTypeID(c.getInstanceTypeID(instanceType, instanceInfo.Region)),
 		DiskSize:          diskSize,
-		DiskSizeByteValue: diskSizeByteValue,
+		DiskSizeByteValue: v1.NewByteValue(instanceInfo.Configuration.StorageInGb, v1.Gigabyte),
 		SSHUser:           instanceInfo.SshUser,
 		SSHPort:           int(instanceInfo.SshPort),
 		Status: v1.Status{

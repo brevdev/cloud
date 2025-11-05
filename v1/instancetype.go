@@ -64,7 +64,8 @@ type InstanceType struct {
 	SupportedStorage                []Storage
 	ElasticRootVolume               bool
 	SupportedUsageClasses           []string
-	Memory                          units.Base2Bytes
+	Memory                          units.Base2Bytes // TODO: deprecate in favor of MemoryByteValue
+	MemoryByteValue                 ByteValue
 	MaximumNetworkInterfaces        int32
 	NetworkPerformance              string
 	SupportedNumCores               []int32
@@ -427,7 +428,7 @@ func ValidateStableInstanceTypeIDs(ctx context.Context, client CloudInstanceType
 
 		// Check that supported storage has price information
 		for i, storage := range instanceType.SupportedStorage {
-			if storage.MinSize != nil {
+			if storage.MinSize != nil || storage.MinSizeByteValue != nil {
 				if storage.PricePerGBHr == nil {
 					return fmt.Errorf("instance type %s should have storage %d price", instanceType.ID, i)
 				}

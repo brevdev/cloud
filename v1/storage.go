@@ -9,10 +9,13 @@ import (
 
 type Storage struct {
 	Count                   int32
-	Size                    units.Base2Bytes
+	Size                    units.Base2Bytes // TODO: deprecate in favor of SizeByteValue
+	SizeByteValue           ByteValue
 	Type                    string
-	MinSize                 *units.Base2Bytes
-	MaxSize                 *units.Base2Bytes
+	MinSize                 *units.Base2Bytes // TODO: deprecate in favor of MinSizeByteValue
+	MinSizeByteValue        *ByteValue
+	MaxSize                 *units.Base2Bytes // TODO: deprecate in favor of MaxSizeByteValue
+	MaxSizeByteValue        *ByteValue
 	PricePerGBHr            *currency.Amount
 	IsEphemeral             bool
 	IsAdditionalDisk        bool

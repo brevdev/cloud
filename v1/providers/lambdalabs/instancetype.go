@@ -172,19 +172,22 @@ func convertLambdaLabsInstanceTypeToV1InstanceType(location string, instType ope
 	if err != nil {
 		return v1.InstanceType{}, err
 	}
+
 	it := v1.InstanceType{
 		Location:      location,
 		Type:          instType.Name,
 		SupportedGPUs: gpus,
 		SupportedStorage: []v1.Storage{
 			{
-				Type:  "ssd",
-				Count: 1,
-				Size:  units.GiB * units.Base2Bytes(instType.Specs.StorageGib),
+				Type:          "ssd",
+				Count:         1,
+				Size:          units.GiB * units.Base2Bytes(instType.Specs.StorageGib),
+				SizeByteValue: v1.NewByteValue(instType.Specs.StorageGib, v1.Gibibyte),
 			},
 		},
 		SupportedUsageClasses:    []string{"on-demand"},
 		Memory:                   units.GiB * units.Base2Bytes(instType.Specs.MemoryGib),
+		MemoryByteValue:          v1.NewByteValue(instType.Specs.MemoryGib, v1.Gibibyte),
 		MaximumNetworkInterfaces: 0,
 		NetworkPerformance:       "",
 		SupportedNumCores:        []int32{},

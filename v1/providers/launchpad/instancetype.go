@@ -204,6 +204,7 @@ func launchpadInstanceTypeToInstanceType(launchpadInstanceType openapi.InstanceT
 		Type:                   typeName,
 		VCPU:                   launchpadInstanceType.Cpu,
 		Memory:                 gbToBytes(launchpadInstanceType.MemoryGb),
+		MemoryByteValue:        v1.NewByteValue(launchpadInstanceType.MemoryGb, v1.Gigabyte),
 		SupportedGPUs:          []v1.GPU{gpu},
 		SupportedStorage:       storage,
 		SupportedArchitectures: []v1.Architecture{launchpadArchitectureToArchitecture(launchpadInstanceType.SystemArch)},
@@ -242,9 +243,10 @@ func launchpadStorageToStorages(launchpadStorage []openapi.InstanceTypeStorage) 
 	storage := make([]v1.Storage, len(launchpadStorage))
 	for i, s := range launchpadStorage {
 		storage[i] = v1.Storage{
-			Count: 1,
-			Size:  gbToBytes(s.SizeGb),
-			Type:  string(s.Type),
+			Count:         1,
+			Size:          gbToBytes(s.SizeGb),
+			SizeByteValue: v1.NewByteValue(s.SizeGb, v1.Gigabyte),
+			Type:          string(s.Type),
 		}
 	}
 	return storage
@@ -307,8 +309,10 @@ func launchpadClusterToInstanceType(cluster openapi.Cluster) *v1.InstanceType {
 		vcpu = *node.Cpu
 	}
 	var memory units.Base2Bytes
+	var memoryValueBytes v1.ByteValue
 	if node.Memory != nil {
 		memory = gbToBytes(*node.Memory)
+		memoryValueBytes = v1.NewByteValue(*node.Memory, v1.Gigabyte)
 	}
 
 	isAvailable := (cluster.ProvisioningState != nil && *cluster.ProvisioningState == openapi.ProvisioningStateReady)
@@ -328,6 +332,7 @@ func launchpadClusterToInstanceType(cluster openapi.Cluster) *v1.InstanceType {
 		SupportedGPUs:    []v1.GPU{*gpu},
 		SupportedStorage: storage,
 		Memory:           memory,
+		MemoryByteValue:  memoryValueBytes,
 		VCPU:             vcpu,
 		IsAvailable:      isAvailable,
 		Location:         location,

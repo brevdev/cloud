@@ -44,7 +44,7 @@ func launchpadDeploymentToInstance(deployment *openapi.Deployment) (v1.Instance,
 		return v1.Instance{}, errors.WrapAndTrace(err)
 	}
 
-	var totalStorageSize int
+	var totalStorageSize int32
 	nodes := deployment.GetCluster().Cluster.GetNodes()
 	if len(nodes) == 0 {
 		totalStorageSize = 0
@@ -54,16 +54,8 @@ func launchpadDeploymentToInstance(deployment *openapi.Deployment) (v1.Instance,
 		// Calculate disk size
 		storage := node.Node.GetStorage()
 		for _, s := range storage {
-			totalStorageSize += int(s.GetSize())
+			totalStorageSize += s.GetSize()
 		}
-	}
-	diskSize := units.Base2Bytes(totalStorageSize) * units.GiB
-
-	var diskSizeByteValue v1.ByteValue
-	if totalStorageSize > 0 {
-		diskSizeByteValue = v1.NewByteValue(uint64(totalStorageSize), v1.Gigabyte)
-	} else {
-		diskSizeByteValue = v1.ZeroBytes
 	}
 
 	inst := v1.Instance{
@@ -84,8 +76,8 @@ func launchpadDeploymentToInstance(deployment *openapi.Deployment) (v1.Instance,
 				ToPort:   2022,
 			},
 		},
-		DiskSize:          diskSize,
-		DiskSizeByteValue: diskSizeByteValue,
+		DiskSize:          units.Base2Bytes(totalStorageSize) * units.GiB,
+		DiskSizeByteValue: v1.NewByteValue(totalStorageSize, v1.Gigabyte),
 		Location:          deployment.GetRegion(),
 		PublicDNS:         deployment.GetCluster().Cluster.GetPublicAddress(),
 		PublicIP:          deployment.GetCluster().Cluster.GetPublicAddress(),
