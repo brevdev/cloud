@@ -379,7 +379,7 @@ func normalizeInstanceTypes(types []InstanceType) []InstanceType {
 
 // ValidateStableInstanceTypeIDs validates that the provided stable instance type IDs are valid and stable
 // This function ensures that stable IDs exist in the current instance types and have required properties
-func ValidateStableInstanceTypeIDs(ctx context.Context, client CloudInstanceType, stableIDs []InstanceTypeID) error {
+func ValidateStableInstanceTypeIDs(ctx context.Context, client CloudInstanceType, stableIDs []InstanceTypeID) error { //nolint:gocyclo // test
 	// Get all instance types
 	allTypes, err := client.GetInstanceTypes(ctx, GetInstanceTypeArgs{})
 	if err != nil {

@@ -1,6 +1,6 @@
 package v1
 
-var zeroBytes ByteValue = ByteValue{value: 0, unit: Byte}
+var zeroBytes = ByteValue{value: 0, unit: Byte}
 
 type ByteValue struct {
 	// Value is the whole non-negative number of bytes of the specified unit
