@@ -275,7 +275,8 @@ type CreateInstanceAttrs struct {
 	ImageID              string
 	InstanceType         string
 	UserDataBase64       string
-	DiskSize             units.Base2Bytes
+	DiskSize             units.Base2Bytes // TODO: deprecate in favor of DiskSizeByteValue
+	DiskSizeByteValue    ByteValue
 	Tags                 Tags
 	FirewallRules        FirewallRules
 	UseSpot              bool
