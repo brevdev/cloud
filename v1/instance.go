@@ -195,7 +195,8 @@ type Instance struct {
 	Hostname                        string
 	ImageID                         string
 	InstanceType                    string
-	DiskSize                        units.Base2Bytes
+	DiskSize                        units.Base2Bytes // TODO: deprecate in favor of DiskSizeByteValue
+	DiskSizeByteValue               ByteValue
 	VolumeType                      string
 	PubKeyFingerprint               string
 	SSHUser                         string
