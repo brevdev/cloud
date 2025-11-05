@@ -272,3 +272,66 @@ func TestValidServiceAccountJSON(t *testing.T) {
 		})
 	}
 }
+
+func TestExtractRegionFromProjectName(t *testing.T) {
+	tests := []struct {
+		name         string
+		projectName  string
+		expectedRegion string
+	}{
+		{
+			name:         "default-project pattern with eu-north1",
+			projectName:  "default-project-eu-north1",
+			expectedRegion: "eu-north1",
+		},
+		{
+			name:         "default-project pattern with us-central1",
+			projectName:  "default-project-us-central1",
+			expectedRegion: "us-central1",
+		},
+		{
+			name:         "default pattern with region",
+			projectName:  "default-eu-west1",
+			expectedRegion: "eu-west1",
+		},
+		{
+			name:         "project name containing region",
+			projectName:  "my-project-eu-north1-test",
+			expectedRegion: "eu-north1",
+		},
+		{
+			name:         "just region name",
+			projectName:  "eu-north1",
+			expectedRegion: "eu-north1",
+		},
+		{
+			name:         "uppercase project name",
+			projectName:  "DEFAULT-PROJECT-US-EAST1",
+			expectedRegion: "us-east1",
+		},
+		{
+			name:         "project name without known region",
+			projectName:  "my-custom-project",
+			expectedRegion: "",
+		},
+		{
+			name:         "empty project name",
+			projectName:  "",
+			expectedRegion: "",
+		},
+		{
+			name:         "project name with partial region match",
+			projectName:  "eu-project", // contains "eu-" but not full region
+			expectedRegion: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := extractRegionFromProjectName(tt.projectName)
+			assert.Equal(t, tt.expectedRegion, result, 
+				"extractRegionFromProjectName(%q) = %q, want %q", 
+				tt.projectName, result, tt.expectedRegion)
+		})
+	}
+}

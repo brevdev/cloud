@@ -216,6 +216,69 @@ func (c *NebiusClient) discoverAllProjects(ctx context.Context) ([]string, error
 	return projectIDs, nil
 }
 
+// discoverAllProjectsWithRegions returns a map of project ID to region for all projects in the tenant
+// This is used by ListInstances to correctly attribute instances to their regions
+func (c *NebiusClient) discoverAllProjectsWithRegions(ctx context.Context) (map[string]string, error) {
+	pageSize := int64(1000)
+	projectsResp, err := c.sdk.Services().IAM().V1().Project().List(ctx, &iam.ListProjectsRequest{
+		ParentId: c.tenantID,
+		PageSize: &pageSize,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list projects: %w", err)
+	}
+
+	projects := projectsResp.GetItems()
+	projectToRegion := make(map[string]string)
+	
+	for _, project := range projects {
+		if project.Metadata == nil || project.Metadata.Id == "" {
+			continue
+		}
+		
+		projectID := project.Metadata.Id
+		projectName := project.Metadata.Name
+		
+		// Extract region from project name
+		// Expected patterns: "default-project-{region}", "default-{region}", "{region}", or any name containing region
+		region := extractRegionFromProjectName(projectName)
+		
+		// Store mapping (region may be empty if we can't determine it)
+		projectToRegion[projectID] = region
+		
+		c.logger.Debug(ctx, "mapped project to region",
+			v1.LogField("projectID", projectID),
+			v1.LogField("projectName", projectName),
+			v1.LogField("extractedRegion", region))
+	}
+
+	return projectToRegion, nil
+}
+
+// extractRegionFromProjectName attempts to extract the region from a project name
+// Returns empty string if no region can be determined
+func extractRegionFromProjectName(projectName string) string {
+	// Known region patterns in Nebius
+	knownRegions := []string{
+		"eu-north1", "eu-west1", "eu-west2", "eu-west3", "eu-west4",
+		"us-central1", "us-east1", "us-west1",
+		"asia-east1", "asia-southeast1",
+	}
+	
+	projectNameLower := strings.ToLower(projectName)
+	
+	// Try to match known regions in the project name
+	for _, region := range knownRegions {
+		if strings.Contains(projectNameLower, region) {
+			return region
+		}
+	}
+	
+	// Could not determine region from known patterns
+	// For safety, return empty string rather than guessing
+	return ""
+}
+
 // GetAPIType returns the API type for Nebius
 func (c *NebiusClient) GetAPIType() v1.APIType {
 	return v1.APITypeLocational

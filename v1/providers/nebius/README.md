@@ -184,11 +184,21 @@ The SDK uses `waitForInstanceState()` and `waitForInstanceDeleted()` helpers whi
 ### Instance Listing and State Polling
 **ListInstances** is fully implemented and enables dev-plane to poll instance states:
 
-- Queries all instances in the project via Nebius List API
-- Converts each instance to `v1.Instance` using the same conversion logic as `GetInstance`
+- Queries all instances across ALL projects in the tenant (projects are region-specific in Nebius)
+- Automatically determines the region for each instance from its parent project
+- Converts each instance to `v1.Instance` with the correct `Location` field set to the instance's actual region
 - **Properly filters by `TagFilters`, `InstanceIDs`, and `Locations`** passed in `ListInstancesArgs`
 - Returns instances with current state (RUNNING, STOPPED, DELETING, etc.)
 - Enables dev-plane's `WaitForChangedInstancesAndUpdate` workflow to track state changes
+
+**Multi-Region Enumeration:**
+When a Nebius client is created with an empty `location` (e.g., from dev-plane's cloud credential without a specific region context), `ListInstances` automatically:
+1. Discovers all projects in the tenant via IAM API
+2. Extracts the region from each project name (e.g., "default-project-eu-north1" → "eu-north1")
+3. Queries instances from each project
+4. Sets each instance's `Location` field to its actual region (from the project-to-region mapping)
+
+This prevents the issue where instances would have `Location = ""` (from the client's empty location), causing location-based filtering to incorrectly exclude all instances and mark them as terminated in dev-plane.
 
 **Tag Filtering is Critical** - This is a fundamental architectural difference from Shadeform/Launchpad:
 

@@ -191,17 +191,33 @@ func (c *NebiusClient) GetInstance(ctx context.Context, instanceID v1.CloudProvi
 		return nil, errors.WrapAndTrace(err)
 	}
 
-	return c.convertNebiusInstanceToV1(ctx, instance)
+	return c.convertNebiusInstanceToV1(ctx, instance, nil)
 }
 
 // convertNebiusInstanceToV1 converts a Nebius instance to v1.Instance
 // This is used by both GetInstance and ListInstances for consistent conversion
-func (c *NebiusClient) convertNebiusInstanceToV1(ctx context.Context, instance *compute.Instance) (*v1.Instance, error) {
+// projectToRegion is an optional map of project ID to region for determining instance location
+func (c *NebiusClient) convertNebiusInstanceToV1(ctx context.Context, instance *compute.Instance, projectToRegion map[string]string) (*v1.Instance, error) {
 	if instance.Metadata == nil || instance.Spec == nil {
 		return nil, fmt.Errorf("invalid instance response from Nebius API")
 	}
 
 	instanceID := v1.CloudProviderInstanceID(instance.Metadata.Id)
+	
+	// Determine location from instance's parent project
+	// This ensures instances are correctly attributed to their actual region
+	location := c.location // Default to client's location
+	if instance.Metadata.ParentId != "" && projectToRegion != nil {
+		if region, exists := projectToRegion[instance.Metadata.ParentId]; exists && region != "" {
+			location = region
+		}
+	}
+	
+	c.logger.Debug(ctx, "determined instance location",
+		v1.LogField("instanceID", instance.Metadata.Id),
+		v1.LogField("parentProjectID", instance.Metadata.ParentId),
+		v1.LogField("determinedLocation", location),
+		v1.LogField("clientLocation", c.location))
 
 	// Convert Nebius instance status to our status
 	var lifecycleStatus v1.LifecycleStatus
@@ -316,7 +332,7 @@ func (c *NebiusClient) convertNebiusInstanceToV1(ctx context.Context, instance *
 		CloudCredRefID: c.refID,
 		Name:           instance.Metadata.Name,
 		CloudID:        instanceID,
-		Location:       c.location,
+		Location:       location,
 		CreatedAt:      createdAt,
 		InstanceType:   instanceTypeID,                    // Full instance type ID (e.g., "gpu-h100-sxm.8gpu-128vcpu-1600gb")
 		InstanceTypeID: v1.InstanceTypeID(instanceTypeID), // Same as InstanceType - required for dev-plane lookup
@@ -650,20 +666,21 @@ func (c *NebiusClient) ListInstances(ctx context.Context, args v1.ListInstancesA
 
 	// Query ALL projects in the tenant to find all instances
 	// Projects are region-specific, so we need to check all projects to find all instances
-	allProjects, err := c.discoverAllProjects(ctx)
+	// Build project-to-region mapping to correctly set Location field on instances
+	projectToRegion, err := c.discoverAllProjectsWithRegions(ctx)
 	if err != nil {
-		c.logger.Error(ctx, fmt.Errorf("failed to discover projects: %w", err))
-		// Fallback to querying just the primary project
-		allProjects = []string{c.projectID}
+		c.logger.Error(ctx, fmt.Errorf("failed to discover projects with regions: %w", err))
+		// Fallback: just use primary project with client's location
+		projectToRegion = map[string]string{c.projectID: c.location}
 	}
 
 	c.logger.Info(ctx, "querying instances across all projects",
-		v1.LogField("projectCount", len(allProjects)),
-		v1.LogField("projects", fmt.Sprintf("%v", allProjects)))
+		v1.LogField("projectCount", len(projectToRegion)),
+		v1.LogField("projects", fmt.Sprintf("%v", projectToRegion)))
 
 	// Collect instances from all projects
 	allNebiusInstances := make([]*compute.Instance, 0)
-	for _, projectID := range allProjects {
+	for projectID := range projectToRegion {
 		response, err := c.sdk.Services().Compute().V1().Instance().List(ctx, &compute.ListInstancesRequest{
 			ParentId: projectID,
 		})
@@ -677,6 +694,7 @@ func (c *NebiusClient) ListInstances(ctx context.Context, args v1.ListInstancesA
 		if response != nil && response.Items != nil {
 			c.logger.Info(ctx, "found instances in project",
 				v1.LogField("projectID", projectID),
+				v1.LogField("region", projectToRegion[projectID]),
 				v1.LogField("count", len(response.Items)))
 			allNebiusInstances = append(allNebiusInstances, response.Items...)
 		}
@@ -706,7 +724,8 @@ func (c *NebiusClient) ListInstances(ctx context.Context, args v1.ListInstancesA
 			v1.LogField("rawLabels", fmt.Sprintf("%+v", nebiusInstance.Metadata.Labels)))
 
 		// Convert to v1.Instance using convertNebiusInstanceToV1 for consistent conversion
-		instance, err := c.convertNebiusInstanceToV1(ctx, nebiusInstance)
+		// Pass projectToRegion mapping so instances get correct location from their parent project
+		instance, err := c.convertNebiusInstanceToV1(ctx, nebiusInstance, projectToRegion)
 		if err != nil {
 			c.logger.Error(ctx, fmt.Errorf("failed to convert instance: %w", err),
 				v1.LogField("instanceID", nebiusInstance.Metadata.Id))
