@@ -365,16 +365,19 @@ func launchpadGputoGpu(node openapi.Node) *v1.GPU {
 	}
 
 	var lpGpuMemory units.Base2Bytes
+	var lpGpuMemoryByteValue v1.ByteValue
 	if lpGpu.Memory != nil {
 		lpGpuMemory = gbToBytes(*lpGpu.Memory)
+		lpGpuMemoryByteValue = v1.NewByteValue(*lpGpu.Memory, v1.Gigabyte)
 	}
 
 	gpu := &v1.GPU{
-		Name:           lpGpuModel,
-		Count:          lpGpuCount,
-		NetworkDetails: lpGpuFormFactor,
-		Memory:         lpGpuMemory,
-		Manufacturer:   "NVIDIA", // The only supported manufacturer for Launchpad
+		Name:            lpGpuModel,
+		Count:           lpGpuCount,
+		NetworkDetails:  lpGpuFormFactor,
+		Memory:          lpGpuMemory,
+		MemoryByteValue: lpGpuMemoryByteValue,
+		Manufacturer:    "NVIDIA", // The only supported manufacturer for Launchpad
 	}
 	return gpu
 }
