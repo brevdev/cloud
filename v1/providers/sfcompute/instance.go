@@ -77,7 +77,27 @@ func (c *SFCClient) CreateInstance(ctx context.Context, attrs v1.CreateInstanceA
 }
 
 func (c *SFCClient) GetInstance(ctx context.Context, id v1.CloudProviderInstanceID) (*v1.Instance, error) {
-	return nil, fmt.Errorf("not implemented")
+	node, err := c.client.Nodes.Get(ctx, string(id))
+	if err != nil {
+		panic(err.Error())
+	}
+
+	ssh, err := c.client.VMs.SSH(ctx, sfcnodes.VMSSHParams{VMID: string(id)})
+	if err != nil {
+		panic(err.Error())
+	}
+
+	inst := &v1.Instance{
+		Name:           node.Name,
+		RefID:          c.refID,
+		CloudCredRefID: c.refID,
+		CloudID:        v1.CloudProviderInstanceID(node.ID), // SFC ID
+		PublicIP:       ssh.SSHHostname,
+		CreatedAt:      time.Unix(node.CreatedAt, 0),
+		Status:         v1.Status{LifecycleStatus: mapSFCStatus(fmt.Sprint(node.Status))}, // map SDK status to our lifecycle
+		InstanceTypeID: v1.InstanceTypeID(node.GPUType),
+	}
+	return inst, nil
 }
 
 func (c *SFCClient) ListInstances(ctx context.Context, args v1.ListInstancesArgs) ([]v1.Instance, error) {
