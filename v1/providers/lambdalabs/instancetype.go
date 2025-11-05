@@ -3,6 +3,7 @@ package v1
 import (
 	"context"
 	"fmt"
+	"math"
 	"regexp"
 	"strconv"
 	"strings"
@@ -127,6 +128,9 @@ func parseGPUFromDescription(input string) (v1.GPU, error) {
 	}
 	memoryStr := memoryMatch[1]
 	memoryGiB, _ := strconv.Atoi(memoryStr)
+	if memoryGiB > math.MaxInt32 {
+		memoryGiB = math.MaxInt32
+	}
 	gpu.Memory = units.GiB * units.Base2Bytes(memoryGiB)
 	gpu.MemoryByteValue = v1.NewByteValue(int32(memoryGiB), v1.Gibibyte)
 
