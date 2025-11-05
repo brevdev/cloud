@@ -131,7 +131,7 @@ func parseGPUFromDescription(input string) (v1.GPU, error) {
 	if memoryGiB > math.MaxInt32 {
 		memoryGiB = math.MaxInt32
 	}
-	gpu.Memory = units.GiB * units.Base2Bytes(memoryGiB)
+	gpu.Memory = units.GiB * units.Base2Bytes(memoryGiB) //nolint:gosec // safe conversion
 	gpu.MemoryByteValue = v1.NewByteValue(int32(memoryGiB), v1.Gibibyte)
 
 	// Extract the network details
