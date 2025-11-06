@@ -177,10 +177,10 @@ func convertLambdaLabsInstanceToV1Instance(instance openapi.Instance) *v1.Instan
 		Status: v1.Status{
 			LifecycleStatus: convertLambdaLabsStatusToV1Status(instance.Status),
 		},
-		InstanceType:      instance.InstanceType.Name,
-		VolumeType:        "ssd",
-		DiskSize:          units.GiB * units.Base2Bytes(instance.InstanceType.Specs.StorageGib),
-		DiskSizeByteValue: v1.NewBytes(v1.BytesValue(instance.InstanceType.Specs.StorageGib), v1.Gibibyte),
+		InstanceType:  instance.InstanceType.Name,
+		VolumeType:    "ssd",
+		DiskSize:      units.GiB * units.Base2Bytes(instance.InstanceType.Specs.StorageGib),
+		DiskSizeBytes: v1.NewBytes(v1.BytesValue(instance.InstanceType.Specs.StorageGib), v1.Gibibyte),
 		FirewallRules: v1.FirewallRules{
 			IngressRules: []v1.FirewallRule{generateFirewallRouteFromPort(22), generateFirewallRouteFromPort(2222)}, // TODO pull from api
 			EgressRules:  []v1.FirewallRule{generateFirewallRouteFromPort(22), generateFirewallRouteFromPort(2222)}, // TODO pull from api

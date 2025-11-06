@@ -10,12 +10,12 @@ import (
 type Storage struct {
 	Count                   int32
 	Size                    units.Base2Bytes // TODO: deprecate in favor of SizeByteValue
-	SizeByteValue           Bytes
+	SizeBytes               Bytes
 	Type                    string
 	MinSize                 *units.Base2Bytes // TODO: deprecate in favor of MinSizeByteValue
-	MinSizeByteValue        *Bytes
+	MinSizeBytes            *Bytes
 	MaxSize                 *units.Base2Bytes // TODO: deprecate in favor of MaxSizeByteValue
-	MaxSizeByteValue        *Bytes
+	MaxSizeBytes            *Bytes
 	PricePerGBHr            *currency.Amount
 	IsEphemeral             bool
 	IsAdditionalDisk        bool
@@ -24,10 +24,10 @@ type Storage struct {
 }
 
 type Disk struct {
-	Size          units.Base2Bytes // TODO: deprecate in favor of SizeByteValue
-	SizeByteValue Bytes
-	Type          string
-	MountPath     string
+	Size      units.Base2Bytes // TODO: deprecate in favor of SizeByteValue
+	SizeBytes Bytes
+	Type      string
+	MountPath string
 }
 
 type CloudResizeInstanceVolume interface {
@@ -37,6 +37,6 @@ type CloudResizeInstanceVolume interface {
 type ResizeInstanceVolumeArgs struct {
 	InstanceID        CloudProviderInstanceID
 	Size              units.Base2Bytes // TODO: deprecate in favor of SizeByteValue
-	SizeByteValue     Bytes
+	SizeBytes         Bytes
 	WaitForOptimizing bool
 }

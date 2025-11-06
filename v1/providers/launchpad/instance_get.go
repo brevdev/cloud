@@ -76,11 +76,11 @@ func launchpadDeploymentToInstance(deployment *openapi.Deployment) (v1.Instance,
 				ToPort:   2022,
 			},
 		},
-		DiskSize:          units.Base2Bytes(totalStorageSize) * units.GiB,
-		DiskSizeByteValue: v1.NewBytes(v1.BytesValue(totalStorageSize), v1.Gigabyte),
-		Location:          deployment.GetRegion(),
-		PublicDNS:         deployment.GetCluster().Cluster.GetPublicAddress(),
-		PublicIP:          deployment.GetCluster().Cluster.GetPublicAddress(),
+		DiskSize:      units.Base2Bytes(totalStorageSize) * units.GiB,
+		DiskSizeBytes: v1.NewBytes(v1.BytesValue(totalStorageSize), v1.Gigabyte),
+		Location:      deployment.GetRegion(),
+		PublicDNS:     deployment.GetCluster().Cluster.GetPublicAddress(),
+		PublicIP:      deployment.GetCluster().Cluster.GetPublicAddress(),
 	}
 
 	cluster := deployment.GetCluster().Cluster

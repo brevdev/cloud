@@ -65,7 +65,7 @@ type InstanceType struct {
 	ElasticRootVolume               bool
 	SupportedUsageClasses           []string
 	Memory                          units.Base2Bytes // TODO: deprecate in favor of MemoryByteValue
-	MemoryByteValue                 Bytes
+	MemoryBytes                     Bytes
 	MaximumNetworkInterfaces        int32
 	NetworkPerformance              string
 	SupportedNumCores               []int32
@@ -114,14 +114,14 @@ func MakeGenericInstanceTypeIDFromInstance(instance Instance) InstanceTypeID {
 }
 
 type GPU struct {
-	Count           int32
-	Memory          units.Base2Bytes // TODO: deprecate in favor of MemoryByteValue
-	MemoryByteValue Bytes
-	MemoryDetails   string // "", "HBM", "GDDR", "DDR", etc.
-	NetworkDetails  string // "PCIe", "SXM4", "SXM5", etc.
-	Manufacturer    Manufacturer
-	Name            string
-	Type            string
+	Count          int32
+	Memory         units.Base2Bytes // TODO: deprecate in favor of MemoryByteValue
+	MemoryBytes    Bytes
+	MemoryDetails  string // "", "HBM", "GDDR", "DDR", etc.
+	NetworkDetails string // "PCIe", "SXM4", "SXM5", etc.
+	Manufacturer   Manufacturer
+	Name           string
+	Type           string
 }
 
 type InstanceTypeQuota struct {
@@ -429,7 +429,7 @@ func ValidateStableInstanceTypeIDs(ctx context.Context, client CloudInstanceType
 
 		// Check that supported storage has price information
 		for i, storage := range instanceType.SupportedStorage {
-			if storage.MinSize != nil || storage.MinSizeByteValue != nil {
+			if storage.MinSize != nil || storage.MinSizeBytes != nil {
 				if storage.PricePerGBHr == nil {
 					return fmt.Errorf("instance type %s should have storage %d price", instanceType.ID, i)
 				}

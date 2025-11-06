@@ -82,14 +82,14 @@ func convertFluidStackInstanceTypeToV1InstanceType(location string, fsInstanceTy
 		}
 	}
 
-	var memoryByteValue v1.Bytes
+	var memoryBytes v1.Bytes
 	var ram units.Base2Bytes
 	if fsInstanceType.Memory != "" {
 		memoryStr := strings.TrimSuffix(fsInstanceType.Memory, "GB")
 		memoryStr = strings.TrimSpace(memoryStr)
 		if memoryGB, err := strconv.ParseFloat(memoryStr, 64); err == nil {
 			ram = units.Base2Bytes(memoryGB) * units.Gibibyte
-			memoryByteValue = v1.NewBytes(v1.BytesValue(memoryGB), v1.Gigabyte)
+			memoryBytes = v1.NewBytes(v1.BytesValue(memoryGB), v1.Gigabyte)
 		}
 	}
 
@@ -101,15 +101,15 @@ func convertFluidStackInstanceTypeToV1InstanceType(location string, fsInstanceTy
 	price, _ := currency.NewAmount("0", "USD")
 
 	return v1.InstanceType{
-		Type:            fsInstanceType.Name,
-		VCPU:            vcpus,
-		Memory:          ram,
-		MemoryByteValue: memoryByteValue,
-		SupportedGPUs:   gpus,
-		BasePrice:       &price,
-		IsAvailable:     isAvailable,
-		Location:        location,
-		Provider:        CloudProviderID,
-		Cloud:           CloudProviderID,
+		Type:          fsInstanceType.Name,
+		VCPU:          vcpus,
+		Memory:        ram,
+		MemoryBytes:   memoryBytes,
+		SupportedGPUs: gpus,
+		BasePrice:     &price,
+		IsAvailable:   isAvailable,
+		Location:      location,
+		Provider:      CloudProviderID,
+		Cloud:         CloudProviderID,
 	}
 }

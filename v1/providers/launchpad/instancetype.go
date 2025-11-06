@@ -204,7 +204,7 @@ func launchpadInstanceTypeToInstanceType(launchpadInstanceType openapi.InstanceT
 		Type:                   typeName,
 		VCPU:                   launchpadInstanceType.Cpu,
 		Memory:                 gbToBytes(launchpadInstanceType.MemoryGb),
-		MemoryByteValue:        v1.NewBytes(v1.BytesValue(launchpadInstanceType.MemoryGb), v1.Gigabyte),
+		MemoryBytes:            v1.NewBytes(v1.BytesValue(launchpadInstanceType.MemoryGb), v1.Gigabyte),
 		SupportedGPUs:          []v1.GPU{gpu},
 		SupportedStorage:       storage,
 		SupportedArchitectures: []v1.Architecture{launchpadArchitectureToArchitecture(launchpadInstanceType.SystemArch)},
@@ -243,10 +243,10 @@ func launchpadStorageToStorages(launchpadStorage []openapi.InstanceTypeStorage) 
 	storage := make([]v1.Storage, len(launchpadStorage))
 	for i, s := range launchpadStorage {
 		storage[i] = v1.Storage{
-			Count:         1,
-			Size:          gbToBytes(s.SizeGb),
-			SizeByteValue: v1.NewBytes(v1.BytesValue(s.SizeGb), v1.Gigabyte),
-			Type:          string(s.Type),
+			Count:     1,
+			Size:      gbToBytes(s.SizeGb),
+			SizeBytes: v1.NewBytes(v1.BytesValue(s.SizeGb), v1.Gigabyte),
+			Type:      string(s.Type),
 		}
 	}
 	return storage
@@ -259,13 +259,13 @@ func launchpadGpusToGpus(lpGpus []openapi.InstanceTypeGpu) []v1.GPU {
 	gpus := make([]v1.GPU, len(lpGpus))
 	for i, gp := range lpGpus {
 		gpus[i] = v1.GPU{
-			Name:            strings.ToUpper(gp.Family),
-			Manufacturer:    v1.GetManufacturer(gp.Manufacturer),
-			Count:           gp.Count,
-			Memory:          gbToBytes(gp.MemoryGb),
-			MemoryByteValue: v1.NewBytes(v1.BytesValue(int64(gp.MemoryGb)), v1.Gigabyte),
-			NetworkDetails:  string(gp.InterconnectionType),
-			Type:            strings.ToUpper(gp.Model),
+			Name:           strings.ToUpper(gp.Family),
+			Manufacturer:   v1.GetManufacturer(gp.Manufacturer),
+			Count:          gp.Count,
+			Memory:         gbToBytes(gp.MemoryGb),
+			MemoryBytes:    v1.NewBytes(v1.BytesValue(int64(gp.MemoryGb)), v1.Gigabyte),
+			NetworkDetails: string(gp.InterconnectionType),
+			Type:           strings.ToUpper(gp.Model),
 		}
 	}
 	return gpus
@@ -310,10 +310,10 @@ func launchpadClusterToInstanceType(cluster openapi.Cluster) *v1.InstanceType {
 		vcpu = *node.Cpu
 	}
 	var memory units.Base2Bytes
-	var memoryValueBytes v1.Bytes
+	var memoryBytes v1.Bytes
 	if node.Memory != nil {
 		memory = gbToBytes(*node.Memory)
-		memoryValueBytes = v1.NewBytes(v1.BytesValue(*node.Memory), v1.Gigabyte)
+		memoryBytes = v1.NewBytes(v1.BytesValue(*node.Memory), v1.Gigabyte)
 	}
 
 	isAvailable := (cluster.ProvisioningState != nil && *cluster.ProvisioningState == openapi.ProvisioningStateReady)
@@ -333,7 +333,7 @@ func launchpadClusterToInstanceType(cluster openapi.Cluster) *v1.InstanceType {
 		SupportedGPUs:    []v1.GPU{*gpu},
 		SupportedStorage: storage,
 		Memory:           memory,
-		MemoryByteValue:  memoryValueBytes,
+		MemoryBytes:      memoryBytes,
 		VCPU:             vcpu,
 		IsAvailable:      isAvailable,
 		Location:         location,
@@ -365,19 +365,19 @@ func launchpadGputoGpu(node openapi.Node) *v1.GPU {
 	}
 
 	var lpGpuMemory units.Base2Bytes
-	var lpGpuMemoryByteValue v1.Bytes
+	var lpGpuMemoryBytes v1.Bytes
 	if lpGpu.Memory != nil {
 		lpGpuMemory = gbToBytes(*lpGpu.Memory)
-		lpGpuMemoryByteValue = v1.NewBytes(v1.BytesValue(*lpGpu.Memory), v1.Gigabyte)
+		lpGpuMemoryBytes = v1.NewBytes(v1.BytesValue(*lpGpu.Memory), v1.Gigabyte)
 	}
 
 	gpu := &v1.GPU{
-		Name:            lpGpuModel,
-		Count:           lpGpuCount,
-		NetworkDetails:  lpGpuFormFactor,
-		Memory:          lpGpuMemory,
-		MemoryByteValue: lpGpuMemoryByteValue,
-		Manufacturer:    "NVIDIA", // The only supported manufacturer for Launchpad
+		Name:           lpGpuModel,
+		Count:          lpGpuCount,
+		NetworkDetails: lpGpuFormFactor,
+		Memory:         lpGpuMemory,
+		MemoryBytes:    lpGpuMemoryBytes,
+		Manufacturer:   "NVIDIA", // The only supported manufacturer for Launchpad
 	}
 	return gpu
 }
