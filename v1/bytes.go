@@ -1,59 +1,56 @@
 package v1
 
-var zeroBytes = byteValue{value: 0, unit: Byte}
+var zeroBytes = Bytes{value: 0, unit: Byte}
 
-// NewByteValue creates a new ByteValue with the given value and unit
-func NewByteValue(value int32, unit ByteUnit) ByteValue {
+// NewBytes creates a new Bytes with the given value and unit
+func NewBytes(value BytesValue, unit BytesUnit) Bytes {
 	if value < 0 {
 		return zeroBytes
 	}
-	return byteValue{
-		value: uint32(value),
+	return Bytes{
+		value: value,
 		unit:  unit,
 	}
 }
 
-// ByteValue is a value that represents a number of bytes
-type ByteValue interface {
-	// Value is the whole non-negative number of bytes of the specified unit
-	Value() uint32
+type (
+	BytesValue int64
+	BytesUnit  string
+)
 
-	// Unit is the unit of the byte value
-	Unit() ByteUnit
+// Bytes represents a number of some unit of bytes
+type Bytes struct {
+	value BytesValue
+	unit  BytesUnit
 }
 
-type byteValue struct {
-	value uint32
-	unit  ByteUnit
-}
-
-func (b byteValue) Value() uint32 {
+// Value is the whole non-negative number of bytes of the specified unit
+func (b Bytes) Value() BytesValue {
 	return b.value
 }
 
-func (b byteValue) Unit() ByteUnit {
+// Unit is the unit of the byte value
+func (b Bytes) Unit() BytesUnit {
 	return b.unit
 }
 
 // ByteUnit is a unit of measurement for bytes
-type ByteUnit string
-
 const (
-	Byte ByteUnit = "B"
+	Byte BytesUnit = "B"
 
 	// Base 10
-	Kilobyte ByteUnit = "KB"
-	Megabyte ByteUnit = "MB"
-	Gigabyte ByteUnit = "GB"
-	Terabyte ByteUnit = "TB"
-	Petabyte ByteUnit = "PB"
-	Exabyte  ByteUnit = "EB"
+	Kilobyte BytesUnit = "KB"
+	Megabyte BytesUnit = "MB"
+	Gigabyte BytesUnit = "GB"
+	Terabyte BytesUnit = "TB"
+	Petabyte BytesUnit = "PB"
+	Exabyte  BytesUnit = "EB"
 
 	// Base 2
-	Kibibyte ByteUnit = "KiB"
-	Mebibyte ByteUnit = "MiB"
-	Gibibyte ByteUnit = "GiB"
-	Tebibyte ByteUnit = "TiB"
-	Pebibyte ByteUnit = "PiB"
-	Exbibyte ByteUnit = "EiB"
+	Kibibyte BytesUnit = "KiB"
+	Mebibyte BytesUnit = "MiB"
+	Gibibyte BytesUnit = "GiB"
+	Tebibyte BytesUnit = "TiB"
+	Pebibyte BytesUnit = "PiB"
+	Exbibyte BytesUnit = "EiB"
 )

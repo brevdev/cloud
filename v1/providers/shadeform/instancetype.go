@@ -229,12 +229,12 @@ func (c *ShadeformClient) convertShadeformInstanceTypeToV1InstanceType(shadeform
 			Type:            instanceType,
 			VCPU:            shadeformInstanceType.Configuration.Vcpus,
 			Memory:          units.Base2Bytes(shadeformInstanceType.Configuration.MemoryInGb) * units.GiB,
-			MemoryByteValue: v1.NewByteValue(shadeformInstanceType.Configuration.MemoryInGb, v1.Gigabyte),
+			MemoryByteValue: v1.NewBytes(v1.BytesValue(shadeformInstanceType.Configuration.MemoryInGb), v1.Gigabyte),
 			SupportedGPUs: []v1.GPU{
 				{
 					Count:           shadeformInstanceType.Configuration.NumGpus,
 					Memory:          units.Base2Bytes(shadeformInstanceType.Configuration.VramPerGpuInGb) * units.GiB,
-					MemoryByteValue: v1.NewByteValue(shadeformInstanceType.Configuration.VramPerGpuInGb, v1.Gigabyte),
+					MemoryByteValue: v1.NewBytes(v1.BytesValue(shadeformInstanceType.Configuration.VramPerGpuInGb), v1.Gigabyte),
 					MemoryDetails:   "",
 					NetworkDetails:  shadeformInstanceType.Configuration.Interconnect,
 					Manufacturer:    gpuManufacturer,
@@ -247,7 +247,7 @@ func (c *ShadeformClient) convertShadeformInstanceTypeToV1InstanceType(shadeform
 					Type:          "ssd",
 					Count:         1,
 					Size:          units.Base2Bytes(shadeformInstanceType.Configuration.StorageInGb) * units.GiB,
-					SizeByteValue: v1.NewByteValue(shadeformInstanceType.Configuration.StorageInGb, v1.Gigabyte),
+					SizeByteValue: v1.NewBytes(v1.BytesValue(shadeformInstanceType.Configuration.StorageInGb), v1.Gigabyte),
 				},
 			},
 			SupportedArchitectures: []v1.Architecture{architecture},

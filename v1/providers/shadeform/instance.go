@@ -295,7 +295,7 @@ func (c *ShadeformClient) convertInstanceInfoResponseToV1Instance(ctx context.Co
 		InstanceType:      instanceType,
 		InstanceTypeID:    v1.InstanceTypeID(c.getInstanceTypeID(instanceType, instanceInfo.Region)),
 		DiskSize:          diskSize,
-		DiskSizeByteValue: v1.NewByteValue(instanceInfo.Configuration.StorageInGb, v1.Gigabyte),
+		DiskSizeByteValue: v1.NewBytes(v1.BytesValue(instanceInfo.Configuration.StorageInGb), v1.Gigabyte),
 		SSHUser:           instanceInfo.SshUser,
 		SSHPort:           int(instanceInfo.SshPort),
 		Status: v1.Status{

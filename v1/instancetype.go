@@ -65,7 +65,7 @@ type InstanceType struct {
 	ElasticRootVolume               bool
 	SupportedUsageClasses           []string
 	Memory                          units.Base2Bytes // TODO: deprecate in favor of MemoryByteValue
-	MemoryByteValue                 ByteValue
+	MemoryByteValue                 Bytes
 	MaximumNetworkInterfaces        int32
 	NetworkPerformance              string
 	SupportedNumCores               []int32
@@ -116,7 +116,7 @@ func MakeGenericInstanceTypeIDFromInstance(instance Instance) InstanceTypeID {
 type GPU struct {
 	Count           int32
 	Memory          units.Base2Bytes // TODO: deprecate in favor of MemoryByteValue
-	MemoryByteValue ByteValue
+	MemoryByteValue Bytes
 	MemoryDetails   string // "", "HBM", "GDDR", "DDR", etc.
 	NetworkDetails  string // "PCIe", "SXM4", "SXM5", etc.
 	Manufacturer    Manufacturer

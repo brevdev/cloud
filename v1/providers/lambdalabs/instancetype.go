@@ -132,7 +132,7 @@ func parseGPUFromDescription(input string) (v1.GPU, error) {
 		memoryGiB = math.MaxInt32
 	}
 	gpu.Memory = units.GiB * units.Base2Bytes(memoryGiB)
-	gpu.MemoryByteValue = v1.NewByteValue(int32(memoryGiB), v1.Gibibyte) //nolint:gosec // safe conversion
+	gpu.MemoryByteValue = v1.NewBytes(v1.BytesValue(memoryGiB), v1.Gibibyte)
 
 	// Extract the network details
 	networkRegex := regexp.MustCompile(`(\w+\s?)+\)`)
@@ -187,12 +187,12 @@ func convertLambdaLabsInstanceTypeToV1InstanceType(location string, instType ope
 				Type:          "ssd",
 				Count:         1,
 				Size:          units.GiB * units.Base2Bytes(instType.Specs.StorageGib),
-				SizeByteValue: v1.NewByteValue(instType.Specs.StorageGib, v1.Gibibyte),
+				SizeByteValue: v1.NewBytes(v1.BytesValue(instType.Specs.StorageGib), v1.Gibibyte),
 			},
 		},
 		SupportedUsageClasses:    []string{"on-demand"},
 		Memory:                   units.GiB * units.Base2Bytes(instType.Specs.MemoryGib),
-		MemoryByteValue:          v1.NewByteValue(instType.Specs.MemoryGib, v1.Gibibyte),
+		MemoryByteValue:          v1.NewBytes(v1.BytesValue(instType.Specs.MemoryGib), v1.Gibibyte),
 		MaximumNetworkInterfaces: 0,
 		NetworkPerformance:       "",
 		SupportedNumCores:        []int32{},

@@ -204,7 +204,7 @@ func launchpadInstanceTypeToInstanceType(launchpadInstanceType openapi.InstanceT
 		Type:                   typeName,
 		VCPU:                   launchpadInstanceType.Cpu,
 		Memory:                 gbToBytes(launchpadInstanceType.MemoryGb),
-		MemoryByteValue:        v1.NewByteValue(launchpadInstanceType.MemoryGb, v1.Gigabyte),
+		MemoryByteValue:        v1.NewBytes(v1.BytesValue(launchpadInstanceType.MemoryGb), v1.Gigabyte),
 		SupportedGPUs:          []v1.GPU{gpu},
 		SupportedStorage:       storage,
 		SupportedArchitectures: []v1.Architecture{launchpadArchitectureToArchitecture(launchpadInstanceType.SystemArch)},
@@ -245,7 +245,7 @@ func launchpadStorageToStorages(launchpadStorage []openapi.InstanceTypeStorage) 
 		storage[i] = v1.Storage{
 			Count:         1,
 			Size:          gbToBytes(s.SizeGb),
-			SizeByteValue: v1.NewByteValue(s.SizeGb, v1.Gigabyte),
+			SizeByteValue: v1.NewBytes(v1.BytesValue(s.SizeGb), v1.Gigabyte),
 			Type:          string(s.Type),
 		}
 	}
@@ -263,7 +263,7 @@ func launchpadGpusToGpus(lpGpus []openapi.InstanceTypeGpu) []v1.GPU {
 			Manufacturer:    v1.GetManufacturer(gp.Manufacturer),
 			Count:           gp.Count,
 			Memory:          gbToBytes(gp.MemoryGb),
-			MemoryByteValue: v1.NewByteValue(gp.MemoryGb, v1.Gigabyte),
+			MemoryByteValue: v1.NewBytes(v1.BytesValue(int64(gp.MemoryGb)), v1.Gigabyte),
 			NetworkDetails:  string(gp.InterconnectionType),
 			Type:            strings.ToUpper(gp.Model),
 		}
@@ -310,10 +310,10 @@ func launchpadClusterToInstanceType(cluster openapi.Cluster) *v1.InstanceType {
 		vcpu = *node.Cpu
 	}
 	var memory units.Base2Bytes
-	var memoryValueBytes v1.ByteValue
+	var memoryValueBytes v1.Bytes
 	if node.Memory != nil {
 		memory = gbToBytes(*node.Memory)
-		memoryValueBytes = v1.NewByteValue(*node.Memory, v1.Gigabyte)
+		memoryValueBytes = v1.NewBytes(v1.BytesValue(*node.Memory), v1.Gigabyte)
 	}
 
 	isAvailable := (cluster.ProvisioningState != nil && *cluster.ProvisioningState == openapi.ProvisioningStateReady)
@@ -365,10 +365,10 @@ func launchpadGputoGpu(node openapi.Node) *v1.GPU {
 	}
 
 	var lpGpuMemory units.Base2Bytes
-	var lpGpuMemoryByteValue v1.ByteValue
+	var lpGpuMemoryByteValue v1.Bytes
 	if lpGpu.Memory != nil {
 		lpGpuMemory = gbToBytes(*lpGpu.Memory)
-		lpGpuMemoryByteValue = v1.NewByteValue(*lpGpu.Memory, v1.Gigabyte)
+		lpGpuMemoryByteValue = v1.NewBytes(v1.BytesValue(*lpGpu.Memory), v1.Gigabyte)
 	}
 
 	gpu := &v1.GPU{
