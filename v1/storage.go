@@ -13,9 +13,9 @@ type Storage struct {
 	SizeByteValue           ByteValue
 	Type                    string
 	MinSize                 *units.Base2Bytes // TODO: deprecate in favor of MinSizeByteValue
-	MinSizeByteValue        *ByteValue
+	MinSizeByteValue        ByteValue
 	MaxSize                 *units.Base2Bytes // TODO: deprecate in favor of MaxSizeByteValue
-	MaxSizeByteValue        *ByteValue
+	MaxSizeByteValue        ByteValue
 	PricePerGBHr            *currency.Amount
 	IsEphemeral             bool
 	IsAdditionalDisk        bool
