@@ -9,7 +9,7 @@ import (
 
 	"github.com/alecthomas/units"
 	"github.com/bojanz/currency"
-	"github.com/brevdev/cloud/v1"
+	v1 "github.com/brevdev/cloud/v1"
 	openapi "github.com/brevdev/cloud/v1/providers/fluidstack/gen/fluidstack"
 )
 
@@ -82,12 +82,14 @@ func convertFluidStackInstanceTypeToV1InstanceType(location string, fsInstanceTy
 		}
 	}
 
+	var memoryBytes v1.Bytes
 	var ram units.Base2Bytes
 	if fsInstanceType.Memory != "" {
 		memoryStr := strings.TrimSuffix(fsInstanceType.Memory, "GB")
 		memoryStr = strings.TrimSpace(memoryStr)
 		if memoryGB, err := strconv.ParseFloat(memoryStr, 64); err == nil {
 			ram = units.Base2Bytes(memoryGB) * units.Gibibyte
+			memoryBytes = v1.NewBytes(v1.BytesValue(memoryGB), v1.Gigabyte)
 		}
 	}
 
@@ -102,6 +104,7 @@ func convertFluidStackInstanceTypeToV1InstanceType(location string, fsInstanceTy
 		Type:          fsInstanceType.Name,
 		VCPU:          vcpus,
 		Memory:        ram,
+		MemoryBytes:   memoryBytes,
 		SupportedGPUs: gpus,
 		BasePrice:     &price,
 		IsAvailable:   isAvailable,

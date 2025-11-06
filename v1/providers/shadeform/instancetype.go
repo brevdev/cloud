@@ -225,14 +225,16 @@ func (c *ShadeformClient) convertShadeformInstanceTypeToV1InstanceType(shadeform
 
 	for _, region := range shadeformInstanceType.Availability {
 		instanceTypes = append(instanceTypes, v1.InstanceType{
-			ID:     v1.InstanceTypeID(c.getInstanceTypeID(instanceType, region.Region)),
-			Type:   instanceType,
-			VCPU:   shadeformInstanceType.Configuration.Vcpus,
-			Memory: units.Base2Bytes(shadeformInstanceType.Configuration.MemoryInGb) * units.GiB,
+			ID:          v1.InstanceTypeID(c.getInstanceTypeID(instanceType, region.Region)),
+			Type:        instanceType,
+			VCPU:        shadeformInstanceType.Configuration.Vcpus,
+			Memory:      units.Base2Bytes(shadeformInstanceType.Configuration.MemoryInGb) * units.GiB,
+			MemoryBytes: v1.NewBytes(v1.BytesValue(shadeformInstanceType.Configuration.MemoryInGb), v1.Gigabyte),
 			SupportedGPUs: []v1.GPU{
 				{
 					Count:          shadeformInstanceType.Configuration.NumGpus,
 					Memory:         units.Base2Bytes(shadeformInstanceType.Configuration.VramPerGpuInGb) * units.GiB,
+					MemoryBytes:    v1.NewBytes(v1.BytesValue(shadeformInstanceType.Configuration.VramPerGpuInGb), v1.Gigabyte),
 					MemoryDetails:  "",
 					NetworkDetails: shadeformInstanceType.Configuration.Interconnect,
 					Manufacturer:   gpuManufacturer,
@@ -242,9 +244,10 @@ func (c *ShadeformClient) convertShadeformInstanceTypeToV1InstanceType(shadeform
 			},
 			SupportedStorage: []v1.Storage{ // TODO: add storage (look in configuration)
 				{
-					Type:  "ssd",
-					Count: 1,
-					Size:  units.Base2Bytes(shadeformInstanceType.Configuration.StorageInGb) * units.GiB,
+					Type:      "ssd",
+					Count:     1,
+					Size:      units.Base2Bytes(shadeformInstanceType.Configuration.StorageInGb) * units.GiB,
+					SizeBytes: v1.NewBytes(v1.BytesValue(shadeformInstanceType.Configuration.StorageInGb), v1.Gigabyte),
 				},
 			},
 			SupportedArchitectures: []v1.Architecture{architecture},

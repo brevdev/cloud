@@ -195,7 +195,8 @@ type Instance struct {
 	Hostname                        string
 	ImageID                         string
 	InstanceType                    string
-	DiskSize                        units.Base2Bytes
+	DiskSize                        units.Base2Bytes // TODO: deprecate in favor of DiskSizeByteValue
+	DiskSizeBytes                   Bytes
 	VolumeType                      string
 	PubKeyFingerprint               string
 	SSHUser                         string
@@ -274,7 +275,8 @@ type CreateInstanceAttrs struct {
 	ImageID              string
 	InstanceType         string
 	UserDataBase64       string
-	DiskSize             units.Base2Bytes
+	DiskSize             units.Base2Bytes // TODO: deprecate in favor of DiskSizeByteValue
+	DiskSizeBytes        Bytes
 	Tags                 Tags
 	FirewallRules        FirewallRules
 	UseSpot              bool
