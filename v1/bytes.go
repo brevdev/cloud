@@ -1,25 +1,41 @@
 package v1
 
-var zeroBytes = ByteValue{value: 0, unit: Byte}
+var zeroBytes = byteValue{value: 0, unit: Byte}
 
-type ByteValue struct {
-	// Value is the whole non-negative number of bytes of the specified unit
-	value uint32
-
-	// Unit is the unit of the byte value
-	unit ByteUnit
-}
-
+// NewByteValue creates a new ByteValue with the given value and unit
 func NewByteValue(value int32, unit ByteUnit) ByteValue {
 	if value < 0 {
 		return zeroBytes
 	}
-	return ByteValue{
+	return byteValue{
 		value: uint32(value),
 		unit:  unit,
 	}
 }
 
+// ByteValue is a value that represents a number of bytes
+type ByteValue interface {
+	// Value is the whole non-negative number of bytes of the specified unit
+	Value() uint32
+
+	// Unit is the unit of the byte value
+	Unit() ByteUnit
+}
+
+type byteValue struct {
+	value uint32
+	unit  ByteUnit
+}
+
+func (b byteValue) Value() uint32 {
+	return b.value
+}
+
+func (b byteValue) Unit() ByteUnit {
+	return b.unit
+}
+
+// ByteUnit is a unit of measurement for bytes
 type ByteUnit string
 
 const (
