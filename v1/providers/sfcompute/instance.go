@@ -105,7 +105,17 @@ func (c *SFCClient) ListInstances(ctx context.Context, args v1.ListInstancesArgs
 }
 
 func (c *SFCClient) TerminateInstance(ctx context.Context, id v1.CloudProviderInstanceID) error {
-	return fmt.Errorf("not implemented")
+	// release the node first
+	_, errRelease := c.client.Nodes.Release(ctx, string(id))
+	if errRelease != nil {
+		panic(errRelease.Error())
+	}
+	// then delete the node
+	errDelete := c.client.Nodes.Delete(ctx, string(id))
+	if errDelete != nil {
+		panic(errDelete.Error())
+	}
+	return nil
 }
 
 // Optional if supported:
