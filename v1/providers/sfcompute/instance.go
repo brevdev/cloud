@@ -107,7 +107,22 @@ func (c *SFCClient) GetInstance(ctx context.Context, id v1.CloudProviderInstance
 }
 
 func (c *SFCClient) ListInstances(ctx context.Context, args v1.ListInstancesArgs) ([]v1.Instance, error) {
-	return nil, fmt.Errorf("not implemented")
+	resp, err := c.client.Nodes.List(ctx, sfcnodes.NodeListParams{})
+	if err != nil {
+		return nil, err
+	}
+
+	var instances []v1.Instance
+	for _, node := range resp.Data {
+		inst, err := c.GetInstance(ctx, v1.CloudProviderInstanceID(node.ID))
+		if err != nil {
+			return nil, err
+		}
+		if inst != nil {
+			instances = append(instances, *inst)
+		}
+	}
+	return instances, nil
 }
 
 func (c *SFCClient) TerminateInstance(ctx context.Context, id v1.CloudProviderInstanceID) error {
