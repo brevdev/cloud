@@ -3,15 +3,15 @@ name: Shadeform Validation Tests
 on:
   schedule:
     # Run daily at 2 AM UTC
-    - cron: "0 2 * * *"
+    - cron: '0 2 * * *'
   workflow_dispatch:
   # Allow manual triggering
   pull_request:
     paths:
-      - "v1/providers/shadeform/**"
-      - "internal/validation/**"
-      - "v1/**"
-    branches: [main]
+      - 'v1/providers/shadeform/**'
+      - 'internal/validation/**'
+      - 'v1/**'
+    branches: [ main ]
 
 jobs:
   shadeform-validation:
@@ -25,7 +25,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version-file: "go.mod"
+          go-version-file: 'go.mod'
 
       - name: Cache Go modules
         uses: actions/cache@v4
