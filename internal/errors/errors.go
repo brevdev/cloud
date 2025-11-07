@@ -120,11 +120,7 @@ func CombineByString(err error) error {
 			mapEList = append(mapEList, e)
 		}
 	}
-	errsOut := make([]error, 0, len(mapE))
-	for _, e := range mapEList {
-		errsOut = append(errsOut, e)
-	}
-	return Join(errsOut...)
+	return Join(mapEList...)
 }
 
 var Is = stderrors.Is

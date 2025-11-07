@@ -87,6 +87,7 @@ func ValidateListCreatedInstance(ctx context.Context, client CloudCreateTerminat
 	})
 	if foundInstance == nil {
 		validationErr = errors.Join(validationErr, fmt.Errorf("instance not found: %s", i.CloudID))
+		return validationErr
 	}
 	if foundInstance.Location != i.Location { //nolint:gocritic // fine
 		validationErr = errors.Join(validationErr, fmt.Errorf("location mismatch: %s != %s", foundInstance.Location, i.Location))
