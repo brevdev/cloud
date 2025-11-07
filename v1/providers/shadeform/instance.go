@@ -118,7 +118,7 @@ func (c *ShadeformClient) CreateInstance(ctx context.Context, attrs v1.CreateIns
 		defer func() { _ = httpResp.Body.Close() }()
 	}
 	if err != nil {
-		return nil, handleShadeformAPIErrorResponse(httpResp)
+		return nil, errors.WrapAndTrace(fmt.Errorf("failed to create instance: %w", handleShadeformAPIErrorResponse(httpResp)))
 	}
 	if resp == nil {
 		return nil, errors.WrapAndTrace(fmt.Errorf("no instance returned from create request"))

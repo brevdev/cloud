@@ -204,7 +204,7 @@ func TestOutOfStockError(t *testing.T) {
 	if err == nil {
 		t.Fatalf("ValidateCreateInstance failed: Should have resulted in an insufficientResourcesError")
 	}
-	require.True(t, err.Error() == v1.ErrInsufficientResources.Error(), "Error must be ErrInsufficientResources")
+	require.True(t, errors.Is(err, v1.ErrInsufficientResources), "Error must be ErrInsufficientResources")
 }
 
 func checkSkip(t *testing.T) {
