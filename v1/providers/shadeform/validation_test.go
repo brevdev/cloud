@@ -2,11 +2,16 @@ package v1
 
 import (
 	"context"
-	"github.com/brevdev/cloud/internal/validation"
-	openapi "github.com/brevdev/cloud/v1/providers/shadeform/gen/shadeform"
+	"errors"
+	"io"
+	"net/http"
 	"os"
+	"strings"
 	"testing"
 	"time"
+
+	"github.com/brevdev/cloud/internal/validation"
+	openapi "github.com/brevdev/cloud/v1/providers/shadeform/gen/shadeform"
 
 	"github.com/brevdev/cloud/internal/ssh"
 	v1 "github.com/brevdev/cloud/v1"
@@ -116,6 +121,37 @@ func TestInstanceTypeFilter(t *testing.T) {
 		err := v1.ValidateTerminateInstance(ctx, client, instance)
 		require.NoError(t, err, "ValidateTerminateInstance should pass")
 	})
+}
+
+func TestHandleShadeformAPIErrorResponse(t *testing.T) {
+	tests := []struct {
+		name          string
+		httpResp      *http.Response
+		expectedError error
+	}{
+		{
+			name:          "OutOfStockError",
+			httpResp:      &http.Response{StatusCode: http.StatusConflict, Body: io.NopCloser(strings.NewReader(`{"error_code": "OUT_OF_STOCK", "error": "Out of stock"}`))},
+			expectedError: v1.ErrInsufficientResources,
+		},
+		{
+			name:          "OtherShadeformError",
+			httpResp:      &http.Response{StatusCode: http.StatusConflict, Body: io.NopCloser(strings.NewReader(`{"error_code": "INTERNAL_SERVER_ERROR", "error": "Internal server error"}`))},
+			expectedError: errors.New(`shadeform API error: error code: INTERNAL_SERVER_ERROR, error: Internal server error`),
+		},
+		{
+			name:          "OtherHTTPError",
+			httpResp:      &http.Response{StatusCode: http.StatusInternalServerError, Body: io.NopCloser(strings.NewReader("error"))},
+			expectedError: errors.New("shadeform HTTP error: [500], error"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := handleShadeformAPIErrorResponse(tt.httpResp)
+			require.Contains(t, err.Error(), tt.expectedError.Error())
+		})
+	}
 }
 
 func TestOutOfStockError(t *testing.T) {
