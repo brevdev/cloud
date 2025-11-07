@@ -127,10 +127,7 @@ func buildEnumVarnames(nodeName string, enumNode *yaml.Node) []*yaml.Node {
 	}
 
 	// Use the enum node name as the prefix for the enum values (removing the "Enum" suffix if it exists)
-	prefix := nodeName
-	if strings.HasSuffix(prefix, "Enum") {
-		prefix = prefix[:len(prefix)-4]
-	}
+	prefix := strings.TrimSuffix(nodeName, "Enum")
 
 	// Create the enum nodes
 	enumNodes := make([]*yaml.Node, 0, len(enumValues))
@@ -285,7 +282,7 @@ func AddOneOfEntries(yamlNode *yaml.Node) error { //nolint:gocyclo // readabilit
 			}
 
 			var oneOfNode *yaml.Node
-			if nodeType.Value == "string" {
+			if nodeType.Value == "string" { //nolint:staticcheck // if statement is preferable
 				// If the node is a string, convert it to a oneOf entry
 				oneOfNode = convertStringToOneOf(key, val)
 			} else if nodeType.Value == "array" {
