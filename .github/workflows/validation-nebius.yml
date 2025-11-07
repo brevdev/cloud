@@ -43,7 +43,7 @@ jobs:
             - name: Run Nebius validation tests
               env:
                   NEBIUS_PUBLIC_KEY_ID: ${{ secrets.NEBIUS_PUBLIC_KEY_ID }}
-                  NEBIUS_PRIVATE_KEY_PEM_BASE64: ${{ secrets.NEBIUS_SERVICE_ACCOUNT_ID }}
+                  NEBIUS_PRIVATE_KEY_PEM_BASE64: ${{ secrets.NEBIUS_PRIVATE_KEY_PEM_BASE64 }}
                   NEBIUS_SERVICE_ACCOUNT_ID: ${{ secrets.NEBIUS_SERVICE_ACCOUNT_ID }}
                   NEBIUS_PROJECT_ID: ${{ secrets.NEBIUS_PROJECT_ID }}
                   TEST_USER_PRIVATE_KEY_PEM_BASE64: ${{ secrets.TEST_USER_PRIVATE_KEY_PEM_BASE64 }}

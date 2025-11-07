@@ -11,8 +11,8 @@ import (
 
 var (
 	isValidationTest = os.Getenv("VALIDATION_TEST")
-	accessKeyID     = os.Getenv("AWS_ACCESS_KEY_ID")
-	secretAccessKey = os.Getenv("AWS_SECRET_ACCESS_KEY")
+	accessKeyID      = os.Getenv("AWS_ACCESS_KEY_ID")
+	secretAccessKey  = os.Getenv("AWS_SECRET_ACCESS_KEY")
 )
 
 func TestAWSNetworkValidation(t *testing.T) {
