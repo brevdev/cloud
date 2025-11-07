@@ -40,13 +40,6 @@ func TestCreateVPC(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get VPC: %v", err)
 	}
-
-	// err = awsClient.DeleteVPC(context.Background(), v1.DeleteVPCArgs{
-	// 	ID: vpc.ID,
-	// })
-	// if err != nil {
-	// 	t.Fatalf("failed to delete VPC: %v", err)
-	// }
 }
 
 func TestDeleteVPC(t *testing.T) {

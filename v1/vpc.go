@@ -9,6 +9,9 @@ import (
 
 // VPC represents the complete specification of a Brev VPC.
 type VPC struct {
+	// The ID assigned by the cloud provider to the VPC.
+	id CloudProviderResourceID
+
 	// The name of the VPC, displayed on clients.
 	name string
 
@@ -21,9 +24,6 @@ type VPC struct {
 
 	// The cloud that hosts the VPC. For example, "aws".
 	cloud string
-
-	// The ID assigned by the cloud provider to the VPC.
-	id CloudProviderResourceID
 
 	// The location of the VPC. For example, "us-east-1".
 	location string
