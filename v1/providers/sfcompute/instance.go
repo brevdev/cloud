@@ -71,6 +71,7 @@ func (c *SFCClient) CreateInstance(ctx context.Context, attrs v1.CreateInstanceA
 		CreatedAt:      time.Now(),
 		Status:         v1.Status{LifecycleStatus: mapSFCStatus(fmt.Sprint(node.Status))}, // map SDK status to our lifecycle
 		InstanceTypeID: v1.InstanceTypeID(node.GPUType),
+		SSHPort:        2222, // we use 2222/tcp for all of our SSH ports
 	}
 
 	return inst, nil
