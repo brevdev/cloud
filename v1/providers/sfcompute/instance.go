@@ -41,14 +41,6 @@ func mapSFCStatus(s string) v1.LifecycleStatus {
 	}
 }
 
-func (c *SFCClient) GetSSHHostname(ctx context.Context, id v1.CloudProviderInstanceID) (string, error) {
-	ssh, err := c.client.VMs.SSH(ctx, sfcnodes.VMSSHParams{VMID: string(id)})
-	if err != nil {
-		panic(err.Error())
-	}
-	return ssh.SSHHostname, nil
-}
-
 func (c *SFCClient) CreateInstance(ctx context.Context, attrs v1.CreateInstanceAttrs) (*v1.Instance, error) {
 	resp, err := c.client.Nodes.New(ctx, sfcnodes.NodeNewParams{
 		CreateNodesRequest: sfcnodes.CreateNodesRequestParam{
