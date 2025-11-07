@@ -2,8 +2,10 @@ package v1
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
 	"strings"
 
 	"github.com/alecthomas/units"
@@ -19,7 +21,13 @@ const (
 	cloudCredRefIDTagName = "cloudCredRefID" //nolint:gosec // not a secret
 	instanceNameFormat    = "%v_%v"
 	instanceNameSeparator = "_"
+	outOfStockErrorCode   = "OUT_OF_STOCK"
 )
+
+type DefaultErrorResponse struct {
+	ErrorCode string `json:"error_code"`
+	Error     string `json:"error"`
+}
 
 func (c *ShadeformClient) CreateInstance(ctx context.Context, attrs v1.CreateInstanceAttrs) (*v1.Instance, error) { //nolint:gocyclo,funlen // ok
 	authCtx := c.makeAuthContext(ctx)
@@ -110,10 +118,8 @@ func (c *ShadeformClient) CreateInstance(ctx context.Context, attrs v1.CreateIns
 		defer func() { _ = httpResp.Body.Close() }()
 	}
 	if err != nil {
-		httpMessage, _ := io.ReadAll(httpResp.Body)
-		return nil, errors.WrapAndTrace(fmt.Errorf("failed to create instance: %w, %s", err, string(httpMessage)))
+		return nil, errors.WrapAndTrace(fmt.Errorf("failed to create instance: %w", handleShadeformAPIErrorResponse(httpResp)))
 	}
-
 	if resp == nil {
 		return nil, errors.WrapAndTrace(fmt.Errorf("no instance returned from create request"))
 	}
@@ -126,6 +132,36 @@ func (c *ShadeformClient) CreateInstance(ctx context.Context, attrs v1.CreateIns
 	}
 
 	return createdInstance, nil
+}
+
+func handleShadeformAPIErrorResponse(httpResp *http.Response) error {
+	// Read the details of the API response
+	httpStatusCode := httpResp.StatusCode
+	httpMessageBytes, err := io.ReadAll(httpResp.Body)
+	if err != nil {
+		return errors.WrapAndTrace(fmt.Errorf("failed to read shadeform API response body: %w", err))
+	}
+
+	// Most well-structured errors are 409, so handle these as a special case
+	if httpStatusCode == http.StatusConflict {
+		// Unmarshal the response body into a Shadeform DefaultErrorResponse
+		var shadeformErrorResponse DefaultErrorResponse
+		err = json.Unmarshal(httpMessageBytes, &shadeformErrorResponse)
+		if err != nil {
+			return errors.WrapAndTrace(fmt.Errorf("failed to unmarshal shadeform API response body: %w", err))
+		}
+
+		// Handle Shadeform specific errors and attempt to translate them into Brev errors
+		if shadeformErrorResponse.ErrorCode == outOfStockErrorCode {
+			return v1.ErrInsufficientResources
+		} else {
+			// For all other error codes, return the error object from the API response
+			return errors.WrapAndTrace(fmt.Errorf("shadeform API error: error code: %v, error: %v", shadeformErrorResponse.ErrorCode, shadeformErrorResponse.Error))
+		}
+	}
+
+	// For all other HTTP status codes, return the status code and body
+	return errors.WrapAndTrace(fmt.Errorf("shadeform HTTP error: [%d], %s", httpStatusCode, string(httpMessageBytes)))
 }
 
 func (c *ShadeformClient) getInstanceNameForShadeform(refID string, providedName string) string {
