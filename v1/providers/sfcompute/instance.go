@@ -90,8 +90,13 @@ func (c *SFCClient) GetInstance(ctx context.Context, id v1.CloudProviderInstance
 	if err != nil {
 		panic(err.Error())
 	}
+	var vmID string
+	if len(node.VMs.Data) > 0 {
+		vmID = node.VMs.Data[0].ID
+		fmt.Println(vmID)
+	}
 
-	ssh, err := c.client.VMs.SSH(ctx, sfcnodes.VMSSHParams{VMID: string(id)})
+	ssh, err := c.client.VMs.SSH(ctx, sfcnodes.VMSSHParams{VMID: vmID})
 	if err != nil {
 		panic(err.Error())
 	}
