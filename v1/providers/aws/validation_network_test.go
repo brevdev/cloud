@@ -10,11 +10,16 @@ import (
 )
 
 var (
+	isValidationTest = os.Getenv("VALIDATION_TEST")
 	accessKeyID     = os.Getenv("AWS_ACCESS_KEY_ID")
 	secretAccessKey = os.Getenv("AWS_SECRET_ACCESS_KEY")
 )
 
 func TestAWSNetworkValidation(t *testing.T) {
+	if isValidationTest == "" {
+		t.Skip("VALIDATION_TEST is not set, skipping AWS Network validation tests")
+	}
+
 	if accessKeyID == "" || secretAccessKey == "" {
 		t.Fatalf("AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY must be set")
 	}

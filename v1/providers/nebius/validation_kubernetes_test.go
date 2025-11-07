@@ -11,6 +11,10 @@ import (
 )
 
 func TestKubernetesValidation(t *testing.T) {
+	if isValidationTest == "" {
+		t.Skip("VALIDATION_TEST is not set, skipping Nebius Kubernetes validation tests")
+	}
+
 	testUserPrivateKeyPEMBase64 := os.Getenv("TEST_USER_PRIVATE_KEY_PEM_BASE64")
 
 	if privateKeyPEMBase64 == "" || publicKeyID == "" || serviceAccountID == "" || projectID == "" {
