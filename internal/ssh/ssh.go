@@ -357,7 +357,7 @@ func doWithTimeout(ctx context.Context, fn func(context.Context) error) error {
 
 func waitForSSH(ctx context.Context, errChan chan error, c ConnectionConfig, options WaitForSSHOptions) {
 	for ctx.Err() == nil {
-		_ = <-errChan
+		<-errChan
 		tryCtx, cancel := context.WithTimeout(ctx, options.ConnectionTimeout)
 		sshErr := TrySSHConnect(tryCtx, c, options)
 		cancel()

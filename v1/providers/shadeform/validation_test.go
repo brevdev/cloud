@@ -2,14 +2,19 @@ package v1
 
 import (
 	"context"
+	"errors"
+	"io"
+	"net/http"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
-	"github.com/brevdev/cloud/internal/ssh"
 	"github.com/brevdev/cloud/internal/validation"
-	v1 "github.com/brevdev/cloud/v1"
 	openapi "github.com/brevdev/cloud/v1/providers/shadeform/gen/shadeform"
+
+	"github.com/brevdev/cloud/internal/ssh"
+	v1 "github.com/brevdev/cloud/v1"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 )
@@ -116,6 +121,90 @@ func TestInstanceTypeFilter(t *testing.T) {
 		err := v1.ValidateTerminateInstance(ctx, client, instance)
 		require.NoError(t, err, "ValidateTerminateInstance should pass")
 	})
+}
+
+func TestHandleShadeformAPIErrorResponse(t *testing.T) {
+	tests := []struct {
+		name          string
+		httpResp      *http.Response
+		expectedError error
+	}{
+		{
+			name:          "OutOfStockError",
+			httpResp:      &http.Response{StatusCode: http.StatusConflict, Body: io.NopCloser(strings.NewReader(`{"error_code": "OUT_OF_STOCK", "error": "Out of stock"}`))},
+			expectedError: v1.ErrInsufficientResources,
+		},
+		{
+			name:          "OtherShadeformError",
+			httpResp:      &http.Response{StatusCode: http.StatusConflict, Body: io.NopCloser(strings.NewReader(`{"error_code": "INTERNAL_SERVER_ERROR", "error": "Internal server error"}`))},
+			expectedError: errors.New(`shadeform API error: error code: INTERNAL_SERVER_ERROR, error: Internal server error`),
+		},
+		{
+			name:          "OtherHTTPError",
+			httpResp:      &http.Response{StatusCode: http.StatusInternalServerError, Body: io.NopCloser(strings.NewReader("error"))},
+			expectedError: errors.New("shadeform HTTP error: [500], error"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := handleShadeformAPIErrorResponse(tt.httpResp)
+			require.Contains(t, err.Error(), tt.expectedError.Error())
+		})
+	}
+}
+
+func TestOutOfStockError(t *testing.T) {
+	checkSkip(t)
+	apiKey := getAPIKey()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
+	t.Cleanup(cancel)
+
+	client := NewShadeformClient("validation-test", apiKey)
+	client.WithConfiguration(Configuration{})
+
+	_, err := client.CreateInstance(ctx, v1.CreateInstanceAttrs{
+		RefID:        uuid.New().String(),
+		InstanceType: "datacrunch_H200x8",
+		Location:     "abc123", // Put a region that is not valid
+		PublicKey:    ssh.GetTestPublicKey(),
+		Name:         "test_name",
+		FirewallRules: v1.FirewallRules{
+			EgressRules: []v1.FirewallRule{
+				{
+					ID:       "test-rule1",
+					FromPort: 80,
+					ToPort:   8080,
+					IPRanges: []string{"127.0.0.1", "10.0.0.0/24"},
+				},
+				{
+					ID:       "test-rule2",
+					FromPort: 5432,
+					ToPort:   5432,
+					IPRanges: []string{"127.0.0.1", "10.0.0.0/24"},
+				},
+			},
+			IngressRules: []v1.FirewallRule{
+				{
+					ID:       "test-rule3",
+					FromPort: 80,
+					ToPort:   8080,
+					IPRanges: []string{"127.0.0.1", "10.0.0.0/24"},
+				},
+				{
+					ID:       "test-rule4",
+					FromPort: 5432,
+					ToPort:   5432,
+					IPRanges: []string{"127.0.0.1", "10.0.0.0/24"},
+				},
+			},
+		},
+	})
+	if err == nil {
+		t.Fatalf("ValidateCreateInstance failed: Should have resulted in an insufficientResourcesError")
+	}
+	require.True(t, errors.Is(err, v1.ErrInsufficientResources), "Error must be ErrInsufficientResources")
 }
 
 func checkSkip(t *testing.T) {

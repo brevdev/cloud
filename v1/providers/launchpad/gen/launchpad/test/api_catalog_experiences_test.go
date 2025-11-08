@@ -22,108 +22,108 @@ func Test_openapi_CatalogExperiencesAPIService(t *testing.T) {
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
 
-	t.Run("Test CatalogExperiencesAPIService CatalogExperiencesBulkCreate", func(t *testing.T) {
+	t.Run("Test CatalogExperiencesAPIService V1CatalogExperiencesBulkCreate", func(t *testing.T) {
 		t.Skip("skip test") // remove to run test
 
-		resp, httpRes, err := apiClient.CatalogExperiencesAPI.CatalogExperiencesBulkCreate(context.Background()).Execute()
+		resp, httpRes, err := apiClient.CatalogExperiencesAPI.V1CatalogExperiencesBulkCreate(context.Background()).Execute()
 
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
 	})
 
-	t.Run("Test CatalogExperiencesAPIService CatalogExperiencesBulkPartialUpdate", func(t *testing.T) {
+	t.Run("Test CatalogExperiencesAPIService V1CatalogExperiencesBulkPartialUpdate", func(t *testing.T) {
 		t.Skip("skip test") // remove to run test
 
-		resp, httpRes, err := apiClient.CatalogExperiencesAPI.CatalogExperiencesBulkPartialUpdate(context.Background()).Execute()
+		resp, httpRes, err := apiClient.CatalogExperiencesAPI.V1CatalogExperiencesBulkPartialUpdate(context.Background()).Execute()
 
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
 	})
 
-	t.Run("Test CatalogExperiencesAPIService CatalogExperiencesCreate", func(t *testing.T) {
+	t.Run("Test CatalogExperiencesAPIService V1CatalogExperiencesCreate", func(t *testing.T) {
 		t.Skip("skip test") // remove to run test
 
-		resp, httpRes, err := apiClient.CatalogExperiencesAPI.CatalogExperiencesCreate(context.Background()).Execute()
+		resp, httpRes, err := apiClient.CatalogExperiencesAPI.V1CatalogExperiencesCreate(context.Background()).Execute()
 
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
 	})
 
-	t.Run("Test CatalogExperiencesAPIService CatalogExperiencesDestroy", func(t *testing.T) {
+	t.Run("Test CatalogExperiencesAPIService V1CatalogExperiencesDestroy", func(t *testing.T) {
 		t.Skip("skip test") // remove to run test
 
 		var id string
 
-		httpRes, err := apiClient.CatalogExperiencesAPI.CatalogExperiencesDestroy(context.Background(), id).Execute()
+		httpRes, err := apiClient.CatalogExperiencesAPI.V1CatalogExperiencesDestroy(context.Background(), id).Execute()
 
 		require.Nil(t, err)
 		assert.Equal(t, 200, httpRes.StatusCode)
 	})
 
-	t.Run("Test CatalogExperiencesAPIService CatalogExperiencesHistoryList", func(t *testing.T) {
+	t.Run("Test CatalogExperiencesAPIService V1CatalogExperiencesHistoryList", func(t *testing.T) {
 		t.Skip("skip test") // remove to run test
 
 		var id string
 
-		resp, httpRes, err := apiClient.CatalogExperiencesAPI.CatalogExperiencesHistoryList(context.Background(), id).Execute()
+		resp, httpRes, err := apiClient.CatalogExperiencesAPI.V1CatalogExperiencesHistoryList(context.Background(), id).Execute()
 
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
 	})
 
-	t.Run("Test CatalogExperiencesAPIService CatalogExperiencesList", func(t *testing.T) {
+	t.Run("Test CatalogExperiencesAPIService V1CatalogExperiencesList", func(t *testing.T) {
 		t.Skip("skip test") // remove to run test
 
-		resp, httpRes, err := apiClient.CatalogExperiencesAPI.CatalogExperiencesList(context.Background()).Execute()
+		resp, httpRes, err := apiClient.CatalogExperiencesAPI.V1CatalogExperiencesList(context.Background()).Execute()
 
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
 	})
 
-	t.Run("Test CatalogExperiencesAPIService CatalogExperiencesPartialUpdate", func(t *testing.T) {
+	t.Run("Test CatalogExperiencesAPIService V1CatalogExperiencesPartialUpdate", func(t *testing.T) {
 		t.Skip("skip test") // remove to run test
 
 		var id string
 
-		resp, httpRes, err := apiClient.CatalogExperiencesAPI.CatalogExperiencesPartialUpdate(context.Background(), id).Execute()
+		resp, httpRes, err := apiClient.CatalogExperiencesAPI.V1CatalogExperiencesPartialUpdate(context.Background(), id).Execute()
 
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
 	})
 
-	t.Run("Test CatalogExperiencesAPIService CatalogExperiencesRetrieve", func(t *testing.T) {
+	t.Run("Test CatalogExperiencesAPIService V1CatalogExperiencesRetrieve", func(t *testing.T) {
 		t.Skip("skip test") // remove to run test
 
 		var id string
 
-		resp, httpRes, err := apiClient.CatalogExperiencesAPI.CatalogExperiencesRetrieve(context.Background(), id).Execute()
+		resp, httpRes, err := apiClient.CatalogExperiencesAPI.V1CatalogExperiencesRetrieve(context.Background(), id).Execute()
 
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
 	})
 
-	t.Run("Test CatalogExperiencesAPIService CatalogExperiencesStatsRetrieve", func(t *testing.T) {
+	t.Run("Test CatalogExperiencesAPIService V1CatalogExperiencesStatsRetrieve", func(t *testing.T) {
 		t.Skip("skip test") // remove to run test
 
-		httpRes, err := apiClient.CatalogExperiencesAPI.CatalogExperiencesStatsRetrieve(context.Background()).Execute()
+		httpRes, err := apiClient.CatalogExperiencesAPI.V1CatalogExperiencesStatsRetrieve(context.Background()).Execute()
 
 		require.Nil(t, err)
 		assert.Equal(t, 200, httpRes.StatusCode)
 	})
 
-	t.Run("Test CatalogExperiencesAPIService CatalogExperiencesUpdate", func(t *testing.T) {
+	t.Run("Test CatalogExperiencesAPIService V1CatalogExperiencesUpdate", func(t *testing.T) {
 		t.Skip("skip test") // remove to run test
 
 		var id string
 
-		resp, httpRes, err := apiClient.CatalogExperiencesAPI.CatalogExperiencesUpdate(context.Background(), id).Execute()
+		resp, httpRes, err := apiClient.CatalogExperiencesAPI.V1CatalogExperiencesUpdate(context.Background(), id).Execute()
 
 		require.Nil(t, err)
 		require.NotNil(t, resp)

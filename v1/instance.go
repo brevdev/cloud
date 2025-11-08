@@ -87,6 +87,7 @@ func ValidateListCreatedInstance(ctx context.Context, client CloudCreateTerminat
 	})
 	if foundInstance == nil {
 		validationErr = errors.Join(validationErr, fmt.Errorf("instance not found: %s", i.CloudID))
+		return validationErr
 	}
 	if foundInstance.Location != i.Location { //nolint:gocritic // fine
 		validationErr = errors.Join(validationErr, fmt.Errorf("location mismatch: %s != %s", foundInstance.Location, i.Location))
@@ -195,7 +196,8 @@ type Instance struct {
 	Hostname                        string
 	ImageID                         string
 	InstanceType                    string
-	DiskSize                        units.Base2Bytes
+	DiskSize                        units.Base2Bytes // TODO: deprecate in favor of DiskSizeByteValue
+	DiskSizeBytes                   Bytes
 	VolumeType                      string
 	PubKeyFingerprint               string
 	SSHUser                         string
@@ -274,7 +276,8 @@ type CreateInstanceAttrs struct {
 	ImageID              string
 	InstanceType         string
 	UserDataBase64       string
-	DiskSize             units.Base2Bytes
+	DiskSize             units.Base2Bytes // TODO: deprecate in favor of DiskSizeByteValue
+	DiskSizeBytes        Bytes
 	Tags                 Tags
 	FirewallRules        FirewallRules
 	UseSpot              bool

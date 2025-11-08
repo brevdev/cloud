@@ -4,19 +4,19 @@ All URIs are relative to *http://localhost*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
-[**InventoryLocationsCreate**](InventoryLocationsAPI.md#InventoryLocationsCreate) | **Post** /v1/inventory/locations/ | 
-[**InventoryLocationsDestroy**](InventoryLocationsAPI.md#InventoryLocationsDestroy) | **Delete** /v1/inventory/locations/{id}/ | 
-[**InventoryLocationsHistoryList**](InventoryLocationsAPI.md#InventoryLocationsHistoryList) | **Get** /v1/inventory/locations/{id}/history/ | 
-[**InventoryLocationsList**](InventoryLocationsAPI.md#InventoryLocationsList) | **Get** /v1/inventory/locations/ | 
-[**InventoryLocationsPartialUpdate**](InventoryLocationsAPI.md#InventoryLocationsPartialUpdate) | **Patch** /v1/inventory/locations/{id}/ | 
-[**InventoryLocationsRetrieve**](InventoryLocationsAPI.md#InventoryLocationsRetrieve) | **Get** /v1/inventory/locations/{id}/ | 
-[**InventoryLocationsUpdate**](InventoryLocationsAPI.md#InventoryLocationsUpdate) | **Put** /v1/inventory/locations/{id}/ | 
+[**V1InventoryLocationsCreate**](InventoryLocationsAPI.md#V1InventoryLocationsCreate) | **Post** /v1/inventory/locations/ | 
+[**V1InventoryLocationsDestroy**](InventoryLocationsAPI.md#V1InventoryLocationsDestroy) | **Delete** /v1/inventory/locations/{id}/ | 
+[**V1InventoryLocationsHistoryList**](InventoryLocationsAPI.md#V1InventoryLocationsHistoryList) | **Get** /v1/inventory/locations/{id}/history/ | 
+[**V1InventoryLocationsList**](InventoryLocationsAPI.md#V1InventoryLocationsList) | **Get** /v1/inventory/locations/ | 
+[**V1InventoryLocationsPartialUpdate**](InventoryLocationsAPI.md#V1InventoryLocationsPartialUpdate) | **Patch** /v1/inventory/locations/{id}/ | 
+[**V1InventoryLocationsRetrieve**](InventoryLocationsAPI.md#V1InventoryLocationsRetrieve) | **Get** /v1/inventory/locations/{id}/ | 
+[**V1InventoryLocationsUpdate**](InventoryLocationsAPI.md#V1InventoryLocationsUpdate) | **Put** /v1/inventory/locations/{id}/ | 
 
 
 
-## InventoryLocationsCreate
+## V1InventoryLocationsCreate
 
-> Location InventoryLocationsCreate(ctx).Location(location).Execute()
+> Location V1InventoryLocationsCreate(ctx).Location(location).Execute()
 
 
 
@@ -38,13 +38,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.InventoryLocationsAPI.InventoryLocationsCreate(context.Background()).Location(location).Execute()
+	resp, r, err := apiClient.InventoryLocationsAPI.V1InventoryLocationsCreate(context.Background()).Location(location).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `InventoryLocationsAPI.InventoryLocationsCreate``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryLocationsAPI.V1InventoryLocationsCreate``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `InventoryLocationsCreate`: Location
-	fmt.Fprintf(os.Stdout, "Response from `InventoryLocationsAPI.InventoryLocationsCreate`: %v\n", resp)
+	// response from `V1InventoryLocationsCreate`: Location
+	fmt.Fprintf(os.Stdout, "Response from `InventoryLocationsAPI.V1InventoryLocationsCreate`: %v\n", resp)
 }
 ```
 
@@ -54,7 +54,7 @@ func main() {
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiInventoryLocationsCreateRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1InventoryLocationsCreateRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -79,9 +79,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## InventoryLocationsDestroy
+## V1InventoryLocationsDestroy
 
-> InventoryLocationsDestroy(ctx, id).Execute()
+> V1InventoryLocationsDestroy(ctx, id).Execute()
 
 
 
@@ -102,9 +102,9 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	r, err := apiClient.InventoryLocationsAPI.InventoryLocationsDestroy(context.Background(), id).Execute()
+	r, err := apiClient.InventoryLocationsAPI.V1InventoryLocationsDestroy(context.Background(), id).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `InventoryLocationsAPI.InventoryLocationsDestroy``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryLocationsAPI.V1InventoryLocationsDestroy``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
 }
@@ -120,7 +120,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiInventoryLocationsDestroyRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1InventoryLocationsDestroyRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -145,9 +145,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## InventoryLocationsHistoryList
+## V1InventoryLocationsHistoryList
 
-> PaginatedModelChangeList InventoryLocationsHistoryList(ctx, id).Page(page).PageSize(pageSize).Execute()
+> PaginatedModelChangeList V1InventoryLocationsHistoryList(ctx, id).Page(page).PageSize(pageSize).Execute()
 
 
 
@@ -170,13 +170,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.InventoryLocationsAPI.InventoryLocationsHistoryList(context.Background(), id).Page(page).PageSize(pageSize).Execute()
+	resp, r, err := apiClient.InventoryLocationsAPI.V1InventoryLocationsHistoryList(context.Background(), id).Page(page).PageSize(pageSize).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `InventoryLocationsAPI.InventoryLocationsHistoryList``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryLocationsAPI.V1InventoryLocationsHistoryList``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `InventoryLocationsHistoryList`: PaginatedModelChangeList
-	fmt.Fprintf(os.Stdout, "Response from `InventoryLocationsAPI.InventoryLocationsHistoryList`: %v\n", resp)
+	// response from `V1InventoryLocationsHistoryList`: PaginatedModelChangeList
+	fmt.Fprintf(os.Stdout, "Response from `InventoryLocationsAPI.V1InventoryLocationsHistoryList`: %v\n", resp)
 }
 ```
 
@@ -190,7 +190,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiInventoryLocationsHistoryListRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1InventoryLocationsHistoryListRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -217,9 +217,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## InventoryLocationsList
+## V1InventoryLocationsList
 
-> PaginatedLocationList InventoryLocationsList(ctx).Expand(expand).Fields(fields).Id(id).Name(name).Omit(omit).Ordering(ordering).Page(page).PageSize(pageSize).Provider(provider).Region(region).Search(search).Execute()
+> PaginatedLocationList V1InventoryLocationsList(ctx).Expand(expand).Fields(fields).Id(id).Name(name).Omit(omit).Ordering(ordering).Page(page).PageSize(pageSize).Provider(provider).Region(region).Search(search).Execute()
 
 
 
@@ -250,13 +250,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.InventoryLocationsAPI.InventoryLocationsList(context.Background()).Expand(expand).Fields(fields).Id(id).Name(name).Omit(omit).Ordering(ordering).Page(page).PageSize(pageSize).Provider(provider).Region(region).Search(search).Execute()
+	resp, r, err := apiClient.InventoryLocationsAPI.V1InventoryLocationsList(context.Background()).Expand(expand).Fields(fields).Id(id).Name(name).Omit(omit).Ordering(ordering).Page(page).PageSize(pageSize).Provider(provider).Region(region).Search(search).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `InventoryLocationsAPI.InventoryLocationsList``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryLocationsAPI.V1InventoryLocationsList``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `InventoryLocationsList`: PaginatedLocationList
-	fmt.Fprintf(os.Stdout, "Response from `InventoryLocationsAPI.InventoryLocationsList`: %v\n", resp)
+	// response from `V1InventoryLocationsList`: PaginatedLocationList
+	fmt.Fprintf(os.Stdout, "Response from `InventoryLocationsAPI.V1InventoryLocationsList`: %v\n", resp)
 }
 ```
 
@@ -266,7 +266,7 @@ func main() {
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiInventoryLocationsListRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1InventoryLocationsListRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -301,9 +301,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## InventoryLocationsPartialUpdate
+## V1InventoryLocationsPartialUpdate
 
-> Location InventoryLocationsPartialUpdate(ctx, id).Location(location).Execute()
+> Location V1InventoryLocationsPartialUpdate(ctx, id).Location(location).Execute()
 
 
 
@@ -326,13 +326,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.InventoryLocationsAPI.InventoryLocationsPartialUpdate(context.Background(), id).Location(location).Execute()
+	resp, r, err := apiClient.InventoryLocationsAPI.V1InventoryLocationsPartialUpdate(context.Background(), id).Location(location).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `InventoryLocationsAPI.InventoryLocationsPartialUpdate``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryLocationsAPI.V1InventoryLocationsPartialUpdate``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `InventoryLocationsPartialUpdate`: Location
-	fmt.Fprintf(os.Stdout, "Response from `InventoryLocationsAPI.InventoryLocationsPartialUpdate`: %v\n", resp)
+	// response from `V1InventoryLocationsPartialUpdate`: Location
+	fmt.Fprintf(os.Stdout, "Response from `InventoryLocationsAPI.V1InventoryLocationsPartialUpdate`: %v\n", resp)
 }
 ```
 
@@ -346,7 +346,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiInventoryLocationsPartialUpdateRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1InventoryLocationsPartialUpdateRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -372,9 +372,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## InventoryLocationsRetrieve
+## V1InventoryLocationsRetrieve
 
-> Location InventoryLocationsRetrieve(ctx, id).Expand(expand).Fields(fields).Omit(omit).Execute()
+> Location V1InventoryLocationsRetrieve(ctx, id).Expand(expand).Fields(fields).Omit(omit).Execute()
 
 
 
@@ -398,13 +398,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.InventoryLocationsAPI.InventoryLocationsRetrieve(context.Background(), id).Expand(expand).Fields(fields).Omit(omit).Execute()
+	resp, r, err := apiClient.InventoryLocationsAPI.V1InventoryLocationsRetrieve(context.Background(), id).Expand(expand).Fields(fields).Omit(omit).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `InventoryLocationsAPI.InventoryLocationsRetrieve``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryLocationsAPI.V1InventoryLocationsRetrieve``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `InventoryLocationsRetrieve`: Location
-	fmt.Fprintf(os.Stdout, "Response from `InventoryLocationsAPI.InventoryLocationsRetrieve`: %v\n", resp)
+	// response from `V1InventoryLocationsRetrieve`: Location
+	fmt.Fprintf(os.Stdout, "Response from `InventoryLocationsAPI.V1InventoryLocationsRetrieve`: %v\n", resp)
 }
 ```
 
@@ -418,7 +418,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiInventoryLocationsRetrieveRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1InventoryLocationsRetrieveRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -446,9 +446,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## InventoryLocationsUpdate
+## V1InventoryLocationsUpdate
 
-> Location InventoryLocationsUpdate(ctx, id).Location(location).Execute()
+> Location V1InventoryLocationsUpdate(ctx, id).Location(location).Execute()
 
 
 
@@ -471,13 +471,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.InventoryLocationsAPI.InventoryLocationsUpdate(context.Background(), id).Location(location).Execute()
+	resp, r, err := apiClient.InventoryLocationsAPI.V1InventoryLocationsUpdate(context.Background(), id).Location(location).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `InventoryLocationsAPI.InventoryLocationsUpdate``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryLocationsAPI.V1InventoryLocationsUpdate``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `InventoryLocationsUpdate`: Location
-	fmt.Fprintf(os.Stdout, "Response from `InventoryLocationsAPI.InventoryLocationsUpdate`: %v\n", resp)
+	// response from `V1InventoryLocationsUpdate`: Location
+	fmt.Fprintf(os.Stdout, "Response from `InventoryLocationsAPI.V1InventoryLocationsUpdate`: %v\n", resp)
 }
 ```
 
@@ -491,7 +491,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiInventoryLocationsUpdateRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1InventoryLocationsUpdateRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
