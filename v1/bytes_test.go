@@ -3,6 +3,7 @@ package v1
 import (
 	"encoding/json"
 	"errors"
+	"math"
 	"testing"
 )
 
@@ -20,14 +21,16 @@ func TestNewBytes(t *testing.T) {
 		{name: "1000 GB", value: 1000, unit: Gigabyte, want: NewBytes(1000, Gigabyte), wantErr: nil},
 		{name: "1000 TB", value: 1000, unit: Terabyte, want: NewBytes(1000, Terabyte), wantErr: nil},
 		{name: "1000 PB", value: 1000, unit: Petabyte, want: NewBytes(1000, Petabyte), wantErr: nil},
-		{name: "1000 EB", value: 1000, unit: Exabyte, want: NewBytes(1000, Exabyte), wantErr: nil},
 		{name: "1000 KiB", value: 1000, unit: Kibibyte, want: NewBytes(1000, Kibibyte), wantErr: nil},
 		{name: "1000 MiB", value: 1000, unit: Mebibyte, want: NewBytes(1000, Mebibyte), wantErr: nil},
 		{name: "1000 GiB", value: 1000, unit: Gibibyte, want: NewBytes(1000, Gibibyte), wantErr: nil},
 		{name: "1000 TiB", value: 1000, unit: Tebibyte, want: NewBytes(1000, Tebibyte), wantErr: nil},
 		{name: "1000 PiB", value: 1000, unit: Pebibyte, want: NewBytes(1000, Pebibyte), wantErr: nil},
-		{name: "1000 EiB", value: 1000, unit: Exbibyte, want: NewBytes(1000, Exbibyte), wantErr: nil},
-		{name: "Negative value", value: -1000, unit: Byte, want: zeroBytes, wantErr: ErrNegativeValue},
+		{name: "Negative value", value: -1000, unit: Byte, want: zeroBytes, wantErr: ErrBytesNegativeValue},
+
+		// Overflow cases
+		{name: "Overflow: MaxInt64 * Petabyte", value: math.MaxInt64, unit: Petabyte, want: zeroBytes, wantErr: nil},
+		{name: "Overflow: MaxInt64 * Pebibyte", value: math.MaxInt64, unit: Pebibyte, want: zeroBytes, wantErr: nil},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -52,13 +55,11 @@ func TestBytesMarshalJSON(t *testing.T) {
 		{name: "1000 GB", bytes: NewBytes(1000, Gigabyte), want: `{"value":1000,"unit":"GB"}`, wantErr: nil},
 		{name: "1000 TB", bytes: NewBytes(1000, Terabyte), want: `{"value":1000,"unit":"TB"}`, wantErr: nil},
 		{name: "1000 PB", bytes: NewBytes(1000, Petabyte), want: `{"value":1000,"unit":"PB"}`, wantErr: nil},
-		{name: "1000 EB", bytes: NewBytes(1000, Exabyte), want: `{"value":1000,"unit":"EB"}`, wantErr: nil},
 		{name: "1000 KiB", bytes: NewBytes(1000, Kibibyte), want: `{"value":1000,"unit":"KiB"}`, wantErr: nil},
 		{name: "1000 MiB", bytes: NewBytes(1000, Mebibyte), want: `{"value":1000,"unit":"MiB"}`, wantErr: nil},
 		{name: "1000 GiB", bytes: NewBytes(1000, Gibibyte), want: `{"value":1000,"unit":"GiB"}`, wantErr: nil},
 		{name: "1000 TiB", bytes: NewBytes(1000, Tebibyte), want: `{"value":1000,"unit":"TiB"}`, wantErr: nil},
 		{name: "1000 PiB", bytes: NewBytes(1000, Pebibyte), want: `{"value":1000,"unit":"PiB"}`, wantErr: nil},
-		{name: "1000 EiB", bytes: NewBytes(1000, Exbibyte), want: `{"value":1000,"unit":"EiB"}`, wantErr: nil},
 	}
 
 	for _, test := range tests {
@@ -91,17 +92,15 @@ func TestBytesUnmarshalJSON(t *testing.T) {
 		{name: "1000 GB", json: `{"value":1000,"unit":"GB"}`, want: NewBytes(1000, Gigabyte), wantErr: nil},
 		{name: "1000 TB", json: `{"value":1000,"unit":"TB"}`, want: NewBytes(1000, Terabyte), wantErr: nil},
 		{name: "1000 PB", json: `{"value":1000,"unit":"PB"}`, want: NewBytes(1000, Petabyte), wantErr: nil},
-		{name: "1000 EB", json: `{"value":1000,"unit":"EB"}`, want: NewBytes(1000, Exabyte), wantErr: nil},
 		{name: "1000 KiB", json: `{"value":1000,"unit":"KiB"}`, want: NewBytes(1000, Kibibyte), wantErr: nil},
 		{name: "1000 MiB", json: `{"value":1000,"unit":"MiB"}`, want: NewBytes(1000, Mebibyte), wantErr: nil},
 		{name: "1000 GiB", json: `{"value":1000,"unit":"GiB"}`, want: NewBytes(1000, Gibibyte), wantErr: nil},
 		{name: "1000 TiB", json: `{"value":1000,"unit":"TiB"}`, want: NewBytes(1000, Tebibyte), wantErr: nil},
 		{name: "1000 PiB", json: `{"value":1000,"unit":"PiB"}`, want: NewBytes(1000, Pebibyte), wantErr: nil},
-		{name: "1000 EiB", json: `{"value":1000,"unit":"EiB"}`, want: NewBytes(1000, Exbibyte), wantErr: nil},
 
-		{name: "Negative value", json: `{"value":-1000,"unit":"B"}`, want: zeroBytes, wantErr: ErrNegativeValue},
-		{name: "Empty unit", json: `{"value":1000,"unit":""}`, want: zeroBytes, wantErr: ErrEmptyUnit},
-		{name: "Invalid unit", json: `{"value":1000,"unit":"invalid"}`, want: zeroBytes, wantErr: ErrInvalidUnit},
+		{name: "Negative value", json: `{"value":-1000,"unit":"B"}`, want: zeroBytes, wantErr: ErrBytesNegativeValue},
+		{name: "Empty unit", json: `{"value":1000,"unit":""}`, want: zeroBytes, wantErr: ErrBytesEmptyUnit},
+		{name: "Invalid unit", json: `{"value":1000,"unit":"invalid"}`, want: zeroBytes, wantErr: ErrBytesInvalidUnit},
 	}
 
 	for _, test := range tests {
@@ -134,13 +133,11 @@ func TestBytesString(t *testing.T) {
 		{name: "Gigabyte", bytes: NewBytes(1000, Gigabyte), want: "1000 GB"},
 		{name: "Terabyte", bytes: NewBytes(1000, Terabyte), want: "1000 TB"},
 		{name: "Petabyte", bytes: NewBytes(1000, Petabyte), want: "1000 PB"},
-		{name: "Exabyte", bytes: NewBytes(1000, Exabyte), want: "1000 EB"},
 		{name: "Kibibyte", bytes: NewBytes(1000, Kibibyte), want: "1000 KiB"},
 		{name: "Mebibyte", bytes: NewBytes(1000, Mebibyte), want: "1000 MiB"},
 		{name: "Gibibyte", bytes: NewBytes(1000, Gibibyte), want: "1000 GiB"},
 		{name: "Tebibyte", bytes: NewBytes(1000, Tebibyte), want: "1000 TiB"},
 		{name: "Pebibyte", bytes: NewBytes(1000, Pebibyte), want: "1000 PiB"},
-		{name: "Exbibyte", bytes: NewBytes(1000, Exbibyte), want: "1000 EiB"},
 	}
 
 	for _, test := range tests {
@@ -168,5 +165,101 @@ func TestBytesGetters(t *testing.T) {
 	// Test that we can get the string value from Unit()
 	if b.Unit().String() != "GB" {
 		t.Errorf("Unit().String() = %v, want GB", b.Unit().String())
+	}
+}
+
+func TestBytesLessThan(t *testing.T) { //nolint:dupl // test ok
+	tests := []struct {
+		name  string
+		bytes Bytes
+		other Bytes
+		want  bool
+	}{
+		{name: "1000 B < 1000 KB", bytes: NewBytes(1000, Byte), other: NewBytes(1000, Kilobyte), want: true},
+		{name: "1000 KB < 1000 B", bytes: NewBytes(1000, Kilobyte), other: NewBytes(1000, Byte), want: false},
+
+		{name: "1000 KB < 1000 MB", bytes: NewBytes(1000, Kilobyte), other: NewBytes(1000, Megabyte), want: true},
+		{name: "1000 MB < 1000 KB", bytes: NewBytes(1000, Megabyte), other: NewBytes(1000, Kilobyte), want: false},
+
+		{name: "1000 MB < 1000 GB", bytes: NewBytes(1000, Megabyte), other: NewBytes(1000, Gigabyte), want: true},
+		{name: "1000 GB < 1000 MB", bytes: NewBytes(1000, Gigabyte), other: NewBytes(1000, Megabyte), want: false},
+
+		{name: "1000 GB < 1000 TB", bytes: NewBytes(1000, Gigabyte), other: NewBytes(1000, Terabyte), want: true},
+		{name: "1000 TB < 1000 GB", bytes: NewBytes(1000, Terabyte), other: NewBytes(1000, Gigabyte), want: false},
+
+		{name: "1000 TB < 1000 PB", bytes: NewBytes(1000, Terabyte), other: NewBytes(1000, Petabyte), want: true},
+		{name: "1000 PB < 1000 TB", bytes: NewBytes(1000, Petabyte), other: NewBytes(1000, Terabyte), want: false},
+
+		{name: "1000 B < 1000 KiB", bytes: NewBytes(1000, Byte), other: NewBytes(1000, Kibibyte), want: true},
+		{name: "1000 KiB < 1000 B", bytes: NewBytes(1000, Kibibyte), other: NewBytes(1000, Byte), want: false},
+
+		{name: "1000 KiB < 1000 MiB", bytes: NewBytes(1000, Kibibyte), other: NewBytes(1000, Mebibyte), want: true},
+		{name: "1000 MiB < 1000 KiB", bytes: NewBytes(1000, Mebibyte), other: NewBytes(1000, Kibibyte), want: false},
+
+		{name: "1000 MiB < 1000 GiB", bytes: NewBytes(1000, Mebibyte), other: NewBytes(1000, Gibibyte), want: true},
+		{name: "1000 GiB < 1000 MiB", bytes: NewBytes(1000, Gibibyte), other: NewBytes(1000, Mebibyte), want: false},
+
+		{name: "1000 GiB < 1000 TiB", bytes: NewBytes(1000, Gibibyte), other: NewBytes(1000, Tebibyte), want: true},
+		{name: "1000 TiB < 1000 GiB", bytes: NewBytes(1000, Tebibyte), other: NewBytes(1000, Gibibyte), want: false},
+
+		{name: "1000 TiB < 1000 PiB", bytes: NewBytes(1000, Tebibyte), other: NewBytes(1000, Pebibyte), want: true},
+		{name: "1000 PiB < 1000 TiB", bytes: NewBytes(1000, Pebibyte), other: NewBytes(1000, Tebibyte), want: false},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got := test.bytes.LessThan(test.other)
+			if got != test.want {
+				t.Errorf("Bytes.LessThan() = %v, want %v", got, test.want)
+			}
+		})
+	}
+}
+
+func TestBytesGreaterThan(t *testing.T) { //nolint:dupl // test ok
+	tests := []struct {
+		name  string
+		bytes Bytes
+		other Bytes
+		want  bool
+	}{
+		{name: "1000 B > 1000 KB", bytes: NewBytes(1000, Byte), other: NewBytes(1000, Kilobyte), want: false},
+		{name: "1000 KB > 1000 B", bytes: NewBytes(1000, Kilobyte), other: NewBytes(1000, Byte), want: true},
+
+		{name: "1000 KB > 1000 MB", bytes: NewBytes(1000, Kilobyte), other: NewBytes(1000, Megabyte), want: false},
+		{name: "1000 MB > 1000 KB", bytes: NewBytes(1000, Megabyte), other: NewBytes(1000, Kilobyte), want: true},
+
+		{name: "1000 MB > 1000 GB", bytes: NewBytes(1000, Megabyte), other: NewBytes(1000, Gigabyte), want: false},
+		{name: "1000 GB > 1000 MB", bytes: NewBytes(1000, Gigabyte), other: NewBytes(1000, Megabyte), want: true},
+
+		{name: "1000 GB > 1000 TB", bytes: NewBytes(1000, Gigabyte), other: NewBytes(1000, Terabyte), want: false},
+		{name: "1000 TB > 1000 GB", bytes: NewBytes(1000, Terabyte), other: NewBytes(1000, Gigabyte), want: true},
+
+		{name: "1000 TB > 1000 PB", bytes: NewBytes(1000, Terabyte), other: NewBytes(1000, Petabyte), want: false},
+		{name: "1000 PB > 1000 TB", bytes: NewBytes(1000, Petabyte), other: NewBytes(1000, Terabyte), want: true},
+
+		{name: "1000 B > 1000 KiB", bytes: NewBytes(1000, Byte), other: NewBytes(1000, Kibibyte), want: false},
+		{name: "1000 KiB > 1000 B", bytes: NewBytes(1000, Kibibyte), other: NewBytes(1000, Byte), want: true},
+
+		{name: "1000 KiB > 1000 MiB", bytes: NewBytes(1000, Kibibyte), other: NewBytes(1000, Mebibyte), want: false},
+		{name: "1000 MiB > 1000 KiB", bytes: NewBytes(1000, Mebibyte), other: NewBytes(1000, Kibibyte), want: true},
+
+		{name: "1000 MiB > 1000 GiB", bytes: NewBytes(1000, Mebibyte), other: NewBytes(1000, Gibibyte), want: false},
+		{name: "1000 GiB > 1000 MiB", bytes: NewBytes(1000, Gibibyte), other: NewBytes(1000, Mebibyte), want: true},
+
+		{name: "1000 GiB > 1000 TiB", bytes: NewBytes(1000, Gibibyte), other: NewBytes(1000, Tebibyte), want: false},
+		{name: "1000 TiB > 1000 GiB", bytes: NewBytes(1000, Tebibyte), other: NewBytes(1000, Gibibyte), want: true},
+
+		{name: "1000 TiB > 1000 PiB", bytes: NewBytes(1000, Tebibyte), other: NewBytes(1000, Pebibyte), want: false},
+		{name: "1000 PiB > 1000 TiB", bytes: NewBytes(1000, Pebibyte), other: NewBytes(1000, Tebibyte), want: true},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got := test.bytes.GreaterThan(test.other)
+			if got != test.want {
+				t.Errorf("Bytes.GreaterThan() = %v, want %v", got, test.want)
+			}
+		})
 	}
 }

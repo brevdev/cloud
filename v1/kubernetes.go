@@ -2,9 +2,24 @@ package v1
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/brevdev/cloud/internal/errors"
+)
+
+var (
+	ErrRefIDRequired                                            = errors.New("refID is required")
+	ErrNameRequired                                             = errors.New("name is required")
+	ErrNodeGroupInvalidStatus                                   = errors.New("invalid node group status")
+	ErrClusterInvalidStatus                                     = errors.New("invalid cluster status")
+	ErrClusterUserClusterNameRequired                           = errors.New("clusterName is required")
+	ErrClusterUserClusterCertificateAuthorityDataBase64Required = errors.New("clusterCertificateAuthorityDataBase64 is required")
+	ErrClusterUserClusterServerURLRequired                      = errors.New("clusterServerURL is required")
+	ErrClusterUserUsernameRequired                              = errors.New("username is required")
+	ErrClusterUserUserClientCertificateDataBase64Required       = errors.New("userClientCertificateDataBase64 is required")
+	ErrClusterUserUserClientKeyDataBase64Required               = errors.New("userClientKeyDataBase64 is required")
+	ErrClusterUserKubeconfigBase64Required                      = errors.New("kubeconfigBase64 is required")
 )
 
 // Cluster represents the complete specification of a Brev Kubernetes cluster.
@@ -52,15 +67,124 @@ type Cluster struct {
 	tags Tags
 }
 
-type ClusterStatus string
+// clusterJSON is the JSON representation of a Cluster. This struct is maintained separately from the core Cluster
+// struct to allow for unexported fields to be used in the MarshalJSON and UnmarshalJSON methods.
+type clusterJSON struct {
+	ID                         string            `json:"id"`
+	Name                       string            `json:"name"`
+	RefID                      string            `json:"refID"`
+	Provider                   string            `json:"provider"`
+	Cloud                      string            `json:"cloud"`
+	Location                   string            `json:"location"`
+	VPCID                      string            `json:"vpcID"`
+	SubnetIDs                  []string          `json:"subnetIDs"`
+	KubernetesVersion          string            `json:"kubernetesVersion"`
+	Status                     string            `json:"status"`
+	APIEndpoint                string            `json:"apiEndpoint"`
+	ClusterCACertificateBase64 string            `json:"clusterCACertificateBase64"`
+	NodeGroups                 []*NodeGroup      `json:"nodeGroups"`
+	Tags                       map[string]string `json:"tags"`
+}
 
-const (
-	ClusterStatusUnknown   ClusterStatus = "unknown"
-	ClusterStatusPending   ClusterStatus = "pending"
-	ClusterStatusAvailable ClusterStatus = "available"
-	ClusterStatusDeleting  ClusterStatus = "deleting"
-	ClusterStatusFailed    ClusterStatus = "failed"
+// MarshalJSON implements the json.Marshaler interface
+func (c *Cluster) MarshalJSON() ([]byte, error) {
+	subnetIDs := make([]string, len(c.subnetIDs))
+	for i, subnetID := range c.subnetIDs {
+		subnetIDs[i] = string(subnetID)
+	}
+
+	return json.Marshal(clusterJSON{
+		ID:                         string(c.id),
+		Name:                       c.name,
+		RefID:                      c.refID,
+		Provider:                   c.provider,
+		Cloud:                      c.cloud,
+		Location:                   c.location,
+		VPCID:                      string(c.vpcID),
+		SubnetIDs:                  subnetIDs,
+		KubernetesVersion:          c.kubernetesVersion,
+		Status:                     c.status.value,
+		APIEndpoint:                c.apiEndpoint,
+		ClusterCACertificateBase64: c.clusterCACertificateBase64,
+		NodeGroups:                 c.nodeGroups,
+		Tags:                       c.tags,
+	})
+}
+
+// UnmarshalJSON implements the json.Unmarshaler interface
+func (c *Cluster) UnmarshalJSON(data []byte) error {
+	var clusterJSON clusterJSON
+	if err := json.Unmarshal(data, &clusterJSON); err != nil {
+		return errors.WrapAndTrace(err)
+	}
+
+	subnetIDs := make([]CloudProviderResourceID, len(clusterJSON.SubnetIDs))
+	for i, subnetID := range clusterJSON.SubnetIDs {
+		subnetIDs[i] = CloudProviderResourceID(subnetID)
+	}
+
+	status, err := stringToClusterStatus(clusterJSON.Status)
+	if err != nil {
+		return errors.WrapAndTrace(err)
+	}
+
+	newCluster, err := NewCluster(ClusterSettings{
+		ID:                         CloudProviderResourceID(clusterJSON.ID),
+		Name:                       clusterJSON.Name,
+		RefID:                      clusterJSON.RefID,
+		Provider:                   clusterJSON.Provider,
+		Cloud:                      clusterJSON.Cloud,
+		Location:                   clusterJSON.Location,
+		VPCID:                      CloudProviderResourceID(clusterJSON.VPCID),
+		SubnetIDs:                  subnetIDs,
+		KubernetesVersion:          clusterJSON.KubernetesVersion,
+		Status:                     status,
+		APIEndpoint:                clusterJSON.APIEndpoint,
+		ClusterCACertificateBase64: clusterJSON.ClusterCACertificateBase64,
+		NodeGroups:                 clusterJSON.NodeGroups,
+		Tags:                       clusterJSON.Tags,
+	})
+	if err != nil {
+		return errors.WrapAndTrace(err)
+	}
+
+	*c = *newCluster
+	return nil
+}
+
+// ClusterStatus represents the status of a Kubernetes cluster. Note for maintainers: this is defined as a struct
+// rather than a type alias to ensure stronger compile-time type checking and to avoid the need for a validation function.
+type ClusterStatus struct {
+	value string
+}
+
+var (
+	ClusterStatusUnknown   = ClusterStatus{value: "unknown"}
+	ClusterStatusPending   = ClusterStatus{value: "pending"}
+	ClusterStatusAvailable = ClusterStatus{value: "available"}
+	ClusterStatusDeleting  = ClusterStatus{value: "deleting"}
+	ClusterStatusFailed    = ClusterStatus{value: "failed"}
 )
+
+func (s ClusterStatus) String() string {
+	return s.value
+}
+
+func stringToClusterStatus(status string) (ClusterStatus, error) {
+	switch status {
+	case ClusterStatusUnknown.value:
+		return ClusterStatusUnknown, nil
+	case ClusterStatusPending.value:
+		return ClusterStatusPending, nil
+	case ClusterStatusAvailable.value:
+		return ClusterStatusAvailable, nil
+	case ClusterStatusDeleting.value:
+		return ClusterStatusDeleting, nil
+	case ClusterStatusFailed.value:
+		return ClusterStatusFailed, nil
+	}
+	return ClusterStatusUnknown, errors.Join(ErrClusterInvalidStatus, fmt.Errorf("invalid status: %s", status))
+}
 
 func (c *Cluster) GetID() CloudProviderResourceID {
 	return c.id
@@ -169,13 +293,10 @@ func (s *ClusterSettings) setDefaults() {
 func (s *ClusterSettings) validate() error {
 	var errs []error
 	if s.RefID == "" {
-		errs = append(errs, fmt.Errorf("refID is required"))
+		errs = append(errs, ErrRefIDRequired)
 	}
 	if s.Name == "" {
-		errs = append(errs, fmt.Errorf("name is required"))
-	}
-	if s.Status == "" {
-		errs = append(errs, fmt.Errorf("status is required"))
+		errs = append(errs, ErrNameRequired)
 	}
 	return errors.WrapAndTrace(errors.Join(errs...))
 }
@@ -226,7 +347,7 @@ type NodeGroup struct {
 	instanceType string
 
 	// The disk size of the nodes in the node group.
-	diskSizeGiB int
+	diskSize Bytes
 
 	// The status of the node group.
 	status NodeGroupStatus
@@ -235,15 +356,99 @@ type NodeGroup struct {
 	tags Tags
 }
 
-type NodeGroupStatus string
+// nodeGroupJSON is the JSON representation of a NodeGroup. This struct is maintained separately from the core NodeGroup
+// struct to allow for unexported fields to be used in the MarshalJSON and UnmarshalJSON methods.
+type nodeGroupJSON struct {
+	Name         string            `json:"name"`
+	RefID        string            `json:"refID"`
+	ID           string            `json:"id"`
+	MinNodeCount int               `json:"minNodeCount"`
+	MaxNodeCount int               `json:"maxNodeCount"`
+	InstanceType string            `json:"instanceType"`
+	DiskSize     Bytes             `json:"diskSize"`
+	Status       string            `json:"status"`
+	Tags         map[string]string `json:"tags"`
+}
 
-const (
-	NodeGroupStatusUnknown   NodeGroupStatus = "unknown"
-	NodeGroupStatusPending   NodeGroupStatus = "pending"
-	NodeGroupStatusAvailable NodeGroupStatus = "available"
-	NodeGroupStatusDeleting  NodeGroupStatus = "deleting"
-	NodeGroupStatusFailed    NodeGroupStatus = "failed"
+// MarshalJSON implements the json.Marshaler interface
+func (n *NodeGroup) MarshalJSON() ([]byte, error) {
+	return json.Marshal(nodeGroupJSON{
+		Name:         n.name,
+		RefID:        n.refID,
+		ID:           string(n.id),
+		MinNodeCount: n.minNodeCount,
+		MaxNodeCount: n.maxNodeCount,
+		InstanceType: n.instanceType,
+		DiskSize:     n.diskSize,
+		Status:       n.status.value,
+		Tags:         n.tags,
+	})
+}
+
+// UnmarshalJSON implements the json.Unmarshaler interface
+func (n *NodeGroup) UnmarshalJSON(data []byte) error {
+	var nodeGroupJSON nodeGroupJSON
+	if err := json.Unmarshal(data, &nodeGroupJSON); err != nil {
+		return errors.WrapAndTrace(err)
+	}
+
+	status, err := stringToNodeGroupStatus(nodeGroupJSON.Status)
+	if err != nil {
+		return errors.WrapAndTrace(err)
+	}
+
+	newNodeGroup, err := NewNodeGroup(NodeGroupSettings{
+		Name:         nodeGroupJSON.Name,
+		RefID:        nodeGroupJSON.RefID,
+		ID:           CloudProviderResourceID(nodeGroupJSON.ID),
+		MinNodeCount: nodeGroupJSON.MinNodeCount,
+		MaxNodeCount: nodeGroupJSON.MaxNodeCount,
+		InstanceType: nodeGroupJSON.InstanceType,
+		DiskSize:     nodeGroupJSON.DiskSize,
+		Status:       status,
+		Tags:         nodeGroupJSON.Tags,
+	})
+	if err != nil {
+		return errors.WrapAndTrace(err)
+	}
+
+	*n = *newNodeGroup
+	return nil
+}
+
+// NodeGroupStatus represents the status of a Kubernetes node group. Note for maintainers: this is defined as a struct
+// rather than a type alias to ensure stronger compile-time type checking and to avoid the need for a validation function.
+type NodeGroupStatus struct {
+	value string
+}
+
+func (s NodeGroupStatus) String() string {
+	return s.value
+}
+
+var (
+	NodeGroupStatusUnknown   = NodeGroupStatus{value: "unknown"}
+	NodeGroupStatusPending   = NodeGroupStatus{value: "pending"}
+	NodeGroupStatusAvailable = NodeGroupStatus{value: "available"}
+	NodeGroupStatusDeleting  = NodeGroupStatus{value: "deleting"}
+	NodeGroupStatusFailed    = NodeGroupStatus{value: "failed"}
 )
+
+func stringToNodeGroupStatus(status string) (NodeGroupStatus, error) {
+	switch status {
+	case NodeGroupStatusUnknown.value:
+		return NodeGroupStatusUnknown, nil
+	case NodeGroupStatusPending.value:
+		return NodeGroupStatusPending, nil
+	case NodeGroupStatusAvailable.value:
+		return NodeGroupStatusAvailable, nil
+	case NodeGroupStatusDeleting.value:
+		return NodeGroupStatusDeleting, nil
+	case NodeGroupStatusFailed.value:
+		return NodeGroupStatusFailed, nil
+	}
+	return NodeGroupStatusUnknown, errors.Join(ErrNodeGroupInvalidStatus, fmt.Errorf("invalid status: %s", status))
+}
 
 func (n *NodeGroup) GetName() string {
 	return n.name
@@ -269,8 +474,8 @@ func (n *NodeGroup) GetInstanceType() string {
 	return n.instanceType
 }
 
-func (n *NodeGroup) GetDiskSizeGiB() int {
-	return n.diskSizeGiB
+func (n *NodeGroup) GetDiskSize() Bytes {
+	return n.diskSize
 }
 
 func (n *NodeGroup) GetStatus() NodeGroupStatus {
@@ -302,7 +507,7 @@ type NodeGroupSettings struct {
 	InstanceType string
 
 	// The disk size of the nodes in the node group.
-	DiskSizeGiB int
+	DiskSize Bytes
 
 	// The status of the node group.
 	Status NodeGroupStatus
@@ -317,13 +522,10 @@ func (s *NodeGroupSettings) setDefaults() {
 func (s *NodeGroupSettings) validate() error {
 	var errs []error
 	if s.RefID == "" {
-		errs = append(errs, fmt.Errorf("refID is required"))
+		errs = append(errs, ErrRefIDRequired)
 	}
 	if s.Name == "" {
-		errs = append(errs, fmt.Errorf("name is required"))
-	}
-	if s.Status == "" {
-		errs = append(errs, fmt.Errorf("status is required"))
+		errs = append(errs, ErrNameRequired)
 	}
 	return errors.WrapAndTrace(errors.Join(errs...))
 }
@@ -342,7 +544,7 @@ func NewNodeGroup(settings NodeGroupSettings) (*NodeGroup, error) {
 		minNodeCount: settings.MinNodeCount,
 		maxNodeCount: settings.MaxNodeCount,
 		instanceType: settings.InstanceType,
-		diskSizeGiB:  settings.DiskSizeGiB,
+		diskSize:     settings.DiskSize,
 		status:       settings.Status,
 		tags:         settings.Tags,
 	}, nil
@@ -430,25 +632,25 @@ func (s *ClusterUserSettings) setDefaults() {
 func (s *ClusterUserSettings) validate() error {
 	var errs []error
 	if s.ClusterName == "" {
-		errs = append(errs, fmt.Errorf("clusterName is required"))
+		errs = append(errs, ErrClusterUserClusterNameRequired)
 	}
 	if s.ClusterCertificateAuthorityDataBase64 == "" {
-		errs = append(errs, fmt.Errorf("clusterCertificateAuthorityDataBase64 is required"))
+		errs = append(errs, ErrClusterUserClusterCertificateAuthorityDataBase64Required)
 	}
 	if s.ClusterServerURL == "" {
-		errs = append(errs, fmt.Errorf("clusterServerURL is required"))
+		errs = append(errs, ErrClusterUserClusterServerURLRequired)
 	}
 	if s.Username == "" {
-		errs = append(errs, fmt.Errorf("username is required"))
+		errs = append(errs, ErrClusterUserUsernameRequired)
 	}
 	if s.UserClientCertificateDataBase64 == "" {
-		errs = append(errs, fmt.Errorf("userClientCertificateDataBase64 is required"))
+		errs = append(errs, ErrClusterUserUserClientCertificateDataBase64Required)
 	}
 	if s.UserClientKeyDataBase64 == "" {
-		errs = append(errs, fmt.Errorf("userClientKeyDataBase64 is required"))
+		errs = append(errs, ErrClusterUserUserClientKeyDataBase64Required)
 	}
 	if s.KubeconfigBase64 == "" {
-		errs = append(errs, fmt.Errorf("kubeconfigBase64 is required"))
+		errs = append(errs, ErrClusterUserKubeconfigBase64Required)
 	}
 	return errors.WrapAndTrace(errors.Join(errs...))
 }
@@ -524,7 +726,7 @@ type CreateNodeGroupArgs struct {
 	MinNodeCount int
 	MaxNodeCount int
 	InstanceType string
-	DiskSizeGiB  int
+	DiskSize     Bytes
 	Tags         Tags
 }
 

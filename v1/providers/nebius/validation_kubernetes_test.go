@@ -52,7 +52,7 @@ func TestKubernetesValidation(t *testing.T) {
 			Name:         name,
 			RefID:        name,
 			InstanceType: "cpu-d3.4vcpu-16gb",
-			DiskSizeGiB:  64,
+			DiskSize:     v1.NewBytes(64, v1.Gibibyte),
 			MinNodeCount: 1,
 			MaxNodeCount: 1,
 		},

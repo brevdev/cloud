@@ -55,7 +55,7 @@ func TestAWSKubernetesValidation(t *testing.T) {
 			Name:         name,
 			RefID:        name,
 			InstanceType: "t3.medium",
-			DiskSizeGiB:  20,
+			DiskSize:     v1.NewBytes(20, v1.Gibibyte),
 			MinNodeCount: 1,
 			MaxNodeCount: 1,
 		},

@@ -2,26 +2,37 @@ package v1
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
+	"math/bits"
+
+	"github.com/brevdev/cloud/internal/errors"
 )
 
 var (
 	zeroBytes = Bytes{value: 0, unit: Byte}
 
-	ErrNegativeValue = errors.New("value must be non-negative")
-	ErrEmptyUnit     = errors.New("unit must be set")
-	ErrInvalidUnit   = errors.New("invalid unit")
+	ErrBytesNegativeValue = errors.New("value must be non-negative")
+	ErrBytesEmptyUnit     = errors.New("unit must be set")
+	ErrBytesInvalidUnit   = errors.New("invalid unit")
 )
 
-// NewBytes creates a new Bytes with the given value and unit
+// NewBytes creates a new Bytes with the given value and unit.
+// Returns zeroBytes if value is negative or if the byte count calculation would overflow.
 func NewBytes(value BytesValue, unit BytesUnit) Bytes {
 	if value < 0 {
 		return zeroBytes
 	}
+
+	// Check for multiplication overflow using bits.Mul64. If more bits are needed than the lower 64
+	// bits, then we know the full result doesn't fit in uint64.
+	hi, lo := bits.Mul64(uint64(value), unit.byteCount) //nolint:gosec // 'value' can safely be converted to uint64
+	if hi != 0 {
+		return zeroBytes
+	}
 	return Bytes{
-		value: value,
-		unit:  unit,
+		value:     value,
+		unit:      unit,
+		byteCount: lo,
 	}
 }
 
@@ -31,8 +42,9 @@ type (
 
 // Bytes represents a number of some unit of bytes
 type Bytes struct {
-	value BytesValue
-	unit  BytesUnit
+	value     BytesValue
+	unit      BytesUnit
+	byteCount uint64 // TODO: consider using "https://pkg.go.dev/math/big" for this
 }
 
 // bytesJSON is the JSON representation of a Bytes. This struct is maintained separately from the core Bytes
@@ -52,6 +64,11 @@ func (b Bytes) Unit() BytesUnit {
 	return b.unit
 }
 
+// ByteCount is the number of bytes
+func (b Bytes) ByteCount() uint64 {
+	return b.byteCount
+}
+
 // String returns the string representation of the Bytes
 func (b Bytes) String() string {
 	return fmt.Sprintf("%d %s", b.value, b.unit)
@@ -61,7 +78,7 @@ func (b Bytes) String() string {
 func (b Bytes) MarshalJSON() ([]byte, error) {
 	return json.Marshal(bytesJSON{
 		Value: int64(b.value),
-		Unit:  b.unit.value,
+		Unit:  b.unit.name,
 	})
 }
 
@@ -69,86 +86,96 @@ func (b Bytes) MarshalJSON() ([]byte, error) {
 func (b *Bytes) UnmarshalJSON(data []byte) error {
 	var bytesJSON bytesJSON
 	if err := json.Unmarshal(data, &bytesJSON); err != nil {
-		return err
+		return errors.WrapAndTrace(err)
 	}
 
 	if bytesJSON.Value < 0 {
-		return ErrNegativeValue
+		return errors.WrapAndTrace(ErrBytesNegativeValue)
 	}
 
 	if bytesJSON.Unit == "" {
-		return ErrEmptyUnit
+		return errors.WrapAndTrace(ErrBytesEmptyUnit)
 	}
 
 	unit, err := stringToBytesUnit(bytesJSON.Unit)
 	if err != nil {
-		return err
+		return errors.WrapAndTrace(err)
 	}
 
-	b.value = BytesValue(bytesJSON.Value)
-	b.unit = unit
+	newBytes := NewBytes(BytesValue(bytesJSON.Value), unit)
+	*b = newBytes
 	return nil
 }
 
-// BytesUnit is a unit of measurement for bytes. Note for implementers: this is defined as a struct rather than a
+// LessThan returns true if the Bytes is less than the other Bytes
+func (b Bytes) LessThan(other Bytes) bool {
+	return b.byteCount < other.byteCount
+}
+
+// GreaterThan returns true if the Bytes is greater than the other Bytes
+func (b Bytes) GreaterThan(other Bytes) bool {
+	return b.byteCount > other.byteCount
+}
+
+// BytesUnit is a unit of measurement for bytes. Note for maintainers: this is defined as a struct rather than a
 // type alias to ensure stronger compile-time type checking and to avoid the need for a validation function.
 type BytesUnit struct {
-	value string
+	name      string
+	byteCount uint64
+}
+
+// ByteCountInUnit is the number of bytes in the BytesUnit in the given unit
+func (u BytesUnit) ByteCount() uint64 {
+	return u.byteCount
 }
 
 // String returns the string representation of the BytesUnit
 func (u BytesUnit) String() string {
-	return u.value
+	return u.name
 }
 
 var (
-	Byte = BytesUnit{value: "B"}
+	Byte = BytesUnit{name: "B", byteCount: 1}
 
 	// Base 10
-	Kilobyte = BytesUnit{value: "KB"}
-	Megabyte = BytesUnit{value: "MB"}
-	Gigabyte = BytesUnit{value: "GB"}
-	Terabyte = BytesUnit{value: "TB"}
-	Petabyte = BytesUnit{value: "PB"}
-	Exabyte  = BytesUnit{value: "EB"}
+	Kilobyte = BytesUnit{name: "KB", byteCount: 1000}
+	Megabyte = BytesUnit{name: "MB", byteCount: 1000 * 1000}
+	Gigabyte = BytesUnit{name: "GB", byteCount: 1000 * 1000 * 1000}
+	Terabyte = BytesUnit{name: "TB", byteCount: 1000 * 1000 * 1000 * 1000}
+	Petabyte = BytesUnit{name: "PB", byteCount: 1000 * 1000 * 1000 * 1000 * 1000}
 
 	// Base 2
-	Kibibyte = BytesUnit{value: "KiB"}
-	Mebibyte = BytesUnit{value: "MiB"}
-	Gibibyte = BytesUnit{value: "GiB"}
-	Tebibyte = BytesUnit{value: "TiB"}
-	Pebibyte = BytesUnit{value: "PiB"}
-	Exbibyte = BytesUnit{value: "EiB"}
+	Kibibyte = BytesUnit{name: "KiB", byteCount: 1024}
+	Mebibyte = BytesUnit{name: "MiB", byteCount: 1024 * 1024}
+	Gibibyte = BytesUnit{name: "GiB", byteCount: 1024 * 1024 * 1024}
+	Tebibyte = BytesUnit{name: "TiB", byteCount: 1024 * 1024 * 1024 * 1024}
+	Pebibyte = BytesUnit{name: "PiB", byteCount: 1024 * 1024 * 1024 * 1024 * 1024}
 )
 
 func stringToBytesUnit(unit string) (BytesUnit, error) {
 	switch unit {
-	case "B":
+	case Byte.name:
 		return Byte, nil
-	case "KB":
+	case Kilobyte.name:
 		return Kilobyte, nil
-	case "MB":
+	case Megabyte.name:
 		return Megabyte, nil
-	case "GB":
+	case Gigabyte.name:
 		return Gigabyte, nil
-	case "TB":
+	case Terabyte.name:
 		return Terabyte, nil
-	case "PB":
+	case Petabyte.name:
 		return Petabyte, nil
-	case "EB":
-		return Exabyte, nil
-	case "KiB":
+	case Kibibyte.name:
 		return Kibibyte, nil
-	case "MiB":
+	case Mebibyte.name:
 		return Mebibyte, nil
-	case "GiB":
+	case Gibibyte.name:
 		return Gibibyte, nil
-	case "TiB":
+	case Tebibyte.name:
 		return Tebibyte, nil
-	case "PiB":
+	case Pebibyte.name:
 		return Pebibyte, nil
-	case "EiB":
-		return Exbibyte, nil
 	}
-	return BytesUnit{}, errors.Join(ErrInvalidUnit, fmt.Errorf("invalid unit: %s", unit))
+	return BytesUnit{}, errors.WrapAndTrace(errors.Join(ErrBytesInvalidUnit, fmt.Errorf("invalid unit: %s", unit)))
 }

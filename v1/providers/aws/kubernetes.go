@@ -402,7 +402,7 @@ func parseEKSNodeGroup(eksNodeGroup *ekstypes.Nodegroup) (*v1.NodeGroup, error) 
 		MinNodeCount: int(*eksNodeGroup.ScalingConfig.MinSize),
 		MaxNodeCount: int(*eksNodeGroup.ScalingConfig.MaxSize),
 		InstanceType: eksNodeGroup.InstanceTypes[0], // todo: handle multiple instance types
-		DiskSizeGiB:  int(*eksNodeGroup.DiskSize),
+		DiskSize:     v1.NewBytes(v1.BytesValue(*eksNodeGroup.DiskSize), v1.Gibibyte),
 		Status:       parseEKSNodeGroupStatus(eksNodeGroup.Status),
 		Tags:         v1.Tags(eksNodeGroup.Tags),
 	})
@@ -479,7 +479,7 @@ func (c *AWSClient) CreateNodeGroup(ctx context.Context, args v1.CreateNodeGroup
 			MinSize: aws.Int32(int32(args.MinNodeCount)), //nolint:gosec // checked in input validation
 			MaxSize: aws.Int32(int32(args.MaxNodeCount)), //nolint:gosec // checked in input validation
 		},
-		DiskSize: aws.Int32(int32(args.DiskSizeGiB)), //nolint:gosec // checked in input validation
+		DiskSize: aws.Int32(int32(args.DiskSize.ByteCount() / v1.Gibibyte.ByteCount())), //nolint:gosec // checked in input validation
 		Subnets:  subnetIDs,
 		InstanceTypes: []string{
 			args.InstanceType,
@@ -511,10 +511,10 @@ func validateCreateNodeGroupArgs(args v1.CreateNodeGroupArgs) error {
 	if args.InstanceType == "" {
 		errs = append(errs, errNodeGroupInstanceTypeIsRequired)
 	}
-	if args.DiskSizeGiB < 20 {
+	if args.DiskSize.LessThan(v1.NewBytes(20, v1.Gibibyte)) {
 		errs = append(errs, errNodeGroupDiskSizeGiBMustBeGreaterThanOrEqualTo20)
 	}
-	if args.DiskSizeGiB > math.MaxInt32 {
+	if args.DiskSize.GreaterThan(v1.NewBytes(math.MaxInt32, v1.Gibibyte)) {
 		errs = append(errs, errNodeGroupDiskSizeGiBMustBeLessThanOrEqualToMaxInt32)
 	}
 	if args.MaxNodeCount > math.MaxInt32 {
