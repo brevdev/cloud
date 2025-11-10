@@ -98,7 +98,7 @@ func TestValidateCreateNodeGroupArgs(t *testing.T) { //nolint:funlen // test ok
 				InstanceType: "cpu-d3.4vcpu-16gb",
 				DiskSize:     v1.NewBytes(32, v1.Gibibyte),
 			},
-			expectError: errNodeGroupDiskSizeGiBMustBeGreaterThanOrEqualTo64,
+			expectError: errNodeGroupDiskSizeMustBeGreaterThanOrEqualToMax,
 		},
 		{
 			name: "missing instance type",

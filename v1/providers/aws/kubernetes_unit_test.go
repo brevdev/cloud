@@ -614,7 +614,7 @@ func TestParseEKSNodeGroup(t *testing.T) { //nolint:gocognit // test ok
 			if result.GetInstanceType() != tt.nodeGroup.InstanceTypes[0] {
 				t.Errorf("expected instance type %s, got %s", tt.nodeGroup.InstanceTypes[0], result.GetInstanceType())
 			}
-			if result.GetDiskSize() != v1.NewBytes(v1.BytesValue(*tt.nodeGroup.DiskSize), v1.Gibibyte) {
+			if !result.GetDiskSize().Equal(v1.NewBytes(v1.BytesValue(*tt.nodeGroup.DiskSize), v1.Gibibyte)) {
 				t.Errorf("expected disk size %s, got %s", v1.NewBytes(v1.BytesValue(*tt.nodeGroup.DiskSize), v1.Gibibyte), result.GetDiskSize())
 			}
 			if result.GetStatus() != parseEKSNodeGroupStatus(tt.nodeGroup.Status) {

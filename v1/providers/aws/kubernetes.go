@@ -471,6 +471,13 @@ func (c *AWSClient) CreateNodeGroup(ctx context.Context, args v1.CreateNodeGroup
 		v1.Field{Key: "clusterName", Value: cluster.GetName()},
 		v1.Field{Key: "nodeGroupName", Value: args.Name},
 	)
+
+	// AWS expects the disk size in GiB, so we need to convert the disk size to GiB
+	diskSizeGiB, err := args.DiskSize.ByteCountInUnitInt32(v1.Gibibyte)
+	if err != nil {
+		return nil, errors.WrapAndTrace(err)
+	}
+
 	output, err := eksClient.CreateNodegroup(ctx, &eks.CreateNodegroupInput{
 		ClusterName:   aws.String(cluster.GetName()),
 		NodegroupName: aws.String(args.Name),
@@ -479,7 +486,7 @@ func (c *AWSClient) CreateNodeGroup(ctx context.Context, args v1.CreateNodeGroup
 			MinSize: aws.Int32(int32(args.MinNodeCount)), //nolint:gosec // checked in input validation
 			MaxSize: aws.Int32(int32(args.MaxNodeCount)), //nolint:gosec // checked in input validation
 		},
-		DiskSize: aws.Int32(int32(args.DiskSize.ByteCount() / v1.Gibibyte.ByteCount())), //nolint:gosec // checked in input validation
+		DiskSize: aws.Int32(diskSizeGiB),
 		Subnets:  subnetIDs,
 		InstanceTypes: []string{
 			args.InstanceType,

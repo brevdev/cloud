@@ -3,7 +3,7 @@ package v1
 import (
 	"encoding/json"
 	"errors"
-	"math"
+	"math/big"
 	"testing"
 )
 
@@ -26,16 +26,11 @@ func TestNewBytes(t *testing.T) {
 		{name: "1000 GiB", value: 1000, unit: Gibibyte, want: NewBytes(1000, Gibibyte), wantErr: nil},
 		{name: "1000 TiB", value: 1000, unit: Tebibyte, want: NewBytes(1000, Tebibyte), wantErr: nil},
 		{name: "1000 PiB", value: 1000, unit: Pebibyte, want: NewBytes(1000, Pebibyte), wantErr: nil},
-		{name: "Negative value", value: -1000, unit: Byte, want: zeroBytes, wantErr: ErrBytesNegativeValue},
-
-		// Overflow cases
-		{name: "Overflow: MaxInt64 * Petabyte", value: math.MaxInt64, unit: Petabyte, want: zeroBytes, wantErr: nil},
-		{name: "Overflow: MaxInt64 * Pebibyte", value: math.MaxInt64, unit: Pebibyte, want: zeroBytes, wantErr: nil},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			bytes := NewBytes(test.value, test.unit)
-			if bytes != test.want {
+			if !bytes.Equal(test.want) {
 				t.Errorf("NewBytes() = %v, want %v", bytes, test.want)
 			}
 		})
@@ -98,8 +93,7 @@ func TestBytesUnmarshalJSON(t *testing.T) {
 		{name: "1000 TiB", json: `{"value":1000,"unit":"TiB"}`, want: NewBytes(1000, Tebibyte), wantErr: nil},
 		{name: "1000 PiB", json: `{"value":1000,"unit":"PiB"}`, want: NewBytes(1000, Pebibyte), wantErr: nil},
 
-		{name: "Negative value", json: `{"value":-1000,"unit":"B"}`, want: zeroBytes, wantErr: ErrBytesNegativeValue},
-		{name: "Empty unit", json: `{"value":1000,"unit":""}`, want: zeroBytes, wantErr: ErrBytesEmptyUnit},
+		{name: "Empty unit", json: `{"value":1000,"unit":""}`, want: zeroBytes, wantErr: ErrBytesInvalidUnit},
 		{name: "Invalid unit", json: `{"value":1000,"unit":"invalid"}`, want: zeroBytes, wantErr: ErrBytesInvalidUnit},
 	}
 
@@ -114,7 +108,7 @@ func TestBytesUnmarshalJSON(t *testing.T) {
 				if !errors.Is(err, test.wantErr) {
 					t.Fatalf("json.Unmarshal() error = %v, want %v", err, test.wantErr)
 				}
-			} else if bytes != test.want {
+			} else if !bytes.Equal(test.want) {
 				t.Errorf("json.Unmarshal() = %v, want %v", bytes, test.want)
 			}
 		})
@@ -259,6 +253,124 @@ func TestBytesGreaterThan(t *testing.T) { //nolint:dupl // test ok
 			got := test.bytes.GreaterThan(test.other)
 			if got != test.want {
 				t.Errorf("Bytes.GreaterThan() = %v, want %v", got, test.want)
+			}
+		})
+	}
+}
+
+func TestBytesByteCountInUnit(t *testing.T) {
+	tests := []struct {
+		name  string
+		bytes Bytes
+		unit  BytesUnit
+		want  *big.Int
+	}{
+		{name: "1000 B -> B", bytes: NewBytes(1000, Byte), unit: Byte, want: big.NewInt(1000)},
+		{name: "1000 B -> KB", bytes: NewBytes(1000, Byte), unit: Kilobyte, want: big.NewInt(1)},
+		{name: "1000 B -> MB", bytes: NewBytes(1000, Byte), unit: Megabyte, want: big.NewInt(0)},
+		{name: "1000 B -> GB", bytes: NewBytes(1000, Byte), unit: Gigabyte, want: big.NewInt(0)},
+		{name: "1000 B -> TB", bytes: NewBytes(1000, Byte), unit: Terabyte, want: big.NewInt(0)},
+		{name: "1000 B -> PB", bytes: NewBytes(1000, Byte), unit: Petabyte, want: big.NewInt(0)},
+		{name: "1000 B -> KiB", bytes: NewBytes(1000, Byte), unit: Kibibyte, want: big.NewInt(0)},
+		{name: "1000 B -> MiB", bytes: NewBytes(1000, Byte), unit: Mebibyte, want: big.NewInt(0)},
+		{name: "1000 B -> GiB", bytes: NewBytes(1000, Byte), unit: Gibibyte, want: big.NewInt(0)},
+		{name: "1000 B -> TiB", bytes: NewBytes(1000, Byte), unit: Tebibyte, want: big.NewInt(0)},
+		{name: "1000 B -> PiB", bytes: NewBytes(1000, Byte), unit: Pebibyte, want: big.NewInt(0)},
+
+		{name: "1000 KB -> B", bytes: NewBytes(1000, Kilobyte), unit: Byte, want: big.NewInt(1000000)},
+		{name: "1000 KB -> MB", bytes: NewBytes(1000, Kilobyte), unit: Megabyte, want: big.NewInt(1)},
+		{name: "1000 KB -> GB", bytes: NewBytes(1000, Kilobyte), unit: Gigabyte, want: big.NewInt(0)},
+		{name: "1000 KB -> TB", bytes: NewBytes(1000, Kilobyte), unit: Terabyte, want: big.NewInt(0)},
+		{name: "1000 KB -> PB", bytes: NewBytes(1000, Kilobyte), unit: Petabyte, want: big.NewInt(0)},
+		{name: "1000 KB -> KiB", bytes: NewBytes(1000, Kilobyte), unit: Kibibyte, want: big.NewInt(976)},
+		{name: "1000 KB -> MiB", bytes: NewBytes(1000, Kilobyte), unit: Mebibyte, want: big.NewInt(0)},
+		{name: "1000 KB -> GiB", bytes: NewBytes(1000, Kilobyte), unit: Gibibyte, want: big.NewInt(0)},
+		{name: "1000 KB -> TiB", bytes: NewBytes(1000, Kilobyte), unit: Tebibyte, want: big.NewInt(0)},
+		{name: "1000 KB -> PiB", bytes: NewBytes(1000, Kilobyte), unit: Pebibyte, want: big.NewInt(0)},
+
+		{name: "1000 MB -> B", bytes: NewBytes(1000, Megabyte), unit: Byte, want: big.NewInt(1000000000)},
+		{name: "1000 MB -> KB", bytes: NewBytes(1000, Megabyte), unit: Kilobyte, want: big.NewInt(1000000)},
+		{name: "1000 MB -> MB", bytes: NewBytes(1000, Megabyte), unit: Megabyte, want: big.NewInt(1000)},
+		{name: "1000 MB -> GB", bytes: NewBytes(1000, Megabyte), unit: Gigabyte, want: big.NewInt(1)},
+		{name: "1000 MB -> TB", bytes: NewBytes(1000, Megabyte), unit: Terabyte, want: big.NewInt(0)},
+		{name: "1000 MB -> PB", bytes: NewBytes(1000, Megabyte), unit: Petabyte, want: big.NewInt(0)},
+		{name: "1000 MB -> KiB", bytes: NewBytes(1000, Megabyte), unit: Kibibyte, want: big.NewInt(976562)},
+		{name: "1000 MB -> MiB", bytes: NewBytes(1000, Megabyte), unit: Mebibyte, want: big.NewInt(953)},
+		{name: "1000 MB -> GiB", bytes: NewBytes(1000, Megabyte), unit: Gibibyte, want: big.NewInt(0)},
+		{name: "1000 MB -> TiB", bytes: NewBytes(1000, Megabyte), unit: Tebibyte, want: big.NewInt(0)},
+		{name: "1000 MB -> PiB", bytes: NewBytes(1000, Megabyte), unit: Pebibyte, want: big.NewInt(0)},
+
+		{name: "1000 GB -> B", bytes: NewBytes(1000, Gigabyte), unit: Byte, want: big.NewInt(1000000000000)},
+		{name: "1000 GB -> KB", bytes: NewBytes(1000, Gigabyte), unit: Kilobyte, want: big.NewInt(1000000000)},
+		{name: "1000 GB -> MB", bytes: NewBytes(1000, Gigabyte), unit: Megabyte, want: big.NewInt(1000000)},
+		{name: "1000 GB -> GB", bytes: NewBytes(1000, Gigabyte), unit: Gigabyte, want: big.NewInt(1000)},
+		{name: "1000 GB -> TB", bytes: NewBytes(1000, Gigabyte), unit: Terabyte, want: big.NewInt(1)},
+		{name: "1000 GB -> PB", bytes: NewBytes(1000, Gigabyte), unit: Petabyte, want: big.NewInt(0)},
+		{name: "1000 GB -> KiB", bytes: NewBytes(1000, Gigabyte), unit: Kibibyte, want: big.NewInt(976562500)},
+		{name: "1000 GB -> MiB", bytes: NewBytes(1000, Gigabyte), unit: Mebibyte, want: big.NewInt(953674)},
+		{name: "1000 GB -> GiB", bytes: NewBytes(1000, Gigabyte), unit: Gibibyte, want: big.NewInt(931)},
+		{name: "1000 GB -> TiB", bytes: NewBytes(1000, Gigabyte), unit: Tebibyte, want: big.NewInt(0)},
+		{name: "1000 GB -> PiB", bytes: NewBytes(1000, Gigabyte), unit: Pebibyte, want: big.NewInt(0)},
+
+		{name: "1000 TB -> B", bytes: NewBytes(1000, Terabyte), unit: Byte, want: big.NewInt(1000000000000000)},
+		{name: "1000 TB -> KB", bytes: NewBytes(1000, Terabyte), unit: Kilobyte, want: big.NewInt(1000000000000)},
+		{name: "1000 TB -> MB", bytes: NewBytes(1000, Terabyte), unit: Megabyte, want: big.NewInt(1000000000)},
+		{name: "1000 TB -> GB", bytes: NewBytes(1000, Terabyte), unit: Gigabyte, want: big.NewInt(1000000)},
+		{name: "1000 TB -> TB", bytes: NewBytes(1000, Terabyte), unit: Terabyte, want: big.NewInt(1000)},
+		{name: "1000 TB -> PB", bytes: NewBytes(1000, Terabyte), unit: Petabyte, want: big.NewInt(1)},
+		{name: "1000 TB -> KiB", bytes: NewBytes(1000, Terabyte), unit: Kibibyte, want: big.NewInt(976562500000)},
+		{name: "1000 TB -> MiB", bytes: NewBytes(1000, Terabyte), unit: Mebibyte, want: big.NewInt(953674316)},
+		{name: "1000 TB -> GiB", bytes: NewBytes(1000, Terabyte), unit: Gibibyte, want: big.NewInt(931322)},
+		{name: "1000 TB -> TiB", bytes: NewBytes(1000, Terabyte), unit: Tebibyte, want: big.NewInt(909)},
+		{name: "1000 TB -> PiB", bytes: NewBytes(1000, Gigabyte), unit: Pebibyte, want: big.NewInt(0)},
+
+		{name: "1000 PB -> B", bytes: NewBytes(1000, Petabyte), unit: Byte, want: big.NewInt(1000000000000000000)},
+		{name: "1000 PB -> KB", bytes: NewBytes(1000, Petabyte), unit: Kilobyte, want: big.NewInt(1000000000000000)},
+		{name: "1000 PB -> MB", bytes: NewBytes(1000, Petabyte), unit: Megabyte, want: big.NewInt(1000000000000)},
+		{name: "1000 PB -> GB", bytes: NewBytes(1000, Petabyte), unit: Gigabyte, want: big.NewInt(1000000000)},
+		{name: "1000 PB -> TB", bytes: NewBytes(1000, Petabyte), unit: Terabyte, want: big.NewInt(1000000)},
+		{name: "1000 PB -> PB", bytes: NewBytes(1000, Petabyte), unit: Petabyte, want: big.NewInt(1000)},
+		{name: "1000 PB -> KiB", bytes: NewBytes(1000, Petabyte), unit: Kibibyte, want: big.NewInt(976562500000000)},
+		{name: "1000 PB -> MiB", bytes: NewBytes(1000, Petabyte), unit: Mebibyte, want: big.NewInt(953674316406)},
+		{name: "1000 PB -> GiB", bytes: NewBytes(1000, Petabyte), unit: Gibibyte, want: big.NewInt(931322574)},
+		{name: "1000 PB -> TiB", bytes: NewBytes(1000, Petabyte), unit: Tebibyte, want: big.NewInt(909494)},
+		{name: "1000 PB -> PiB", bytes: NewBytes(1000, Petabyte), unit: Pebibyte, want: big.NewInt(888)},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got := test.bytes.ByteCountInUnit(test.unit)
+			if got.Cmp(test.want) != 0 {
+				t.Errorf("Bytes.ByteCountInUnit() = %v, want %v", got, test.want)
+			}
+		})
+	}
+}
+
+func TestBytesByteCountInUnitInt64(t *testing.T) {
+	tests := []struct {
+		name    string
+		bytes   Bytes
+		unit    BytesUnit
+		want    int64
+		wantErr error
+	}{
+		{name: "2048 MiB -> GiB", bytes: NewBytes(2048, Mebibyte), unit: Gibibyte, want: 2, wantErr: nil},
+		{name: "2048 EiB -> B", bytes: NewBytes(2048, Exbibyte), unit: Byte, want: 0, wantErr: ErrBytesNotAnInt64},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got, err := test.bytes.ByteCountInUnitInt64(test.unit)
+			if err != nil {
+				if test.wantErr != nil {
+					if !errors.Is(err, test.wantErr) {
+						t.Errorf("Bytes.ByteCountInUnitInt64() = %v, want %v", err, test.wantErr)
+					}
+				} else {
+					t.Errorf("Bytes.ByteCountInUnitInt64() = %v, want %v", err, test.wantErr)
+				}
+			} else if got != test.want {
+				t.Errorf("Bytes.ByteCountInUnitInt64() = %v, want %v", got, test.want)
 			}
 		})
 	}

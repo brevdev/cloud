@@ -3,7 +3,8 @@ package v1
 import (
 	"encoding/json"
 	"fmt"
-	"math/bits"
+	"math"
+	"math/big"
 
 	"github.com/brevdev/cloud/internal/errors"
 )
@@ -11,28 +12,21 @@ import (
 var (
 	zeroBytes = Bytes{value: 0, unit: Byte}
 
-	ErrBytesNegativeValue = errors.New("value must be non-negative")
-	ErrBytesEmptyUnit     = errors.New("unit must be set")
-	ErrBytesInvalidUnit   = errors.New("invalid unit")
+	ErrBytesInvalidUnit = errors.New("invalid unit")
+	ErrBytesNotAnInt64  = errors.New("byte count is not an int64")
+	ErrBytesNotAnInt32  = errors.New("byte count is not an int32")
 )
 
 // NewBytes creates a new Bytes with the given value and unit.
-// Returns zeroBytes if value is negative or if the byte count calculation would overflow.
 func NewBytes(value BytesValue, unit BytesUnit) Bytes {
-	if value < 0 {
-		return zeroBytes
-	}
+	byteCount := big.NewInt(int64(value))
+	unitByteCount := big.NewInt(0).Set(unit.byteCount)
+	byteCount = byteCount.Mul(byteCount, unitByteCount)
 
-	// Check for multiplication overflow using bits.Mul64. If more bits are needed than the lower 64
-	// bits, then we know the full result doesn't fit in uint64.
-	hi, lo := bits.Mul64(uint64(value), unit.byteCount) //nolint:gosec // 'value' can safely be converted to uint64
-	if hi != 0 {
-		return zeroBytes
-	}
 	return Bytes{
 		value:     value,
 		unit:      unit,
-		byteCount: lo,
+		byteCount: byteCount,
 	}
 }
 
@@ -44,7 +38,7 @@ type (
 type Bytes struct {
 	value     BytesValue
 	unit      BytesUnit
-	byteCount uint64 // TODO: consider using "https://pkg.go.dev/math/big" for this
+	byteCount *big.Int
 }
 
 // bytesJSON is the JSON representation of a Bytes. This struct is maintained separately from the core Bytes
@@ -64,9 +58,43 @@ func (b Bytes) Unit() BytesUnit {
 	return b.unit
 }
 
-// ByteCount is the number of bytes
-func (b Bytes) ByteCount() uint64 {
-	return b.byteCount
+// ByteCount is the total number of bytes in the Bytes
+func (b Bytes) ByteCount() *big.Int {
+	// Return a copy of the byte count to avoid mutating the original value
+	return big.NewInt(0).Set(b.byteCount)
+}
+
+// ByteCountInUnit is the number of bytes in the Bytes of the given unit. For example, if
+// the Bytes is 1000 MB, then:
+//
+//	ByteCountInUnit(Byte)     = 1000000
+//	ByteCountInUnit(Kilobyte) = 1000
+//	ByteCountInUnit(Megabyte) = 1
+func (b Bytes) ByteCountInUnit(unit BytesUnit) *big.Int {
+	return big.NewInt(0).Div(b.byteCount, unit.byteCount)
+}
+
+// ByteCountInUnitInt64 attempts to convert the result of ByteCountInUnit to an int64. If this conversion would
+// result in an overflow, it returns an ErrBytesNotAnInt64 error.
+func (b Bytes) ByteCountInUnitInt64(unit BytesUnit) (int64, error) {
+	byteCount := b.ByteCountInUnit(unit)
+	if !byteCount.IsInt64() {
+		return 0, errors.WrapAndTrace(errors.Join(ErrBytesNotAnInt64, fmt.Errorf("byte count %v is not an int64", byteCount)))
+	}
+	return byteCount.Int64(), nil
+}
+
+// ByteCountInUnitInt32 attempts to convert the result of ByteCountInUnit to an int32. If this conversion would
+// result in an overflow, it returns an ErrBytesNotAnInt32 error.
+func (b Bytes) ByteCountInUnitInt32(unit BytesUnit) (int32, error) {
+	byteCountInt64, err := b.ByteCountInUnitInt64(unit)
+	if err != nil {
+		return 0, errors.WrapAndTrace(err)
+	}
+	if byteCountInt64 > math.MaxInt32 {
+		return 0, errors.WrapAndTrace(errors.Join(ErrBytesNotAnInt32, fmt.Errorf("byte count %v is greater than %d", byteCountInt64, math.MaxInt32)))
+	}
+	return int32(byteCountInt64), nil //nolint:gosec // checked above
 }
 
 // String returns the string representation of the Bytes
@@ -89,14 +117,6 @@ func (b *Bytes) UnmarshalJSON(data []byte) error {
 		return errors.WrapAndTrace(err)
 	}
 
-	if bytesJSON.Value < 0 {
-		return errors.WrapAndTrace(ErrBytesNegativeValue)
-	}
-
-	if bytesJSON.Unit == "" {
-		return errors.WrapAndTrace(ErrBytesEmptyUnit)
-	}
-
 	unit, err := stringToBytesUnit(bytesJSON.Unit)
 	if err != nil {
 		return errors.WrapAndTrace(err)
@@ -109,24 +129,29 @@ func (b *Bytes) UnmarshalJSON(data []byte) error {
 
 // LessThan returns true if the Bytes is less than the other Bytes
 func (b Bytes) LessThan(other Bytes) bool {
-	return b.byteCount < other.byteCount
+	return b.byteCount.Cmp(other.byteCount) < 0
 }
 
 // GreaterThan returns true if the Bytes is greater than the other Bytes
 func (b Bytes) GreaterThan(other Bytes) bool {
-	return b.byteCount > other.byteCount
+	return b.byteCount.Cmp(other.byteCount) > 0
+}
+
+func (b Bytes) Equal(other Bytes) bool {
+	return b.byteCount.Cmp(other.byteCount) == 0
 }
 
 // BytesUnit is a unit of measurement for bytes. Note for maintainers: this is defined as a struct rather than a
 // type alias to ensure stronger compile-time type checking and to avoid the need for a validation function.
 type BytesUnit struct {
 	name      string
-	byteCount uint64
+	byteCount *big.Int
 }
 
 // ByteCountInUnit is the number of bytes in the BytesUnit in the given unit
-func (u BytesUnit) ByteCount() uint64 {
-	return u.byteCount
+func (u BytesUnit) ByteCount() *big.Int {
+	// Return a copy of the byte count to avoid mutating the original value
+	return big.NewInt(0).Set(u.byteCount)
 }
 
 // String returns the string representation of the BytesUnit
@@ -135,21 +160,23 @@ func (u BytesUnit) String() string {
 }
 
 var (
-	Byte = BytesUnit{name: "B", byteCount: 1}
+	Byte = BytesUnit{name: "B", byteCount: big.NewInt(1)}
 
 	// Base 10
-	Kilobyte = BytesUnit{name: "KB", byteCount: 1000}
-	Megabyte = BytesUnit{name: "MB", byteCount: 1000 * 1000}
-	Gigabyte = BytesUnit{name: "GB", byteCount: 1000 * 1000 * 1000}
-	Terabyte = BytesUnit{name: "TB", byteCount: 1000 * 1000 * 1000 * 1000}
-	Petabyte = BytesUnit{name: "PB", byteCount: 1000 * 1000 * 1000 * 1000 * 1000}
+	Kilobyte = BytesUnit{name: "KB", byteCount: big.NewInt(1000)}
+	Megabyte = BytesUnit{name: "MB", byteCount: big.NewInt(1000 * 1000)}
+	Gigabyte = BytesUnit{name: "GB", byteCount: big.NewInt(1000 * 1000 * 1000)}
+	Terabyte = BytesUnit{name: "TB", byteCount: big.NewInt(1000 * 1000 * 1000 * 1000)}
+	Petabyte = BytesUnit{name: "PB", byteCount: big.NewInt(1000 * 1000 * 1000 * 1000 * 1000)}
+	Exabyte  = BytesUnit{name: "EB", byteCount: big.NewInt(1000 * 1000 * 1000 * 1000 * 1000 * 1000)}
 
 	// Base 2
-	Kibibyte = BytesUnit{name: "KiB", byteCount: 1024}
-	Mebibyte = BytesUnit{name: "MiB", byteCount: 1024 * 1024}
-	Gibibyte = BytesUnit{name: "GiB", byteCount: 1024 * 1024 * 1024}
-	Tebibyte = BytesUnit{name: "TiB", byteCount: 1024 * 1024 * 1024 * 1024}
-	Pebibyte = BytesUnit{name: "PiB", byteCount: 1024 * 1024 * 1024 * 1024 * 1024}
+	Kibibyte = BytesUnit{name: "KiB", byteCount: big.NewInt(1024)}
+	Mebibyte = BytesUnit{name: "MiB", byteCount: big.NewInt(1024 * 1024)}
+	Gibibyte = BytesUnit{name: "GiB", byteCount: big.NewInt(1024 * 1024 * 1024)}
+	Tebibyte = BytesUnit{name: "TiB", byteCount: big.NewInt(1024 * 1024 * 1024 * 1024)}
+	Pebibyte = BytesUnit{name: "PiB", byteCount: big.NewInt(1024 * 1024 * 1024 * 1024 * 1024)}
+	Exbibyte = BytesUnit{name: "EiB", byteCount: big.NewInt(1024 * 1024 * 1024 * 1024 * 1024 * 1024)}
 )
 
 func stringToBytesUnit(unit string) (BytesUnit, error) {
