@@ -162,6 +162,47 @@ func TestBytesGetters(t *testing.T) {
 	}
 }
 
+func TestBytesEqual(t *testing.T) {
+	tests := []struct {
+		name  string
+		bytes Bytes
+		other Bytes
+		want  bool
+	}{
+		{name: "1000 B == 1000 B", bytes: NewBytes(1000, Byte), other: NewBytes(1000, Byte), want: true},
+		{name: "1000 B != 1000 KB", bytes: NewBytes(1000, Byte), other: NewBytes(1000, Kilobyte), want: false},
+		{name: "1000 KB != 1000 B", bytes: NewBytes(1000, Kilobyte), other: NewBytes(1000, Byte), want: false},
+		{name: "1000 KB == 1000 KB", bytes: NewBytes(1000, Kilobyte), other: NewBytes(1000, Kilobyte), want: true},
+		{name: "1000 KB != 1000 MB", bytes: NewBytes(1000, Kilobyte), other: NewBytes(1000, Megabyte), want: false},
+		{name: "1000 MB != 1000 KB", bytes: NewBytes(1000, Megabyte), other: NewBytes(1000, Kilobyte), want: false},
+		{name: "1000 MB == 1000 MB", bytes: NewBytes(1000, Megabyte), other: NewBytes(1000, Megabyte), want: true},
+		{name: "1000 MB != 1000 GB", bytes: NewBytes(1000, Megabyte), other: NewBytes(1000, Gigabyte), want: false},
+		{name: "1000 GB != 1000 MB", bytes: NewBytes(1000, Gigabyte), other: NewBytes(1000, Megabyte), want: false},
+		{name: "1000 GB == 1000 GB", bytes: NewBytes(1000, Gigabyte), other: NewBytes(1000, Gigabyte), want: true},
+		{name: "1000 GB != 1000 TB", bytes: NewBytes(1000, Gigabyte), other: NewBytes(1000, Terabyte), want: false},
+		{name: "1000 TB != 1000 GB", bytes: NewBytes(1000, Terabyte), other: NewBytes(1000, Gigabyte), want: false},
+		{name: "1000 TB == 1000 TB", bytes: NewBytes(1000, Terabyte), other: NewBytes(1000, Terabyte), want: true},
+		{name: "1000 TB != 1000 PB", bytes: NewBytes(1000, Terabyte), other: NewBytes(1000, Petabyte), want: false},
+		{name: "1000 PB != 1000 TB", bytes: NewBytes(1000, Petabyte), other: NewBytes(1000, Terabyte), want: false},
+		{name: "1000 PB == 1000 PB", bytes: NewBytes(1000, Petabyte), other: NewBytes(1000, Petabyte), want: true},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			// Test the Equal() method
+			got := test.bytes.Equal(test.other)
+			if got != test.want {
+				t.Errorf("Bytes.Equal() = %v, want %v", got, test.want)
+			}
+			// Test the == operator
+			got = (test.bytes == test.other)
+			if got != test.want {
+				t.Errorf("Bytes == Bytes = %v, want %v", got, test.want)
+			}
+		})
+	}
+}
+
 func TestBytesLessThan(t *testing.T) { //nolint:dupl // test ok
 	tests := []struct {
 		name  string
@@ -263,78 +304,79 @@ func TestBytesByteCountInUnit(t *testing.T) {
 		name  string
 		bytes Bytes
 		unit  BytesUnit
-		want  *big.Int
+		want  *big.Float
 	}{
-		{name: "1000 B -> B", bytes: NewBytes(1000, Byte), unit: Byte, want: big.NewInt(1000)},
-		{name: "1000 B -> KB", bytes: NewBytes(1000, Byte), unit: Kilobyte, want: big.NewInt(1)},
-		{name: "1000 B -> MB", bytes: NewBytes(1000, Byte), unit: Megabyte, want: big.NewInt(0)},
-		{name: "1000 B -> GB", bytes: NewBytes(1000, Byte), unit: Gigabyte, want: big.NewInt(0)},
-		{name: "1000 B -> TB", bytes: NewBytes(1000, Byte), unit: Terabyte, want: big.NewInt(0)},
-		{name: "1000 B -> PB", bytes: NewBytes(1000, Byte), unit: Petabyte, want: big.NewInt(0)},
-		{name: "1000 B -> KiB", bytes: NewBytes(1000, Byte), unit: Kibibyte, want: big.NewInt(0)},
-		{name: "1000 B -> MiB", bytes: NewBytes(1000, Byte), unit: Mebibyte, want: big.NewInt(0)},
-		{name: "1000 B -> GiB", bytes: NewBytes(1000, Byte), unit: Gibibyte, want: big.NewInt(0)},
-		{name: "1000 B -> TiB", bytes: NewBytes(1000, Byte), unit: Tebibyte, want: big.NewInt(0)},
-		{name: "1000 B -> PiB", bytes: NewBytes(1000, Byte), unit: Pebibyte, want: big.NewInt(0)},
+		{name: "1000 B -> B", bytes: NewBytes(1000, Byte), unit: Byte, want: big.NewFloat(1000)},
+		{name: "1000 B -> KB", bytes: NewBytes(1000, Byte), unit: Kilobyte, want: big.NewFloat(1)},
+		{name: "1000 B -> MB", bytes: NewBytes(1000, Byte), unit: Megabyte, want: big.NewFloat(0.001)},
+		{name: "1000 B -> GB", bytes: NewBytes(1000, Byte), unit: Gigabyte, want: big.NewFloat(0.000001)},
+		{name: "1000 B -> TB", bytes: NewBytes(1000, Byte), unit: Terabyte, want: big.NewFloat(0.000000001)},
+		{name: "1000 B -> PB", bytes: NewBytes(1000, Byte), unit: Petabyte, want: big.NewFloat(0.000000000001)},
+		{name: "1000 B -> KiB", bytes: NewBytes(1000, Byte), unit: Kibibyte, want: big.NewFloat(0.9765625)},
+		{name: "1000 B -> MiB", bytes: NewBytes(1000, Byte), unit: Mebibyte, want: big.NewFloat(0.00095367431640625)},
+		{name: "1000 B -> GiB", bytes: NewBytes(1000, Byte), unit: Gibibyte, want: big.NewFloat(0.0000009313225746154785)},
+		{name: "1000 B -> TiB", bytes: NewBytes(1000, Byte), unit: Tebibyte, want: big.NewFloat(0.0000000009094947017729282)},
+		{name: "1000 B -> PiB", bytes: NewBytes(1000, Byte), unit: Pebibyte, want: big.NewFloat(0.0000000000008881784197001252)},
 
-		{name: "1000 KB -> B", bytes: NewBytes(1000, Kilobyte), unit: Byte, want: big.NewInt(1000000)},
-		{name: "1000 KB -> MB", bytes: NewBytes(1000, Kilobyte), unit: Megabyte, want: big.NewInt(1)},
-		{name: "1000 KB -> GB", bytes: NewBytes(1000, Kilobyte), unit: Gigabyte, want: big.NewInt(0)},
-		{name: "1000 KB -> TB", bytes: NewBytes(1000, Kilobyte), unit: Terabyte, want: big.NewInt(0)},
-		{name: "1000 KB -> PB", bytes: NewBytes(1000, Kilobyte), unit: Petabyte, want: big.NewInt(0)},
-		{name: "1000 KB -> KiB", bytes: NewBytes(1000, Kilobyte), unit: Kibibyte, want: big.NewInt(976)},
-		{name: "1000 KB -> MiB", bytes: NewBytes(1000, Kilobyte), unit: Mebibyte, want: big.NewInt(0)},
-		{name: "1000 KB -> GiB", bytes: NewBytes(1000, Kilobyte), unit: Gibibyte, want: big.NewInt(0)},
-		{name: "1000 KB -> TiB", bytes: NewBytes(1000, Kilobyte), unit: Tebibyte, want: big.NewInt(0)},
-		{name: "1000 KB -> PiB", bytes: NewBytes(1000, Kilobyte), unit: Pebibyte, want: big.NewInt(0)},
+		{name: "1000 KB -> B", bytes: NewBytes(1000, Kilobyte), unit: Byte, want: big.NewFloat(1000000)},
+		{name: "1000 KB -> KB", bytes: NewBytes(1000, Kilobyte), unit: Kilobyte, want: big.NewFloat(1000)},
+		{name: "1000 KB -> MB", bytes: NewBytes(1000, Kilobyte), unit: Megabyte, want: big.NewFloat(1)},
+		{name: "1000 KB -> GB", bytes: NewBytes(1000, Kilobyte), unit: Gigabyte, want: big.NewFloat(0.001)},
+		{name: "1000 KB -> TB", bytes: NewBytes(1000, Kilobyte), unit: Terabyte, want: big.NewFloat(0.000001)},
+		{name: "1000 KB -> PB", bytes: NewBytes(1000, Kilobyte), unit: Petabyte, want: big.NewFloat(0.000000001)},
+		{name: "1000 KB -> KiB", bytes: NewBytes(1000, Kilobyte), unit: Kibibyte, want: big.NewFloat(976.5625)},
+		{name: "1000 KB -> MiB", bytes: NewBytes(1000, Kilobyte), unit: Mebibyte, want: big.NewFloat(0.95367431640625)},
+		{name: "1000 KB -> GiB", bytes: NewBytes(1000, Kilobyte), unit: Gibibyte, want: big.NewFloat(0.0009313225746154785)},
+		{name: "1000 KB -> TiB", bytes: NewBytes(1000, Kilobyte), unit: Tebibyte, want: big.NewFloat(0.0000009094947017729282)},
+		{name: "1000 KB -> PiB", bytes: NewBytes(1000, Kilobyte), unit: Pebibyte, want: big.NewFloat(0.0000000008881784197001252)},
 
-		{name: "1000 MB -> B", bytes: NewBytes(1000, Megabyte), unit: Byte, want: big.NewInt(1000000000)},
-		{name: "1000 MB -> KB", bytes: NewBytes(1000, Megabyte), unit: Kilobyte, want: big.NewInt(1000000)},
-		{name: "1000 MB -> MB", bytes: NewBytes(1000, Megabyte), unit: Megabyte, want: big.NewInt(1000)},
-		{name: "1000 MB -> GB", bytes: NewBytes(1000, Megabyte), unit: Gigabyte, want: big.NewInt(1)},
-		{name: "1000 MB -> TB", bytes: NewBytes(1000, Megabyte), unit: Terabyte, want: big.NewInt(0)},
-		{name: "1000 MB -> PB", bytes: NewBytes(1000, Megabyte), unit: Petabyte, want: big.NewInt(0)},
-		{name: "1000 MB -> KiB", bytes: NewBytes(1000, Megabyte), unit: Kibibyte, want: big.NewInt(976562)},
-		{name: "1000 MB -> MiB", bytes: NewBytes(1000, Megabyte), unit: Mebibyte, want: big.NewInt(953)},
-		{name: "1000 MB -> GiB", bytes: NewBytes(1000, Megabyte), unit: Gibibyte, want: big.NewInt(0)},
-		{name: "1000 MB -> TiB", bytes: NewBytes(1000, Megabyte), unit: Tebibyte, want: big.NewInt(0)},
-		{name: "1000 MB -> PiB", bytes: NewBytes(1000, Megabyte), unit: Pebibyte, want: big.NewInt(0)},
+		{name: "1000 MB -> B", bytes: NewBytes(1000, Megabyte), unit: Byte, want: big.NewFloat(1000000000)},
+		{name: "1000 MB -> KB", bytes: NewBytes(1000, Megabyte), unit: Kilobyte, want: big.NewFloat(1000000)},
+		{name: "1000 MB -> MB", bytes: NewBytes(1000, Megabyte), unit: Megabyte, want: big.NewFloat(1000)},
+		{name: "1000 MB -> GB", bytes: NewBytes(1000, Megabyte), unit: Gigabyte, want: big.NewFloat(1)},
+		{name: "1000 MB -> TB", bytes: NewBytes(1000, Megabyte), unit: Terabyte, want: big.NewFloat(0.001)},
+		{name: "1000 MB -> PB", bytes: NewBytes(1000, Megabyte), unit: Petabyte, want: big.NewFloat(0.000001)},
+		{name: "1000 MB -> KiB", bytes: NewBytes(1000, Megabyte), unit: Kibibyte, want: big.NewFloat(976562.5)},
+		{name: "1000 MB -> MiB", bytes: NewBytes(1000, Megabyte), unit: Mebibyte, want: big.NewFloat(953.67431640625)},
+		{name: "1000 MB -> GiB", bytes: NewBytes(1000, Megabyte), unit: Gibibyte, want: big.NewFloat(0.9313225746154785)},
+		{name: "1000 MB -> TiB", bytes: NewBytes(1000, Megabyte), unit: Tebibyte, want: big.NewFloat(0.0009094947017729282)},
+		{name: "1000 MB -> PiB", bytes: NewBytes(1000, Megabyte), unit: Pebibyte, want: big.NewFloat(0.0000008881784197001252)},
 
-		{name: "1000 GB -> B", bytes: NewBytes(1000, Gigabyte), unit: Byte, want: big.NewInt(1000000000000)},
-		{name: "1000 GB -> KB", bytes: NewBytes(1000, Gigabyte), unit: Kilobyte, want: big.NewInt(1000000000)},
-		{name: "1000 GB -> MB", bytes: NewBytes(1000, Gigabyte), unit: Megabyte, want: big.NewInt(1000000)},
-		{name: "1000 GB -> GB", bytes: NewBytes(1000, Gigabyte), unit: Gigabyte, want: big.NewInt(1000)},
-		{name: "1000 GB -> TB", bytes: NewBytes(1000, Gigabyte), unit: Terabyte, want: big.NewInt(1)},
-		{name: "1000 GB -> PB", bytes: NewBytes(1000, Gigabyte), unit: Petabyte, want: big.NewInt(0)},
-		{name: "1000 GB -> KiB", bytes: NewBytes(1000, Gigabyte), unit: Kibibyte, want: big.NewInt(976562500)},
-		{name: "1000 GB -> MiB", bytes: NewBytes(1000, Gigabyte), unit: Mebibyte, want: big.NewInt(953674)},
-		{name: "1000 GB -> GiB", bytes: NewBytes(1000, Gigabyte), unit: Gibibyte, want: big.NewInt(931)},
-		{name: "1000 GB -> TiB", bytes: NewBytes(1000, Gigabyte), unit: Tebibyte, want: big.NewInt(0)},
-		{name: "1000 GB -> PiB", bytes: NewBytes(1000, Gigabyte), unit: Pebibyte, want: big.NewInt(0)},
+		{name: "1000 GB -> B", bytes: NewBytes(1000, Gigabyte), unit: Byte, want: big.NewFloat(1000000000000)},
+		{name: "1000 GB -> KB", bytes: NewBytes(1000, Gigabyte), unit: Kilobyte, want: big.NewFloat(1000000000)},
+		{name: "1000 GB -> MB", bytes: NewBytes(1000, Gigabyte), unit: Megabyte, want: big.NewFloat(1000000)},
+		{name: "1000 GB -> GB", bytes: NewBytes(1000, Gigabyte), unit: Gigabyte, want: big.NewFloat(1000)},
+		{name: "1000 GB -> TB", bytes: NewBytes(1000, Gigabyte), unit: Terabyte, want: big.NewFloat(1)},
+		{name: "1000 GB -> PB", bytes: NewBytes(1000, Gigabyte), unit: Petabyte, want: big.NewFloat(0.001)},
+		{name: "1000 GB -> KiB", bytes: NewBytes(1000, Gigabyte), unit: Kibibyte, want: big.NewFloat(976562500)},
+		{name: "1000 GB -> MiB", bytes: NewBytes(1000, Gigabyte), unit: Mebibyte, want: big.NewFloat(953674.31640625)},
+		{name: "1000 GB -> GiB", bytes: NewBytes(1000, Gigabyte), unit: Gibibyte, want: big.NewFloat(931.3225746154785)},
+		{name: "1000 GB -> TiB", bytes: NewBytes(1000, Gigabyte), unit: Tebibyte, want: big.NewFloat(0.9094947017729282)},
+		{name: "1000 GB -> PiB", bytes: NewBytes(1000, Gigabyte), unit: Pebibyte, want: big.NewFloat(0.0008881784197001252)},
 
-		{name: "1000 TB -> B", bytes: NewBytes(1000, Terabyte), unit: Byte, want: big.NewInt(1000000000000000)},
-		{name: "1000 TB -> KB", bytes: NewBytes(1000, Terabyte), unit: Kilobyte, want: big.NewInt(1000000000000)},
-		{name: "1000 TB -> MB", bytes: NewBytes(1000, Terabyte), unit: Megabyte, want: big.NewInt(1000000000)},
-		{name: "1000 TB -> GB", bytes: NewBytes(1000, Terabyte), unit: Gigabyte, want: big.NewInt(1000000)},
-		{name: "1000 TB -> TB", bytes: NewBytes(1000, Terabyte), unit: Terabyte, want: big.NewInt(1000)},
-		{name: "1000 TB -> PB", bytes: NewBytes(1000, Terabyte), unit: Petabyte, want: big.NewInt(1)},
-		{name: "1000 TB -> KiB", bytes: NewBytes(1000, Terabyte), unit: Kibibyte, want: big.NewInt(976562500000)},
-		{name: "1000 TB -> MiB", bytes: NewBytes(1000, Terabyte), unit: Mebibyte, want: big.NewInt(953674316)},
-		{name: "1000 TB -> GiB", bytes: NewBytes(1000, Terabyte), unit: Gibibyte, want: big.NewInt(931322)},
-		{name: "1000 TB -> TiB", bytes: NewBytes(1000, Terabyte), unit: Tebibyte, want: big.NewInt(909)},
-		{name: "1000 TB -> PiB", bytes: NewBytes(1000, Gigabyte), unit: Pebibyte, want: big.NewInt(0)},
+		{name: "1000 TB -> B", bytes: NewBytes(1000, Terabyte), unit: Byte, want: big.NewFloat(1000000000000000)},
+		{name: "1000 TB -> KB", bytes: NewBytes(1000, Terabyte), unit: Kilobyte, want: big.NewFloat(1000000000000)},
+		{name: "1000 TB -> MB", bytes: NewBytes(1000, Terabyte), unit: Megabyte, want: big.NewFloat(1000000000)},
+		{name: "1000 TB -> GB", bytes: NewBytes(1000, Terabyte), unit: Gigabyte, want: big.NewFloat(1000000)},
+		{name: "1000 TB -> TB", bytes: NewBytes(1000, Terabyte), unit: Terabyte, want: big.NewFloat(1000)},
+		{name: "1000 TB -> PB", bytes: NewBytes(1000, Terabyte), unit: Petabyte, want: big.NewFloat(1)},
+		{name: "1000 TB -> KiB", bytes: NewBytes(1000, Terabyte), unit: Kibibyte, want: big.NewFloat(976562500000)},
+		{name: "1000 TB -> MiB", bytes: NewBytes(1000, Terabyte), unit: Mebibyte, want: big.NewFloat(953674316.40625)},
+		{name: "1000 TB -> GiB", bytes: NewBytes(1000, Terabyte), unit: Gibibyte, want: big.NewFloat(931322.5746154785)},
+		{name: "1000 TB -> TiB", bytes: NewBytes(1000, Terabyte), unit: Tebibyte, want: big.NewFloat(909.4947017729282)},
+		{name: "1000 TB -> PiB", bytes: NewBytes(1000, Gigabyte), unit: Pebibyte, want: big.NewFloat(0.0008881784197001252)},
 
-		{name: "1000 PB -> B", bytes: NewBytes(1000, Petabyte), unit: Byte, want: big.NewInt(1000000000000000000)},
-		{name: "1000 PB -> KB", bytes: NewBytes(1000, Petabyte), unit: Kilobyte, want: big.NewInt(1000000000000000)},
-		{name: "1000 PB -> MB", bytes: NewBytes(1000, Petabyte), unit: Megabyte, want: big.NewInt(1000000000000)},
-		{name: "1000 PB -> GB", bytes: NewBytes(1000, Petabyte), unit: Gigabyte, want: big.NewInt(1000000000)},
-		{name: "1000 PB -> TB", bytes: NewBytes(1000, Petabyte), unit: Terabyte, want: big.NewInt(1000000)},
-		{name: "1000 PB -> PB", bytes: NewBytes(1000, Petabyte), unit: Petabyte, want: big.NewInt(1000)},
-		{name: "1000 PB -> KiB", bytes: NewBytes(1000, Petabyte), unit: Kibibyte, want: big.NewInt(976562500000000)},
-		{name: "1000 PB -> MiB", bytes: NewBytes(1000, Petabyte), unit: Mebibyte, want: big.NewInt(953674316406)},
-		{name: "1000 PB -> GiB", bytes: NewBytes(1000, Petabyte), unit: Gibibyte, want: big.NewInt(931322574)},
-		{name: "1000 PB -> TiB", bytes: NewBytes(1000, Petabyte), unit: Tebibyte, want: big.NewInt(909494)},
-		{name: "1000 PB -> PiB", bytes: NewBytes(1000, Petabyte), unit: Pebibyte, want: big.NewInt(888)},
+		{name: "1000 PB -> B", bytes: NewBytes(1000, Petabyte), unit: Byte, want: big.NewFloat(1000000000000000000)},
+		{name: "1000 PB -> KB", bytes: NewBytes(1000, Petabyte), unit: Kilobyte, want: big.NewFloat(1000000000000000)},
+		{name: "1000 PB -> MB", bytes: NewBytes(1000, Petabyte), unit: Megabyte, want: big.NewFloat(1000000000000)},
+		{name: "1000 PB -> GB", bytes: NewBytes(1000, Petabyte), unit: Gigabyte, want: big.NewFloat(1000000000)},
+		{name: "1000 PB -> TB", bytes: NewBytes(1000, Petabyte), unit: Terabyte, want: big.NewFloat(1000000)},
+		{name: "1000 PB -> PB", bytes: NewBytes(1000, Petabyte), unit: Petabyte, want: big.NewFloat(1000)},
+		{name: "1000 PB -> KiB", bytes: NewBytes(1000, Petabyte), unit: Kibibyte, want: big.NewFloat(976562500000000)},
+		{name: "1000 PB -> MiB", bytes: NewBytes(1000, Petabyte), unit: Mebibyte, want: big.NewFloat(953674316406.25)},
+		{name: "1000 PB -> GiB", bytes: NewBytes(1000, Petabyte), unit: Gibibyte, want: big.NewFloat(931322574.6154785)},
+		{name: "1000 PB -> TiB", bytes: NewBytes(1000, Petabyte), unit: Tebibyte, want: big.NewFloat(909494.7017729282)},
+		{name: "1000 PB -> PiB", bytes: NewBytes(1000, Petabyte), unit: Pebibyte, want: big.NewFloat(888.1784197001252)},
 	}
 
 	for _, test := range tests {

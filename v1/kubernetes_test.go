@@ -308,7 +308,7 @@ func TestNodeGroupUnmarshalJSON(t *testing.T) {
 	if nodeGroup.instanceType != "test-instanceType" {
 		t.Fatalf("NodeGroup InstanceType = %s, want %s", nodeGroup.instanceType, "test-instanceType")
 	}
-	if nodeGroup.diskSize != NewBytes(10, Gibibyte) {
+	if !nodeGroup.diskSize.Equal(NewBytes(10, Gibibyte)) {
 		t.Fatalf("NodeGroup DiskSize = %s, want %s", nodeGroup.diskSize, "10 GiB")
 	}
 	if nodeGroup.status != NodeGroupStatusAvailable {
