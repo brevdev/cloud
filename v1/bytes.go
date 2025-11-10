@@ -137,6 +137,7 @@ func (b Bytes) GreaterThan(other Bytes) bool {
 	return b.byteCount.Cmp(other.byteCount) > 0
 }
 
+// Equal returns true if the Bytes is equal to the other Bytes
 func (b Bytes) Equal(other Bytes) bool {
 	return b.byteCount.Cmp(other.byteCount) == 0
 }

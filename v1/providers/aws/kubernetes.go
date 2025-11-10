@@ -25,6 +25,8 @@ import (
 )
 
 var (
+	minDiskSize = v1.NewBytes(20, v1.Gibibyte)
+
 	errUsernameIsRequired     = fmt.Errorf("username is required")
 	errRoleIsRequired         = fmt.Errorf("role is required")
 	errClusterIDIsRequired    = fmt.Errorf("cluster ID is required")
@@ -34,7 +36,7 @@ var (
 	errNodeGroupMaxNodeCountMustBeGreaterThan0                     = fmt.Errorf("node group maxNodeCount must be greater than 0")
 	errNodeGroupMaxNodeCountMustBeGreaterThanOrEqualToMinNodeCount = fmt.Errorf("node group maxNodeCount must be greater than or equal to minNodeCount")
 	errNodeGroupInstanceTypeIsRequired                             = fmt.Errorf("node group instanceType is required")
-	errNodeGroupDiskSizeGiBMustBeGreaterThanOrEqualTo20            = fmt.Errorf("node group diskSizeGiB must be greater than or equal to 20")
+	errNodeGroupDiskSizeGiBMustBeGreaterThanOrEqualToMinDiskSize   = fmt.Errorf("node group diskSizeGiB must be greater than or equal to %v", minDiskSize)
 	errNodeGroupDiskSizeGiBMustBeLessThanOrEqualToMaxInt32         = fmt.Errorf("node group diskSizeGiB must be less than or equal to %d", math.MaxInt32)
 	errNodeGroupMaxNodeCountMustBeLessThanOrEqualToMaxInt32        = fmt.Errorf("node group maxNodeCount must be less than or equal to %d", math.MaxInt32)
 	errNodeGroupMinNodeCountMustBeLessThanOrEqualToMaxInt32        = fmt.Errorf("node group minNodeCount must be less than or equal to %d", math.MaxInt32)
@@ -518,8 +520,8 @@ func validateCreateNodeGroupArgs(args v1.CreateNodeGroupArgs) error {
 	if args.InstanceType == "" {
 		errs = append(errs, errNodeGroupInstanceTypeIsRequired)
 	}
-	if args.DiskSize.LessThan(v1.NewBytes(20, v1.Gibibyte)) {
-		errs = append(errs, errNodeGroupDiskSizeGiBMustBeGreaterThanOrEqualTo20)
+	if args.DiskSize.LessThan(minDiskSize) {
+		errs = append(errs, errNodeGroupDiskSizeGiBMustBeGreaterThanOrEqualToMinDiskSize)
 	}
 	if args.DiskSize.GreaterThan(v1.NewBytes(math.MaxInt32, v1.Gibibyte)) {
 		errs = append(errs, errNodeGroupDiskSizeGiBMustBeLessThanOrEqualToMaxInt32)

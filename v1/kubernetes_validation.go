@@ -84,7 +84,7 @@ func ValidateCreateKubernetesNodeGroup(ctx context.Context, client CloudMaintain
 	if nodeGroup.GetInstanceType() != attrs.InstanceType {
 		return nil, fmt.Errorf("node group instanceType does not match create args: '%s' != '%s'", nodeGroup.GetInstanceType(), attrs.InstanceType)
 	}
-	if nodeGroup.GetDiskSize() != attrs.DiskSize {
+	if !nodeGroup.GetDiskSize().Equal(attrs.DiskSize) {
 		return nil, fmt.Errorf("node group diskSize does not match create args: '%s' != '%s'", nodeGroup.GetDiskSize(), attrs.DiskSize)
 	}
 
@@ -121,7 +121,7 @@ func ValidateClusterNodeGroups(ctx context.Context, client CloudMaintainKubernet
 	if clusterNodeGroup.GetInstanceType() != nodeGroup.GetInstanceType() {
 		return fmt.Errorf("cluster node group instanceType does not match create args: '%s' != '%s'", clusterNodeGroup.GetInstanceType(), nodeGroup.GetInstanceType())
 	}
-	if clusterNodeGroup.GetDiskSize() != nodeGroup.GetDiskSize() {
+	if !clusterNodeGroup.GetDiskSize().Equal(nodeGroup.GetDiskSize()) {
 		return fmt.Errorf("cluster node group diskSize does not match create args: '%s' != '%s'", clusterNodeGroup.GetDiskSize(), nodeGroup.GetDiskSize())
 	}
 	for key, value := range nodeGroup.GetTags() {

@@ -375,3 +375,33 @@ func TestBytesByteCountInUnitInt64(t *testing.T) {
 		})
 	}
 }
+
+func TestBytesByteCountInUnitInt32(t *testing.T) {
+	tests := []struct {
+		name    string
+		bytes   Bytes
+		unit    BytesUnit
+		want    int32
+		wantErr error
+	}{
+		{name: "2048 MiB -> GiB", bytes: NewBytes(2048, Mebibyte), unit: Gibibyte, want: 2, wantErr: nil},
+		{name: "2048 EiB -> B", bytes: NewBytes(2048, Exbibyte), unit: Byte, want: 0, wantErr: ErrBytesNotAnInt64},
+		{name: "2048 EiB -> KB", bytes: NewBytes(2048, Exbibyte), unit: Kilobyte, want: 0, wantErr: ErrBytesNotAnInt32},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got, err := test.bytes.ByteCountInUnitInt32(test.unit)
+			if err != nil {
+				if test.wantErr != nil {
+					if !errors.Is(err, test.wantErr) {
+						t.Errorf("Bytes.ByteCountInUnitInt32() = %v, want %v", err, test.wantErr)
+					}
+				} else {
+					t.Errorf("Bytes.ByteCountInUnitInt32() = %v, want %v", err, test.wantErr)
+				}
+			} else if got != test.want {
+				t.Errorf("Bytes.ByteCountInUnitInt32() = %v, want %v", got, test.want)
+			}
+		})
+	}
+}

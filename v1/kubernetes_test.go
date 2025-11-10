@@ -209,7 +209,7 @@ func TestClusterUnmarshalJSON(t *testing.T) { //nolint:gocyclo,funlen // test ok
 	if cluster.nodeGroups[0].instanceType != "test-instanceType" {
 		t.Fatalf("Cluster NodeGroup InstanceType = %s, want %s", cluster.nodeGroups[0].instanceType, "test-instanceType")
 	}
-	if cluster.nodeGroups[0].diskSize != NewBytes(10, Gibibyte) {
+	if !cluster.nodeGroups[0].diskSize.Equal(NewBytes(10, Gibibyte)) {
 		t.Fatalf("Cluster NodeGroup DiskSize = %s, want %s", cluster.nodeGroups[0].diskSize, "10 GiB")
 	}
 	if len(cluster.nodeGroups[0].tags) != 1 {

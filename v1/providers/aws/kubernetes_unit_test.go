@@ -89,7 +89,7 @@ func TestValidateCreateNodeGroupArgs(t *testing.T) { //nolint:funlen // test ok
 				InstanceType: "t3.medium",
 				DiskSize:     v1.NewBytes(10, v1.Gibibyte),
 			},
-			expectError: errNodeGroupDiskSizeGiBMustBeGreaterThanOrEqualTo20,
+			expectError: errNodeGroupDiskSizeGiBMustBeGreaterThanOrEqualToMinDiskSize,
 		},
 		{
 			name: "disk size exceeds max int32",
