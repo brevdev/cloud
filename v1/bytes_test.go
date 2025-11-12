@@ -60,9 +60,9 @@ func TestBytesMarshalJSON(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			json, err := json.Marshal(test.bytes)
-			if test.wantErr != nil {
-				if err == nil {
-					t.Fatalf("json.Marshal() error = nil, want %v", test.wantErr)
+			if err != nil {
+				if test.wantErr == nil {
+					t.Fatalf("json.Marshal() error = %v, want nil", err)
 				}
 				if !errors.Is(err, test.wantErr) {
 					t.Fatalf("json.Marshal() error = %v, want %v", err, test.wantErr)
@@ -81,6 +81,7 @@ func TestBytesUnmarshalJSON(t *testing.T) {
 		want    Bytes
 		wantErr error
 	}{
+		{name: "Empty bytes", json: `{"value":0,"unit":""}`, want: zeroBytes, wantErr: nil},
 		{name: "1000 B", json: `{"value":1000,"unit":"B"}`, want: NewBytes(1000, Byte), wantErr: nil},
 		{name: "1000 KB", json: `{"value":1000,"unit":"KB"}`, want: NewBytes(1000, Kilobyte), wantErr: nil},
 		{name: "1000 MB", json: `{"value":1000,"unit":"MB"}`, want: NewBytes(1000, Megabyte), wantErr: nil},
@@ -101,9 +102,9 @@ func TestBytesUnmarshalJSON(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			var bytes Bytes
 			err := json.Unmarshal([]byte(test.json), &bytes)
-			if test.wantErr != nil {
-				if err == nil {
-					t.Fatalf("json.Unmarshal() error = nil, want %v", test.wantErr)
+			if err != nil {
+				if test.wantErr == nil {
+					t.Fatalf("json.Unmarshal() error = %v, want nil", err)
 				}
 				if !errors.Is(err, test.wantErr) {
 					t.Fatalf("json.Unmarshal() error = %v, want %v", err, test.wantErr)
@@ -404,12 +405,11 @@ func TestBytesByteCountInUnitInt64(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			got, err := test.bytes.ByteCountInUnitInt64(test.unit)
 			if err != nil {
-				if test.wantErr != nil {
-					if !errors.Is(err, test.wantErr) {
-						t.Errorf("Bytes.ByteCountInUnitInt64() = %v, want %v", err, test.wantErr)
-					}
-				} else {
-					t.Errorf("Bytes.ByteCountInUnitInt64() = %v, want %v", err, test.wantErr)
+				if test.wantErr == nil {
+					t.Fatalf("Bytes.ByteCountInUnitInt64() error = %v, want nil", err)
+				}
+				if !errors.Is(err, test.wantErr) {
+					t.Fatalf("Bytes.ByteCountInUnitInt64() error = %v, want %v", err, test.wantErr)
 				}
 			} else if got != test.want {
 				t.Errorf("Bytes.ByteCountInUnitInt64() = %v, want %v", got, test.want)
@@ -434,12 +434,11 @@ func TestBytesByteCountInUnitInt32(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			got, err := test.bytes.ByteCountInUnitInt32(test.unit)
 			if err != nil {
-				if test.wantErr != nil {
-					if !errors.Is(err, test.wantErr) {
-						t.Errorf("Bytes.ByteCountInUnitInt32() = %v, want %v", err, test.wantErr)
-					}
-				} else {
-					t.Errorf("Bytes.ByteCountInUnitInt32() = %v, want %v", err, test.wantErr)
+				if test.wantErr == nil {
+					t.Fatalf("Bytes.ByteCountInUnitInt32() error = %v, want nil", err)
+				}
+				if !errors.Is(err, test.wantErr) {
+					t.Fatalf("Bytes.ByteCountInUnitInt32() error = %v, want %v", err, test.wantErr)
 				}
 			} else if got != test.want {
 				t.Errorf("Bytes.ByteCountInUnitInt32() = %v, want %v", got, test.want)
