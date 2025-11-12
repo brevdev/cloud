@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	zeroBytes = Bytes{value: 0, unit: Byte}
+	zero = Bytes{}
 
 	ErrBytesInvalidUnit = errors.New("invalid unit")
 	ErrBytesNotAnInt64  = errors.New("byte count is not an int64")
@@ -128,7 +128,7 @@ func (b *Bytes) UnmarshalJSON(data []byte) error {
 	}
 
 	if bytesJSON.Value == 0 && bytesJSON.Unit == "" {
-		*b = zeroBytes
+		*b = zero
 		return nil
 	}
 
