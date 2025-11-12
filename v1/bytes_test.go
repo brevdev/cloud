@@ -81,7 +81,7 @@ func TestBytesUnmarshalJSON(t *testing.T) {
 		want    Bytes
 		wantErr error
 	}{
-		{name: "Empty bytes", json: `{"value":0,"unit":""}`, want: zeroBytes, wantErr: nil},
+		{name: "Empty bytes", json: `{"value":0,"unit":""}`, want: zero, wantErr: nil},
 		{name: "1000 B", json: `{"value":1000,"unit":"B"}`, want: NewBytes(1000, Byte), wantErr: nil},
 		{name: "1000 KB", json: `{"value":1000,"unit":"KB"}`, want: NewBytes(1000, Kilobyte), wantErr: nil},
 		{name: "1000 MB", json: `{"value":1000,"unit":"MB"}`, want: NewBytes(1000, Megabyte), wantErr: nil},
@@ -94,8 +94,8 @@ func TestBytesUnmarshalJSON(t *testing.T) {
 		{name: "1000 TiB", json: `{"value":1000,"unit":"TiB"}`, want: NewBytes(1000, Tebibyte), wantErr: nil},
 		{name: "1000 PiB", json: `{"value":1000,"unit":"PiB"}`, want: NewBytes(1000, Pebibyte), wantErr: nil},
 
-		{name: "Empty unit", json: `{"value":1000,"unit":""}`, want: zeroBytes, wantErr: ErrBytesInvalidUnit},
-		{name: "Invalid unit", json: `{"value":1000,"unit":"invalid"}`, want: zeroBytes, wantErr: ErrBytesInvalidUnit},
+		{name: "Empty unit", json: `{"value":1000,"unit":""}`, want: zero, wantErr: ErrBytesInvalidUnit},
+		{name: "Invalid unit", json: `{"value":1000,"unit":"invalid"}`, want: zero, wantErr: ErrBytesInvalidUnit},
 	}
 
 	for _, test := range tests {
