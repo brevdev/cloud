@@ -246,7 +246,7 @@ type KubernetesValidationNodeGroupOpts struct {
 	MinNodeCount int
 	MaxNodeCount int
 	InstanceType string
-	DiskSizeGiB  int
+	DiskSize     v1.Bytes
 }
 
 type KubernetesValidationNetworkOpts struct {
@@ -420,7 +420,7 @@ func RunKubernetesValidation(t *testing.T, config ProviderConfig, opts Kubernete
 			MinNodeCount: opts.NodeGroupOpts.MinNodeCount,
 			MaxNodeCount: opts.NodeGroupOpts.MaxNodeCount,
 			InstanceType: opts.NodeGroupOpts.InstanceType,
-			DiskSizeGiB:  opts.NodeGroupOpts.DiskSizeGiB,
+			DiskSize:     opts.NodeGroupOpts.DiskSize,
 			Tags:         opts.Tags,
 		})
 		require.NoError(t, err, "ValidateCreateKubernetesNodeGroup should pass")

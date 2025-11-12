@@ -26,7 +26,7 @@ func TestValidateCreateNodeGroupArgs(t *testing.T) { //nolint:funlen // test ok
 				MinNodeCount: 1,
 				MaxNodeCount: 3,
 				InstanceType: "t3.medium",
-				DiskSizeGiB:  20,
+				DiskSize:     v1.NewBytes(20, v1.Gibibyte),
 				ClusterID:    "cluster-123",
 			},
 			expectError: nil,
@@ -39,7 +39,7 @@ func TestValidateCreateNodeGroupArgs(t *testing.T) { //nolint:funlen // test ok
 				MinNodeCount: 0,
 				MaxNodeCount: 3,
 				InstanceType: "t3.medium",
-				DiskSizeGiB:  20,
+				DiskSize:     v1.NewBytes(20, v1.Gibibyte),
 			},
 			expectError: errNodeGroupMinNodeCountMustBeGreaterThan0,
 		},
@@ -51,7 +51,7 @@ func TestValidateCreateNodeGroupArgs(t *testing.T) { //nolint:funlen // test ok
 				MinNodeCount: 1,
 				MaxNodeCount: 0,
 				InstanceType: "t3.medium",
-				DiskSizeGiB:  20,
+				DiskSize:     v1.NewBytes(20, v1.Gibibyte),
 			},
 			expectError: errNodeGroupMaxNodeCountMustBeGreaterThan0,
 		},
@@ -63,7 +63,7 @@ func TestValidateCreateNodeGroupArgs(t *testing.T) { //nolint:funlen // test ok
 				MinNodeCount: 5,
 				MaxNodeCount: 3,
 				InstanceType: "t3.medium",
-				DiskSizeGiB:  20,
+				DiskSize:     v1.NewBytes(20, v1.Gibibyte),
 			},
 			expectError: errNodeGroupMaxNodeCountMustBeGreaterThanOrEqualToMinNodeCount,
 		},
@@ -75,7 +75,7 @@ func TestValidateCreateNodeGroupArgs(t *testing.T) { //nolint:funlen // test ok
 				MinNodeCount: 1,
 				MaxNodeCount: 3,
 				InstanceType: "",
-				DiskSizeGiB:  20,
+				DiskSize:     v1.NewBytes(20, v1.Gibibyte),
 			},
 			expectError: errNodeGroupInstanceTypeIsRequired,
 		},
@@ -87,9 +87,9 @@ func TestValidateCreateNodeGroupArgs(t *testing.T) { //nolint:funlen // test ok
 				MinNodeCount: 1,
 				MaxNodeCount: 3,
 				InstanceType: "t3.medium",
-				DiskSizeGiB:  10,
+				DiskSize:     v1.NewBytes(10, v1.Gibibyte),
 			},
-			expectError: errNodeGroupDiskSizeGiBMustBeGreaterThanOrEqualTo20,
+			expectError: errNodeGroupDiskSizeGiBMustBeGreaterThanOrEqualToMinDiskSize,
 		},
 		{
 			name: "disk size exceeds max int32",
@@ -99,7 +99,7 @@ func TestValidateCreateNodeGroupArgs(t *testing.T) { //nolint:funlen // test ok
 				MinNodeCount: 1,
 				MaxNodeCount: 3,
 				InstanceType: "t3.medium",
-				DiskSizeGiB:  math.MaxInt32 + 1,
+				DiskSize:     v1.NewBytes(math.MaxInt32+1, v1.Gibibyte),
 			},
 			expectError: errNodeGroupDiskSizeGiBMustBeLessThanOrEqualToMaxInt32,
 		},
@@ -111,7 +111,7 @@ func TestValidateCreateNodeGroupArgs(t *testing.T) { //nolint:funlen // test ok
 				MinNodeCount: 1,
 				MaxNodeCount: math.MaxInt32 + 1,
 				InstanceType: "t3.medium",
-				DiskSizeGiB:  20,
+				DiskSize:     v1.NewBytes(20, v1.Gibibyte),
 			},
 			expectError: errNodeGroupMaxNodeCountMustBeLessThanOrEqualToMaxInt32,
 		},
@@ -123,7 +123,7 @@ func TestValidateCreateNodeGroupArgs(t *testing.T) { //nolint:funlen // test ok
 				MinNodeCount: math.MaxInt32 + 1,
 				MaxNodeCount: math.MaxInt32 + 2,
 				InstanceType: "t3.medium",
-				DiskSizeGiB:  20,
+				DiskSize:     v1.NewBytes(20, v1.Gibibyte),
 			},
 			expectError: errNodeGroupMinNodeCountMustBeLessThanOrEqualToMaxInt32,
 		},
@@ -614,8 +614,8 @@ func TestParseEKSNodeGroup(t *testing.T) { //nolint:gocognit // test ok
 			if result.GetInstanceType() != tt.nodeGroup.InstanceTypes[0] {
 				t.Errorf("expected instance type %s, got %s", tt.nodeGroup.InstanceTypes[0], result.GetInstanceType())
 			}
-			if result.GetDiskSizeGiB() != int(*tt.nodeGroup.DiskSize) {
-				t.Errorf("expected disk size %d, got %d", *tt.nodeGroup.DiskSize, result.GetDiskSizeGiB())
+			if !result.GetDiskSize().Equal(v1.NewBytes(v1.BytesValue(*tt.nodeGroup.DiskSize), v1.Gibibyte)) {
+				t.Errorf("expected disk size %s, got %s", v1.NewBytes(v1.BytesValue(*tt.nodeGroup.DiskSize), v1.Gibibyte), result.GetDiskSize())
 			}
 			if result.GetStatus() != parseEKSNodeGroupStatus(tt.nodeGroup.Status) {
 				t.Errorf("expected status %v, got %v", parseEKSNodeGroupStatus(tt.nodeGroup.Status), result.GetStatus())

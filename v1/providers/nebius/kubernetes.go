@@ -23,6 +23,8 @@ import (
 )
 
 var (
+	maxDiskSize = v1.NewBytes(v1.BytesValue(64), v1.Gibibyte)
+
 	errVPCHasNoPublicSubnets             = fmt.Errorf("VPC must have at least one public subnet with a CIDR block larger than /24")
 	errVPCHasNoPrivateSubnets            = fmt.Errorf("VPC must have at least one private subnet with a CIDR block larger than /24")
 	errNoSubnetIDsSpecifiedForVPC        = fmt.Errorf("no subnet IDs specified for VPC")
@@ -33,7 +35,7 @@ var (
 	errNodeGroupMinNodeCountMustBeGreaterThan0                     = fmt.Errorf("node group minNodeCount must be greater than 0")
 	errNodeGroupMaxNodeCountMustBeGreaterThan0                     = fmt.Errorf("node group maxNodeCount must be greater than 0")
 	errNodeGroupMaxNodeCountMustBeGreaterThanOrEqualToMinNodeCount = fmt.Errorf("node group maxNodeCount must be greater than or equal to minNodeCount")
-	errNodeGroupDiskSizeGiBMustBeGreaterThanOrEqualTo64            = fmt.Errorf("node group diskSizeGiB must be greater than or equal to 64")
+	errNodeGroupDiskSizeMustBeGreaterThanOrEqualToMax              = fmt.Errorf("node group diskSize must be greater than or equal to %v", maxDiskSize)
 	errNodeGroupInstanceTypeIsRequired                             = fmt.Errorf("node group instanceType is required")
 
 	errUsernameIsRequired     = fmt.Errorf("username is required")
@@ -408,6 +410,12 @@ func (c *NebiusClient) CreateNodeGroup(ctx context.Context, args v1.CreateNodeGr
 	labels[labelBrevRefID] = args.RefID
 	labels[labelCreatedBy] = labelBrevCloudSDK
 
+	// Nebius expects the disk size in GiB, so we need to convert the disk size to GiB
+	diskSizeGiB, err := args.DiskSize.ByteCountInUnitInt64(v1.Gibibyte)
+	if err != nil {
+		return nil, errors.WrapAndTrace(err)
+	}
+
 	// create the node groups
 	createNodeGroupOperation, err := nebiusNodeGroupService.Create(ctx, &nebiusmk8s.CreateNodeGroupRequest{
 		Metadata: &nebiuscommon.ResourceMetadata{
@@ -435,7 +443,7 @@ func (c *NebiusClient) CreateNodeGroup(ctx context.Context, args v1.CreateNodeGr
 				BootDisk: &nebiusmk8s.DiskSpec{
 					Type: nebiusmk8s.DiskSpec_NETWORK_SSD,
 					Size: &nebiusmk8s.DiskSpec_SizeGibibytes{
-						SizeGibibytes: int64(args.DiskSizeGiB),
+						SizeGibibytes: diskSizeGiB,
 					},
 				},
 			},
@@ -452,7 +460,7 @@ func (c *NebiusClient) CreateNodeGroup(ctx context.Context, args v1.CreateNodeGr
 		MinNodeCount: args.MinNodeCount,
 		MaxNodeCount: args.MaxNodeCount,
 		InstanceType: args.InstanceType,
-		DiskSizeGiB:  args.DiskSizeGiB,
+		DiskSize:     args.DiskSize,
 		Status:       v1.NodeGroupStatusPending,
 		Tags:         args.Tags,
 	})
@@ -478,8 +486,8 @@ func validateCreateNodeGroupArgs(args v1.CreateNodeGroupArgs) error {
 	if args.MaxNodeCount < args.MinNodeCount {
 		return errNodeGroupMaxNodeCountMustBeGreaterThanOrEqualToMinNodeCount
 	}
-	if args.DiskSizeGiB < 64 {
-		return errNodeGroupDiskSizeGiBMustBeGreaterThanOrEqualTo64
+	if args.DiskSize.LessThan(maxDiskSize) {
+		return errNodeGroupDiskSizeMustBeGreaterThanOrEqualToMax
 	}
 	if args.InstanceType == "" {
 		return errNodeGroupInstanceTypeIsRequired
@@ -515,7 +523,7 @@ func parseNebiusNodeGroup(nodeGroup *nebiusmk8s.NodeGroup) (*v1.NodeGroup, error
 		MinNodeCount: int(nodeGroup.Spec.GetAutoscaling().MinNodeCount),
 		MaxNodeCount: int(nodeGroup.Spec.GetAutoscaling().MaxNodeCount),
 		InstanceType: nodeGroup.Spec.Template.Resources.Platform + "." + nodeGroup.Spec.Template.Resources.GetPreset(),
-		DiskSizeGiB:  int(nodeGroup.Spec.Template.BootDisk.GetSizeGibibytes()),
+		DiskSize:     v1.NewBytes(v1.BytesValue(nodeGroup.Spec.Template.BootDisk.GetSizeGibibytes()), v1.Gibibyte),
 		Status:       parseNebiusNodeGroupStatus(nodeGroup.Status),
 		Tags:         v1.Tags(nodeGroup.Metadata.Labels),
 	})
