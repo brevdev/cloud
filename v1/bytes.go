@@ -127,6 +127,11 @@ func (b *Bytes) UnmarshalJSON(data []byte) error {
 		return errors.WrapAndTrace(err)
 	}
 
+	if bytesJSON.Value == 0 && bytesJSON.Unit == "" {
+		*b = zeroBytes
+		return nil
+	}
+
 	unit, err := stringToBytesUnit(bytesJSON.Unit)
 	if err != nil {
 		return errors.WrapAndTrace(err)
