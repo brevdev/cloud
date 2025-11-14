@@ -203,7 +203,7 @@ func (c *NebiusClient) convertNebiusInstanceToV1(ctx context.Context, instance *
 	}
 
 	instanceID := v1.CloudProviderInstanceID(instance.Metadata.Id)
-	
+
 	// Determine location from instance's parent project
 	// This ensures instances are correctly attributed to their actual region
 	location := c.location // Default to client's location
@@ -212,7 +212,7 @@ func (c *NebiusClient) convertNebiusInstanceToV1(ctx context.Context, instance *
 			location = region
 		}
 	}
-	
+
 	c.logger.Debug(ctx, "determined instance location",
 		v1.LogField("instanceID", instance.Metadata.Id),
 		v1.LogField("parentProjectID", instance.Metadata.ParentId),
