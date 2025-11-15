@@ -2,7 +2,6 @@ package v1
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -10,6 +9,7 @@ import (
 	"github.com/alecthomas/units"
 	"github.com/bojanz/currency"
 
+	"github.com/brevdev/cloud/internal/errors"
 	v1 "github.com/brevdev/cloud/v1"
 	openapi "github.com/brevdev/cloud/v1/providers/shadeform/gen/shadeform"
 )
@@ -27,6 +27,7 @@ func (c *ShadeformClient) GetInstanceTypes(ctx context.Context, args v1.GetInsta
 	request := c.client.DefaultAPI.InstancesTypes(authCtx)
 	if len(args.Locations) > 0 && args.Locations[0] != AllRegions {
 		regionFilter := args.Locations[0]
+		c.logger.Debug(ctx, "filtering by region", v1.LogField("regionFilter", regionFilter))
 		request = request.Region(regionFilter)
 	}
 
@@ -35,24 +36,34 @@ func (c *ShadeformClient) GetInstanceTypes(ctx context.Context, args v1.GetInsta
 		defer func() { _ = httpResp.Body.Close() }()
 	}
 	if err != nil {
-		return nil, fmt.Errorf("failed to get instance types: %w", err)
+		return nil, errors.WrapAndTrace(fmt.Errorf("failed to get instance types: %w", err))
 	}
 
 	var instanceTypes []v1.InstanceType
+	c.logger.Debug(ctx, "converting shadeform instance types to v1 instance types", v1.LogField("countToConvert", len(resp.InstanceTypes)), v1.LogField("shadeformInstanceTypes", resp.InstanceTypes))
+	var errCount int
 	for _, sfInstanceType := range resp.InstanceTypes {
 		instanceTypesFromShadeformInstanceType, err := c.convertShadeformInstanceTypeToV1InstanceType(sfInstanceType)
 		if err != nil {
-			return nil, err
+			return nil, errors.WrapAndTrace(err)
 		}
 		// Filter the list down to the instance types that are allowed by the configuration filter and the args
 		for _, singleInstanceType := range instanceTypesFromShadeformInstanceType {
 			if !isSelectedByArgs(singleInstanceType, args) {
+				c.logger.Debug(ctx, "instance type not selected by args", v1.LogField("instanceType", singleInstanceType.Type))
 				continue
 			}
-			if c.isInstanceTypeAllowed(singleInstanceType.Type) {
+			allowed, err := c.isInstanceTypeAllowed(singleInstanceType.Type)
+			if err != nil {
+				errCount++
+			}
+			if allowed {
 				instanceTypes = append(instanceTypes, singleInstanceType)
 			}
 		}
+	}
+	if errCount > 0 {
+		c.logger.Warn(ctx, "error converting instance types", v1.LogField("errCount", errCount))
 	}
 
 	return instanceTypes, nil
@@ -85,7 +96,7 @@ func isSelectedByArgs(instanceType v1.InstanceType, args v1.GetInstanceTypeArgs)
 }
 
 func (c *ShadeformClient) GetInstanceTypePollTime() time.Duration {
-	return 5 * time.Minute
+	return 1 * time.Minute
 }
 
 func (c *ShadeformClient) GetLocations(ctx context.Context, _ v1.GetLocationsArgs) ([]v1.Location, error) {
@@ -97,7 +108,7 @@ func (c *ShadeformClient) GetLocations(ctx context.Context, _ v1.GetLocationsArg
 	}
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to get locations: %w", err)
+		return nil, errors.WrapAndTrace(fmt.Errorf("failed to get locations: %w", err))
 	}
 
 	// Shadeform doesn't have a dedicated locations API but we can get the same result from using the
@@ -130,25 +141,25 @@ func (c *ShadeformClient) GetLocations(ctx context.Context, _ v1.GetLocationsArg
 }
 
 // isInstanceTypeAllowed - determines if an instance type is allowed based on configuration
-func (c *ShadeformClient) isInstanceTypeAllowed(instanceType string) bool {
+func (c *ShadeformClient) isInstanceTypeAllowed(instanceType string) (bool, error) {
 	// By default, everything is allowed
 	if c.config == nil || c.config.AllowedInstanceTypes == nil {
-		return true
+		return true, nil
 	}
 
 	// Convert to Cloud and Instance Type
 	cloud, shadeInstanceType, err := c.getShadeformCloudAndInstanceType(instanceType)
 	if err != nil {
-		return false
+		return false, errors.WrapAndTrace(err)
 	}
 
 	// Convert to API Cloud Enum
 	cloudEnum, err := openapi.NewCloudFromValue(cloud)
 	if err != nil {
-		return false
+		return false, errors.WrapAndTrace(err)
 	}
 
-	return c.config.isAllowed(*cloudEnum, shadeInstanceType)
+	return c.config.isAllowed(*cloudEnum, shadeInstanceType), nil
 }
 
 // getInstanceType - gets the Brev instance type from the shadeform cloud and shade instance type
@@ -165,7 +176,7 @@ func (c *ShadeformClient) getInstanceTypeID(instanceType string, region string) 
 func (c *ShadeformClient) getShadeformCloudAndInstanceType(instanceType string) (string, string, error) {
 	shadeformCloud, shadeformInstanceType, found := strings.Cut(instanceType, "_")
 	if !found {
-		return "", "", errors.New("could not determine shadeform cloud and instance type from instance type")
+		return "", "", errors.WrapAndTrace(errors.New("could not determine shadeform cloud and instance type from instance type"))
 	}
 	return shadeformCloud, shadeformInstanceType, nil
 }
@@ -202,7 +213,7 @@ func (c *ShadeformClient) convertShadeformInstanceTypeToV1InstanceType(shadeform
 
 	basePrice, err := convertHourlyPriceToAmount(shadeformInstanceType.HourlyPrice)
 	if err != nil {
-		return nil, err
+		return nil, errors.WrapAndTrace(err)
 	}
 
 	gpuName := shadeformGPUTypeToBrevGPUName(shadeformInstanceType.Configuration.GpuType)
@@ -214,14 +225,16 @@ func (c *ShadeformClient) convertShadeformInstanceTypeToV1InstanceType(shadeform
 
 	for _, region := range shadeformInstanceType.Availability {
 		instanceTypes = append(instanceTypes, v1.InstanceType{
-			ID:     v1.InstanceTypeID(c.getInstanceTypeID(instanceType, region.Region)),
-			Type:   instanceType,
-			VCPU:   shadeformInstanceType.Configuration.Vcpus,
-			Memory: units.Base2Bytes(shadeformInstanceType.Configuration.MemoryInGb) * units.GiB,
+			ID:          v1.InstanceTypeID(c.getInstanceTypeID(instanceType, region.Region)),
+			Type:        instanceType,
+			VCPU:        shadeformInstanceType.Configuration.Vcpus,
+			Memory:      units.Base2Bytes(shadeformInstanceType.Configuration.MemoryInGb) * units.GiB,
+			MemoryBytes: v1.NewBytes(v1.BytesValue(shadeformInstanceType.Configuration.MemoryInGb), v1.Gigabyte),
 			SupportedGPUs: []v1.GPU{
 				{
 					Count:          shadeformInstanceType.Configuration.NumGpus,
 					Memory:         units.Base2Bytes(shadeformInstanceType.Configuration.VramPerGpuInGb) * units.GiB,
+					MemoryBytes:    v1.NewBytes(v1.BytesValue(shadeformInstanceType.Configuration.VramPerGpuInGb), v1.Gigabyte),
 					MemoryDetails:  "",
 					NetworkDetails: shadeformInstanceType.Configuration.Interconnect,
 					Manufacturer:   gpuManufacturer,
@@ -231,9 +244,10 @@ func (c *ShadeformClient) convertShadeformInstanceTypeToV1InstanceType(shadeform
 			},
 			SupportedStorage: []v1.Storage{ // TODO: add storage (look in configuration)
 				{
-					Type:  "ssd",
-					Count: 1,
-					Size:  units.Base2Bytes(shadeformInstanceType.Configuration.StorageInGb) * units.GiB,
+					Type:      "ssd",
+					Count:     1,
+					Size:      units.Base2Bytes(shadeformInstanceType.Configuration.StorageInGb) * units.GiB,
+					SizeBytes: v1.NewBytes(v1.BytesValue(shadeformInstanceType.Configuration.StorageInGb), v1.Gigabyte),
 				},
 			},
 			SupportedArchitectures: []v1.Architecture{architecture},
@@ -254,7 +268,7 @@ func convertHourlyPriceToAmount(hourlyPrice int32) (*currency.Amount, error) {
 
 	amount, err := currency.NewAmount(number, UsdCurrentCode)
 	if err != nil {
-		return nil, err
+		return nil, errors.WrapAndTrace(err)
 	}
 	return &amount, nil
 }

@@ -58,8 +58,12 @@ func (c *ShadeformCredential) GetCapabilities(ctx context.Context) (v1.Capabilit
 }
 
 // MakeClient creates a new Shadeform client from this credential
-func (c *ShadeformCredential) MakeClient(_ context.Context, _ string) (v1.CloudClient, error) {
-	return NewShadeformClient(c.RefID, c.APIKey), nil
+func (c *ShadeformCredential) MakeClient(ctx context.Context, location string) (v1.CloudClient, error) {
+	return c.MakeClientWithOptions(ctx, location)
+}
+
+func (c *ShadeformCredential) MakeClientWithOptions(_ context.Context, _ string, opts ...ShadeformClientOption) (v1.CloudClient, error) {
+	return NewShadeformClient(c.RefID, c.APIKey, opts...), nil
 }
 
 // Shadeform implements the CloudClient interface for Shadeform

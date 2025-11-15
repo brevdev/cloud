@@ -4,14 +4,14 @@ All URIs are relative to *http://localhost*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
-[**CatalogPersonaChoicesCreate**](CatalogPersonaChoicesAPI.md#CatalogPersonaChoicesCreate) | **Post** /v1/catalog/persona-choices/ | 
-[**CatalogPersonaChoicesList**](CatalogPersonaChoicesAPI.md#CatalogPersonaChoicesList) | **Get** /v1/catalog/persona-choices/ | 
+[**V1CatalogPersonaChoicesCreate**](CatalogPersonaChoicesAPI.md#V1CatalogPersonaChoicesCreate) | **Post** /v1/catalog/persona-choices/ | 
+[**V1CatalogPersonaChoicesList**](CatalogPersonaChoicesAPI.md#V1CatalogPersonaChoicesList) | **Get** /v1/catalog/persona-choices/ | 
 
 
 
-## CatalogPersonaChoicesCreate
+## V1CatalogPersonaChoicesCreate
 
-> PersonaChoice CatalogPersonaChoicesCreate(ctx).PersonaChoice(personaChoice).Execute()
+> PersonaChoice V1CatalogPersonaChoicesCreate(ctx).PersonaChoice(personaChoice).Execute()
 
 
 
@@ -33,13 +33,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.CatalogPersonaChoicesAPI.CatalogPersonaChoicesCreate(context.Background()).PersonaChoice(personaChoice).Execute()
+	resp, r, err := apiClient.CatalogPersonaChoicesAPI.V1CatalogPersonaChoicesCreate(context.Background()).PersonaChoice(personaChoice).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `CatalogPersonaChoicesAPI.CatalogPersonaChoicesCreate``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `CatalogPersonaChoicesAPI.V1CatalogPersonaChoicesCreate``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `CatalogPersonaChoicesCreate`: PersonaChoice
-	fmt.Fprintf(os.Stdout, "Response from `CatalogPersonaChoicesAPI.CatalogPersonaChoicesCreate`: %v\n", resp)
+	// response from `V1CatalogPersonaChoicesCreate`: PersonaChoice
+	fmt.Fprintf(os.Stdout, "Response from `CatalogPersonaChoicesAPI.V1CatalogPersonaChoicesCreate`: %v\n", resp)
 }
 ```
 
@@ -49,7 +49,7 @@ func main() {
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiCatalogPersonaChoicesCreateRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1CatalogPersonaChoicesCreateRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -74,9 +74,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## CatalogPersonaChoicesList
+## V1CatalogPersonaChoicesList
 
-> PaginatedPersonaChoiceList CatalogPersonaChoicesList(ctx).Fields(fields).Omit(omit).Ordering(ordering).Page(page).PageSize(pageSize).Search(search).Execute()
+> PaginatedPersonaChoiceList V1CatalogPersonaChoicesList(ctx).Fields(fields).Omit(omit).Ordering(ordering).Page(page).PageSize(pageSize).Search(search).Execute()
 
 
 
@@ -102,13 +102,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.CatalogPersonaChoicesAPI.CatalogPersonaChoicesList(context.Background()).Fields(fields).Omit(omit).Ordering(ordering).Page(page).PageSize(pageSize).Search(search).Execute()
+	resp, r, err := apiClient.CatalogPersonaChoicesAPI.V1CatalogPersonaChoicesList(context.Background()).Fields(fields).Omit(omit).Ordering(ordering).Page(page).PageSize(pageSize).Search(search).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `CatalogPersonaChoicesAPI.CatalogPersonaChoicesList``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `CatalogPersonaChoicesAPI.V1CatalogPersonaChoicesList``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `CatalogPersonaChoicesList`: PaginatedPersonaChoiceList
-	fmt.Fprintf(os.Stdout, "Response from `CatalogPersonaChoicesAPI.CatalogPersonaChoicesList`: %v\n", resp)
+	// response from `V1CatalogPersonaChoicesList`: PaginatedPersonaChoiceList
+	fmt.Fprintf(os.Stdout, "Response from `CatalogPersonaChoicesAPI.V1CatalogPersonaChoicesList`: %v\n", resp)
 }
 ```
 
@@ -118,7 +118,7 @@ func main() {
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiCatalogPersonaChoicesListRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1CatalogPersonaChoicesListRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes

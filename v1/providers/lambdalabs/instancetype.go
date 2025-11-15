@@ -3,6 +3,7 @@ package v1
 import (
 	"context"
 	"fmt"
+	"math"
 	"regexp"
 	"strconv"
 	"strings"
@@ -127,7 +128,11 @@ func parseGPUFromDescription(input string) (v1.GPU, error) {
 	}
 	memoryStr := memoryMatch[1]
 	memoryGiB, _ := strconv.Atoi(memoryStr)
+	if memoryGiB > math.MaxInt32 {
+		memoryGiB = math.MaxInt32
+	}
 	gpu.Memory = units.GiB * units.Base2Bytes(memoryGiB)
+	gpu.MemoryBytes = v1.NewBytes(v1.BytesValue(memoryGiB), v1.Gibibyte)
 
 	// Extract the network details
 	networkRegex := regexp.MustCompile(`(\w+\s?)+\)`)
@@ -172,19 +177,22 @@ func convertLambdaLabsInstanceTypeToV1InstanceType(location string, instType ope
 	if err != nil {
 		return v1.InstanceType{}, err
 	}
+
 	it := v1.InstanceType{
 		Location:      location,
 		Type:          instType.Name,
 		SupportedGPUs: gpus,
 		SupportedStorage: []v1.Storage{
 			{
-				Type:  "ssd",
-				Count: 1,
-				Size:  units.GiB * units.Base2Bytes(instType.Specs.StorageGib),
+				Type:      "ssd",
+				Count:     1,
+				Size:      units.GiB * units.Base2Bytes(instType.Specs.StorageGib),
+				SizeBytes: v1.NewBytes(v1.BytesValue(instType.Specs.StorageGib), v1.Gibibyte),
 			},
 		},
 		SupportedUsageClasses:    []string{"on-demand"},
 		Memory:                   units.GiB * units.Base2Bytes(instType.Specs.MemoryGib),
+		MemoryBytes:              v1.NewBytes(v1.BytesValue(instType.Specs.MemoryGib), v1.Gibibyte),
 		MaximumNetworkInterfaces: 0,
 		NetworkPerformance:       "",
 		SupportedNumCores:        []int32{},

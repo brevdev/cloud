@@ -4,44 +4,44 @@ All URIs are relative to *http://localhost*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
-[**CatalogDeploymentsBulkPartialUpdate**](CatalogDeploymentsAPI.md#CatalogDeploymentsBulkPartialUpdate) | **Patch** /v1/catalog/deployments/bulk/ | 
-[**CatalogDeploymentsCreate**](CatalogDeploymentsAPI.md#CatalogDeploymentsCreate) | **Post** /v1/catalog/deployments/ | 
-[**CatalogDeploymentsDestroy**](CatalogDeploymentsAPI.md#CatalogDeploymentsDestroy) | **Delete** /v1/catalog/deployments/{id}/ | 
-[**CatalogDeploymentsHistoryList**](CatalogDeploymentsAPI.md#CatalogDeploymentsHistoryList) | **Get** /v1/catalog/deployments/{id}/history/ | 
-[**CatalogDeploymentsInstancesList**](CatalogDeploymentsAPI.md#CatalogDeploymentsInstancesList) | **Get** /v1/catalog/deployments/{deployment_id}/instances/ | 🚧 [Beta Feature]
-[**CatalogDeploymentsList**](CatalogDeploymentsAPI.md#CatalogDeploymentsList) | **Get** /v1/catalog/deployments/ | 
-[**CatalogDeploymentsNotesCreate**](CatalogDeploymentsAPI.md#CatalogDeploymentsNotesCreate) | **Post** /v1/catalog/deployments/{deployment_id}/notes/ | 
-[**CatalogDeploymentsNotesDestroy**](CatalogDeploymentsAPI.md#CatalogDeploymentsNotesDestroy) | **Delete** /v1/catalog/deployments/{deployment_id}/notes/{id}/ | 
-[**CatalogDeploymentsNotesList**](CatalogDeploymentsAPI.md#CatalogDeploymentsNotesList) | **Get** /v1/catalog/deployments/{deployment_id}/notes/ | 
-[**CatalogDeploymentsNotesPartialUpdate**](CatalogDeploymentsAPI.md#CatalogDeploymentsNotesPartialUpdate) | **Patch** /v1/catalog/deployments/{deployment_id}/notes/{id}/ | 
-[**CatalogDeploymentsNotesRetrieve**](CatalogDeploymentsAPI.md#CatalogDeploymentsNotesRetrieve) | **Get** /v1/catalog/deployments/{deployment_id}/notes/{id}/ | 
-[**CatalogDeploymentsNotesUpdate**](CatalogDeploymentsAPI.md#CatalogDeploymentsNotesUpdate) | **Put** /v1/catalog/deployments/{deployment_id}/notes/{id}/ | 
-[**CatalogDeploymentsPartialUpdate**](CatalogDeploymentsAPI.md#CatalogDeploymentsPartialUpdate) | **Patch** /v1/catalog/deployments/{id}/ | 
-[**CatalogDeploymentsPipelinesCreate**](CatalogDeploymentsAPI.md#CatalogDeploymentsPipelinesCreate) | **Post** /v1/catalog/deployments/{deployment_id}/pipelines/ | 
-[**CatalogDeploymentsPipelinesList**](CatalogDeploymentsAPI.md#CatalogDeploymentsPipelinesList) | **Get** /v1/catalog/deployments/{deployment_id}/pipelines/ | 
-[**CatalogDeploymentsRetrieve**](CatalogDeploymentsAPI.md#CatalogDeploymentsRetrieve) | **Get** /v1/catalog/deployments/{id}/ | 
-[**CatalogDeploymentsServicesCreate**](CatalogDeploymentsAPI.md#CatalogDeploymentsServicesCreate) | **Post** /v1/catalog/deployments/{deployment_id}/services/ | 
-[**CatalogDeploymentsServicesList**](CatalogDeploymentsAPI.md#CatalogDeploymentsServicesList) | **Get** /v1/catalog/deployments/{deployment_id}/services/ | 
-[**CatalogDeploymentsSshKeysCreate**](CatalogDeploymentsAPI.md#CatalogDeploymentsSshKeysCreate) | **Post** /v1/catalog/deployments/{deployment_id}/ssh-keys/ | 
-[**CatalogDeploymentsSshKeysDestroy**](CatalogDeploymentsAPI.md#CatalogDeploymentsSshKeysDestroy) | **Delete** /v1/catalog/deployments/{deployment_id}/ssh-keys/{id}/ | 
-[**CatalogDeploymentsSshKeysList**](CatalogDeploymentsAPI.md#CatalogDeploymentsSshKeysList) | **Get** /v1/catalog/deployments/{deployment_id}/ssh-keys/ | 
-[**CatalogDeploymentsStatsRetrieve**](CatalogDeploymentsAPI.md#CatalogDeploymentsStatsRetrieve) | **Get** /v1/catalog/deployments/stats/ | 🚧 [Beta Feature]
-[**CatalogDeploymentsTasksCreate**](CatalogDeploymentsAPI.md#CatalogDeploymentsTasksCreate) | **Post** /v1/catalog/deployments/{deployment_id}/tasks/ | 🚧 [Beta Feature]
-[**CatalogDeploymentsTasksList**](CatalogDeploymentsAPI.md#CatalogDeploymentsTasksList) | **Get** /v1/catalog/deployments/{deployment_id}/tasks/ | 🚧 [Beta Feature]
-[**CatalogDeploymentsTasksRetrieve**](CatalogDeploymentsAPI.md#CatalogDeploymentsTasksRetrieve) | **Get** /v1/catalog/deployments/{deployment_id}/tasks/{id}/ | 🚧 [Beta Feature]
-[**CatalogDeploymentsUpdate**](CatalogDeploymentsAPI.md#CatalogDeploymentsUpdate) | **Put** /v1/catalog/deployments/{id}/ | 
-[**CatalogExperiencesNotesCreate**](CatalogDeploymentsAPI.md#CatalogExperiencesNotesCreate) | **Post** /v1/catalog/experiences/{experience_id}/notes/ | 
-[**CatalogExperiencesNotesDestroy**](CatalogDeploymentsAPI.md#CatalogExperiencesNotesDestroy) | **Delete** /v1/catalog/experiences/{experience_id}/notes/{id}/ | 
-[**CatalogExperiencesNotesList**](CatalogDeploymentsAPI.md#CatalogExperiencesNotesList) | **Get** /v1/catalog/experiences/{experience_id}/notes/ | 
-[**CatalogExperiencesNotesPartialUpdate**](CatalogDeploymentsAPI.md#CatalogExperiencesNotesPartialUpdate) | **Patch** /v1/catalog/experiences/{experience_id}/notes/{id}/ | 
-[**CatalogExperiencesNotesRetrieve**](CatalogDeploymentsAPI.md#CatalogExperiencesNotesRetrieve) | **Get** /v1/catalog/experiences/{experience_id}/notes/{id}/ | 
-[**CatalogExperiencesNotesUpdate**](CatalogDeploymentsAPI.md#CatalogExperiencesNotesUpdate) | **Put** /v1/catalog/experiences/{experience_id}/notes/{id}/ | 
+[**V1CatalogDeploymentsBulkPartialUpdate**](CatalogDeploymentsAPI.md#V1CatalogDeploymentsBulkPartialUpdate) | **Patch** /v1/catalog/deployments/bulk/ | 
+[**V1CatalogDeploymentsCreate**](CatalogDeploymentsAPI.md#V1CatalogDeploymentsCreate) | **Post** /v1/catalog/deployments/ | 
+[**V1CatalogDeploymentsDestroy**](CatalogDeploymentsAPI.md#V1CatalogDeploymentsDestroy) | **Delete** /v1/catalog/deployments/{id}/ | 
+[**V1CatalogDeploymentsHistoryList**](CatalogDeploymentsAPI.md#V1CatalogDeploymentsHistoryList) | **Get** /v1/catalog/deployments/{id}/history/ | 
+[**V1CatalogDeploymentsInstancesList**](CatalogDeploymentsAPI.md#V1CatalogDeploymentsInstancesList) | **Get** /v1/catalog/deployments/{deployment_id}/instances/ | 🚧 [Beta Feature]
+[**V1CatalogDeploymentsList**](CatalogDeploymentsAPI.md#V1CatalogDeploymentsList) | **Get** /v1/catalog/deployments/ | 
+[**V1CatalogDeploymentsNotesCreate**](CatalogDeploymentsAPI.md#V1CatalogDeploymentsNotesCreate) | **Post** /v1/catalog/deployments/{deployment_id}/notes/ | 
+[**V1CatalogDeploymentsNotesDestroy**](CatalogDeploymentsAPI.md#V1CatalogDeploymentsNotesDestroy) | **Delete** /v1/catalog/deployments/{deployment_id}/notes/{id}/ | 
+[**V1CatalogDeploymentsNotesList**](CatalogDeploymentsAPI.md#V1CatalogDeploymentsNotesList) | **Get** /v1/catalog/deployments/{deployment_id}/notes/ | 
+[**V1CatalogDeploymentsNotesPartialUpdate**](CatalogDeploymentsAPI.md#V1CatalogDeploymentsNotesPartialUpdate) | **Patch** /v1/catalog/deployments/{deployment_id}/notes/{id}/ | 
+[**V1CatalogDeploymentsNotesRetrieve**](CatalogDeploymentsAPI.md#V1CatalogDeploymentsNotesRetrieve) | **Get** /v1/catalog/deployments/{deployment_id}/notes/{id}/ | 
+[**V1CatalogDeploymentsNotesUpdate**](CatalogDeploymentsAPI.md#V1CatalogDeploymentsNotesUpdate) | **Put** /v1/catalog/deployments/{deployment_id}/notes/{id}/ | 
+[**V1CatalogDeploymentsPartialUpdate**](CatalogDeploymentsAPI.md#V1CatalogDeploymentsPartialUpdate) | **Patch** /v1/catalog/deployments/{id}/ | 
+[**V1CatalogDeploymentsPipelinesCreate**](CatalogDeploymentsAPI.md#V1CatalogDeploymentsPipelinesCreate) | **Post** /v1/catalog/deployments/{deployment_id}/pipelines/ | 
+[**V1CatalogDeploymentsPipelinesList**](CatalogDeploymentsAPI.md#V1CatalogDeploymentsPipelinesList) | **Get** /v1/catalog/deployments/{deployment_id}/pipelines/ | 
+[**V1CatalogDeploymentsRetrieve**](CatalogDeploymentsAPI.md#V1CatalogDeploymentsRetrieve) | **Get** /v1/catalog/deployments/{id}/ | 
+[**V1CatalogDeploymentsServicesCreate**](CatalogDeploymentsAPI.md#V1CatalogDeploymentsServicesCreate) | **Post** /v1/catalog/deployments/{deployment_id}/services/ | 
+[**V1CatalogDeploymentsServicesList**](CatalogDeploymentsAPI.md#V1CatalogDeploymentsServicesList) | **Get** /v1/catalog/deployments/{deployment_id}/services/ | 
+[**V1CatalogDeploymentsSshKeysCreate**](CatalogDeploymentsAPI.md#V1CatalogDeploymentsSshKeysCreate) | **Post** /v1/catalog/deployments/{deployment_id}/ssh-keys/ | 
+[**V1CatalogDeploymentsSshKeysDestroy**](CatalogDeploymentsAPI.md#V1CatalogDeploymentsSshKeysDestroy) | **Delete** /v1/catalog/deployments/{deployment_id}/ssh-keys/{id}/ | 
+[**V1CatalogDeploymentsSshKeysList**](CatalogDeploymentsAPI.md#V1CatalogDeploymentsSshKeysList) | **Get** /v1/catalog/deployments/{deployment_id}/ssh-keys/ | 
+[**V1CatalogDeploymentsStatsRetrieve**](CatalogDeploymentsAPI.md#V1CatalogDeploymentsStatsRetrieve) | **Get** /v1/catalog/deployments/stats/ | 🚧 [Beta Feature]
+[**V1CatalogDeploymentsTasksCreate**](CatalogDeploymentsAPI.md#V1CatalogDeploymentsTasksCreate) | **Post** /v1/catalog/deployments/{deployment_id}/tasks/ | 🚧 [Beta Feature]
+[**V1CatalogDeploymentsTasksList**](CatalogDeploymentsAPI.md#V1CatalogDeploymentsTasksList) | **Get** /v1/catalog/deployments/{deployment_id}/tasks/ | 🚧 [Beta Feature]
+[**V1CatalogDeploymentsTasksRetrieve**](CatalogDeploymentsAPI.md#V1CatalogDeploymentsTasksRetrieve) | **Get** /v1/catalog/deployments/{deployment_id}/tasks/{id}/ | 🚧 [Beta Feature]
+[**V1CatalogDeploymentsUpdate**](CatalogDeploymentsAPI.md#V1CatalogDeploymentsUpdate) | **Put** /v1/catalog/deployments/{id}/ | 
+[**V1CatalogExperiencesNotesCreate**](CatalogDeploymentsAPI.md#V1CatalogExperiencesNotesCreate) | **Post** /v1/catalog/experiences/{experience_id}/notes/ | 
+[**V1CatalogExperiencesNotesDestroy**](CatalogDeploymentsAPI.md#V1CatalogExperiencesNotesDestroy) | **Delete** /v1/catalog/experiences/{experience_id}/notes/{id}/ | 
+[**V1CatalogExperiencesNotesList**](CatalogDeploymentsAPI.md#V1CatalogExperiencesNotesList) | **Get** /v1/catalog/experiences/{experience_id}/notes/ | 
+[**V1CatalogExperiencesNotesPartialUpdate**](CatalogDeploymentsAPI.md#V1CatalogExperiencesNotesPartialUpdate) | **Patch** /v1/catalog/experiences/{experience_id}/notes/{id}/ | 
+[**V1CatalogExperiencesNotesRetrieve**](CatalogDeploymentsAPI.md#V1CatalogExperiencesNotesRetrieve) | **Get** /v1/catalog/experiences/{experience_id}/notes/{id}/ | 
+[**V1CatalogExperiencesNotesUpdate**](CatalogDeploymentsAPI.md#V1CatalogExperiencesNotesUpdate) | **Put** /v1/catalog/experiences/{experience_id}/notes/{id}/ | 
 
 
 
-## CatalogDeploymentsBulkPartialUpdate
+## V1CatalogDeploymentsBulkPartialUpdate
 
-> DeploymentBulkUpdate CatalogDeploymentsBulkPartialUpdate(ctx).DeploymentBulkUpdate(deploymentBulkUpdate).Execute()
+> DeploymentBulkUpdate V1CatalogDeploymentsBulkPartialUpdate(ctx).DeploymentBulkUpdate(deploymentBulkUpdate).Execute()
 
 
 
@@ -59,17 +59,17 @@ import (
 )
 
 func main() {
-	deploymentBulkUpdate := *openapiclient.NewDeploymentBulkUpdate("BastionOperatingSystem_example", "Cluster_example", time.Now(), openapiclient.Deployment_experience{Experience: openapiclient.NewExperience("CatalogId_example", openapiclient.CategoryEnum("AI"), time.Now(), "Experience_example", *openapiclient.NewGpuOs("Name_example", "Release_example", "Version_example"), "Id_example", time.Now(), "Persona_example", int64(123), openapiclient.PlatformEnum("air"), openapiclient.SystemArchEnum("amd64"), "Title_example")}, "GarageId_example", "GpuAlias_example", NullableInt32(123), "GpuModel_example", "GpuOsName_example", "GpuOsRelease_example", "GpuOsVersion_example", "Id_example", NullableInt32(123), NullableInt32(123), time.Now(), NullableInt32(123), "OemName_example", interface{}(123), []string{"Pipelines_example"}, openapiclient.PriorityEnum("p0"), "ProviderName_example", "PublicKey_example", "Region_example", "RequestId_example", time.Now(), "SalesId_example", []string{"Services_example"}, false, "WorkshopId_example", "WorkshopOverridePassword_example", int32(123), []string{"Ids_example"}, "Result_example") // DeploymentBulkUpdate | 
+	deploymentBulkUpdate := *openapiclient.NewDeploymentBulkUpdate("BastionOperatingSystem_example", "Cluster_example", time.Now(), "Experience_example", "GarageId_example", "GpuAlias_example", NullableInt32(123), "GpuModel_example", "GpuOsName_example", "GpuOsRelease_example", "GpuOsVersion_example", "Id_example", NullableInt32(123), NullableInt32(123), time.Now(), NullableInt32(123), "OemName_example", *openapiclient.NewOverrides(), []string{"Pipelines_example"}, openapiclient.PriorityEnum("p0"), "ProviderName_example", "PublicKey_example", "Region_example", "RequestId_example", time.Now(), "SalesId_example", []string{"Services_example"}, false, "WorkshopId_example", "WorkshopOverridePassword_example", int32(123), []string{"Ids_example"}, "Result_example") // DeploymentBulkUpdate | 
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.CatalogDeploymentsAPI.CatalogDeploymentsBulkPartialUpdate(context.Background()).DeploymentBulkUpdate(deploymentBulkUpdate).Execute()
+	resp, r, err := apiClient.CatalogDeploymentsAPI.V1CatalogDeploymentsBulkPartialUpdate(context.Background()).DeploymentBulkUpdate(deploymentBulkUpdate).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.CatalogDeploymentsBulkPartialUpdate``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.V1CatalogDeploymentsBulkPartialUpdate``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `CatalogDeploymentsBulkPartialUpdate`: DeploymentBulkUpdate
-	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.CatalogDeploymentsBulkPartialUpdate`: %v\n", resp)
+	// response from `V1CatalogDeploymentsBulkPartialUpdate`: DeploymentBulkUpdate
+	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.V1CatalogDeploymentsBulkPartialUpdate`: %v\n", resp)
 }
 ```
 
@@ -79,7 +79,7 @@ func main() {
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiCatalogDeploymentsBulkPartialUpdateRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1CatalogDeploymentsBulkPartialUpdateRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -104,9 +104,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## CatalogDeploymentsCreate
+## V1CatalogDeploymentsCreate
 
-> Deployment CatalogDeploymentsCreate(ctx).Deployment(deployment).Expand(expand).Execute()
+> Deployment V1CatalogDeploymentsCreate(ctx).Deployment(deployment).Expand(expand).Execute()
 
 
 
@@ -124,18 +124,18 @@ import (
 )
 
 func main() {
-	deployment := *openapiclient.NewDeployment(time.Now(), "Id_example", time.Now(), "OrgName_example", interface{}(123), []string{"Pipelines_example"}, "RequesterEmail_example", "RequesterName_example", int32(123), []string{"Services_example"}, int32(123), "SshUser_example", openapiclient.DeploymentState("destroyed")) // Deployment | 
+	deployment := *openapiclient.NewDeployment(time.Now(), "Id_example", time.Now(), "OrgName_example", *openapiclient.NewOverrides(), []string{"Pipelines_example"}, "RequesterEmail_example", "RequesterName_example", int32(123), []string{"Services_example"}, int32(123), "SshUser_example", openapiclient.DeploymentState("destroyed")) // Deployment | 
 	expand := "expand_example" // string | Expand related field(s) instead of only showing a UUID (ex: \"cluster\"). (optional)
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.CatalogDeploymentsAPI.CatalogDeploymentsCreate(context.Background()).Deployment(deployment).Expand(expand).Execute()
+	resp, r, err := apiClient.CatalogDeploymentsAPI.V1CatalogDeploymentsCreate(context.Background()).Deployment(deployment).Expand(expand).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.CatalogDeploymentsCreate``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.V1CatalogDeploymentsCreate``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `CatalogDeploymentsCreate`: Deployment
-	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.CatalogDeploymentsCreate`: %v\n", resp)
+	// response from `V1CatalogDeploymentsCreate`: Deployment
+	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.V1CatalogDeploymentsCreate`: %v\n", resp)
 }
 ```
 
@@ -145,7 +145,7 @@ func main() {
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiCatalogDeploymentsCreateRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1CatalogDeploymentsCreateRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -171,9 +171,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## CatalogDeploymentsDestroy
+## V1CatalogDeploymentsDestroy
 
-> DocDeploymentDelete CatalogDeploymentsDestroy(ctx, id).Execute()
+> DocDeploymentDelete V1CatalogDeploymentsDestroy(ctx, id).Execute()
 
 
 
@@ -194,13 +194,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.CatalogDeploymentsAPI.CatalogDeploymentsDestroy(context.Background(), id).Execute()
+	resp, r, err := apiClient.CatalogDeploymentsAPI.V1CatalogDeploymentsDestroy(context.Background(), id).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.CatalogDeploymentsDestroy``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.V1CatalogDeploymentsDestroy``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `CatalogDeploymentsDestroy`: DocDeploymentDelete
-	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.CatalogDeploymentsDestroy`: %v\n", resp)
+	// response from `V1CatalogDeploymentsDestroy`: DocDeploymentDelete
+	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.V1CatalogDeploymentsDestroy`: %v\n", resp)
 }
 ```
 
@@ -214,7 +214,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiCatalogDeploymentsDestroyRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1CatalogDeploymentsDestroyRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -239,9 +239,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## CatalogDeploymentsHistoryList
+## V1CatalogDeploymentsHistoryList
 
-> PaginatedModelChangeList CatalogDeploymentsHistoryList(ctx, id).Page(page).PageSize(pageSize).Execute()
+> PaginatedModelChangeList V1CatalogDeploymentsHistoryList(ctx, id).Page(page).PageSize(pageSize).Execute()
 
 
 
@@ -264,13 +264,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.CatalogDeploymentsAPI.CatalogDeploymentsHistoryList(context.Background(), id).Page(page).PageSize(pageSize).Execute()
+	resp, r, err := apiClient.CatalogDeploymentsAPI.V1CatalogDeploymentsHistoryList(context.Background(), id).Page(page).PageSize(pageSize).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.CatalogDeploymentsHistoryList``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.V1CatalogDeploymentsHistoryList``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `CatalogDeploymentsHistoryList`: PaginatedModelChangeList
-	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.CatalogDeploymentsHistoryList`: %v\n", resp)
+	// response from `V1CatalogDeploymentsHistoryList`: PaginatedModelChangeList
+	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.V1CatalogDeploymentsHistoryList`: %v\n", resp)
 }
 ```
 
@@ -284,7 +284,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiCatalogDeploymentsHistoryListRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1CatalogDeploymentsHistoryListRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -311,9 +311,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## CatalogDeploymentsInstancesList
+## V1CatalogDeploymentsInstancesList
 
-> PaginatedDeploymentInstanceList CatalogDeploymentsInstancesList(ctx, deploymentId).Fields(fields).Id(id).InstanceId(instanceId).Name(name).Omit(omit).Ordering(ordering).Page(page).PageSize(pageSize).Search(search).State(state).Execute()
+> PaginatedDeploymentInstanceList V1CatalogDeploymentsInstancesList(ctx, deploymentId).Fields(fields).Id(id).InstanceId(instanceId).Name(name).Omit(omit).Ordering(ordering).Page(page).PageSize(pageSize).Search(search).State(state).Execute()
 
 🚧 [Beta Feature]
 
@@ -344,13 +344,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.CatalogDeploymentsAPI.CatalogDeploymentsInstancesList(context.Background(), deploymentId).Fields(fields).Id(id).InstanceId(instanceId).Name(name).Omit(omit).Ordering(ordering).Page(page).PageSize(pageSize).Search(search).State(state).Execute()
+	resp, r, err := apiClient.CatalogDeploymentsAPI.V1CatalogDeploymentsInstancesList(context.Background(), deploymentId).Fields(fields).Id(id).InstanceId(instanceId).Name(name).Omit(omit).Ordering(ordering).Page(page).PageSize(pageSize).Search(search).State(state).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.CatalogDeploymentsInstancesList``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.V1CatalogDeploymentsInstancesList``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `CatalogDeploymentsInstancesList`: PaginatedDeploymentInstanceList
-	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.CatalogDeploymentsInstancesList`: %v\n", resp)
+	// response from `V1CatalogDeploymentsInstancesList`: PaginatedDeploymentInstanceList
+	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.V1CatalogDeploymentsInstancesList`: %v\n", resp)
 }
 ```
 
@@ -364,7 +364,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiCatalogDeploymentsInstancesListRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1CatalogDeploymentsInstancesListRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -399,9 +399,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## CatalogDeploymentsList
+## V1CatalogDeploymentsList
 
-> PaginatedDeploymentList CatalogDeploymentsList(ctx).BastionOperatingSystem(bastionOperatingSystem).Cluster(cluster).ClusterGpusModel(clusterGpusModel).CollectionBranch(collectionBranch).Expand(expand).Experience(experience).ExperienceBranch(experienceBranch).Expired(expired).ExpiresAt(expiresAt).Expiring(expiring).Fields(fields).FlightcontrolRelease(flightcontrolRelease).GarageId(garageId).GcBranch(gcBranch).GpuAlias(gpuAlias).GpuCount(gpuCount).GpuModel(gpuModel).GpuOsName(gpuOsName).GpuOsRelease(gpuOsRelease).GpuOsVersion(gpuOsVersion).Id(id).NodeCount(nodeCount).OemName(oemName).Omit(omit).Ordering(ordering).OrgName(orgName).Page(page).PageSize(pageSize).PersistOnFailure(persistOnFailure).Persona(persona).Pipeline(pipeline).PipelineBranch(pipelineBranch).Platform(platform).Priority(priority).ProviderName(providerName).Region(region).RequestId(requestId).RequesterEmail(requesterEmail).RequesterName(requesterName).SalesId(salesId).SalesOwnerEmail(salesOwnerEmail).SalesOwnerName(salesOwnerName).Search(search).State(state).Workshop(workshop).WorkshopId(workshopId).Execute()
+> PaginatedDeploymentList V1CatalogDeploymentsList(ctx).BastionOperatingSystem(bastionOperatingSystem).Cluster(cluster).ClusterGpusModel(clusterGpusModel).CollectionBranch(collectionBranch).Expand(expand).Experience(experience).ExperienceBranch(experienceBranch).Expired(expired).ExpiresAt(expiresAt).Expiring(expiring).Fields(fields).FlightcontrolRelease(flightcontrolRelease).GarageId(garageId).GcBranch(gcBranch).GpuAlias(gpuAlias).GpuCount(gpuCount).GpuModel(gpuModel).GpuOsName(gpuOsName).GpuOsRelease(gpuOsRelease).GpuOsVersion(gpuOsVersion).Id(id).NodeCount(nodeCount).OemName(oemName).Omit(omit).Ordering(ordering).OrgName(orgName).Page(page).PageSize(pageSize).PersistOnFailure(persistOnFailure).Persona(persona).Pipeline(pipeline).PipelineBranch(pipelineBranch).Platform(platform).Priority(priority).ProviderName(providerName).Region(region).RequestId(requestId).RequesterEmail(requesterEmail).RequesterName(requesterName).RuntimeBranch(runtimeBranch).RuntimeCnsAddonPack(runtimeCnsAddonPack).RuntimeCnsDocker(runtimeCnsDocker).RuntimeCnsDriverVersion(runtimeCnsDriverVersion).RuntimeCnsK8s(runtimeCnsK8s).RuntimeCnsNvidiaDriver(runtimeCnsNvidiaDriver).RuntimeCnsVersion(runtimeCnsVersion).RuntimeMig(runtimeMig).RuntimeMigProfile(runtimeMigProfile).SalesId(salesId).SalesOwnerEmail(salesOwnerEmail).SalesOwnerName(salesOwnerName).Search(search).State(state).StateNot(stateNot).Workshop(workshop).WorkshopId(workshopId).Execute()
 
 
 
@@ -451,30 +451,40 @@ func main() {
 	persona := "persona_example" // string |  (optional)
 	pipeline := int32(56) // int32 |  (optional)
 	pipelineBranch := "pipelineBranch_example" // string |  (optional)
-	platform := "platform_example" // string | Override the default platform selection  * `air` - NVIDIA Air * `flight_deck` - Flight Deck * `kvm_bastion` - KVM Bastion * `lp-vmware-platform` - lp-vmware-platform * `minimal` - minimal * `openshift` - OpenShift * `vsphere` - vSphere * `vsphere_horizon` - VMware Horizon * `vsphere7` - vSphere 7 * `vsphere8` - vSphere 8 (optional)
+	platform := "platform_example" // string |  (optional)
 	priority := "priority_example" // string | Priority level for the request  * `p0` - p0 * `p1` - p1 * `p2` - p2 * `p3` - p3 (optional)
 	providerName := "providerName_example" // string |  (optional)
 	region := "region_example" // string |  (optional)
 	requestId := "requestId_example" // string |  (optional)
 	requesterEmail := "requesterEmail_example" // string |  (optional)
 	requesterName := "requesterName_example" // string |  (optional)
+	runtimeBranch := "runtimeBranch_example" // string |  (optional)
+	runtimeCnsAddonPack := true // bool |  (optional)
+	runtimeCnsDocker := true // bool |  (optional)
+	runtimeCnsDriverVersion := "runtimeCnsDriverVersion_example" // string |  (optional)
+	runtimeCnsK8s := true // bool |  (optional)
+	runtimeCnsNvidiaDriver := true // bool |  (optional)
+	runtimeCnsVersion := "runtimeCnsVersion_example" // string |  (optional)
+	runtimeMig := true // bool |  (optional)
+	runtimeMigProfile := "runtimeMigProfile_example" // string |  (optional)
 	salesId := "salesId_example" // string |  (optional)
 	salesOwnerEmail := "salesOwnerEmail_example" // string |  (optional)
 	salesOwnerName := "salesOwnerName_example" // string |  (optional)
-	search := "search_example" // string | Search for deployments by bastion_operating_system, collection_branch, experience_branch, experience catalog_id, experience catalog_id_alias, experience id, experience title, expires_at, flightcontrol_release, garage_id, gc_branch, gpu_alias, gpu_model, gpu_os_name, gpu_os_release, gpu_os_version, id, oem_name, org_name, persona, pipeline_branch, platform, provider_name, region, request_id, requester_email, requester_name, sales_id, sales_owner_email, sales_owner_name, services url, state, tags, workshop_id (optional)
+	search := "search_example" // string | Search for deployments by experience catalog_id, experience catalog_id_alias, experience id, experience title, expires_at, id, org_name, provisioning_config bastion_operating_system, provisioning_config collection_branch, provisioning_config experience_branch, provisioning_config flightcontrol_release, provisioning_config garage_id, provisioning_config gc_branch, provisioning_config gpu_alias, provisioning_config gpu_model, provisioning_config gpu_os_name, provisioning_config gpu_os_release, provisioning_config gpu_os_version, provisioning_config oem_name, provisioning_config persona, provisioning_config pipeline_branch, provisioning_config platform, provisioning_config provider_name, provisioning_config region, provisioning_config runtime_branch, provisioning_config runtime_cns_driver_version, provisioning_config runtime_cns_version, provisioning_config runtime_mig_profile, provisioning_config runtime_url, provisioning_config workshop_id, provisioning_request bastion_operating_system, provisioning_request collection_branch, provisioning_request experience_branch, provisioning_request flightcontrol_release, provisioning_request garage_id, provisioning_request gc_branch, provisioning_request gpu_alias, provisioning_request gpu_model, provisioning_request gpu_os_name, provisioning_request gpu_os_release, provisioning_request gpu_os_version, provisioning_request oem_name, provisioning_request persona, provisioning_request pipeline_branch, provisioning_request platform, provisioning_request provider_name, provisioning_request region, provisioning_request runtime_branch, provisioning_request runtime_cns_driver_version, provisioning_request runtime_cns_version, provisioning_request runtime_mig_profile, provisioning_request runtime_url, provisioning_request workshop_id, request_id, requester_email, requester_name, sales_id, sales_owner_email, sales_owner_name, services url, state, tags (optional)
 	state := []string{"State_example"} // []string | Multiple values may be separated by commas.  * `destroyed` - Deployment has been fully destroyed * `destroying` - Deployment is being destroyed * `error` - Deployment has encountered a fatal error and will not be retried * `failed` - Deployment has failed but may be retried * `paused` - Deployment is paused but may be retried later * `ready` - Deployment is ready and all instances are running * `retrying` - Deployment is retrying * `starting` - Deployment instances are starting * `stopped` - Deployment instances are stopped * `stopping` - Deployment instances are stopping * `waiting` - Waiting for deployment to be ready (optional)
+	stateNot := []string{"StateNot_example"} // []string | Multiple values may be separated by commas.  * `destroyed` - Deployment has been fully destroyed * `destroying` - Deployment is being destroyed * `error` - Deployment has encountered a fatal error and will not be retried * `failed` - Deployment has failed but may be retried * `paused` - Deployment is paused but may be retried later * `ready` - Deployment is ready and all instances are running * `retrying` - Deployment is retrying * `starting` - Deployment instances are starting * `stopped` - Deployment instances are stopped * `stopping` - Deployment instances are stopping * `waiting` - Waiting for deployment to be ready (optional)
 	workshop := true // bool |  (optional)
 	workshopId := "workshopId_example" // string |  (optional)
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.CatalogDeploymentsAPI.CatalogDeploymentsList(context.Background()).BastionOperatingSystem(bastionOperatingSystem).Cluster(cluster).ClusterGpusModel(clusterGpusModel).CollectionBranch(collectionBranch).Expand(expand).Experience(experience).ExperienceBranch(experienceBranch).Expired(expired).ExpiresAt(expiresAt).Expiring(expiring).Fields(fields).FlightcontrolRelease(flightcontrolRelease).GarageId(garageId).GcBranch(gcBranch).GpuAlias(gpuAlias).GpuCount(gpuCount).GpuModel(gpuModel).GpuOsName(gpuOsName).GpuOsRelease(gpuOsRelease).GpuOsVersion(gpuOsVersion).Id(id).NodeCount(nodeCount).OemName(oemName).Omit(omit).Ordering(ordering).OrgName(orgName).Page(page).PageSize(pageSize).PersistOnFailure(persistOnFailure).Persona(persona).Pipeline(pipeline).PipelineBranch(pipelineBranch).Platform(platform).Priority(priority).ProviderName(providerName).Region(region).RequestId(requestId).RequesterEmail(requesterEmail).RequesterName(requesterName).SalesId(salesId).SalesOwnerEmail(salesOwnerEmail).SalesOwnerName(salesOwnerName).Search(search).State(state).Workshop(workshop).WorkshopId(workshopId).Execute()
+	resp, r, err := apiClient.CatalogDeploymentsAPI.V1CatalogDeploymentsList(context.Background()).BastionOperatingSystem(bastionOperatingSystem).Cluster(cluster).ClusterGpusModel(clusterGpusModel).CollectionBranch(collectionBranch).Expand(expand).Experience(experience).ExperienceBranch(experienceBranch).Expired(expired).ExpiresAt(expiresAt).Expiring(expiring).Fields(fields).FlightcontrolRelease(flightcontrolRelease).GarageId(garageId).GcBranch(gcBranch).GpuAlias(gpuAlias).GpuCount(gpuCount).GpuModel(gpuModel).GpuOsName(gpuOsName).GpuOsRelease(gpuOsRelease).GpuOsVersion(gpuOsVersion).Id(id).NodeCount(nodeCount).OemName(oemName).Omit(omit).Ordering(ordering).OrgName(orgName).Page(page).PageSize(pageSize).PersistOnFailure(persistOnFailure).Persona(persona).Pipeline(pipeline).PipelineBranch(pipelineBranch).Platform(platform).Priority(priority).ProviderName(providerName).Region(region).RequestId(requestId).RequesterEmail(requesterEmail).RequesterName(requesterName).RuntimeBranch(runtimeBranch).RuntimeCnsAddonPack(runtimeCnsAddonPack).RuntimeCnsDocker(runtimeCnsDocker).RuntimeCnsDriverVersion(runtimeCnsDriverVersion).RuntimeCnsK8s(runtimeCnsK8s).RuntimeCnsNvidiaDriver(runtimeCnsNvidiaDriver).RuntimeCnsVersion(runtimeCnsVersion).RuntimeMig(runtimeMig).RuntimeMigProfile(runtimeMigProfile).SalesId(salesId).SalesOwnerEmail(salesOwnerEmail).SalesOwnerName(salesOwnerName).Search(search).State(state).StateNot(stateNot).Workshop(workshop).WorkshopId(workshopId).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.CatalogDeploymentsList``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.V1CatalogDeploymentsList``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `CatalogDeploymentsList`: PaginatedDeploymentList
-	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.CatalogDeploymentsList`: %v\n", resp)
+	// response from `V1CatalogDeploymentsList`: PaginatedDeploymentList
+	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.V1CatalogDeploymentsList`: %v\n", resp)
 }
 ```
 
@@ -484,7 +494,7 @@ func main() {
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiCatalogDeploymentsListRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1CatalogDeploymentsListRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -521,18 +531,28 @@ Name | Type | Description  | Notes
  **persona** | **string** |  | 
  **pipeline** | **int32** |  | 
  **pipelineBranch** | **string** |  | 
- **platform** | **string** | Override the default platform selection  * &#x60;air&#x60; - NVIDIA Air * &#x60;flight_deck&#x60; - Flight Deck * &#x60;kvm_bastion&#x60; - KVM Bastion * &#x60;lp-vmware-platform&#x60; - lp-vmware-platform * &#x60;minimal&#x60; - minimal * &#x60;openshift&#x60; - OpenShift * &#x60;vsphere&#x60; - vSphere * &#x60;vsphere_horizon&#x60; - VMware Horizon * &#x60;vsphere7&#x60; - vSphere 7 * &#x60;vsphere8&#x60; - vSphere 8 | 
+ **platform** | **string** |  | 
  **priority** | **string** | Priority level for the request  * &#x60;p0&#x60; - p0 * &#x60;p1&#x60; - p1 * &#x60;p2&#x60; - p2 * &#x60;p3&#x60; - p3 | 
  **providerName** | **string** |  | 
  **region** | **string** |  | 
  **requestId** | **string** |  | 
  **requesterEmail** | **string** |  | 
  **requesterName** | **string** |  | 
+ **runtimeBranch** | **string** |  | 
+ **runtimeCnsAddonPack** | **bool** |  | 
+ **runtimeCnsDocker** | **bool** |  | 
+ **runtimeCnsDriverVersion** | **string** |  | 
+ **runtimeCnsK8s** | **bool** |  | 
+ **runtimeCnsNvidiaDriver** | **bool** |  | 
+ **runtimeCnsVersion** | **string** |  | 
+ **runtimeMig** | **bool** |  | 
+ **runtimeMigProfile** | **string** |  | 
  **salesId** | **string** |  | 
  **salesOwnerEmail** | **string** |  | 
  **salesOwnerName** | **string** |  | 
- **search** | **string** | Search for deployments by bastion_operating_system, collection_branch, experience_branch, experience catalog_id, experience catalog_id_alias, experience id, experience title, expires_at, flightcontrol_release, garage_id, gc_branch, gpu_alias, gpu_model, gpu_os_name, gpu_os_release, gpu_os_version, id, oem_name, org_name, persona, pipeline_branch, platform, provider_name, region, request_id, requester_email, requester_name, sales_id, sales_owner_email, sales_owner_name, services url, state, tags, workshop_id | 
+ **search** | **string** | Search for deployments by experience catalog_id, experience catalog_id_alias, experience id, experience title, expires_at, id, org_name, provisioning_config bastion_operating_system, provisioning_config collection_branch, provisioning_config experience_branch, provisioning_config flightcontrol_release, provisioning_config garage_id, provisioning_config gc_branch, provisioning_config gpu_alias, provisioning_config gpu_model, provisioning_config gpu_os_name, provisioning_config gpu_os_release, provisioning_config gpu_os_version, provisioning_config oem_name, provisioning_config persona, provisioning_config pipeline_branch, provisioning_config platform, provisioning_config provider_name, provisioning_config region, provisioning_config runtime_branch, provisioning_config runtime_cns_driver_version, provisioning_config runtime_cns_version, provisioning_config runtime_mig_profile, provisioning_config runtime_url, provisioning_config workshop_id, provisioning_request bastion_operating_system, provisioning_request collection_branch, provisioning_request experience_branch, provisioning_request flightcontrol_release, provisioning_request garage_id, provisioning_request gc_branch, provisioning_request gpu_alias, provisioning_request gpu_model, provisioning_request gpu_os_name, provisioning_request gpu_os_release, provisioning_request gpu_os_version, provisioning_request oem_name, provisioning_request persona, provisioning_request pipeline_branch, provisioning_request platform, provisioning_request provider_name, provisioning_request region, provisioning_request runtime_branch, provisioning_request runtime_cns_driver_version, provisioning_request runtime_cns_version, provisioning_request runtime_mig_profile, provisioning_request runtime_url, provisioning_request workshop_id, request_id, requester_email, requester_name, sales_id, sales_owner_email, sales_owner_name, services url, state, tags | 
  **state** | **[]string** | Multiple values may be separated by commas.  * &#x60;destroyed&#x60; - Deployment has been fully destroyed * &#x60;destroying&#x60; - Deployment is being destroyed * &#x60;error&#x60; - Deployment has encountered a fatal error and will not be retried * &#x60;failed&#x60; - Deployment has failed but may be retried * &#x60;paused&#x60; - Deployment is paused but may be retried later * &#x60;ready&#x60; - Deployment is ready and all instances are running * &#x60;retrying&#x60; - Deployment is retrying * &#x60;starting&#x60; - Deployment instances are starting * &#x60;stopped&#x60; - Deployment instances are stopped * &#x60;stopping&#x60; - Deployment instances are stopping * &#x60;waiting&#x60; - Waiting for deployment to be ready | 
+ **stateNot** | **[]string** | Multiple values may be separated by commas.  * &#x60;destroyed&#x60; - Deployment has been fully destroyed * &#x60;destroying&#x60; - Deployment is being destroyed * &#x60;error&#x60; - Deployment has encountered a fatal error and will not be retried * &#x60;failed&#x60; - Deployment has failed but may be retried * &#x60;paused&#x60; - Deployment is paused but may be retried later * &#x60;ready&#x60; - Deployment is ready and all instances are running * &#x60;retrying&#x60; - Deployment is retrying * &#x60;starting&#x60; - Deployment instances are starting * &#x60;stopped&#x60; - Deployment instances are stopped * &#x60;stopping&#x60; - Deployment instances are stopping * &#x60;waiting&#x60; - Waiting for deployment to be ready | 
  **workshop** | **bool** |  | 
  **workshopId** | **string** |  | 
 
@@ -554,9 +574,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## CatalogDeploymentsNotesCreate
+## V1CatalogDeploymentsNotesCreate
 
-> DeploymentNote CatalogDeploymentsNotesCreate(ctx, deploymentId).DeploymentNote(deploymentNote).Execute()
+> DeploymentNote V1CatalogDeploymentsNotesCreate(ctx, deploymentId).DeploymentNote(deploymentNote).Execute()
 
 
 
@@ -575,17 +595,17 @@ import (
 
 func main() {
 	deploymentId := "38400000-8cf0-11bd-b23e-10b96e4ef00d" // string | 
-	deploymentNote := *openapiclient.NewDeploymentNote(time.Now(), "CreatedBy_example", openapiclient.Cluster_deployment{Deployment: openapiclient.NewDeployment(time.Now(), "Id_example", time.Now(), "OrgName_example", interface{}(123), []string{"Pipelines_example"}, "RequesterEmail_example", "RequesterName_example", int32(123), []string{"Services_example"}, int32(123), "SshUser_example", openapiclient.DeploymentState("destroyed"))}, "Id_example", time.Now(), "ModifiedBy_example") // DeploymentNote | 
+	deploymentNote := *openapiclient.NewDeploymentNote(time.Now(), "CreatedBy_example", openapiclient.Cluster_deployment{Deployment: openapiclient.NewDeployment(time.Now(), "Id_example", time.Now(), "OrgName_example", *openapiclient.NewOverrides(), []string{"Pipelines_example"}, "RequesterEmail_example", "RequesterName_example", int32(123), []string{"Services_example"}, int32(123), "SshUser_example", openapiclient.DeploymentState("destroyed"))}, "Id_example", time.Now(), "ModifiedBy_example") // DeploymentNote | 
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.CatalogDeploymentsAPI.CatalogDeploymentsNotesCreate(context.Background(), deploymentId).DeploymentNote(deploymentNote).Execute()
+	resp, r, err := apiClient.CatalogDeploymentsAPI.V1CatalogDeploymentsNotesCreate(context.Background(), deploymentId).DeploymentNote(deploymentNote).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.CatalogDeploymentsNotesCreate``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.V1CatalogDeploymentsNotesCreate``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `CatalogDeploymentsNotesCreate`: DeploymentNote
-	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.CatalogDeploymentsNotesCreate`: %v\n", resp)
+	// response from `V1CatalogDeploymentsNotesCreate`: DeploymentNote
+	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.V1CatalogDeploymentsNotesCreate`: %v\n", resp)
 }
 ```
 
@@ -599,7 +619,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiCatalogDeploymentsNotesCreateRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1CatalogDeploymentsNotesCreateRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -625,9 +645,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## CatalogDeploymentsNotesDestroy
+## V1CatalogDeploymentsNotesDestroy
 
-> CatalogDeploymentsNotesDestroy(ctx, deploymentId, id).Execute()
+> V1CatalogDeploymentsNotesDestroy(ctx, deploymentId, id).Execute()
 
 
 
@@ -649,9 +669,9 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	r, err := apiClient.CatalogDeploymentsAPI.CatalogDeploymentsNotesDestroy(context.Background(), deploymentId, id).Execute()
+	r, err := apiClient.CatalogDeploymentsAPI.V1CatalogDeploymentsNotesDestroy(context.Background(), deploymentId, id).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.CatalogDeploymentsNotesDestroy``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.V1CatalogDeploymentsNotesDestroy``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
 }
@@ -668,7 +688,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiCatalogDeploymentsNotesDestroyRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1CatalogDeploymentsNotesDestroyRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -694,9 +714,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## CatalogDeploymentsNotesList
+## V1CatalogDeploymentsNotesList
 
-> PaginatedDeploymentNoteList CatalogDeploymentsNotesList(ctx, deploymentId).CreatedBy(createdBy).Deployment(deployment).Fields(fields).Id(id).ModifiedBy(modifiedBy).Omit(omit).Ordering(ordering).Page(page).PageSize(pageSize).Search(search).Execute()
+> PaginatedDeploymentNoteList V1CatalogDeploymentsNotesList(ctx, deploymentId).CreatedBy(createdBy).Deployment(deployment).Fields(fields).Id(id).ModifiedBy(modifiedBy).Omit(omit).Ordering(ordering).Page(page).PageSize(pageSize).Search(search).Execute()
 
 
 
@@ -727,13 +747,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.CatalogDeploymentsAPI.CatalogDeploymentsNotesList(context.Background(), deploymentId).CreatedBy(createdBy).Deployment(deployment).Fields(fields).Id(id).ModifiedBy(modifiedBy).Omit(omit).Ordering(ordering).Page(page).PageSize(pageSize).Search(search).Execute()
+	resp, r, err := apiClient.CatalogDeploymentsAPI.V1CatalogDeploymentsNotesList(context.Background(), deploymentId).CreatedBy(createdBy).Deployment(deployment).Fields(fields).Id(id).ModifiedBy(modifiedBy).Omit(omit).Ordering(ordering).Page(page).PageSize(pageSize).Search(search).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.CatalogDeploymentsNotesList``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.V1CatalogDeploymentsNotesList``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `CatalogDeploymentsNotesList`: PaginatedDeploymentNoteList
-	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.CatalogDeploymentsNotesList`: %v\n", resp)
+	// response from `V1CatalogDeploymentsNotesList`: PaginatedDeploymentNoteList
+	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.V1CatalogDeploymentsNotesList`: %v\n", resp)
 }
 ```
 
@@ -747,7 +767,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiCatalogDeploymentsNotesListRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1CatalogDeploymentsNotesListRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -782,9 +802,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## CatalogDeploymentsNotesPartialUpdate
+## V1CatalogDeploymentsNotesPartialUpdate
 
-> DeploymentNote CatalogDeploymentsNotesPartialUpdate(ctx, deploymentId, id).DeploymentNote(deploymentNote).Execute()
+> DeploymentNote V1CatalogDeploymentsNotesPartialUpdate(ctx, deploymentId, id).DeploymentNote(deploymentNote).Execute()
 
 
 
@@ -804,17 +824,17 @@ import (
 func main() {
 	deploymentId := "38400000-8cf0-11bd-b23e-10b96e4ef00d" // string | 
 	id := "38400000-8cf0-11bd-b23e-10b96e4ef00d" // string | 
-	deploymentNote := *openapiclient.NewDeploymentNote(time.Now(), "CreatedBy_example", openapiclient.Cluster_deployment{Deployment: openapiclient.NewDeployment(time.Now(), "Id_example", time.Now(), "OrgName_example", interface{}(123), []string{"Pipelines_example"}, "RequesterEmail_example", "RequesterName_example", int32(123), []string{"Services_example"}, int32(123), "SshUser_example", openapiclient.DeploymentState("destroyed"))}, "Id_example", time.Now(), "ModifiedBy_example") // DeploymentNote | 
+	deploymentNote := *openapiclient.NewDeploymentNote(time.Now(), "CreatedBy_example", openapiclient.Cluster_deployment{Deployment: openapiclient.NewDeployment(time.Now(), "Id_example", time.Now(), "OrgName_example", *openapiclient.NewOverrides(), []string{"Pipelines_example"}, "RequesterEmail_example", "RequesterName_example", int32(123), []string{"Services_example"}, int32(123), "SshUser_example", openapiclient.DeploymentState("destroyed"))}, "Id_example", time.Now(), "ModifiedBy_example") // DeploymentNote | 
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.CatalogDeploymentsAPI.CatalogDeploymentsNotesPartialUpdate(context.Background(), deploymentId, id).DeploymentNote(deploymentNote).Execute()
+	resp, r, err := apiClient.CatalogDeploymentsAPI.V1CatalogDeploymentsNotesPartialUpdate(context.Background(), deploymentId, id).DeploymentNote(deploymentNote).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.CatalogDeploymentsNotesPartialUpdate``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.V1CatalogDeploymentsNotesPartialUpdate``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `CatalogDeploymentsNotesPartialUpdate`: DeploymentNote
-	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.CatalogDeploymentsNotesPartialUpdate`: %v\n", resp)
+	// response from `V1CatalogDeploymentsNotesPartialUpdate`: DeploymentNote
+	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.V1CatalogDeploymentsNotesPartialUpdate`: %v\n", resp)
 }
 ```
 
@@ -829,7 +849,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiCatalogDeploymentsNotesPartialUpdateRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1CatalogDeploymentsNotesPartialUpdateRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -856,9 +876,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## CatalogDeploymentsNotesRetrieve
+## V1CatalogDeploymentsNotesRetrieve
 
-> DeploymentNote CatalogDeploymentsNotesRetrieve(ctx, deploymentId, id).Fields(fields).Omit(omit).Execute()
+> DeploymentNote V1CatalogDeploymentsNotesRetrieve(ctx, deploymentId, id).Fields(fields).Omit(omit).Execute()
 
 
 
@@ -882,13 +902,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.CatalogDeploymentsAPI.CatalogDeploymentsNotesRetrieve(context.Background(), deploymentId, id).Fields(fields).Omit(omit).Execute()
+	resp, r, err := apiClient.CatalogDeploymentsAPI.V1CatalogDeploymentsNotesRetrieve(context.Background(), deploymentId, id).Fields(fields).Omit(omit).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.CatalogDeploymentsNotesRetrieve``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.V1CatalogDeploymentsNotesRetrieve``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `CatalogDeploymentsNotesRetrieve`: DeploymentNote
-	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.CatalogDeploymentsNotesRetrieve`: %v\n", resp)
+	// response from `V1CatalogDeploymentsNotesRetrieve`: DeploymentNote
+	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.V1CatalogDeploymentsNotesRetrieve`: %v\n", resp)
 }
 ```
 
@@ -903,7 +923,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiCatalogDeploymentsNotesRetrieveRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1CatalogDeploymentsNotesRetrieveRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -931,9 +951,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## CatalogDeploymentsNotesUpdate
+## V1CatalogDeploymentsNotesUpdate
 
-> DeploymentNote CatalogDeploymentsNotesUpdate(ctx, deploymentId, id).DeploymentNote(deploymentNote).Execute()
+> DeploymentNote V1CatalogDeploymentsNotesUpdate(ctx, deploymentId, id).DeploymentNote(deploymentNote).Execute()
 
 
 
@@ -953,17 +973,17 @@ import (
 func main() {
 	deploymentId := "38400000-8cf0-11bd-b23e-10b96e4ef00d" // string | 
 	id := "38400000-8cf0-11bd-b23e-10b96e4ef00d" // string | 
-	deploymentNote := *openapiclient.NewDeploymentNote(time.Now(), "CreatedBy_example", openapiclient.Cluster_deployment{Deployment: openapiclient.NewDeployment(time.Now(), "Id_example", time.Now(), "OrgName_example", interface{}(123), []string{"Pipelines_example"}, "RequesterEmail_example", "RequesterName_example", int32(123), []string{"Services_example"}, int32(123), "SshUser_example", openapiclient.DeploymentState("destroyed"))}, "Id_example", time.Now(), "ModifiedBy_example") // DeploymentNote | 
+	deploymentNote := *openapiclient.NewDeploymentNote(time.Now(), "CreatedBy_example", openapiclient.Cluster_deployment{Deployment: openapiclient.NewDeployment(time.Now(), "Id_example", time.Now(), "OrgName_example", *openapiclient.NewOverrides(), []string{"Pipelines_example"}, "RequesterEmail_example", "RequesterName_example", int32(123), []string{"Services_example"}, int32(123), "SshUser_example", openapiclient.DeploymentState("destroyed"))}, "Id_example", time.Now(), "ModifiedBy_example") // DeploymentNote | 
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.CatalogDeploymentsAPI.CatalogDeploymentsNotesUpdate(context.Background(), deploymentId, id).DeploymentNote(deploymentNote).Execute()
+	resp, r, err := apiClient.CatalogDeploymentsAPI.V1CatalogDeploymentsNotesUpdate(context.Background(), deploymentId, id).DeploymentNote(deploymentNote).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.CatalogDeploymentsNotesUpdate``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.V1CatalogDeploymentsNotesUpdate``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `CatalogDeploymentsNotesUpdate`: DeploymentNote
-	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.CatalogDeploymentsNotesUpdate`: %v\n", resp)
+	// response from `V1CatalogDeploymentsNotesUpdate`: DeploymentNote
+	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.V1CatalogDeploymentsNotesUpdate`: %v\n", resp)
 }
 ```
 
@@ -978,7 +998,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiCatalogDeploymentsNotesUpdateRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1CatalogDeploymentsNotesUpdateRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -1005,9 +1025,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## CatalogDeploymentsPartialUpdate
+## V1CatalogDeploymentsPartialUpdate
 
-> DeploymentUpdate CatalogDeploymentsPartialUpdate(ctx, id).DeploymentUpdate(deploymentUpdate).Execute()
+> DeploymentUpdate V1CatalogDeploymentsPartialUpdate(ctx, id).DeploymentUpdate(deploymentUpdate).Execute()
 
 
 
@@ -1026,17 +1046,17 @@ import (
 
 func main() {
 	id := "38400000-8cf0-11bd-b23e-10b96e4ef00d" // string | A UUID string identifying this deployment.
-	deploymentUpdate := *openapiclient.NewDeploymentUpdate("BastionOperatingSystem_example", "Cluster_example", time.Now(), openapiclient.Deployment_experience{Experience: openapiclient.NewExperience("CatalogId_example", openapiclient.CategoryEnum("AI"), time.Now(), "Experience_example", *openapiclient.NewGpuOs("Name_example", "Release_example", "Version_example"), "Id_example", time.Now(), "Persona_example", int64(123), openapiclient.PlatformEnum("air"), openapiclient.SystemArchEnum("amd64"), "Title_example")}, "GarageId_example", "GpuAlias_example", NullableInt32(123), "GpuModel_example", "GpuOsName_example", "GpuOsRelease_example", "GpuOsVersion_example", "Id_example", NullableInt32(123), NullableInt32(123), time.Now(), NullableInt32(123), "OemName_example", interface{}(123), []string{"Pipelines_example"}, openapiclient.PriorityEnum("p0"), "ProviderName_example", "PublicKey_example", "Region_example", "RequestId_example", time.Now(), "SalesId_example", []string{"Services_example"}, false, "WorkshopId_example", "WorkshopOverridePassword_example") // DeploymentUpdate |  (optional)
+	deploymentUpdate := *openapiclient.NewDeploymentUpdate("BastionOperatingSystem_example", "Cluster_example", time.Now(), "Experience_example", "GarageId_example", "GpuAlias_example", NullableInt32(123), "GpuModel_example", "GpuOsName_example", "GpuOsRelease_example", "GpuOsVersion_example", "Id_example", NullableInt32(123), NullableInt32(123), time.Now(), NullableInt32(123), "OemName_example", *openapiclient.NewOverrides(), []string{"Pipelines_example"}, openapiclient.PriorityEnum("p0"), "ProviderName_example", "PublicKey_example", "Region_example", "RequestId_example", time.Now(), "SalesId_example", []string{"Services_example"}, false, "WorkshopId_example", "WorkshopOverridePassword_example") // DeploymentUpdate |  (optional)
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.CatalogDeploymentsAPI.CatalogDeploymentsPartialUpdate(context.Background(), id).DeploymentUpdate(deploymentUpdate).Execute()
+	resp, r, err := apiClient.CatalogDeploymentsAPI.V1CatalogDeploymentsPartialUpdate(context.Background(), id).DeploymentUpdate(deploymentUpdate).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.CatalogDeploymentsPartialUpdate``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.V1CatalogDeploymentsPartialUpdate``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `CatalogDeploymentsPartialUpdate`: DeploymentUpdate
-	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.CatalogDeploymentsPartialUpdate`: %v\n", resp)
+	// response from `V1CatalogDeploymentsPartialUpdate`: DeploymentUpdate
+	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.V1CatalogDeploymentsPartialUpdate`: %v\n", resp)
 }
 ```
 
@@ -1050,7 +1070,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiCatalogDeploymentsPartialUpdateRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1CatalogDeploymentsPartialUpdateRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -1076,9 +1096,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## CatalogDeploymentsPipelinesCreate
+## V1CatalogDeploymentsPipelinesCreate
 
-> DeploymentPipeline CatalogDeploymentsPipelinesCreate(ctx, deploymentId).DeploymentPipeline(deploymentPipeline).Execute()
+> DeploymentPipeline V1CatalogDeploymentsPipelinesCreate(ctx, deploymentId).DeploymentPipeline(deploymentPipeline).Execute()
 
 
 
@@ -1097,17 +1117,17 @@ import (
 
 func main() {
 	deploymentId := "38400000-8cf0-11bd-b23e-10b96e4ef00d" // string | 
-	deploymentPipeline := *openapiclient.NewDeploymentPipeline(openapiclient.DeploymentPipelineActionEnum("apply"), time.Now(), openapiclient.Cluster_deployment{Deployment: openapiclient.NewDeployment(time.Now(), "Id_example", time.Now(), "OrgName_example", interface{}(123), []string{"Pipelines_example"}, "RequesterEmail_example", "RequesterName_example", int32(123), []string{"Services_example"}, int32(123), "SshUser_example", openapiclient.DeploymentState("destroyed"))}, "Id_example", time.Now(), int64(123), "Url_example") // DeploymentPipeline | 
+	deploymentPipeline := *openapiclient.NewDeploymentPipeline(openapiclient.PipelineAction("apply"), time.Now(), openapiclient.Cluster_deployment{Deployment: openapiclient.NewDeployment(time.Now(), "Id_example", time.Now(), "OrgName_example", *openapiclient.NewOverrides(), []string{"Pipelines_example"}, "RequesterEmail_example", "RequesterName_example", int32(123), []string{"Services_example"}, int32(123), "SshUser_example", openapiclient.DeploymentState("destroyed"))}, "Id_example", time.Now(), int64(123), "Url_example") // DeploymentPipeline | 
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.CatalogDeploymentsAPI.CatalogDeploymentsPipelinesCreate(context.Background(), deploymentId).DeploymentPipeline(deploymentPipeline).Execute()
+	resp, r, err := apiClient.CatalogDeploymentsAPI.V1CatalogDeploymentsPipelinesCreate(context.Background(), deploymentId).DeploymentPipeline(deploymentPipeline).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.CatalogDeploymentsPipelinesCreate``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.V1CatalogDeploymentsPipelinesCreate``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `CatalogDeploymentsPipelinesCreate`: DeploymentPipeline
-	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.CatalogDeploymentsPipelinesCreate`: %v\n", resp)
+	// response from `V1CatalogDeploymentsPipelinesCreate`: DeploymentPipeline
+	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.V1CatalogDeploymentsPipelinesCreate`: %v\n", resp)
 }
 ```
 
@@ -1121,7 +1141,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiCatalogDeploymentsPipelinesCreateRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1CatalogDeploymentsPipelinesCreateRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -1147,9 +1167,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## CatalogDeploymentsPipelinesList
+## V1CatalogDeploymentsPipelinesList
 
-> PaginatedDeploymentPipelineList CatalogDeploymentsPipelinesList(ctx, deploymentId).Action(action).Id(id).Ordering(ordering).Page(page).PageSize(pageSize).PipelineId(pipelineId).Search(search).Execute()
+> PaginatedDeploymentPipelineList V1CatalogDeploymentsPipelinesList(ctx, deploymentId).Action(action).Id(id).Ordering(ordering).Page(page).PageSize(pageSize).PipelineId(pipelineId).Search(search).Execute()
 
 
 
@@ -1167,7 +1187,7 @@ import (
 
 func main() {
 	deploymentId := "38400000-8cf0-11bd-b23e-10b96e4ef00d" // string | 
-	action := "action_example" // string | Action for the pipeline to run  * `apply` - apply * `destroy` - destroy (optional)
+	action := "action_example" // string | Action for the pipeline to run  * `apply` - apply * `destroy` - destroy * `notify` - notify (optional)
 	id := "38400000-8cf0-11bd-b23e-10b96e4ef00d" // string |  (optional)
 	ordering := "ordering_example" // string | Which field to use when ordering the results. (optional)
 	page := int32(56) // int32 | A page number within the paginated result set. (optional)
@@ -1177,13 +1197,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.CatalogDeploymentsAPI.CatalogDeploymentsPipelinesList(context.Background(), deploymentId).Action(action).Id(id).Ordering(ordering).Page(page).PageSize(pageSize).PipelineId(pipelineId).Search(search).Execute()
+	resp, r, err := apiClient.CatalogDeploymentsAPI.V1CatalogDeploymentsPipelinesList(context.Background(), deploymentId).Action(action).Id(id).Ordering(ordering).Page(page).PageSize(pageSize).PipelineId(pipelineId).Search(search).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.CatalogDeploymentsPipelinesList``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.V1CatalogDeploymentsPipelinesList``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `CatalogDeploymentsPipelinesList`: PaginatedDeploymentPipelineList
-	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.CatalogDeploymentsPipelinesList`: %v\n", resp)
+	// response from `V1CatalogDeploymentsPipelinesList`: PaginatedDeploymentPipelineList
+	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.V1CatalogDeploymentsPipelinesList`: %v\n", resp)
 }
 ```
 
@@ -1197,13 +1217,13 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiCatalogDeploymentsPipelinesListRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1CatalogDeploymentsPipelinesListRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
 
- **action** | **string** | Action for the pipeline to run  * &#x60;apply&#x60; - apply * &#x60;destroy&#x60; - destroy | 
+ **action** | **string** | Action for the pipeline to run  * &#x60;apply&#x60; - apply * &#x60;destroy&#x60; - destroy * &#x60;notify&#x60; - notify | 
  **id** | **string** |  | 
  **ordering** | **string** | Which field to use when ordering the results. | 
  **page** | **int32** | A page number within the paginated result set. | 
@@ -1229,9 +1249,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## CatalogDeploymentsRetrieve
+## V1CatalogDeploymentsRetrieve
 
-> Deployment CatalogDeploymentsRetrieve(ctx, id).Expand(expand).Expiring(expiring).Fields(fields).Omit(omit).Execute()
+> Deployment V1CatalogDeploymentsRetrieve(ctx, id).Expand(expand).Expiring(expiring).Fields(fields).Omit(omit).Execute()
 
 
 
@@ -1256,13 +1276,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.CatalogDeploymentsAPI.CatalogDeploymentsRetrieve(context.Background(), id).Expand(expand).Expiring(expiring).Fields(fields).Omit(omit).Execute()
+	resp, r, err := apiClient.CatalogDeploymentsAPI.V1CatalogDeploymentsRetrieve(context.Background(), id).Expand(expand).Expiring(expiring).Fields(fields).Omit(omit).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.CatalogDeploymentsRetrieve``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.V1CatalogDeploymentsRetrieve``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `CatalogDeploymentsRetrieve`: Deployment
-	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.CatalogDeploymentsRetrieve`: %v\n", resp)
+	// response from `V1CatalogDeploymentsRetrieve`: Deployment
+	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.V1CatalogDeploymentsRetrieve`: %v\n", resp)
 }
 ```
 
@@ -1276,7 +1296,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiCatalogDeploymentsRetrieveRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1CatalogDeploymentsRetrieveRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -1305,9 +1325,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## CatalogDeploymentsServicesCreate
+## V1CatalogDeploymentsServicesCreate
 
-> DeploymentService CatalogDeploymentsServicesCreate(ctx, deploymentId).DeploymentService(deploymentService).Execute()
+> DeploymentService V1CatalogDeploymentsServicesCreate(ctx, deploymentId).DeploymentService(deploymentService).Execute()
 
 
 
@@ -1326,17 +1346,17 @@ import (
 
 func main() {
 	deploymentId := "38400000-8cf0-11bd-b23e-10b96e4ef00d" // string | 
-	deploymentService := *openapiclient.NewDeploymentService(time.Now(), openapiclient.Cluster_deployment{Deployment: openapiclient.NewDeployment(time.Now(), "Id_example", time.Now(), "OrgName_example", interface{}(123), []string{"Pipelines_example"}, "RequesterEmail_example", "RequesterName_example", int32(123), []string{"Services_example"}, int32(123), "SshUser_example", openapiclient.DeploymentState("destroyed"))}, "Id_example", time.Now(), "Name_example", "Url_example") // DeploymentService | 
+	deploymentService := *openapiclient.NewDeploymentService(time.Now(), openapiclient.Cluster_deployment{Deployment: openapiclient.NewDeployment(time.Now(), "Id_example", time.Now(), "OrgName_example", *openapiclient.NewOverrides(), []string{"Pipelines_example"}, "RequesterEmail_example", "RequesterName_example", int32(123), []string{"Services_example"}, int32(123), "SshUser_example", openapiclient.DeploymentState("destroyed"))}, "Id_example", time.Now(), "Name_example", "Url_example") // DeploymentService | 
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.CatalogDeploymentsAPI.CatalogDeploymentsServicesCreate(context.Background(), deploymentId).DeploymentService(deploymentService).Execute()
+	resp, r, err := apiClient.CatalogDeploymentsAPI.V1CatalogDeploymentsServicesCreate(context.Background(), deploymentId).DeploymentService(deploymentService).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.CatalogDeploymentsServicesCreate``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.V1CatalogDeploymentsServicesCreate``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `CatalogDeploymentsServicesCreate`: DeploymentService
-	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.CatalogDeploymentsServicesCreate`: %v\n", resp)
+	// response from `V1CatalogDeploymentsServicesCreate`: DeploymentService
+	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.V1CatalogDeploymentsServicesCreate`: %v\n", resp)
 }
 ```
 
@@ -1350,7 +1370,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiCatalogDeploymentsServicesCreateRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1CatalogDeploymentsServicesCreateRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -1376,9 +1396,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## CatalogDeploymentsServicesList
+## V1CatalogDeploymentsServicesList
 
-> PaginatedDeploymentServiceList CatalogDeploymentsServicesList(ctx, deploymentId).Id(id).Name(name).Ordering(ordering).Page(page).PageSize(pageSize).Search(search).Execute()
+> PaginatedDeploymentServiceList V1CatalogDeploymentsServicesList(ctx, deploymentId).Id(id).Name(name).Ordering(ordering).Page(page).PageSize(pageSize).Search(search).Execute()
 
 
 
@@ -1405,13 +1425,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.CatalogDeploymentsAPI.CatalogDeploymentsServicesList(context.Background(), deploymentId).Id(id).Name(name).Ordering(ordering).Page(page).PageSize(pageSize).Search(search).Execute()
+	resp, r, err := apiClient.CatalogDeploymentsAPI.V1CatalogDeploymentsServicesList(context.Background(), deploymentId).Id(id).Name(name).Ordering(ordering).Page(page).PageSize(pageSize).Search(search).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.CatalogDeploymentsServicesList``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.V1CatalogDeploymentsServicesList``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `CatalogDeploymentsServicesList`: PaginatedDeploymentServiceList
-	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.CatalogDeploymentsServicesList`: %v\n", resp)
+	// response from `V1CatalogDeploymentsServicesList`: PaginatedDeploymentServiceList
+	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.V1CatalogDeploymentsServicesList`: %v\n", resp)
 }
 ```
 
@@ -1425,7 +1445,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiCatalogDeploymentsServicesListRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1CatalogDeploymentsServicesListRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -1456,9 +1476,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## CatalogDeploymentsSshKeysCreate
+## V1CatalogDeploymentsSshKeysCreate
 
-> DeploymentKey CatalogDeploymentsSshKeysCreate(ctx, deploymentId).DeploymentKey(deploymentKey).Execute()
+> DeploymentKey V1CatalogDeploymentsSshKeysCreate(ctx, deploymentId).DeploymentKey(deploymentKey).Execute()
 
 
 
@@ -1477,17 +1497,17 @@ import (
 
 func main() {
 	deploymentId := "38400000-8cf0-11bd-b23e-10b96e4ef00d" // string | 
-	deploymentKey := *openapiclient.NewDeploymentKey(time.Now(), openapiclient.Cluster_deployment{Deployment: openapiclient.NewDeployment(time.Now(), "Id_example", time.Now(), "OrgName_example", interface{}(123), []string{"Pipelines_example"}, "RequesterEmail_example", "RequesterName_example", int32(123), []string{"Services_example"}, int32(123), "SshUser_example", openapiclient.DeploymentState("destroyed"))}, "Id_example", time.Now(), "Name_example", "PublicKey_example") // DeploymentKey | 
+	deploymentKey := *openapiclient.NewDeploymentKey(time.Now(), openapiclient.Cluster_deployment{Deployment: openapiclient.NewDeployment(time.Now(), "Id_example", time.Now(), "OrgName_example", *openapiclient.NewOverrides(), []string{"Pipelines_example"}, "RequesterEmail_example", "RequesterName_example", int32(123), []string{"Services_example"}, int32(123), "SshUser_example", openapiclient.DeploymentState("destroyed"))}, "Id_example", time.Now(), "Name_example", "PublicKey_example") // DeploymentKey | 
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.CatalogDeploymentsAPI.CatalogDeploymentsSshKeysCreate(context.Background(), deploymentId).DeploymentKey(deploymentKey).Execute()
+	resp, r, err := apiClient.CatalogDeploymentsAPI.V1CatalogDeploymentsSshKeysCreate(context.Background(), deploymentId).DeploymentKey(deploymentKey).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.CatalogDeploymentsSshKeysCreate``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.V1CatalogDeploymentsSshKeysCreate``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `CatalogDeploymentsSshKeysCreate`: DeploymentKey
-	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.CatalogDeploymentsSshKeysCreate`: %v\n", resp)
+	// response from `V1CatalogDeploymentsSshKeysCreate`: DeploymentKey
+	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.V1CatalogDeploymentsSshKeysCreate`: %v\n", resp)
 }
 ```
 
@@ -1501,7 +1521,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiCatalogDeploymentsSshKeysCreateRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1CatalogDeploymentsSshKeysCreateRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -1527,9 +1547,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## CatalogDeploymentsSshKeysDestroy
+## V1CatalogDeploymentsSshKeysDestroy
 
-> CatalogDeploymentsSshKeysDestroy(ctx, deploymentId, id).Execute()
+> V1CatalogDeploymentsSshKeysDestroy(ctx, deploymentId, id).Execute()
 
 
 
@@ -1551,9 +1571,9 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	r, err := apiClient.CatalogDeploymentsAPI.CatalogDeploymentsSshKeysDestroy(context.Background(), deploymentId, id).Execute()
+	r, err := apiClient.CatalogDeploymentsAPI.V1CatalogDeploymentsSshKeysDestroy(context.Background(), deploymentId, id).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.CatalogDeploymentsSshKeysDestroy``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.V1CatalogDeploymentsSshKeysDestroy``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
 }
@@ -1570,7 +1590,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiCatalogDeploymentsSshKeysDestroyRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1CatalogDeploymentsSshKeysDestroyRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -1596,9 +1616,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## CatalogDeploymentsSshKeysList
+## V1CatalogDeploymentsSshKeysList
 
-> PaginatedDeploymentKeyList CatalogDeploymentsSshKeysList(ctx, deploymentId).Id(id).Name(name).Ordering(ordering).Page(page).PageSize(pageSize).Search(search).Execute()
+> PaginatedDeploymentKeyList V1CatalogDeploymentsSshKeysList(ctx, deploymentId).Id(id).Name(name).Ordering(ordering).Page(page).PageSize(pageSize).Search(search).Execute()
 
 
 
@@ -1625,13 +1645,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.CatalogDeploymentsAPI.CatalogDeploymentsSshKeysList(context.Background(), deploymentId).Id(id).Name(name).Ordering(ordering).Page(page).PageSize(pageSize).Search(search).Execute()
+	resp, r, err := apiClient.CatalogDeploymentsAPI.V1CatalogDeploymentsSshKeysList(context.Background(), deploymentId).Id(id).Name(name).Ordering(ordering).Page(page).PageSize(pageSize).Search(search).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.CatalogDeploymentsSshKeysList``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.V1CatalogDeploymentsSshKeysList``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `CatalogDeploymentsSshKeysList`: PaginatedDeploymentKeyList
-	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.CatalogDeploymentsSshKeysList`: %v\n", resp)
+	// response from `V1CatalogDeploymentsSshKeysList`: PaginatedDeploymentKeyList
+	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.V1CatalogDeploymentsSshKeysList`: %v\n", resp)
 }
 ```
 
@@ -1645,7 +1665,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiCatalogDeploymentsSshKeysListRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1CatalogDeploymentsSshKeysListRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -1676,9 +1696,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## CatalogDeploymentsStatsRetrieve
+## V1CatalogDeploymentsStatsRetrieve
 
-> CatalogDeploymentsStatsRetrieve(ctx).Execute()
+> V1CatalogDeploymentsStatsRetrieve(ctx).Execute()
 
 🚧 [Beta Feature]
 
@@ -1698,9 +1718,9 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	r, err := apiClient.CatalogDeploymentsAPI.CatalogDeploymentsStatsRetrieve(context.Background()).Execute()
+	r, err := apiClient.CatalogDeploymentsAPI.V1CatalogDeploymentsStatsRetrieve(context.Background()).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.CatalogDeploymentsStatsRetrieve``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.V1CatalogDeploymentsStatsRetrieve``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
 }
@@ -1712,7 +1732,7 @@ This endpoint does not need any parameter.
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiCatalogDeploymentsStatsRetrieveRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1CatalogDeploymentsStatsRetrieveRequest struct via the builder pattern
 
 
 ### Return type
@@ -1733,9 +1753,9 @@ Other parameters are passed through a pointer to a apiCatalogDeploymentsStatsRet
 [[Back to README]](../README.md)
 
 
-## CatalogDeploymentsTasksCreate
+## V1CatalogDeploymentsTasksCreate
 
-> DeploymentTask CatalogDeploymentsTasksCreate(ctx, deploymentId).DeploymentTask(deploymentTask).Execute()
+> DeploymentTask V1CatalogDeploymentsTasksCreate(ctx, deploymentId).DeploymentTask(deploymentTask).Execute()
 
 🚧 [Beta Feature]
 
@@ -1754,17 +1774,17 @@ import (
 
 func main() {
 	deploymentId := "38400000-8cf0-11bd-b23e-10b96e4ef00d" // string | 
-	deploymentTask := *openapiclient.NewDeploymentTask(openapiclient.DeploymentTaskActionEnum("start_instances"), time.Now(), openapiclient.Cluster_deployment{Deployment: openapiclient.NewDeployment(time.Now(), "Id_example", time.Now(), "OrgName_example", interface{}(123), []string{"Pipelines_example"}, "RequesterEmail_example", "RequesterName_example", int32(123), []string{"Services_example"}, int32(123), "SshUser_example", openapiclient.DeploymentState("destroyed"))}, "Id_example", time.Now(), int32(123), openapiclient.StatusEnum("completed"), "StatusText_example") // DeploymentTask | 
+	deploymentTask := *openapiclient.NewDeploymentTask(openapiclient.DeploymentTaskActionEnum("start_instances"), time.Now(), openapiclient.Cluster_deployment{Deployment: openapiclient.NewDeployment(time.Now(), "Id_example", time.Now(), "OrgName_example", *openapiclient.NewOverrides(), []string{"Pipelines_example"}, "RequesterEmail_example", "RequesterName_example", int32(123), []string{"Services_example"}, int32(123), "SshUser_example", openapiclient.DeploymentState("destroyed"))}, "Id_example", time.Now(), int32(123), openapiclient.StatusEnum("completed"), "StatusText_example") // DeploymentTask | 
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.CatalogDeploymentsAPI.CatalogDeploymentsTasksCreate(context.Background(), deploymentId).DeploymentTask(deploymentTask).Execute()
+	resp, r, err := apiClient.CatalogDeploymentsAPI.V1CatalogDeploymentsTasksCreate(context.Background(), deploymentId).DeploymentTask(deploymentTask).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.CatalogDeploymentsTasksCreate``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.V1CatalogDeploymentsTasksCreate``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `CatalogDeploymentsTasksCreate`: DeploymentTask
-	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.CatalogDeploymentsTasksCreate`: %v\n", resp)
+	// response from `V1CatalogDeploymentsTasksCreate`: DeploymentTask
+	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.V1CatalogDeploymentsTasksCreate`: %v\n", resp)
 }
 ```
 
@@ -1778,7 +1798,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiCatalogDeploymentsTasksCreateRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1CatalogDeploymentsTasksCreateRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -1804,9 +1824,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## CatalogDeploymentsTasksList
+## V1CatalogDeploymentsTasksList
 
-> PaginatedDeploymentTaskList CatalogDeploymentsTasksList(ctx, deploymentId).Action(action).Id(id).Ordering(ordering).Page(page).PageSize(pageSize).Search(search).Status(status).Execute()
+> PaginatedDeploymentTaskList V1CatalogDeploymentsTasksList(ctx, deploymentId).Action(action).Id(id).Ordering(ordering).Page(page).PageSize(pageSize).Search(search).Status(status).Execute()
 
 🚧 [Beta Feature]
 
@@ -1834,13 +1854,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.CatalogDeploymentsAPI.CatalogDeploymentsTasksList(context.Background(), deploymentId).Action(action).Id(id).Ordering(ordering).Page(page).PageSize(pageSize).Search(search).Status(status).Execute()
+	resp, r, err := apiClient.CatalogDeploymentsAPI.V1CatalogDeploymentsTasksList(context.Background(), deploymentId).Action(action).Id(id).Ordering(ordering).Page(page).PageSize(pageSize).Search(search).Status(status).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.CatalogDeploymentsTasksList``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.V1CatalogDeploymentsTasksList``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `CatalogDeploymentsTasksList`: PaginatedDeploymentTaskList
-	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.CatalogDeploymentsTasksList`: %v\n", resp)
+	// response from `V1CatalogDeploymentsTasksList`: PaginatedDeploymentTaskList
+	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.V1CatalogDeploymentsTasksList`: %v\n", resp)
 }
 ```
 
@@ -1854,7 +1874,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiCatalogDeploymentsTasksListRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1CatalogDeploymentsTasksListRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -1886,9 +1906,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## CatalogDeploymentsTasksRetrieve
+## V1CatalogDeploymentsTasksRetrieve
 
-> DeploymentTask CatalogDeploymentsTasksRetrieve(ctx, deploymentId, id).Execute()
+> DeploymentTask V1CatalogDeploymentsTasksRetrieve(ctx, deploymentId, id).Execute()
 
 🚧 [Beta Feature]
 
@@ -1910,13 +1930,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.CatalogDeploymentsAPI.CatalogDeploymentsTasksRetrieve(context.Background(), deploymentId, id).Execute()
+	resp, r, err := apiClient.CatalogDeploymentsAPI.V1CatalogDeploymentsTasksRetrieve(context.Background(), deploymentId, id).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.CatalogDeploymentsTasksRetrieve``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.V1CatalogDeploymentsTasksRetrieve``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `CatalogDeploymentsTasksRetrieve`: DeploymentTask
-	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.CatalogDeploymentsTasksRetrieve`: %v\n", resp)
+	// response from `V1CatalogDeploymentsTasksRetrieve`: DeploymentTask
+	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.V1CatalogDeploymentsTasksRetrieve`: %v\n", resp)
 }
 ```
 
@@ -1931,7 +1951,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiCatalogDeploymentsTasksRetrieveRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1CatalogDeploymentsTasksRetrieveRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -1957,9 +1977,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## CatalogDeploymentsUpdate
+## V1CatalogDeploymentsUpdate
 
-> DeploymentUpdate CatalogDeploymentsUpdate(ctx, id).DeploymentUpdate(deploymentUpdate).Execute()
+> DeploymentUpdate V1CatalogDeploymentsUpdate(ctx, id).DeploymentUpdate(deploymentUpdate).Execute()
 
 
 
@@ -1978,17 +1998,17 @@ import (
 
 func main() {
 	id := "38400000-8cf0-11bd-b23e-10b96e4ef00d" // string | A UUID string identifying this deployment.
-	deploymentUpdate := *openapiclient.NewDeploymentUpdate("BastionOperatingSystem_example", "Cluster_example", time.Now(), openapiclient.Deployment_experience{Experience: openapiclient.NewExperience("CatalogId_example", openapiclient.CategoryEnum("AI"), time.Now(), "Experience_example", *openapiclient.NewGpuOs("Name_example", "Release_example", "Version_example"), "Id_example", time.Now(), "Persona_example", int64(123), openapiclient.PlatformEnum("air"), openapiclient.SystemArchEnum("amd64"), "Title_example")}, "GarageId_example", "GpuAlias_example", NullableInt32(123), "GpuModel_example", "GpuOsName_example", "GpuOsRelease_example", "GpuOsVersion_example", "Id_example", NullableInt32(123), NullableInt32(123), time.Now(), NullableInt32(123), "OemName_example", interface{}(123), []string{"Pipelines_example"}, openapiclient.PriorityEnum("p0"), "ProviderName_example", "PublicKey_example", "Region_example", "RequestId_example", time.Now(), "SalesId_example", []string{"Services_example"}, false, "WorkshopId_example", "WorkshopOverridePassword_example") // DeploymentUpdate |  (optional)
+	deploymentUpdate := *openapiclient.NewDeploymentUpdate("BastionOperatingSystem_example", "Cluster_example", time.Now(), "Experience_example", "GarageId_example", "GpuAlias_example", NullableInt32(123), "GpuModel_example", "GpuOsName_example", "GpuOsRelease_example", "GpuOsVersion_example", "Id_example", NullableInt32(123), NullableInt32(123), time.Now(), NullableInt32(123), "OemName_example", *openapiclient.NewOverrides(), []string{"Pipelines_example"}, openapiclient.PriorityEnum("p0"), "ProviderName_example", "PublicKey_example", "Region_example", "RequestId_example", time.Now(), "SalesId_example", []string{"Services_example"}, false, "WorkshopId_example", "WorkshopOverridePassword_example") // DeploymentUpdate |  (optional)
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.CatalogDeploymentsAPI.CatalogDeploymentsUpdate(context.Background(), id).DeploymentUpdate(deploymentUpdate).Execute()
+	resp, r, err := apiClient.CatalogDeploymentsAPI.V1CatalogDeploymentsUpdate(context.Background(), id).DeploymentUpdate(deploymentUpdate).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.CatalogDeploymentsUpdate``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.V1CatalogDeploymentsUpdate``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `CatalogDeploymentsUpdate`: DeploymentUpdate
-	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.CatalogDeploymentsUpdate`: %v\n", resp)
+	// response from `V1CatalogDeploymentsUpdate`: DeploymentUpdate
+	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.V1CatalogDeploymentsUpdate`: %v\n", resp)
 }
 ```
 
@@ -2002,7 +2022,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiCatalogDeploymentsUpdateRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1CatalogDeploymentsUpdateRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -2028,9 +2048,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## CatalogExperiencesNotesCreate
+## V1CatalogExperiencesNotesCreate
 
-> ExperienceNote CatalogExperiencesNotesCreate(ctx, experienceId).ExperienceNote(experienceNote).Execute()
+> ExperienceNote V1CatalogExperiencesNotesCreate(ctx, experienceId).ExperienceNote(experienceNote).Execute()
 
 
 
@@ -2049,17 +2069,17 @@ import (
 
 func main() {
 	experienceId := "38400000-8cf0-11bd-b23e-10b96e4ef00d" // string | 
-	experienceNote := *openapiclient.NewExperienceNote(time.Now(), "CreatedBy_example", openapiclient.Deployment_experience{Experience: openapiclient.NewExperience("CatalogId_example", openapiclient.CategoryEnum("AI"), time.Now(), "Experience_example", *openapiclient.NewGpuOs("Name_example", "Release_example", "Version_example"), "Id_example", time.Now(), "Persona_example", int64(123), openapiclient.PlatformEnum("air"), openapiclient.SystemArchEnum("amd64"), "Title_example")}, "Id_example", time.Now(), "ModifiedBy_example") // ExperienceNote | 
+	experienceNote := *openapiclient.NewExperienceNote(time.Now(), "CreatedBy_example", openapiclient.ExperienceNote_experience{Experience: openapiclient.NewExperience("CatalogId_example", openapiclient.CategoryEnum("AI"), time.Now(), "Experience_example", *openapiclient.NewGpuOs("Name_example", "Release_example", "Version_example"), "Id_example", time.Now(), "Persona_example", int64(123), openapiclient.PlatformEnum("air"), openapiclient.SystemArchEnum("amd64"), "Title_example")}, "Id_example", time.Now(), "ModifiedBy_example") // ExperienceNote | 
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.CatalogDeploymentsAPI.CatalogExperiencesNotesCreate(context.Background(), experienceId).ExperienceNote(experienceNote).Execute()
+	resp, r, err := apiClient.CatalogDeploymentsAPI.V1CatalogExperiencesNotesCreate(context.Background(), experienceId).ExperienceNote(experienceNote).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.CatalogExperiencesNotesCreate``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.V1CatalogExperiencesNotesCreate``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `CatalogExperiencesNotesCreate`: ExperienceNote
-	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.CatalogExperiencesNotesCreate`: %v\n", resp)
+	// response from `V1CatalogExperiencesNotesCreate`: ExperienceNote
+	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.V1CatalogExperiencesNotesCreate`: %v\n", resp)
 }
 ```
 
@@ -2073,7 +2093,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiCatalogExperiencesNotesCreateRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1CatalogExperiencesNotesCreateRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -2099,9 +2119,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## CatalogExperiencesNotesDestroy
+## V1CatalogExperiencesNotesDestroy
 
-> CatalogExperiencesNotesDestroy(ctx, experienceId, id).Execute()
+> V1CatalogExperiencesNotesDestroy(ctx, experienceId, id).Execute()
 
 
 
@@ -2123,9 +2143,9 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	r, err := apiClient.CatalogDeploymentsAPI.CatalogExperiencesNotesDestroy(context.Background(), experienceId, id).Execute()
+	r, err := apiClient.CatalogDeploymentsAPI.V1CatalogExperiencesNotesDestroy(context.Background(), experienceId, id).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.CatalogExperiencesNotesDestroy``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.V1CatalogExperiencesNotesDestroy``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
 }
@@ -2142,7 +2162,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiCatalogExperiencesNotesDestroyRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1CatalogExperiencesNotesDestroyRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -2168,9 +2188,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## CatalogExperiencesNotesList
+## V1CatalogExperiencesNotesList
 
-> PaginatedExperienceNoteList CatalogExperiencesNotesList(ctx, experienceId).CreatedBy(createdBy).Experience(experience).Fields(fields).Id(id).ModifiedBy(modifiedBy).Omit(omit).Ordering(ordering).Page(page).PageSize(pageSize).Search(search).Execute()
+> PaginatedExperienceNoteList V1CatalogExperiencesNotesList(ctx, experienceId).CreatedBy(createdBy).Experience(experience).Fields(fields).Id(id).ModifiedBy(modifiedBy).Omit(omit).Ordering(ordering).Page(page).PageSize(pageSize).Search(search).Execute()
 
 
 
@@ -2201,13 +2221,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.CatalogDeploymentsAPI.CatalogExperiencesNotesList(context.Background(), experienceId).CreatedBy(createdBy).Experience(experience).Fields(fields).Id(id).ModifiedBy(modifiedBy).Omit(omit).Ordering(ordering).Page(page).PageSize(pageSize).Search(search).Execute()
+	resp, r, err := apiClient.CatalogDeploymentsAPI.V1CatalogExperiencesNotesList(context.Background(), experienceId).CreatedBy(createdBy).Experience(experience).Fields(fields).Id(id).ModifiedBy(modifiedBy).Omit(omit).Ordering(ordering).Page(page).PageSize(pageSize).Search(search).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.CatalogExperiencesNotesList``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.V1CatalogExperiencesNotesList``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `CatalogExperiencesNotesList`: PaginatedExperienceNoteList
-	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.CatalogExperiencesNotesList`: %v\n", resp)
+	// response from `V1CatalogExperiencesNotesList`: PaginatedExperienceNoteList
+	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.V1CatalogExperiencesNotesList`: %v\n", resp)
 }
 ```
 
@@ -2221,7 +2241,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiCatalogExperiencesNotesListRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1CatalogExperiencesNotesListRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -2256,9 +2276,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## CatalogExperiencesNotesPartialUpdate
+## V1CatalogExperiencesNotesPartialUpdate
 
-> ExperienceNote CatalogExperiencesNotesPartialUpdate(ctx, experienceId, id).ExperienceNote(experienceNote).Execute()
+> ExperienceNote V1CatalogExperiencesNotesPartialUpdate(ctx, experienceId, id).ExperienceNote(experienceNote).Execute()
 
 
 
@@ -2278,17 +2298,17 @@ import (
 func main() {
 	experienceId := "38400000-8cf0-11bd-b23e-10b96e4ef00d" // string | 
 	id := "38400000-8cf0-11bd-b23e-10b96e4ef00d" // string | 
-	experienceNote := *openapiclient.NewExperienceNote(time.Now(), "CreatedBy_example", openapiclient.Deployment_experience{Experience: openapiclient.NewExperience("CatalogId_example", openapiclient.CategoryEnum("AI"), time.Now(), "Experience_example", *openapiclient.NewGpuOs("Name_example", "Release_example", "Version_example"), "Id_example", time.Now(), "Persona_example", int64(123), openapiclient.PlatformEnum("air"), openapiclient.SystemArchEnum("amd64"), "Title_example")}, "Id_example", time.Now(), "ModifiedBy_example") // ExperienceNote | 
+	experienceNote := *openapiclient.NewExperienceNote(time.Now(), "CreatedBy_example", openapiclient.ExperienceNote_experience{Experience: openapiclient.NewExperience("CatalogId_example", openapiclient.CategoryEnum("AI"), time.Now(), "Experience_example", *openapiclient.NewGpuOs("Name_example", "Release_example", "Version_example"), "Id_example", time.Now(), "Persona_example", int64(123), openapiclient.PlatformEnum("air"), openapiclient.SystemArchEnum("amd64"), "Title_example")}, "Id_example", time.Now(), "ModifiedBy_example") // ExperienceNote | 
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.CatalogDeploymentsAPI.CatalogExperiencesNotesPartialUpdate(context.Background(), experienceId, id).ExperienceNote(experienceNote).Execute()
+	resp, r, err := apiClient.CatalogDeploymentsAPI.V1CatalogExperiencesNotesPartialUpdate(context.Background(), experienceId, id).ExperienceNote(experienceNote).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.CatalogExperiencesNotesPartialUpdate``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.V1CatalogExperiencesNotesPartialUpdate``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `CatalogExperiencesNotesPartialUpdate`: ExperienceNote
-	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.CatalogExperiencesNotesPartialUpdate`: %v\n", resp)
+	// response from `V1CatalogExperiencesNotesPartialUpdate`: ExperienceNote
+	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.V1CatalogExperiencesNotesPartialUpdate`: %v\n", resp)
 }
 ```
 
@@ -2303,7 +2323,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiCatalogExperiencesNotesPartialUpdateRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1CatalogExperiencesNotesPartialUpdateRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -2330,9 +2350,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## CatalogExperiencesNotesRetrieve
+## V1CatalogExperiencesNotesRetrieve
 
-> ExperienceNote CatalogExperiencesNotesRetrieve(ctx, experienceId, id).Fields(fields).Omit(omit).Execute()
+> ExperienceNote V1CatalogExperiencesNotesRetrieve(ctx, experienceId, id).Fields(fields).Omit(omit).Execute()
 
 
 
@@ -2356,13 +2376,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.CatalogDeploymentsAPI.CatalogExperiencesNotesRetrieve(context.Background(), experienceId, id).Fields(fields).Omit(omit).Execute()
+	resp, r, err := apiClient.CatalogDeploymentsAPI.V1CatalogExperiencesNotesRetrieve(context.Background(), experienceId, id).Fields(fields).Omit(omit).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.CatalogExperiencesNotesRetrieve``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.V1CatalogExperiencesNotesRetrieve``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `CatalogExperiencesNotesRetrieve`: ExperienceNote
-	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.CatalogExperiencesNotesRetrieve`: %v\n", resp)
+	// response from `V1CatalogExperiencesNotesRetrieve`: ExperienceNote
+	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.V1CatalogExperiencesNotesRetrieve`: %v\n", resp)
 }
 ```
 
@@ -2377,7 +2397,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiCatalogExperiencesNotesRetrieveRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1CatalogExperiencesNotesRetrieveRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -2405,9 +2425,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## CatalogExperiencesNotesUpdate
+## V1CatalogExperiencesNotesUpdate
 
-> ExperienceNote CatalogExperiencesNotesUpdate(ctx, experienceId, id).ExperienceNote(experienceNote).Execute()
+> ExperienceNote V1CatalogExperiencesNotesUpdate(ctx, experienceId, id).ExperienceNote(experienceNote).Execute()
 
 
 
@@ -2427,17 +2447,17 @@ import (
 func main() {
 	experienceId := "38400000-8cf0-11bd-b23e-10b96e4ef00d" // string | 
 	id := "38400000-8cf0-11bd-b23e-10b96e4ef00d" // string | 
-	experienceNote := *openapiclient.NewExperienceNote(time.Now(), "CreatedBy_example", openapiclient.Deployment_experience{Experience: openapiclient.NewExperience("CatalogId_example", openapiclient.CategoryEnum("AI"), time.Now(), "Experience_example", *openapiclient.NewGpuOs("Name_example", "Release_example", "Version_example"), "Id_example", time.Now(), "Persona_example", int64(123), openapiclient.PlatformEnum("air"), openapiclient.SystemArchEnum("amd64"), "Title_example")}, "Id_example", time.Now(), "ModifiedBy_example") // ExperienceNote | 
+	experienceNote := *openapiclient.NewExperienceNote(time.Now(), "CreatedBy_example", openapiclient.ExperienceNote_experience{Experience: openapiclient.NewExperience("CatalogId_example", openapiclient.CategoryEnum("AI"), time.Now(), "Experience_example", *openapiclient.NewGpuOs("Name_example", "Release_example", "Version_example"), "Id_example", time.Now(), "Persona_example", int64(123), openapiclient.PlatformEnum("air"), openapiclient.SystemArchEnum("amd64"), "Title_example")}, "Id_example", time.Now(), "ModifiedBy_example") // ExperienceNote | 
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.CatalogDeploymentsAPI.CatalogExperiencesNotesUpdate(context.Background(), experienceId, id).ExperienceNote(experienceNote).Execute()
+	resp, r, err := apiClient.CatalogDeploymentsAPI.V1CatalogExperiencesNotesUpdate(context.Background(), experienceId, id).ExperienceNote(experienceNote).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.CatalogExperiencesNotesUpdate``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.V1CatalogExperiencesNotesUpdate``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `CatalogExperiencesNotesUpdate`: ExperienceNote
-	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.CatalogExperiencesNotesUpdate`: %v\n", resp)
+	// response from `V1CatalogExperiencesNotesUpdate`: ExperienceNote
+	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.V1CatalogExperiencesNotesUpdate`: %v\n", resp)
 }
 ```
 
@@ -2452,7 +2472,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiCatalogExperiencesNotesUpdateRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1CatalogExperiencesNotesUpdateRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes

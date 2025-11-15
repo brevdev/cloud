@@ -4,21 +4,21 @@ All URIs are relative to *http://localhost*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
-[**InventoryNodesBulkCreate**](InventoryNodesAPI.md#InventoryNodesBulkCreate) | **Post** /v1/inventory/nodes/bulk/ | 
-[**InventoryNodesBulkPartialUpdate**](InventoryNodesAPI.md#InventoryNodesBulkPartialUpdate) | **Patch** /v1/inventory/nodes/bulk/ | 
-[**InventoryNodesCreate**](InventoryNodesAPI.md#InventoryNodesCreate) | **Post** /v1/inventory/nodes/ | 
-[**InventoryNodesDestroy**](InventoryNodesAPI.md#InventoryNodesDestroy) | **Delete** /v1/inventory/nodes/{id}/ | 
-[**InventoryNodesHistoryList**](InventoryNodesAPI.md#InventoryNodesHistoryList) | **Get** /v1/inventory/nodes/{id}/history/ | 
-[**InventoryNodesList**](InventoryNodesAPI.md#InventoryNodesList) | **Get** /v1/inventory/nodes/ | 
-[**InventoryNodesPartialUpdate**](InventoryNodesAPI.md#InventoryNodesPartialUpdate) | **Patch** /v1/inventory/nodes/{id}/ | 
-[**InventoryNodesRetrieve**](InventoryNodesAPI.md#InventoryNodesRetrieve) | **Get** /v1/inventory/nodes/{id}/ | 
-[**InventoryNodesUpdate**](InventoryNodesAPI.md#InventoryNodesUpdate) | **Put** /v1/inventory/nodes/{id}/ | 
+[**V1InventoryNodesBulkCreate**](InventoryNodesAPI.md#V1InventoryNodesBulkCreate) | **Post** /v1/inventory/nodes/bulk/ | 
+[**V1InventoryNodesBulkPartialUpdate**](InventoryNodesAPI.md#V1InventoryNodesBulkPartialUpdate) | **Patch** /v1/inventory/nodes/bulk/ | 
+[**V1InventoryNodesCreate**](InventoryNodesAPI.md#V1InventoryNodesCreate) | **Post** /v1/inventory/nodes/ | 
+[**V1InventoryNodesDestroy**](InventoryNodesAPI.md#V1InventoryNodesDestroy) | **Delete** /v1/inventory/nodes/{id}/ | 
+[**V1InventoryNodesHistoryList**](InventoryNodesAPI.md#V1InventoryNodesHistoryList) | **Get** /v1/inventory/nodes/{id}/history/ | 
+[**V1InventoryNodesList**](InventoryNodesAPI.md#V1InventoryNodesList) | **Get** /v1/inventory/nodes/ | 
+[**V1InventoryNodesPartialUpdate**](InventoryNodesAPI.md#V1InventoryNodesPartialUpdate) | **Patch** /v1/inventory/nodes/{id}/ | 
+[**V1InventoryNodesRetrieve**](InventoryNodesAPI.md#V1InventoryNodesRetrieve) | **Get** /v1/inventory/nodes/{id}/ | 
+[**V1InventoryNodesUpdate**](InventoryNodesAPI.md#V1InventoryNodesUpdate) | **Put** /v1/inventory/nodes/{id}/ | 
 
 
 
-## InventoryNodesBulkCreate
+## V1InventoryNodesBulkCreate
 
-> NodeBulk InventoryNodesBulkCreate(ctx).CsvFile(csvFile).Execute()
+> NodeBulk V1InventoryNodesBulkCreate(ctx).CsvFile(csvFile).Execute()
 
 
 
@@ -41,13 +41,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.InventoryNodesAPI.InventoryNodesBulkCreate(context.Background()).CsvFile(csvFile).Execute()
+	resp, r, err := apiClient.InventoryNodesAPI.V1InventoryNodesBulkCreate(context.Background()).CsvFile(csvFile).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `InventoryNodesAPI.InventoryNodesBulkCreate``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryNodesAPI.V1InventoryNodesBulkCreate``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `InventoryNodesBulkCreate`: NodeBulk
-	fmt.Fprintf(os.Stdout, "Response from `InventoryNodesAPI.InventoryNodesBulkCreate`: %v\n", resp)
+	// response from `V1InventoryNodesBulkCreate`: NodeBulk
+	fmt.Fprintf(os.Stdout, "Response from `InventoryNodesAPI.V1InventoryNodesBulkCreate`: %v\n", resp)
 }
 ```
 
@@ -57,7 +57,7 @@ func main() {
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiInventoryNodesBulkCreateRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1InventoryNodesBulkCreateRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -82,9 +82,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## InventoryNodesBulkPartialUpdate
+## V1InventoryNodesBulkPartialUpdate
 
-> NodeBulkUpdate InventoryNodesBulkPartialUpdate(ctx).NodeBulkUpdate(nodeBulkUpdate).Execute()
+> NodeBulkUpdate V1InventoryNodesBulkPartialUpdate(ctx).NodeBulkUpdate(nodeBulkUpdate).Execute()
 
 
 
@@ -106,13 +106,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.InventoryNodesAPI.InventoryNodesBulkPartialUpdate(context.Background()).NodeBulkUpdate(nodeBulkUpdate).Execute()
+	resp, r, err := apiClient.InventoryNodesAPI.V1InventoryNodesBulkPartialUpdate(context.Background()).NodeBulkUpdate(nodeBulkUpdate).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `InventoryNodesAPI.InventoryNodesBulkPartialUpdate``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryNodesAPI.V1InventoryNodesBulkPartialUpdate``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `InventoryNodesBulkPartialUpdate`: NodeBulkUpdate
-	fmt.Fprintf(os.Stdout, "Response from `InventoryNodesAPI.InventoryNodesBulkPartialUpdate`: %v\n", resp)
+	// response from `V1InventoryNodesBulkPartialUpdate`: NodeBulkUpdate
+	fmt.Fprintf(os.Stdout, "Response from `InventoryNodesAPI.V1InventoryNodesBulkPartialUpdate`: %v\n", resp)
 }
 ```
 
@@ -122,7 +122,7 @@ func main() {
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiInventoryNodesBulkPartialUpdateRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1InventoryNodesBulkPartialUpdateRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -147,9 +147,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## InventoryNodesCreate
+## V1InventoryNodesCreate
 
-> Node InventoryNodesCreate(ctx).Node(node).Execute()
+> Node V1InventoryNodesCreate(ctx).Node(node).Execute()
 
 
 
@@ -171,13 +171,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.InventoryNodesAPI.InventoryNodesCreate(context.Background()).Node(node).Execute()
+	resp, r, err := apiClient.InventoryNodesAPI.V1InventoryNodesCreate(context.Background()).Node(node).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `InventoryNodesAPI.InventoryNodesCreate``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryNodesAPI.V1InventoryNodesCreate``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `InventoryNodesCreate`: Node
-	fmt.Fprintf(os.Stdout, "Response from `InventoryNodesAPI.InventoryNodesCreate`: %v\n", resp)
+	// response from `V1InventoryNodesCreate`: Node
+	fmt.Fprintf(os.Stdout, "Response from `InventoryNodesAPI.V1InventoryNodesCreate`: %v\n", resp)
 }
 ```
 
@@ -187,7 +187,7 @@ func main() {
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiInventoryNodesCreateRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1InventoryNodesCreateRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -212,9 +212,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## InventoryNodesDestroy
+## V1InventoryNodesDestroy
 
-> InventoryNodesDestroy(ctx, id).Execute()
+> V1InventoryNodesDestroy(ctx, id).Execute()
 
 
 
@@ -235,9 +235,9 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	r, err := apiClient.InventoryNodesAPI.InventoryNodesDestroy(context.Background(), id).Execute()
+	r, err := apiClient.InventoryNodesAPI.V1InventoryNodesDestroy(context.Background(), id).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `InventoryNodesAPI.InventoryNodesDestroy``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryNodesAPI.V1InventoryNodesDestroy``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
 }
@@ -253,7 +253,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiInventoryNodesDestroyRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1InventoryNodesDestroyRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -278,9 +278,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## InventoryNodesHistoryList
+## V1InventoryNodesHistoryList
 
-> PaginatedModelChangeList InventoryNodesHistoryList(ctx, id).Page(page).PageSize(pageSize).Execute()
+> PaginatedModelChangeList V1InventoryNodesHistoryList(ctx, id).Page(page).PageSize(pageSize).Execute()
 
 
 
@@ -303,13 +303,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.InventoryNodesAPI.InventoryNodesHistoryList(context.Background(), id).Page(page).PageSize(pageSize).Execute()
+	resp, r, err := apiClient.InventoryNodesAPI.V1InventoryNodesHistoryList(context.Background(), id).Page(page).PageSize(pageSize).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `InventoryNodesAPI.InventoryNodesHistoryList``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryNodesAPI.V1InventoryNodesHistoryList``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `InventoryNodesHistoryList`: PaginatedModelChangeList
-	fmt.Fprintf(os.Stdout, "Response from `InventoryNodesAPI.InventoryNodesHistoryList`: %v\n", resp)
+	// response from `V1InventoryNodesHistoryList`: PaginatedModelChangeList
+	fmt.Fprintf(os.Stdout, "Response from `InventoryNodesAPI.V1InventoryNodesHistoryList`: %v\n", resp)
 }
 ```
 
@@ -323,7 +323,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiInventoryNodesHistoryListRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1InventoryNodesHistoryListRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -350,9 +350,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## InventoryNodesList
+## V1InventoryNodesList
 
-> PaginatedNodeList InventoryNodesList(ctx).BmcIp(bmcIp).BmcMac(bmcMac).BmcPassword(bmcPassword).BmcUser(bmcUser).Cluster(cluster).Cpu(cpu).CpuManufacturer(cpuManufacturer).CpuModel(cpuModel).Expand(expand).Fields(fields).GarageId(garageId).Gpu(gpu).GpuAlias(gpuAlias).GpuCount(gpuCount).GpuModel(gpuModel).GpuVbios(gpuVbios).Id(id).Location(location).Memory(memory).MgmtIp(mgmtIp).MgmtMac(mgmtMac).MinGpuCount(minGpuCount).Model(model).NetworkType(networkType).Oem(oem).Omit(omit).Ordering(ordering).Page(page).PageSize(pageSize).Provider(provider).ProviderNodeId(providerNodeId).Rack(rack).RackUnit(rackUnit).Search(search).SerialNumber(serialNumber).SystemArch(systemArch).Tee(tee).Execute()
+> PaginatedNodeList V1InventoryNodesList(ctx).BmcIp(bmcIp).BmcMac(bmcMac).Cluster(cluster).Cpu(cpu).CpuManufacturer(cpuManufacturer).CpuModel(cpuModel).Expand(expand).Fields(fields).GarageId(garageId).Gpu(gpu).GpuAlias(gpuAlias).GpuCount(gpuCount).GpuModel(gpuModel).GpuVbios(gpuVbios).Id(id).Location(location).Memory(memory).MgmtIp(mgmtIp).MgmtMac(mgmtMac).MinGpuCount(minGpuCount).Model(model).NetworkType(networkType).Oem(oem).Omit(omit).Ordering(ordering).Page(page).PageSize(pageSize).Provider(provider).ProviderNodeId(providerNodeId).Rack(rack).RackUnit(rackUnit).Search(search).SerialNumber(serialNumber).SystemArch(systemArch).Tee(tee).Execute()
 
 
 
@@ -371,8 +371,6 @@ import (
 func main() {
 	bmcIp := "bmcIp_example" // string |  (optional)
 	bmcMac := "bmcMac_example" // string |  (optional)
-	bmcPassword := "bmcPassword_example" // string |  (optional)
-	bmcUser := "bmcUser_example" // string |  (optional)
 	cluster := "38400000-8cf0-11bd-b23e-10b96e4ef00d" // string |  (optional)
 	cpu := int32(56) // int32 |  (optional)
 	cpuManufacturer := "cpuManufacturer_example" // string | Manufacturer of the node's CPU  * `amd` - AMD * `arm` - ARM * `intel` - Intel (optional)
@@ -402,20 +400,20 @@ func main() {
 	providerNodeId := "providerNodeId_example" // string |  (optional)
 	rack := "rack_example" // string |  (optional)
 	rackUnit := int32(56) // int32 |  (optional)
-	search := "search_example" // string | Search for nodes by bmc_ip, bmc_mac, bmc_password, bmc_user, cpu_manufacturer, cpu_model, garage_id, gpu_alias, gpu model, gpu_vbios, id, location name, location provider name, memory, mgmt_ip, mgmt_mac, model, network_type, nic_prefixes, notes, oem name, provider_node_id, rack, rack_unit, serial_number, storage, system_arch (optional)
+	search := "search_example" // string | Search for nodes by bmc_ip, bmc_mac, cpu_manufacturer, cpu_model, garage_id, gpu_alias, gpu model, gpu_vbios, id, location name, location provider name, memory, mgmt_ip, mgmt_mac, model, network_type, nic_prefixes, notes, oem name, provider_node_id, rack, rack_unit, serial_number, storage, system_arch (optional)
 	serialNumber := "serialNumber_example" // string |  (optional)
 	systemArch := "systemArch_example" // string | CPU architecture  * `amd64` - amd64 * `arm64` - arm64 (optional)
 	tee := true // bool |  (optional)
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.InventoryNodesAPI.InventoryNodesList(context.Background()).BmcIp(bmcIp).BmcMac(bmcMac).BmcPassword(bmcPassword).BmcUser(bmcUser).Cluster(cluster).Cpu(cpu).CpuManufacturer(cpuManufacturer).CpuModel(cpuModel).Expand(expand).Fields(fields).GarageId(garageId).Gpu(gpu).GpuAlias(gpuAlias).GpuCount(gpuCount).GpuModel(gpuModel).GpuVbios(gpuVbios).Id(id).Location(location).Memory(memory).MgmtIp(mgmtIp).MgmtMac(mgmtMac).MinGpuCount(minGpuCount).Model(model).NetworkType(networkType).Oem(oem).Omit(omit).Ordering(ordering).Page(page).PageSize(pageSize).Provider(provider).ProviderNodeId(providerNodeId).Rack(rack).RackUnit(rackUnit).Search(search).SerialNumber(serialNumber).SystemArch(systemArch).Tee(tee).Execute()
+	resp, r, err := apiClient.InventoryNodesAPI.V1InventoryNodesList(context.Background()).BmcIp(bmcIp).BmcMac(bmcMac).Cluster(cluster).Cpu(cpu).CpuManufacturer(cpuManufacturer).CpuModel(cpuModel).Expand(expand).Fields(fields).GarageId(garageId).Gpu(gpu).GpuAlias(gpuAlias).GpuCount(gpuCount).GpuModel(gpuModel).GpuVbios(gpuVbios).Id(id).Location(location).Memory(memory).MgmtIp(mgmtIp).MgmtMac(mgmtMac).MinGpuCount(minGpuCount).Model(model).NetworkType(networkType).Oem(oem).Omit(omit).Ordering(ordering).Page(page).PageSize(pageSize).Provider(provider).ProviderNodeId(providerNodeId).Rack(rack).RackUnit(rackUnit).Search(search).SerialNumber(serialNumber).SystemArch(systemArch).Tee(tee).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `InventoryNodesAPI.InventoryNodesList``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryNodesAPI.V1InventoryNodesList``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `InventoryNodesList`: PaginatedNodeList
-	fmt.Fprintf(os.Stdout, "Response from `InventoryNodesAPI.InventoryNodesList`: %v\n", resp)
+	// response from `V1InventoryNodesList`: PaginatedNodeList
+	fmt.Fprintf(os.Stdout, "Response from `InventoryNodesAPI.V1InventoryNodesList`: %v\n", resp)
 }
 ```
 
@@ -425,15 +423,13 @@ func main() {
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiInventoryNodesListRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1InventoryNodesListRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **bmcIp** | **string** |  | 
  **bmcMac** | **string** |  | 
- **bmcPassword** | **string** |  | 
- **bmcUser** | **string** |  | 
  **cluster** | **string** |  | 
  **cpu** | **int32** |  | 
  **cpuManufacturer** | **string** | Manufacturer of the node&#39;s CPU  * &#x60;amd&#x60; - AMD * &#x60;arm&#x60; - ARM * &#x60;intel&#x60; - Intel | 
@@ -463,7 +459,7 @@ Name | Type | Description  | Notes
  **providerNodeId** | **string** |  | 
  **rack** | **string** |  | 
  **rackUnit** | **int32** |  | 
- **search** | **string** | Search for nodes by bmc_ip, bmc_mac, bmc_password, bmc_user, cpu_manufacturer, cpu_model, garage_id, gpu_alias, gpu model, gpu_vbios, id, location name, location provider name, memory, mgmt_ip, mgmt_mac, model, network_type, nic_prefixes, notes, oem name, provider_node_id, rack, rack_unit, serial_number, storage, system_arch | 
+ **search** | **string** | Search for nodes by bmc_ip, bmc_mac, cpu_manufacturer, cpu_model, garage_id, gpu_alias, gpu model, gpu_vbios, id, location name, location provider name, memory, mgmt_ip, mgmt_mac, model, network_type, nic_prefixes, notes, oem name, provider_node_id, rack, rack_unit, serial_number, storage, system_arch | 
  **serialNumber** | **string** |  | 
  **systemArch** | **string** | CPU architecture  * &#x60;amd64&#x60; - amd64 * &#x60;arm64&#x60; - arm64 | 
  **tee** | **bool** |  | 
@@ -486,9 +482,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## InventoryNodesPartialUpdate
+## V1InventoryNodesPartialUpdate
 
-> Node InventoryNodesPartialUpdate(ctx, id).Node(node).Execute()
+> Node V1InventoryNodesPartialUpdate(ctx, id).Node(node).Execute()
 
 
 
@@ -511,13 +507,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.InventoryNodesAPI.InventoryNodesPartialUpdate(context.Background(), id).Node(node).Execute()
+	resp, r, err := apiClient.InventoryNodesAPI.V1InventoryNodesPartialUpdate(context.Background(), id).Node(node).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `InventoryNodesAPI.InventoryNodesPartialUpdate``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryNodesAPI.V1InventoryNodesPartialUpdate``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `InventoryNodesPartialUpdate`: Node
-	fmt.Fprintf(os.Stdout, "Response from `InventoryNodesAPI.InventoryNodesPartialUpdate`: %v\n", resp)
+	// response from `V1InventoryNodesPartialUpdate`: Node
+	fmt.Fprintf(os.Stdout, "Response from `InventoryNodesAPI.V1InventoryNodesPartialUpdate`: %v\n", resp)
 }
 ```
 
@@ -531,7 +527,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiInventoryNodesPartialUpdateRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1InventoryNodesPartialUpdateRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -557,9 +553,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## InventoryNodesRetrieve
+## V1InventoryNodesRetrieve
 
-> Node InventoryNodesRetrieve(ctx, id).Expand(expand).Fields(fields).Omit(omit).Execute()
+> Node V1InventoryNodesRetrieve(ctx, id).Expand(expand).Fields(fields).Omit(omit).Execute()
 
 
 
@@ -583,13 +579,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.InventoryNodesAPI.InventoryNodesRetrieve(context.Background(), id).Expand(expand).Fields(fields).Omit(omit).Execute()
+	resp, r, err := apiClient.InventoryNodesAPI.V1InventoryNodesRetrieve(context.Background(), id).Expand(expand).Fields(fields).Omit(omit).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `InventoryNodesAPI.InventoryNodesRetrieve``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryNodesAPI.V1InventoryNodesRetrieve``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `InventoryNodesRetrieve`: Node
-	fmt.Fprintf(os.Stdout, "Response from `InventoryNodesAPI.InventoryNodesRetrieve`: %v\n", resp)
+	// response from `V1InventoryNodesRetrieve`: Node
+	fmt.Fprintf(os.Stdout, "Response from `InventoryNodesAPI.V1InventoryNodesRetrieve`: %v\n", resp)
 }
 ```
 
@@ -603,7 +599,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiInventoryNodesRetrieveRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1InventoryNodesRetrieveRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -631,9 +627,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## InventoryNodesUpdate
+## V1InventoryNodesUpdate
 
-> Node InventoryNodesUpdate(ctx, id).Node(node).Execute()
+> Node V1InventoryNodesUpdate(ctx, id).Node(node).Execute()
 
 
 
@@ -656,13 +652,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.InventoryNodesAPI.InventoryNodesUpdate(context.Background(), id).Node(node).Execute()
+	resp, r, err := apiClient.InventoryNodesAPI.V1InventoryNodesUpdate(context.Background(), id).Node(node).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `InventoryNodesAPI.InventoryNodesUpdate``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryNodesAPI.V1InventoryNodesUpdate``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `InventoryNodesUpdate`: Node
-	fmt.Fprintf(os.Stdout, "Response from `InventoryNodesAPI.InventoryNodesUpdate`: %v\n", resp)
+	// response from `V1InventoryNodesUpdate`: Node
+	fmt.Fprintf(os.Stdout, "Response from `InventoryNodesAPI.V1InventoryNodesUpdate`: %v\n", resp)
 }
 ```
 
@@ -676,7 +672,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiInventoryNodesUpdateRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1InventoryNodesUpdateRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes

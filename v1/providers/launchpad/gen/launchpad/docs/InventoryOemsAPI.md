@@ -4,19 +4,19 @@ All URIs are relative to *http://localhost*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
-[**InventoryOemsCreate**](InventoryOemsAPI.md#InventoryOemsCreate) | **Post** /v1/inventory/oems/ | 
-[**InventoryOemsDestroy**](InventoryOemsAPI.md#InventoryOemsDestroy) | **Delete** /v1/inventory/oems/{id}/ | 
-[**InventoryOemsHistoryList**](InventoryOemsAPI.md#InventoryOemsHistoryList) | **Get** /v1/inventory/oems/{id}/history/ | 
-[**InventoryOemsList**](InventoryOemsAPI.md#InventoryOemsList) | **Get** /v1/inventory/oems/ | 
-[**InventoryOemsPartialUpdate**](InventoryOemsAPI.md#InventoryOemsPartialUpdate) | **Patch** /v1/inventory/oems/{id}/ | 
-[**InventoryOemsRetrieve**](InventoryOemsAPI.md#InventoryOemsRetrieve) | **Get** /v1/inventory/oems/{id}/ | 
-[**InventoryOemsUpdate**](InventoryOemsAPI.md#InventoryOemsUpdate) | **Put** /v1/inventory/oems/{id}/ | 
+[**V1InventoryOemsCreate**](InventoryOemsAPI.md#V1InventoryOemsCreate) | **Post** /v1/inventory/oems/ | 
+[**V1InventoryOemsDestroy**](InventoryOemsAPI.md#V1InventoryOemsDestroy) | **Delete** /v1/inventory/oems/{id}/ | 
+[**V1InventoryOemsHistoryList**](InventoryOemsAPI.md#V1InventoryOemsHistoryList) | **Get** /v1/inventory/oems/{id}/history/ | 
+[**V1InventoryOemsList**](InventoryOemsAPI.md#V1InventoryOemsList) | **Get** /v1/inventory/oems/ | 
+[**V1InventoryOemsPartialUpdate**](InventoryOemsAPI.md#V1InventoryOemsPartialUpdate) | **Patch** /v1/inventory/oems/{id}/ | 
+[**V1InventoryOemsRetrieve**](InventoryOemsAPI.md#V1InventoryOemsRetrieve) | **Get** /v1/inventory/oems/{id}/ | 
+[**V1InventoryOemsUpdate**](InventoryOemsAPI.md#V1InventoryOemsUpdate) | **Put** /v1/inventory/oems/{id}/ | 
 
 
 
-## InventoryOemsCreate
+## V1InventoryOemsCreate
 
-> OEM InventoryOemsCreate(ctx).OEM(oEM).Execute()
+> OEM V1InventoryOemsCreate(ctx).OEM(oEM).Execute()
 
 
 
@@ -38,13 +38,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.InventoryOemsAPI.InventoryOemsCreate(context.Background()).OEM(oEM).Execute()
+	resp, r, err := apiClient.InventoryOemsAPI.V1InventoryOemsCreate(context.Background()).OEM(oEM).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `InventoryOemsAPI.InventoryOemsCreate``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryOemsAPI.V1InventoryOemsCreate``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `InventoryOemsCreate`: OEM
-	fmt.Fprintf(os.Stdout, "Response from `InventoryOemsAPI.InventoryOemsCreate`: %v\n", resp)
+	// response from `V1InventoryOemsCreate`: OEM
+	fmt.Fprintf(os.Stdout, "Response from `InventoryOemsAPI.V1InventoryOemsCreate`: %v\n", resp)
 }
 ```
 
@@ -54,7 +54,7 @@ func main() {
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiInventoryOemsCreateRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1InventoryOemsCreateRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -79,9 +79,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## InventoryOemsDestroy
+## V1InventoryOemsDestroy
 
-> InventoryOemsDestroy(ctx, id).Execute()
+> V1InventoryOemsDestroy(ctx, id).Execute()
 
 
 
@@ -102,9 +102,9 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	r, err := apiClient.InventoryOemsAPI.InventoryOemsDestroy(context.Background(), id).Execute()
+	r, err := apiClient.InventoryOemsAPI.V1InventoryOemsDestroy(context.Background(), id).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `InventoryOemsAPI.InventoryOemsDestroy``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryOemsAPI.V1InventoryOemsDestroy``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
 }
@@ -120,7 +120,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiInventoryOemsDestroyRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1InventoryOemsDestroyRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -145,9 +145,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## InventoryOemsHistoryList
+## V1InventoryOemsHistoryList
 
-> PaginatedModelChangeList InventoryOemsHistoryList(ctx, id).Page(page).PageSize(pageSize).Execute()
+> PaginatedModelChangeList V1InventoryOemsHistoryList(ctx, id).Page(page).PageSize(pageSize).Execute()
 
 
 
@@ -170,13 +170,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.InventoryOemsAPI.InventoryOemsHistoryList(context.Background(), id).Page(page).PageSize(pageSize).Execute()
+	resp, r, err := apiClient.InventoryOemsAPI.V1InventoryOemsHistoryList(context.Background(), id).Page(page).PageSize(pageSize).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `InventoryOemsAPI.InventoryOemsHistoryList``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryOemsAPI.V1InventoryOemsHistoryList``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `InventoryOemsHistoryList`: PaginatedModelChangeList
-	fmt.Fprintf(os.Stdout, "Response from `InventoryOemsAPI.InventoryOemsHistoryList`: %v\n", resp)
+	// response from `V1InventoryOemsHistoryList`: PaginatedModelChangeList
+	fmt.Fprintf(os.Stdout, "Response from `InventoryOemsAPI.V1InventoryOemsHistoryList`: %v\n", resp)
 }
 ```
 
@@ -190,7 +190,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiInventoryOemsHistoryListRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1InventoryOemsHistoryListRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -217,9 +217,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## InventoryOemsList
+## V1InventoryOemsList
 
-> PaginatedOEMList InventoryOemsList(ctx).Id(id).Name(name).Ordering(ordering).Page(page).PageSize(pageSize).Search(search).Execute()
+> PaginatedOEMList V1InventoryOemsList(ctx).Id(id).Name(name).Ordering(ordering).Page(page).PageSize(pageSize).Search(search).Execute()
 
 
 
@@ -245,13 +245,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.InventoryOemsAPI.InventoryOemsList(context.Background()).Id(id).Name(name).Ordering(ordering).Page(page).PageSize(pageSize).Search(search).Execute()
+	resp, r, err := apiClient.InventoryOemsAPI.V1InventoryOemsList(context.Background()).Id(id).Name(name).Ordering(ordering).Page(page).PageSize(pageSize).Search(search).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `InventoryOemsAPI.InventoryOemsList``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryOemsAPI.V1InventoryOemsList``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `InventoryOemsList`: PaginatedOEMList
-	fmt.Fprintf(os.Stdout, "Response from `InventoryOemsAPI.InventoryOemsList`: %v\n", resp)
+	// response from `V1InventoryOemsList`: PaginatedOEMList
+	fmt.Fprintf(os.Stdout, "Response from `InventoryOemsAPI.V1InventoryOemsList`: %v\n", resp)
 }
 ```
 
@@ -261,7 +261,7 @@ func main() {
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiInventoryOemsListRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1InventoryOemsListRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -291,9 +291,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## InventoryOemsPartialUpdate
+## V1InventoryOemsPartialUpdate
 
-> OEM InventoryOemsPartialUpdate(ctx, id).OEM(oEM).Execute()
+> OEM V1InventoryOemsPartialUpdate(ctx, id).OEM(oEM).Execute()
 
 
 
@@ -316,13 +316,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.InventoryOemsAPI.InventoryOemsPartialUpdate(context.Background(), id).OEM(oEM).Execute()
+	resp, r, err := apiClient.InventoryOemsAPI.V1InventoryOemsPartialUpdate(context.Background(), id).OEM(oEM).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `InventoryOemsAPI.InventoryOemsPartialUpdate``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryOemsAPI.V1InventoryOemsPartialUpdate``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `InventoryOemsPartialUpdate`: OEM
-	fmt.Fprintf(os.Stdout, "Response from `InventoryOemsAPI.InventoryOemsPartialUpdate`: %v\n", resp)
+	// response from `V1InventoryOemsPartialUpdate`: OEM
+	fmt.Fprintf(os.Stdout, "Response from `InventoryOemsAPI.V1InventoryOemsPartialUpdate`: %v\n", resp)
 }
 ```
 
@@ -336,7 +336,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiInventoryOemsPartialUpdateRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1InventoryOemsPartialUpdateRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -362,9 +362,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## InventoryOemsRetrieve
+## V1InventoryOemsRetrieve
 
-> OEM InventoryOemsRetrieve(ctx, id).Execute()
+> OEM V1InventoryOemsRetrieve(ctx, id).Execute()
 
 
 
@@ -385,13 +385,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.InventoryOemsAPI.InventoryOemsRetrieve(context.Background(), id).Execute()
+	resp, r, err := apiClient.InventoryOemsAPI.V1InventoryOemsRetrieve(context.Background(), id).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `InventoryOemsAPI.InventoryOemsRetrieve``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryOemsAPI.V1InventoryOemsRetrieve``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `InventoryOemsRetrieve`: OEM
-	fmt.Fprintf(os.Stdout, "Response from `InventoryOemsAPI.InventoryOemsRetrieve`: %v\n", resp)
+	// response from `V1InventoryOemsRetrieve`: OEM
+	fmt.Fprintf(os.Stdout, "Response from `InventoryOemsAPI.V1InventoryOemsRetrieve`: %v\n", resp)
 }
 ```
 
@@ -405,7 +405,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiInventoryOemsRetrieveRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1InventoryOemsRetrieveRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -430,9 +430,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## InventoryOemsUpdate
+## V1InventoryOemsUpdate
 
-> OEM InventoryOemsUpdate(ctx, id).OEM(oEM).Execute()
+> OEM V1InventoryOemsUpdate(ctx, id).OEM(oEM).Execute()
 
 
 
@@ -455,13 +455,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.InventoryOemsAPI.InventoryOemsUpdate(context.Background(), id).OEM(oEM).Execute()
+	resp, r, err := apiClient.InventoryOemsAPI.V1InventoryOemsUpdate(context.Background(), id).OEM(oEM).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `InventoryOemsAPI.InventoryOemsUpdate``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryOemsAPI.V1InventoryOemsUpdate``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `InventoryOemsUpdate`: OEM
-	fmt.Fprintf(os.Stdout, "Response from `InventoryOemsAPI.InventoryOemsUpdate`: %v\n", resp)
+	// response from `V1InventoryOemsUpdate`: OEM
+	fmt.Fprintf(os.Stdout, "Response from `InventoryOemsAPI.V1InventoryOemsUpdate`: %v\n", resp)
 }
 ```
 
@@ -475,7 +475,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiInventoryOemsUpdateRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1InventoryOemsUpdateRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes

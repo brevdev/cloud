@@ -4,14 +4,14 @@ All URIs are relative to *http://localhost*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
-[**IdentityProfilePartialUpdate**](IdentityProfileAPI.md#IdentityProfilePartialUpdate) | **Patch** /v1/identity/profile/ | 
-[**IdentityProfileRetrieve**](IdentityProfileAPI.md#IdentityProfileRetrieve) | **Get** /v1/identity/profile/ | 
+[**V1IdentityProfilePartialUpdate**](IdentityProfileAPI.md#V1IdentityProfilePartialUpdate) | **Patch** /v1/identity/profile/ | 
+[**V1IdentityProfileRetrieve**](IdentityProfileAPI.md#V1IdentityProfileRetrieve) | **Get** /v1/identity/profile/ | 
 
 
 
-## IdentityProfilePartialUpdate
+## V1IdentityProfilePartialUpdate
 
-> Profile IdentityProfilePartialUpdate(ctx).Profile(profile).Execute()
+> Profile V1IdentityProfilePartialUpdate(ctx).Profile(profile).Execute()
 
 
 
@@ -33,13 +33,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.IdentityProfileAPI.IdentityProfilePartialUpdate(context.Background()).Profile(profile).Execute()
+	resp, r, err := apiClient.IdentityProfileAPI.V1IdentityProfilePartialUpdate(context.Background()).Profile(profile).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `IdentityProfileAPI.IdentityProfilePartialUpdate``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `IdentityProfileAPI.V1IdentityProfilePartialUpdate``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `IdentityProfilePartialUpdate`: Profile
-	fmt.Fprintf(os.Stdout, "Response from `IdentityProfileAPI.IdentityProfilePartialUpdate`: %v\n", resp)
+	// response from `V1IdentityProfilePartialUpdate`: Profile
+	fmt.Fprintf(os.Stdout, "Response from `IdentityProfileAPI.V1IdentityProfilePartialUpdate`: %v\n", resp)
 }
 ```
 
@@ -49,7 +49,7 @@ func main() {
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiIdentityProfilePartialUpdateRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1IdentityProfilePartialUpdateRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -74,9 +74,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## IdentityProfileRetrieve
+## V1IdentityProfileRetrieve
 
-> Profile IdentityProfileRetrieve(ctx).Execute()
+> Profile V1IdentityProfileRetrieve(ctx).Execute()
 
 
 
@@ -96,13 +96,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.IdentityProfileAPI.IdentityProfileRetrieve(context.Background()).Execute()
+	resp, r, err := apiClient.IdentityProfileAPI.V1IdentityProfileRetrieve(context.Background()).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `IdentityProfileAPI.IdentityProfileRetrieve``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `IdentityProfileAPI.V1IdentityProfileRetrieve``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `IdentityProfileRetrieve`: Profile
-	fmt.Fprintf(os.Stdout, "Response from `IdentityProfileAPI.IdentityProfileRetrieve`: %v\n", resp)
+	// response from `V1IdentityProfileRetrieve`: Profile
+	fmt.Fprintf(os.Stdout, "Response from `IdentityProfileAPI.V1IdentityProfileRetrieve`: %v\n", resp)
 }
 ```
 
@@ -112,7 +112,7 @@ This endpoint does not need any parameter.
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiIdentityProfileRetrieveRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1IdentityProfileRetrieveRequest struct via the builder pattern
 
 
 ### Return type

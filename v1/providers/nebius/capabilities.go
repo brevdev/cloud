@@ -21,16 +21,12 @@ func getNebiusCapabilities() v1.Capabilities {
 		v1.CapabilityResizeInstanceVolume,    // Nebius volume resizing
 
 		// Resource Management
-		v1.CapabilityMachineImage, // Nebius image management
-		v1.CapabilityTags,         // Nebius resource labeling
-
-		// PARTIALLY SUPPORTED (infrastructure implemented):
-		// - Network management (VPC, subnets) - implemented
-		// - Project management - implemented
-		// - Boot disk management - implemented
-
-		// FUTURE ENHANCEMENTS:
-		// - v1.CapabilityModifyFirewall  // Network security groups (future)
+		v1.CapabilityModifyFirewall,    // Nebius has Security Groups for firewall management
+		v1.CapabilityMachineImage,      // Nebius supports custom machine images
+		v1.CapabilityTags,              // Nebius supports resource tagging
+		v1.CapabilityInstanceUserData,  // Nebius supports user data in instance creation
+		v1.CapabilityVPC,               // Nebius supports VPCs
+		v1.CapabilityManagedKubernetes, // Nebius supports managed Kubernetes clusters
 	}
 }
 

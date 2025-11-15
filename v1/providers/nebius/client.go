@@ -13,6 +13,7 @@ import (
 	"github.com/nebius/gosdk"
 	"github.com/nebius/gosdk/auth"
 	iam "github.com/nebius/gosdk/proto/nebius/iam/v1"
+	nebiusiamv1 "github.com/nebius/gosdk/proto/nebius/iam/v1"
 )
 
 // It embeds NotImplCloudClient to handle unsupported features
@@ -290,7 +291,6 @@ func (c *NebiusClient) GetCloudProviderID() v1.CloudProviderID {
 }
 
 // MakeClient creates a new client instance for a different location
-
 // FIXME for b64 decode on cred JSON
 func (c *NebiusClient) MakeClient(ctx context.Context, location string) (v1.CloudClient, error) {
 	return c.MakeClientWithOptions(ctx, location)
@@ -308,4 +308,17 @@ func (c *NebiusClient) GetTenantID() (string, error) {
 // GetReferenceID returns the reference ID for this client
 func (c *NebiusClient) GetReferenceID() string {
 	return c.refID
+}
+
+func (c *NebiusClient) GetLocation(ctx context.Context) (string, error) {
+	nebiusProjectService := c.sdk.Services().IAM().V1().Project()
+
+	// The target region is the same as the client's project region
+	project, err := nebiusProjectService.Get(ctx, &nebiusiamv1.GetProjectRequest{
+		Id: c.projectID,
+	})
+	if err != nil {
+		return "", errors.WrapAndTrace(err)
+	}
+	return project.GetSpec().GetRegion(), nil
 }

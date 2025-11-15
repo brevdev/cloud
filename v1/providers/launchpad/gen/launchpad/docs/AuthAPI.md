@@ -4,16 +4,16 @@ All URIs are relative to *http://localhost*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
-[**AuthLoginCreate**](AuthAPI.md#AuthLoginCreate) | **Post** /v1/auth/login/ | 
-[**AuthLogoutCreate**](AuthAPI.md#AuthLogoutCreate) | **Post** /v1/auth/logout/ | 
-[**AuthPasswordChangeCreate**](AuthAPI.md#AuthPasswordChangeCreate) | **Post** /v1/auth/password-change/ | 
-[**AuthRedirectRetrieve**](AuthAPI.md#AuthRedirectRetrieve) | **Get** /v1/auth/redirect/ | 
+[**V1AuthLoginCreate**](AuthAPI.md#V1AuthLoginCreate) | **Post** /v1/auth/login/ | 
+[**V1AuthLogoutCreate**](AuthAPI.md#V1AuthLogoutCreate) | **Post** /v1/auth/logout/ | 
+[**V1AuthPasswordChangeCreate**](AuthAPI.md#V1AuthPasswordChangeCreate) | **Post** /v1/auth/password-change/ | 
+[**V1AuthRedirectRetrieve**](AuthAPI.md#V1AuthRedirectRetrieve) | **Get** /v1/auth/redirect/ | 
 
 
 
-## AuthLoginCreate
+## V1AuthLoginCreate
 
-> AuthToken AuthLoginCreate(ctx).AuthCode(authCode).Password(password).Username(username).Execute()
+> AuthToken V1AuthLoginCreate(ctx).AuthCode(authCode).Password(password).Username(username).Execute()
 
 
 
@@ -38,13 +38,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.AuthAPI.AuthLoginCreate(context.Background()).AuthCode(authCode).Password(password).Username(username).Execute()
+	resp, r, err := apiClient.AuthAPI.V1AuthLoginCreate(context.Background()).AuthCode(authCode).Password(password).Username(username).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `AuthAPI.AuthLoginCreate``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `AuthAPI.V1AuthLoginCreate``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `AuthLoginCreate`: AuthToken
-	fmt.Fprintf(os.Stdout, "Response from `AuthAPI.AuthLoginCreate`: %v\n", resp)
+	// response from `V1AuthLoginCreate`: AuthToken
+	fmt.Fprintf(os.Stdout, "Response from `AuthAPI.V1AuthLoginCreate`: %v\n", resp)
 }
 ```
 
@@ -54,7 +54,7 @@ func main() {
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiAuthLoginCreateRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1AuthLoginCreateRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -81,9 +81,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## AuthLogoutCreate
+## V1AuthLogoutCreate
 
-> Logout AuthLogoutCreate(ctx).Execute()
+> Logout V1AuthLogoutCreate(ctx).Execute()
 
 
 
@@ -105,13 +105,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.AuthAPI.AuthLogoutCreate(context.Background()).Execute()
+	resp, r, err := apiClient.AuthAPI.V1AuthLogoutCreate(context.Background()).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `AuthAPI.AuthLogoutCreate``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `AuthAPI.V1AuthLogoutCreate``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `AuthLogoutCreate`: Logout
-	fmt.Fprintf(os.Stdout, "Response from `AuthAPI.AuthLogoutCreate`: %v\n", resp)
+	// response from `V1AuthLogoutCreate`: Logout
+	fmt.Fprintf(os.Stdout, "Response from `AuthAPI.V1AuthLogoutCreate`: %v\n", resp)
 }
 ```
 
@@ -121,7 +121,7 @@ This endpoint does not need any parameter.
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiAuthLogoutCreateRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1AuthLogoutCreateRequest struct via the builder pattern
 
 
 ### Return type
@@ -142,9 +142,9 @@ Other parameters are passed through a pointer to a apiAuthLogoutCreateRequest st
 [[Back to README]](../README.md)
 
 
-## AuthPasswordChangeCreate
+## V1AuthPasswordChangeCreate
 
-> PasswordChange AuthPasswordChangeCreate(ctx).Username(username).Password(password).NewPassword(newPassword).Result(result).Execute()
+> PasswordChange V1AuthPasswordChangeCreate(ctx).Username(username).Password(password).NewPassword(newPassword).Result(result).Execute()
 
 
 
@@ -170,13 +170,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.AuthAPI.AuthPasswordChangeCreate(context.Background()).Username(username).Password(password).NewPassword(newPassword).Result(result).Execute()
+	resp, r, err := apiClient.AuthAPI.V1AuthPasswordChangeCreate(context.Background()).Username(username).Password(password).NewPassword(newPassword).Result(result).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `AuthAPI.AuthPasswordChangeCreate``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `AuthAPI.V1AuthPasswordChangeCreate``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `AuthPasswordChangeCreate`: PasswordChange
-	fmt.Fprintf(os.Stdout, "Response from `AuthAPI.AuthPasswordChangeCreate`: %v\n", resp)
+	// response from `V1AuthPasswordChangeCreate`: PasswordChange
+	fmt.Fprintf(os.Stdout, "Response from `AuthAPI.V1AuthPasswordChangeCreate`: %v\n", resp)
 }
 ```
 
@@ -186,7 +186,7 @@ func main() {
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiAuthPasswordChangeCreateRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1AuthPasswordChangeCreateRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -214,9 +214,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## AuthRedirectRetrieve
+## V1AuthRedirectRetrieve
 
-> AuthRedirect AuthRedirectRetrieve(ctx).AsJson(asJson).Execute()
+> AuthRedirect V1AuthRedirectRetrieve(ctx).AsJson(asJson).Execute()
 
 
 
@@ -239,13 +239,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.AuthAPI.AuthRedirectRetrieve(context.Background()).AsJson(asJson).Execute()
+	resp, r, err := apiClient.AuthAPI.V1AuthRedirectRetrieve(context.Background()).AsJson(asJson).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `AuthAPI.AuthRedirectRetrieve``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `AuthAPI.V1AuthRedirectRetrieve``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `AuthRedirectRetrieve`: AuthRedirect
-	fmt.Fprintf(os.Stdout, "Response from `AuthAPI.AuthRedirectRetrieve`: %v\n", resp)
+	// response from `V1AuthRedirectRetrieve`: AuthRedirect
+	fmt.Fprintf(os.Stdout, "Response from `AuthAPI.V1AuthRedirectRetrieve`: %v\n", resp)
 }
 ```
 
@@ -255,7 +255,7 @@ func main() {
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiAuthRedirectRetrieveRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1AuthRedirectRetrieveRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes

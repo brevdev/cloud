@@ -2,12 +2,14 @@ package v1
 
 import (
 	"context"
-	"errors"
+	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
 	"strings"
 
 	"github.com/alecthomas/units"
+	"github.com/brevdev/cloud/internal/errors"
 	v1 "github.com/brevdev/cloud/v1"
 	openapi "github.com/brevdev/cloud/v1/providers/shadeform/gen/shadeform"
 	"github.com/google/uuid"
@@ -19,14 +21,22 @@ const (
 	cloudCredRefIDTagName = "cloudCredRefID" //nolint:gosec // not a secret
 	instanceNameFormat    = "%v_%v"
 	instanceNameSeparator = "_"
+	outOfStockErrorCode   = "OUT_OF_STOCK"
 )
+
+type DefaultErrorResponse struct {
+	ErrorCode string `json:"error_code"`
+	Error     string `json:"error"`
+}
 
 func (c *ShadeformClient) CreateInstance(ctx context.Context, attrs v1.CreateInstanceAttrs) (*v1.Instance, error) { //nolint:gocyclo,funlen // ok
 	authCtx := c.makeAuthContext(ctx)
 
+	c.logger.Debug(ctx, "Creating instance", v1.LogField("instanceAttrs", attrs))
 	// Check if the instance type is allowed by configuration
-	if !c.isInstanceTypeAllowed(attrs.InstanceType) {
-		return nil, fmt.Errorf("instance type: %v is not deployable", attrs.InstanceType)
+	allowed, _ := c.isInstanceTypeAllowed(attrs.InstanceType)
+	if !allowed {
+		return nil, errors.WrapAndTrace(fmt.Errorf("instance type: %v is not deployable", attrs.InstanceType))
 	}
 
 	sshKeyID := ""
@@ -38,37 +48,38 @@ func (c *ShadeformClient) CreateInstance(ctx context.Context, attrs v1.CreateIns
 
 	if keyPairName == "" {
 		keyPairName = uuid.New().String()
+		c.logger.Debug(ctx, "No key pair name provided, generating new one", v1.LogField("keyPairName", keyPairName))
 	}
 
 	if attrs.PublicKey != "" {
 		var err error
 		sshKeyID, err = c.addSSHKey(ctx, keyPairName, attrs.PublicKey)
 		if err != nil && !strings.Contains(err.Error(), "name must be unique") {
-			return nil, fmt.Errorf("failed to add SSH key: %w", err)
+			return nil, errors.WrapAndTrace(fmt.Errorf("failed to add SSH key: %w", err))
 		}
 	}
 
 	region := attrs.Location
 	cloud, shadeInstanceType, err := c.getShadeformCloudAndInstanceType(attrs.InstanceType)
 	if err != nil {
-		return nil, err
+		return nil, errors.WrapAndTrace(err)
 	}
 
 	cloudEnum, err := openapi.NewCloudFromValue(cloud)
 	if err != nil {
-		return nil, err
+		return nil, errors.WrapAndTrace(err)
 	}
 
 	// Add refID tag
 	refIDTag, err := c.createTag(refIDTagName, attrs.RefID)
 	if err != nil {
-		return nil, err
+		return nil, errors.WrapAndTrace(err)
 	}
 
 	// Add cloudRefID tag
 	cloudCredRefIDTag, err := c.createTag(cloudCredRefIDTagName, c.GetReferenceID())
 	if err != nil {
-		return nil, err
+		return nil, errors.WrapAndTrace(err)
 	}
 
 	tags := []string{refIDTag, cloudCredRefIDTag}
@@ -76,14 +87,14 @@ func (c *ShadeformClient) CreateInstance(ctx context.Context, attrs v1.CreateIns
 	for key, value := range attrs.Tags {
 		createdTag, err := c.createTag(key, value)
 		if err != nil {
-			return nil, err
+			return nil, errors.WrapAndTrace(err)
 		}
 		tags = append(tags, createdTag)
 	}
 
 	base64Script, err := c.GenerateFirewallScript(attrs.FirewallRules)
 	if err != nil {
-		return nil, err
+		return nil, errors.WrapAndTrace(err)
 	}
 
 	req := openapi.CreateRequest{
@@ -107,22 +118,50 @@ func (c *ShadeformClient) CreateInstance(ctx context.Context, attrs v1.CreateIns
 		defer func() { _ = httpResp.Body.Close() }()
 	}
 	if err != nil {
-		httpMessage, _ := io.ReadAll(httpResp.Body)
-		return nil, fmt.Errorf("failed to create instance: %w, %s", err, string(httpMessage))
+		return nil, errors.WrapAndTrace(fmt.Errorf("failed to create instance: %w", handleShadeformAPIErrorResponse(httpResp)))
 	}
-
 	if resp == nil {
-		return nil, fmt.Errorf("no instance returned from create request")
+		return nil, errors.WrapAndTrace(fmt.Errorf("no instance returned from create request"))
 	}
 
 	// Since Shadeform doesn't return the full instance that's created, we need to make a second API call to get
 	// the created instance after we call create
 	createdInstance, err := c.GetInstance(authCtx, v1.CloudProviderInstanceID(resp.Id))
 	if err != nil {
-		return nil, err
+		return nil, errors.WrapAndTrace(err)
 	}
 
 	return createdInstance, nil
+}
+
+func handleShadeformAPIErrorResponse(httpResp *http.Response) error {
+	// Read the details of the API response
+	httpStatusCode := httpResp.StatusCode
+	httpMessageBytes, err := io.ReadAll(httpResp.Body)
+	if err != nil {
+		return errors.WrapAndTrace(fmt.Errorf("failed to read shadeform API response body: %w", err))
+	}
+
+	// Most well-structured errors are 409, so handle these as a special case
+	if httpStatusCode == http.StatusConflict {
+		// Unmarshal the response body into a Shadeform DefaultErrorResponse
+		var shadeformErrorResponse DefaultErrorResponse
+		err = json.Unmarshal(httpMessageBytes, &shadeformErrorResponse)
+		if err != nil {
+			return errors.WrapAndTrace(fmt.Errorf("failed to unmarshal shadeform API response body: %w", err))
+		}
+
+		// Handle Shadeform specific errors and attempt to translate them into Brev errors
+		if shadeformErrorResponse.ErrorCode == outOfStockErrorCode {
+			return v1.ErrInsufficientResources
+		} else {
+			// For all other error codes, return the error object from the API response
+			return errors.WrapAndTrace(fmt.Errorf("shadeform API error: error code: %v, error: %v", shadeformErrorResponse.ErrorCode, shadeformErrorResponse.Error))
+		}
+	}
+
+	// For all other HTTP status codes, return the status code and body
+	return errors.WrapAndTrace(fmt.Errorf("shadeform HTTP error: [%d], %s", httpStatusCode, string(httpMessageBytes)))
 }
 
 func (c *ShadeformClient) getInstanceNameForShadeform(refID string, providedName string) string {
@@ -152,11 +191,11 @@ func (c *ShadeformClient) addSSHKey(ctx context.Context, keyPairName string, pub
 	}
 	if err != nil {
 		httpMessage, _ := io.ReadAll(httpResp.Body)
-		return "", fmt.Errorf("failed to add SSH Key: %w, %s", err, string(httpMessage))
+		return "", errors.WrapAndTrace(fmt.Errorf("failed to add SSH Key: %w, %s", err, string(httpMessage)))
 	}
 
 	if resp == nil {
-		return "", fmt.Errorf("no instance returned from post request")
+		return "", errors.WrapAndTrace(fmt.Errorf("no instance returned from post request"))
 	}
 
 	return resp.Id, nil
@@ -170,16 +209,16 @@ func (c *ShadeformClient) GetInstance(ctx context.Context, instanceID v1.CloudPr
 		defer func() { _ = httpResp.Body.Close() }()
 	}
 	if err != nil {
-		return nil, fmt.Errorf("failed to get instance: %w", err)
+		return nil, errors.WrapAndTrace(fmt.Errorf("failed to get instance: %w", err))
 	}
 
 	if resp == nil {
-		return nil, fmt.Errorf("no instance returned from get request")
+		return nil, errors.WrapAndTrace(fmt.Errorf("no instance returned from get request"))
 	}
 
 	instance, err := c.convertInstanceInfoResponseToV1Instance(*resp)
 	if err != nil {
-		return nil, err
+		return nil, errors.WrapAndTrace(err)
 	}
 
 	return instance, nil
@@ -193,7 +232,7 @@ func (c *ShadeformClient) TerminateInstance(ctx context.Context, instanceID v1.C
 		defer func() { _ = httpResp.Body.Close() }()
 	}
 	if err != nil {
-		return fmt.Errorf("failed to terminate instance: %w", err)
+		return errors.WrapAndTrace(fmt.Errorf("failed to terminate instance: %w", err))
 	}
 
 	return nil
@@ -207,14 +246,14 @@ func (c *ShadeformClient) ListInstances(ctx context.Context, _ v1.ListInstancesA
 		defer func() { _ = httpResp.Body.Close() }()
 	}
 	if err != nil {
-		return nil, fmt.Errorf("failed to list instances: %w", err)
+		return nil, errors.WrapAndTrace(fmt.Errorf("failed to list instances: %w", err))
 	}
 
 	var instances []v1.Instance
 	for _, instance := range resp.Instances {
 		singleInstance, err := c.convertShadeformInstanceToV1Instance(instance)
 		if err != nil {
-			return nil, err
+			return nil, errors.WrapAndTrace(err)
 		}
 		instances = append(instances, *singleInstance)
 	}
@@ -260,20 +299,22 @@ func (c *ShadeformClient) convertInstanceInfoResponseToV1Instance(instanceInfo o
 
 	tags, err := c.convertShadeformTagToV1Tag(instanceInfo.Tags)
 	if err != nil {
-		return nil, err
+		return nil, errors.WrapAndTrace(err)
 	}
 
 	refID, found := tags[refIDTagName]
 	if !found {
-		return nil, errors.New("could not find refID tag")
+		return nil, errors.WrapAndTrace(errors.New("could not find refID tag"))
 	}
 	delete(tags, refIDTagName)
 
-	cloudCredRefID := tags[cloudCredRefIDTagName]
-	if err != nil {
-		return nil, errors.New("could not find cloudCredRefID tag")
+	cloudCredRefID, found := tags[cloudCredRefIDTagName]
+	if !found {
+		return nil, errors.WrapAndTrace(errors.New("could not find cloudCredRefID tag"))
 	}
 	delete(tags, cloudCredRefIDTagName)
+
+	diskSize := units.Base2Bytes(instanceInfo.Configuration.StorageInGb) * units.GiB
 
 	instance := &v1.Instance{
 		Name:           c.getProvidedInstanceName(instanceInfo.Name),
@@ -285,7 +326,8 @@ func (c *ShadeformClient) convertInstanceInfoResponseToV1Instance(instanceInfo o
 		ImageID:        instanceInfo.Configuration.Os,
 		InstanceType:   instanceType,
 		InstanceTypeID: v1.InstanceTypeID(c.getInstanceTypeID(instanceType, instanceInfo.Region)),
-		DiskSize:       units.Base2Bytes(instanceInfo.Configuration.StorageInGb) * units.GiB,
+		DiskSize:       diskSize,
+		DiskSizeBytes:  v1.NewBytes(v1.BytesValue(instanceInfo.Configuration.StorageInGb), v1.Gigabyte),
 		SSHUser:        instanceInfo.SshUser,
 		SSHPort:        int(instanceInfo.SshPort),
 		Status: v1.Status{
@@ -310,33 +352,36 @@ func (c *ShadeformClient) convertShadeformInstanceToV1Instance(shadeformInstance
 
 	tags, err := c.convertShadeformTagToV1Tag(shadeformInstance.Tags)
 	if err != nil {
-		return nil, err
+		return nil, errors.WrapAndTrace(err)
 	}
 
 	refID, found := tags[refIDTagName]
 	if !found {
-		return nil, errors.New("could not find refID tag")
+		return nil, errors.WrapAndTrace(errors.New("could not find refID tag"))
 	}
 	delete(tags, refIDTagName)
 
-	cloudCredRefID := tags[cloudCredRefIDTagName]
-	if err != nil {
-		return nil, errors.New("could not find cloudCredRefID tag")
+	cloudCredRefID, found := tags[cloudCredRefIDTagName]
+	if !found {
+		return nil, errors.WrapAndTrace(errors.New("could not find cloudCredRefID tag"))
 	}
 	delete(tags, cloudCredRefIDTagName)
 
+	diskSize := units.Base2Bytes(shadeformInstance.Configuration.StorageInGb) * units.GiB
+
 	instance := &v1.Instance{
-		Name:         shadeformInstance.Name,
-		CreatedAt:    shadeformInstance.CreatedAt,
-		CloudID:      v1.CloudProviderInstanceID(shadeformInstance.Id),
-		PublicIP:     shadeformInstance.Ip,
-		PublicDNS:    shadeformInstance.Ip,
-		Hostname:     hostname,
-		ImageID:      shadeformInstance.Configuration.Os,
-		InstanceType: instanceType,
-		DiskSize:     units.Base2Bytes(shadeformInstance.Configuration.StorageInGb) * units.GiB,
-		SSHUser:      shadeformInstance.SshUser,
-		SSHPort:      int(shadeformInstance.SshPort),
+		Name:          shadeformInstance.Name,
+		CreatedAt:     shadeformInstance.CreatedAt,
+		CloudID:       v1.CloudProviderInstanceID(shadeformInstance.Id),
+		PublicIP:      shadeformInstance.Ip,
+		PublicDNS:     shadeformInstance.Ip,
+		Hostname:      hostname,
+		ImageID:       shadeformInstance.Configuration.Os,
+		InstanceType:  instanceType,
+		DiskSize:      diskSize,
+		DiskSizeBytes: v1.NewBytes(v1.BytesValue(shadeformInstance.Configuration.StorageInGb), v1.Gigabyte),
+		SSHUser:       shadeformInstance.SshUser,
+		SSHPort:       int(shadeformInstance.SshPort),
 		Status: v1.Status{
 			LifecycleStatus: lifeCycleStatus,
 		},
@@ -357,7 +402,7 @@ func (c *ShadeformClient) convertShadeformTagToV1Tag(shadeformTags []string) (v1
 	for _, tag := range shadeformTags {
 		key, value, err := c.getTag(tag)
 		if err != nil {
-			return nil, err
+			return nil, errors.WrapAndTrace(err)
 		}
 		tags[key] = value
 	}
@@ -366,7 +411,7 @@ func (c *ShadeformClient) convertShadeformTagToV1Tag(shadeformTags []string) (v1
 
 func (c *ShadeformClient) createTag(key string, value string) (string, error) {
 	if strings.Contains(key, "=") {
-		return "", errors.New("tags cannot contain the '=' character")
+		return "", errors.WrapAndTrace(errors.New("tags cannot contain the '=' character"))
 	}
 
 	return fmt.Sprintf("%v=%v", key, value), nil
@@ -375,7 +420,7 @@ func (c *ShadeformClient) createTag(key string, value string) (string, error) {
 func (c *ShadeformClient) getTag(shadeformTag string) (string, string, error) {
 	key, value, found := strings.Cut(shadeformTag, "=")
 	if !found {
-		return "", "", fmt.Errorf("tag %v does not conform to the key value tag format", shadeformTag)
+		return "", "", errors.WrapAndTrace(fmt.Errorf("tag %v does not conform to the key value tag format", shadeformTag))
 	}
 	return key, value, nil
 }

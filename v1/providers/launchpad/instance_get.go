@@ -15,7 +15,7 @@ const (
 )
 
 func (c *LaunchpadClient) GetInstance(ctx context.Context, id v1.CloudProviderInstanceID) (*v1.Instance, error) {
-	getDeployment, resp, err := c.client.CatalogDeploymentsAPI.CatalogDeploymentsRetrieve(c.makeAuthContext(ctx), string(id)).
+	getDeployment, resp, err := c.client.CatalogDeploymentsAPI.V1CatalogDeploymentsRetrieve(c.makeAuthContext(ctx), string(id)).
 		Expand(clusterExpandParameter).
 		Execute()
 	if resp != nil {
@@ -44,20 +44,18 @@ func launchpadDeploymentToInstance(deployment *openapi.Deployment) (v1.Instance,
 		return v1.Instance{}, errors.WrapAndTrace(err)
 	}
 
-	var diskSize units.Base2Bytes
+	var totalStorageSize int32
 	nodes := deployment.GetCluster().Cluster.GetNodes()
 	if len(nodes) == 0 {
-		diskSize = 0
+		totalStorageSize = 0
 	} else {
 		node := nodes[0]
 
 		// Calculate disk size
 		storage := node.Node.GetStorage()
-		size := 0
 		for _, s := range storage {
-			size += int(s.GetSize())
+			totalStorageSize += s.GetSize()
 		}
-		diskSize = units.Base2Bytes(size) * units.GiB
 	}
 
 	inst := v1.Instance{
@@ -78,10 +76,11 @@ func launchpadDeploymentToInstance(deployment *openapi.Deployment) (v1.Instance,
 				ToPort:   2022,
 			},
 		},
-		DiskSize:  diskSize,
-		Location:  deployment.GetRegion(),
-		PublicDNS: deployment.GetCluster().Cluster.GetPublicAddress(),
-		PublicIP:  deployment.GetCluster().Cluster.GetPublicAddress(),
+		DiskSize:      units.Base2Bytes(totalStorageSize) * units.GiB,
+		DiskSizeBytes: v1.NewBytes(v1.BytesValue(totalStorageSize), v1.Gigabyte),
+		Location:      deployment.GetRegion(),
+		PublicDNS:     deployment.GetCluster().Cluster.GetPublicAddress(),
+		PublicIP:      deployment.GetCluster().Cluster.GetPublicAddress(),
 	}
 
 	cluster := deployment.GetCluster().Cluster

@@ -46,10 +46,7 @@ func GetMapValues[K comparable, V any](m map[K]V) []V {
 // loops over list and returns when has returns true
 func ListHas[K any](list []K, has func(l K) bool) bool {
 	k := Find(list, has)
-	if k != nil {
-		return true
-	}
-	return false
+	return k != nil
 }
 
 func MapHasKey[K comparable, V any](m map[K]V, key K) bool {
