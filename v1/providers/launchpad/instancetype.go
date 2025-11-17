@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/alecthomas/units"
 	"github.com/bojanz/currency"
@@ -16,6 +17,10 @@ import (
 
 const (
 	brevDGXCWorkshopID = "brev-dgxc"
+	dmzCloud           = "dmz"
+
+	defaultEstimatedDeployTime = 15 * time.Minute
+	dmzEstimatedDeployTime     = 1 * time.Minute
 )
 
 func (c *LaunchpadClient) GetInstanceTypes(ctx context.Context, args v1.GetInstanceTypeArgs) ([]v1.InstanceType, error) {
@@ -200,6 +205,13 @@ func launchpadInstanceTypeToInstanceType(launchpadInstanceType openapi.InstanceT
 	}
 	typeName := makeInstanceTypeName(info)
 
+	var estimatedDeployTime time.Duration
+	if launchpadInstanceType.Cloud == dmzCloud {
+		estimatedDeployTime = dmzEstimatedDeployTime
+	} else {
+		estimatedDeployTime = defaultEstimatedDeployTime
+	}
+
 	it := &v1.InstanceType{
 		Type:                   typeName,
 		VCPU:                   launchpadInstanceType.Cpu,
@@ -214,6 +226,7 @@ func launchpadInstanceTypeToInstanceType(launchpadInstanceType openapi.InstanceT
 		Provider:               CloudProviderID,
 		Cloud:                  launchpadInstanceType.Cloud,
 		ReservedInstancePoolID: launchpadWorkshopIDToReservedInstancePoolID(info.workshopID),
+		EstimatedDeployTime:    &estimatedDeployTime,
 	}
 
 	// Make the instance type ID
