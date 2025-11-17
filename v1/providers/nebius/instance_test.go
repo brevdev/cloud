@@ -238,6 +238,16 @@ func TestExtractGPUTypeAndName(t *testing.T) {
 			expectedName: "V100", // Should be "V100", not "NVIDIA V100"
 		},
 		{
+			platformName: "gpu-b200-sxm",
+			expectedType: "B200",
+			expectedName: "B200", // Should be "B200", not "NVIDIA B200"
+		},
+		{
+			platformName: "b200-sxm", // Test B200 without "gpu-" prefix
+			expectedType: "B200",
+			expectedName: "B200",
+		},
+		{
 			platformName: "unknown-platform",
 			expectedType: "GPU",
 			expectedName: "GPU", // Generic fallback
@@ -256,6 +266,50 @@ func TestExtractGPUTypeAndName(t *testing.T) {
 			// Ensure name does not contain manufacturer prefix
 			assert.NotContains(t, gpuName, "NVIDIA",
 				"GPU name should not contain 'NVIDIA' prefix - use GPU.Manufacturer field instead")
+		})
+	}
+}
+
+func TestIsPlatformSupported(t *testing.T) {
+	client := createTestClient()
+
+	tests := []struct {
+		platformName  string
+		shouldSupport bool
+		description   string
+	}{
+		// GPU platforms - all should be supported
+		{"gpu-h100-sxm", true, "H100 with gpu prefix"},
+		{"gpu-h200-sxm", true, "H200 with gpu prefix"},
+		{"gpu-b200-sxm", true, "B200 with gpu prefix"},
+		{"gpu-l40s", true, "L40S with gpu prefix"},
+		{"gpu-a100-sxm4", true, "A100 with gpu prefix"},
+		{"gpu-v100-sxm2", true, "V100 with gpu prefix"},
+		{"gpu-a10", true, "A10 with gpu prefix"},
+		{"gpu-t4", true, "T4 with gpu prefix"},
+		{"gpu-l4", true, "L4 with gpu prefix"},
+
+		// GPU platforms without "gpu-" prefix (B200 specific test)
+		{"b200-sxm", true, "B200 without gpu prefix"},
+		{"b200", true, "B200 bare name"},
+		{"h100-sxm", true, "H100 without gpu prefix"},
+		{"l40s", true, "L40S without gpu prefix"},
+
+		// CPU platforms - only specific ones supported
+		{"cpu-d3", true, "CPU D3 platform"},
+		{"cpu-e2", true, "CPU E2 platform"},
+		{"cpu-other", false, "Unsupported CPU platform"},
+
+		// Unsupported platforms
+		{"unknown-platform", false, "Generic unknown platform"},
+		{"random-gpu", false, "Random name with gpu"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.description, func(t *testing.T) {
+			result := client.isPlatformSupported(tt.platformName)
+			assert.Equal(t, tt.shouldSupport, result,
+				"Platform %s support should be %v: %s", tt.platformName, tt.shouldSupport, tt.description)
 		})
 	}
 }

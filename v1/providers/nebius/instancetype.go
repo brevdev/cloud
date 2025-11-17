@@ -339,7 +339,7 @@ func (c *NebiusClient) isPlatformSupported(platformName string) bool {
 
 	// For GPU platforms: accept any GPU platform (filtered by quota availability)
 	// Look for common GPU indicators in platform names
-	gpuIndicators := []string{"gpu", "h100", "h200", "l40s", "a100", "v100", "a10", "t4", "l4"}
+	gpuIndicators := []string{"gpu", "h100", "h200", "l40s", "a100", "v100", "a10", "t4", "l4", "b200"}
 	for _, indicator := range gpuIndicators {
 		if strings.Contains(platformLower, indicator) {
 			return true
@@ -445,6 +445,9 @@ func extractGPUTypeAndName(platformName string) (string, string) {
 	}
 	if strings.Contains(platformLower, "v100") {
 		return "V100", "V100"
+	}
+	if strings.Contains(platformLower, "b200") {
+		return "B200", "B200"
 	}
 
 	return "GPU", "GPU" // Generic fallback
