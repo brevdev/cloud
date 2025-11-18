@@ -75,10 +75,6 @@ func (c *NebiusCredential) MakeClientWithOptions(ctx context.Context, location s
 		location = defaultNebiusLocation
 	}
 
-	// DEBUG: Log credential data before creating client
-	fmt.Printf("[NEBIUS_DEBUG] NebiusCredential.MakeClient: RefID=%s, TenantID=%q (len=%d), location=%s\n",
-		c.RefID, c.TenantID, len(c.TenantID), location)
-
 	// ProjectID is now determined in NewNebiusClient as default-project-{location}
 	// Pass empty string and let the client constructor set it
 	client, err := NewNebiusClientWithOrg(ctx, c.RefID, c.ServiceAccountKey, c.TenantID, "", "", location, opts...)

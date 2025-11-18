@@ -52,6 +52,11 @@ func Test_EnumerateImages(t *testing.T) {
 
 	t.Logf("Found %d images", len(images))
 
+	// Assert we got at least one image
+	if len(images) == 0 {
+		t.Fatal("Expected to receive at least one image, but got zero")
+	}
+
 	// Categorize by OS
 	imagesByOS := make(map[string][]v1.Image)
 	for _, img := range images {

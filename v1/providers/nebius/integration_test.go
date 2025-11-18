@@ -400,6 +400,11 @@ func TestIntegration_GetImages(t *testing.T) {
 	} else {
 		t.Logf("Found %d images", len(images))
 
+		// Assert we got at least one image
+		if len(images) == 0 {
+			t.Fatal("Expected to receive at least one image, but got zero")
+		}
+
 		// If implementation is complete, verify image structure
 		for _, img := range images {
 			assert.NotEmpty(t, img.ID)
@@ -465,13 +470,9 @@ func TestIntegration_GetInstanceTypes(t *testing.T) {
 
 		t.Logf("Found %d instance types with available quota", len(instanceTypes))
 
-		// Verify that we got some instance types
-		// If this fails, it means either:
-		// 1. No quotas are configured for this tenant
-		// 2. All quotas are fully consumed
-		// 3. The quota API integration is not working
+		// Assert we got at least one instance type
 		if len(instanceTypes) == 0 {
-			t.Log("WARNING: No instance types with available quota found. Check tenant quotas.")
+			t.Fatal("Expected to receive at least one instance type, but got zero. Check tenant quotas.")
 		}
 
 		// Validate instance type structure
@@ -616,7 +617,7 @@ func TestIntegration_GetInstanceTypes(t *testing.T) {
 
 		// If no GPU quota is available, that's okay - just log it
 		if len(gpuCounts) == 0 {
-			t.Logf("⚠️  No GPU quota allocated - only CPU instances available")
+			t.Logf("No GPU quota allocated - only CPU instances available")
 			t.Logf("   To test GPU instances, request GPU quota from Nebius support")
 		}
 

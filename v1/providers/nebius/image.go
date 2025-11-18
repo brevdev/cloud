@@ -47,24 +47,6 @@ func (c *NebiusClient) GetImages(ctx context.Context, args v1.GetImageArgs) ([]v
 	return images, nil
 }
 
-// extractOSFamily determines the OS family from image name or family
-func extractOSFamily(name string) string {
-	name = strings.ToLower(name)
-	if strings.Contains(name, "ubuntu") {
-		return "ubuntu"
-	}
-	if strings.Contains(name, "centos") || strings.Contains(name, "rhel") || strings.Contains(name, "red hat") {
-		return "rhel"
-	}
-	if strings.Contains(name, "debian") {
-		return "debian"
-	}
-	if strings.Contains(name, "windows") {
-		return "windows"
-	}
-	return "linux" // Default fallback
-}
-
 // getProjectImages retrieves images specific to the current project
 func (c *NebiusClient) getProjectImages(ctx context.Context) ([]v1.Image, error) {
 	imagesResp, err := c.sdk.Services().Compute().V1().Image().List(ctx, &compute.ListImagesRequest{

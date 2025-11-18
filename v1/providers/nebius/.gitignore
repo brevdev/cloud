@@ -1,5 +1,0 @@
-# Ignore all Markdown
-*.md
-
-# Except README.md (any folder)
-!README.md

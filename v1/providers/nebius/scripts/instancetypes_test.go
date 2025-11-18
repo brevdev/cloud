@@ -165,6 +165,11 @@ func Test_EnumerateInstanceTypesSingleRegion(t *testing.T) {
 
 	t.Logf("Found %d instance types", len(instanceTypes))
 
+	// Assert we got at least one instance type
+	if len(instanceTypes) == 0 {
+		t.Fatal("Expected to receive at least one instance type, but got zero")
+	}
+
 	// Categorize by GPU
 	cpuTypes := make([]v1.InstanceType, 0)
 	gpuTypesByFamily := make(map[string][]v1.InstanceType)
@@ -248,6 +253,11 @@ func Test_EnumerateGPUTypes(t *testing.T) {
 	instanceTypes, err := client.GetInstanceTypes(ctx, v1.GetInstanceTypeArgs{})
 	if err != nil {
 		t.Fatalf("Failed to get instance types: %v", err)
+	}
+
+	// Assert we got at least one instance type to search through
+	if len(instanceTypes) == 0 {
+		t.Fatal("Expected to receive at least one instance type, but got zero")
 	}
 
 	t.Logf("GPU Instance Types in %s:\n", location)

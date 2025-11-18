@@ -43,7 +43,7 @@ func TestSmoke_InstanceLifecycle(t *testing.T) {
 	// Generate unique identifier for this test run
 	testID := fmt.Sprintf("smoke-test-%d", time.Now().Unix())
 
-	t.Logf("🚀 Starting Nebius smoke test with ID: %s (cleanup: %t)", testID, cleanupResources)
+	t.Logf("Starting Nebius smoke test with ID: %s (cleanup: %t)", testID, cleanupResources)
 
 	// Track created resources for cleanup
 	createdResources := &SmokeTestResources{
@@ -59,64 +59,64 @@ func TestSmoke_InstanceLifecycle(t *testing.T) {
 	}
 
 	// Step 1: Create an instance
-	t.Log("📋 Step 1: Creating instance...")
+	t.Log("Step 1: Creating instance...")
 	instance := createTestInstance(t, ctx, client, testID, createdResources)
 
 	// If instance creation was skipped, end the test here
 	if instance == nil {
-		t.Log("✅ Smoke test completed successfully - infrastructure validation passed")
+		t.Log("Smoke test completed successfully - infrastructure validation passed")
 		return
 	}
 
 	// Step 2: Verify instance was created and is accessible
-	t.Log("🔍 Step 2: Verifying instance creation...")
+	t.Log("Step 2: Verifying instance creation...")
 	verifyInstanceCreation(t, ctx, client, instance)
 
 	// Step 3: Wait for instance to be running (if not already)
-	t.Log("⏳ Step 3: Waiting for instance to be running...")
+	t.Log("Step 3: Waiting for instance to be running...")
 	waitForInstanceRunning(t, ctx, client, instance.CloudID)
 
 	// Step 4: Stop the instance
-	t.Log("🛑 Step 4: Stopping instance...")
+	t.Log("Step 4: Stopping instance...")
 	stopInstance(t, ctx, client, instance.CloudID)
 
 	// Step 5: Verify instance is stopped
-	t.Log("✅ Step 5: Verifying instance is stopped...")
+	t.Log("Step 5: Verifying instance is stopped...")
 	waitForInstanceStopped(t, ctx, client, instance.CloudID)
 
 	// Step 6: Start the instance again
-	t.Log("▶️  Step 6: Starting instance...")
+	t.Log("Step 6: Starting instance...")
 	startInstance(t, ctx, client, instance.CloudID)
 
 	// Step 7: Verify instance is running again
-	t.Log("✅ Step 7: Verifying instance is running...")
+	t.Log("Step 7: Verifying instance is running...")
 	waitForInstanceRunning(t, ctx, client, instance.CloudID)
 
 	// Step 8: Reboot the instance
-	t.Log("🔄 Step 8: Rebooting instance...")
+	t.Log("Step 8: Rebooting instance...")
 	rebootInstance(t, ctx, client, instance.CloudID)
 
 	// Step 9: Verify instance is still running after reboot
-	t.Log("✅ Step 9: Verifying instance is running after reboot...")
+	t.Log("Step 9: Verifying instance is running after reboot...")
 	waitForInstanceRunning(t, ctx, client, instance.CloudID)
 
 	// Step 10: Update instance tags
-	t.Log("🏷️  Step 10: Updating instance tags...")
+	t.Log("Step 10: Updating instance tags...")
 	updateInstanceTags(t, ctx, client, instance.CloudID)
 
 	// Step 11: Resize instance volume (if supported)
-	t.Log("📦 Step 11: Resizing instance volume...")
+	t.Log("Step 11: Resizing instance volume...")
 	resizeInstanceVolume(t, ctx, client, instance.CloudID)
 
 	// Step 12: Terminate the instance
-	t.Log("💀 Step 12: Terminating instance...")
+	t.Log("Step 12: Terminating instance...")
 	terminateInstance(t, ctx, client, instance.CloudID)
 
 	// Step 13: Verify instance is terminated
-	t.Log("✅ Step 13: Verifying instance termination...")
+	t.Log("Step 13: Verifying instance termination...")
 	verifyInstanceTermination(t, ctx, client, instance.CloudID)
 
-	t.Log("🎉 Smoke test completed successfully!")
+	t.Log("Smoke test completed successfully!")
 }
 
 func setupSmokeTestClient(t *testing.T) *NebiusClient {
@@ -155,15 +155,15 @@ func setupSmokeTestClient(t *testing.T) *NebiusClient {
 
 func createTestInstance(t *testing.T, ctx context.Context, client *NebiusClient, testID string, resources *SmokeTestResources) *v1.Instance {
 	// Test regional and quota features
-	t.Log("🧪 Testing regional and quota features...")
+	t.Log("Testing regional and quota features...")
 
 	// Test 1: Get instance types with quota information
 	instanceTypes, err := client.GetInstanceTypes(ctx, v1.GetInstanceTypeArgs{})
 	if err != nil {
-		t.Logf("⚠️  Could not get instance types: %v", err)
+		t.Logf("Could not get instance types: %v", err)
 		t.Log("Using fallback for instance type test")
 	} else {
-		t.Logf("✅ Found %d instance types across regions", len(instanceTypes))
+		t.Logf("Found %d instance types across regions", len(instanceTypes))
 
 		// Test quota for the first available instance type
 		if len(instanceTypes) > 0 {
@@ -183,10 +183,10 @@ func createTestInstance(t *testing.T, ctx context.Context, client *NebiusClient,
 		Architectures: []string{"x86_64"}, // Explicitly request x86_64 for platform compatibility
 	})
 	if err != nil {
-		t.Logf("⚠️  Could not get images: %v", err)
+		t.Logf("Could not get images: %v", err)
 		t.Log("Using default image family for test")
 	} else {
-		t.Logf("✅ Found %d images across regions", len(images))
+		t.Logf("Found %d images across regions", len(images))
 
 		// Show image diversity
 		architectures := make(map[string]int)
@@ -195,14 +195,14 @@ func createTestInstance(t *testing.T, ctx context.Context, client *NebiusClient,
 		}
 
 		if len(architectures) > 0 {
-			t.Logf("📋 Image architectures: %v", architectures)
+			t.Logf("Image architectures: %v", architectures)
 		}
 	}
 
 	// Check if we have valid resources for instance creation
 	if len(instanceTypes) == 0 {
-		t.Log("⚠️  No instance types available, skipping instance creation")
-		t.Log("✅ Infrastructure validation completed successfully (project, VPC, subnet, quota testing)")
+		t.Log("No instance types available, skipping instance creation")
+		t.Log("Infrastructure validation completed successfully (project, VPC, subnet, quota testing)")
 		return nil
 	}
 
@@ -215,8 +215,8 @@ func createTestInstance(t *testing.T, ctx context.Context, client *NebiusClient,
 	}
 
 	if len(availableInstanceTypes) == 0 {
-		t.Log("⚠️  No available instance types (quota limits reached), skipping instance creation")
-		t.Log("✅ Quota validation completed successfully - all instance types at capacity")
+		t.Log("No available instance types (quota limits reached), skipping instance creation")
+		t.Log("Quota validation completed successfully - all instance types at capacity")
 		return nil
 	}
 
@@ -262,7 +262,7 @@ func createTestInstance(t *testing.T, ctx context.Context, client *NebiusClient,
 	t.Logf("🐧 Using working x86_64 image family: %s", imageFamily)
 
 	if len(images) > 0 {
-		t.Logf("✅ Available images: %d (showing architecture diversity)", len(images))
+		t.Logf("Available images: %d (showing architecture diversity)", len(images))
 		// Log first few for visibility but use known-good family
 		for i, img := range images {
 			if i < 3 {
@@ -300,9 +300,9 @@ func createTestInstance(t *testing.T, ctx context.Context, client *NebiusClient,
 	if err != nil {
 		// Check if this is an image family not found error
 		if strings.Contains(err.Error(), "Image family") && strings.Contains(err.Error(), "not found") {
-			t.Logf("⚠️  Image family '%s' not available in this environment", imageFamily)
-			t.Log("✅ Boot disk implementation tested but skipping instance creation due to missing image family")
-			t.Log("✅ Infrastructure validation completed successfully (project, VPC, subnet, instance types, boot disk creation flow)")
+			t.Logf("Image family '%s' not available in this environment", imageFamily)
+			t.Log("Boot disk implementation tested but skipping instance creation due to missing image family")
+			t.Log("Infrastructure validation completed successfully (project, VPC, subnet, instance types, boot disk creation flow)")
 			return nil
 		}
 		// Some other error - this is unexpected
@@ -313,7 +313,7 @@ func createTestInstance(t *testing.T, ctx context.Context, client *NebiusClient,
 	// Track the created instance for cleanup
 	resources.InstanceID = instance.CloudID
 
-	t.Logf("✅ Instance created with CloudID: %s", instance.CloudID)
+	t.Logf("Instance created with CloudID: %s", instance.CloudID)
 	return instance
 }
 
@@ -327,7 +327,7 @@ func verifyInstanceCreation(t *testing.T, ctx context.Context, client *NebiusCli
 	require.Equal(t, expectedInstance.RefID, instance.RefID)
 	require.Equal(t, expectedInstance.Name, instance.Name)
 
-	t.Logf("✅ Instance verified: %s (%s)", instance.Name, instance.Status.LifecycleStatus)
+	t.Logf("Instance verified: %s (%s)", instance.Name, instance.Status.LifecycleStatus)
 }
 
 func waitForInstanceRunning(t *testing.T, ctx context.Context, client *NebiusClient, instanceID v1.CloudProviderInstanceID) {
@@ -338,7 +338,7 @@ func waitForInstanceRunning(t *testing.T, ctx context.Context, client *NebiusCli
 	for time.Now().Before(deadline) {
 		instance, err := client.GetInstance(ctx, instanceID)
 		if err != nil {
-			t.Logf("⚠️  Error getting instance status: %v", err)
+			t.Logf("Error getting instance status: %v", err)
 			time.Sleep(checkInterval)
 			continue
 		}
@@ -347,7 +347,7 @@ func waitForInstanceRunning(t *testing.T, ctx context.Context, client *NebiusCli
 		t.Logf("Instance status: %s", status)
 
 		if status == v1.LifecycleStatusRunning {
-			t.Log("✅ Instance is running")
+			t.Log("Instance is running")
 			return
 		}
 
@@ -379,7 +379,7 @@ func waitForInstanceStopped(t *testing.T, ctx context.Context, client *NebiusCli
 	for time.Now().Before(deadline) {
 		instance, err := client.GetInstance(ctx, instanceID)
 		if err != nil {
-			t.Logf("⚠️  Error getting instance status: %v", err)
+			t.Logf("Error getting instance status: %v", err)
 			time.Sleep(checkInterval)
 			continue
 		}
@@ -388,7 +388,7 @@ func waitForInstanceStopped(t *testing.T, ctx context.Context, client *NebiusCli
 		t.Logf("Instance status: %s", status)
 
 		if status == v1.LifecycleStatusStopped {
-			t.Log("✅ Instance is stopped")
+			t.Log("Instance is stopped")
 			return
 		}
 
@@ -445,17 +445,17 @@ func updateInstanceTags(t *testing.T, ctx context.Context, client *NebiusClient,
 	// Verify tags were updated
 	instance, err := client.GetInstance(ctx, instanceID)
 	if err != nil {
-		t.Logf("⚠️  Could not verify tag update: %v", err)
+		t.Logf("Could not verify tag update: %v", err)
 		return
 	}
 
 	for key, expectedValue := range newTags {
 		if actualValue, exists := instance.Tags[key]; !exists || actualValue != expectedValue {
-			t.Logf("⚠️  Tag %s: expected %s, got %s", key, expectedValue, actualValue)
+			t.Logf("Tag %s: expected %s, got %s", key, expectedValue, actualValue)
 		}
 	}
 
-	t.Log("✅ Instance tags updated successfully")
+	t.Log("Instance tags updated successfully")
 }
 
 func resizeInstanceVolume(t *testing.T, ctx context.Context, client *NebiusClient, instanceID v1.CloudProviderInstanceID) {
@@ -472,7 +472,7 @@ func resizeInstanceVolume(t *testing.T, ctx context.Context, client *NebiusClien
 		require.NoError(t, err, "Failed to resize instance volume")
 	}
 
-	t.Log("✅ Instance volume resized successfully")
+	t.Log("Instance volume resized successfully")
 }
 
 func terminateInstance(t *testing.T, ctx context.Context, client *NebiusClient, instanceID v1.CloudProviderInstanceID) {
@@ -495,7 +495,7 @@ func verifyInstanceTermination(t *testing.T, ctx context.Context, client *Nebius
 		if err != nil {
 			// Instance might not be found after termination - this could be expected
 			t.Logf("Instance lookup error (might be expected): %v", err)
-			t.Log("✅ Instance appears to be terminated")
+			t.Log("Instance appears to be terminated")
 			return
 		}
 
@@ -503,46 +503,46 @@ func verifyInstanceTermination(t *testing.T, ctx context.Context, client *Nebius
 		t.Logf("Instance status: %s", status)
 
 		if status == v1.LifecycleStatusTerminated {
-			t.Log("✅ Instance is terminated")
+			t.Log("Instance is terminated")
 			return
 		}
 
 		time.Sleep(checkInterval)
 	}
 
-	t.Log("⚠️  Could not verify instance termination within timeout")
+	t.Log("Could not verify instance termination within timeout")
 }
 
 func cleanupSmokeTestResources(t *testing.T, ctx context.Context, client *NebiusClient, resources *SmokeTestResources) {
-	t.Logf("🧹 Starting cleanup of smoke test resources for test ID: %s", resources.TestID)
+	t.Logf("Starting cleanup of smoke test resources for test ID: %s", resources.TestID)
 
 	// Clean up instance first (if it exists)
 	if resources.InstanceID != "" {
-		t.Logf("🗑️  Cleaning up instance: %s", resources.InstanceID)
+		t.Logf("Cleaning up instance: %s", resources.InstanceID)
 		err := client.TerminateInstance(ctx, resources.InstanceID)
 		if err != nil {
-			t.Logf("⚠️  Failed to cleanup instance %s: %v", resources.InstanceID, err)
+			t.Logf("Failed to cleanup instance %s: %v", resources.InstanceID, err)
 		} else {
-			t.Logf("✅ Instance %s cleanup initiated", resources.InstanceID)
+			t.Logf("Instance %s cleanup initiated", resources.InstanceID)
 		}
 	}
 
 	// Clean up boot disk (if tracked)
 	if resources.BootDiskID != "" {
-		t.Logf("🗑️  Cleaning up boot disk: %s", resources.BootDiskID)
+		t.Logf("Cleaning up boot disk: %s", resources.BootDiskID)
 		err := client.deleteBootDisk(ctx, resources.BootDiskID)
 		if err != nil {
-			t.Logf("⚠️  Failed to cleanup boot disk %s: %v", resources.BootDiskID, err)
+			t.Logf("Failed to cleanup boot disk %s: %v", resources.BootDiskID, err)
 		} else {
-			t.Logf("✅ Boot disk %s cleanup initiated", resources.BootDiskID)
+			t.Logf("Boot disk %s cleanup initiated", resources.BootDiskID)
 		}
 	}
 
 	// Try to find and clean up orphaned boot disks by name pattern
-	t.Logf("🔍 Looking for orphaned boot disks with test ID: %s", resources.TestID)
+	t.Logf("Looking for orphaned boot disks with test ID: %s", resources.TestID)
 	err := client.cleanupOrphanedBootDisks(ctx, resources.TestID)
 	if err != nil {
-		t.Logf("⚠️  Failed to cleanup orphaned boot disks: %v", err)
+		t.Logf("Failed to cleanup orphaned boot disks: %v", err)
 	}
 
 	// Note: VPC, subnet cleanup would require implementing additional
@@ -554,7 +554,7 @@ func cleanupSmokeTestResources(t *testing.T, ctx context.Context, client *Nebius
 	// - VPC networks (if not shared)
 	// - Project resources (if project-specific)
 
-	t.Logf("✅ Cleanup completed for test ID: %s", resources.TestID)
+	t.Logf("Cleanup completed for test ID: %s", resources.TestID)
 }
 
 // Helper function to run smoke tests with proper setup and cleanup

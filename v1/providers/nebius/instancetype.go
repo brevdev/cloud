@@ -17,10 +17,6 @@ import (
 )
 
 func (c *NebiusClient) GetInstanceTypes(ctx context.Context, args v1.GetInstanceTypeArgs) ([]v1.InstanceType, error) {
-	// DEBUG: Log projectID before API call
-	fmt.Printf("[NEBIUS_DEBUG] GetInstanceTypes: refID=%s, projectID=%q (len=%d), tenantID=%q (len=%d)\n",
-		c.refID, c.projectID, len(c.projectID), c.tenantID, len(c.tenantID))
-
 	// Get platforms (instance types) from Nebius API
 	platformsResp, err := c.sdk.Services().Compute().V1().Platform().List(ctx, &compute.ListPlatformsRequest{
 		ParentId: c.projectID, // List platforms available in this project

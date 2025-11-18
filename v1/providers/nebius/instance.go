@@ -1687,8 +1687,8 @@ func (c *NebiusClient) cleanupOrphanedBootDisks(ctx context.Context, testID stri
 			// Delete this orphaned disk
 			err := c.deleteBootDisk(ctx, disk.Metadata.Id)
 			if err != nil {
-				// Log but continue - don't fail the entire cleanup
-				fmt.Printf("Failed to delete orphaned disk %s: %v\n", disk.Metadata.Id, err)
+				// Continue on error - don't fail the entire cleanup
+				continue
 			}
 		}
 	}

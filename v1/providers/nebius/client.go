@@ -93,10 +93,6 @@ func NewNebiusClientWithOrg(ctx context.Context, refID, serviceAccountKey, tenan
 		}
 	}
 
-	// DEBUG: Log projectID to diagnose corruption
-	fmt.Printf("[NEBIUS_DEBUG] NewNebiusClient: refID=%s, location=%s, tenantID=%q (len=%d), projectID=%q (len=%d)\n",
-		refID, location, tenantID, len(tenantID), projectID, len(projectID))
-
 	client := &NebiusClient{
 		refID:             refID,
 		serviceAccountKey: serviceAccountKey,
@@ -154,8 +150,6 @@ func findProjectForRegion(ctx context.Context, sdk *gosdk.SDK, tenantID, region 
 	for _, preferredName := range preferredNames {
 		for _, project := range projects {
 			if project.Metadata != nil && strings.EqualFold(project.Metadata.Name, preferredName) {
-				fmt.Printf("[NEBIUS_DEBUG] findProjectForRegion: Selected project by name match: %s (ID: %s)\n",
-					project.Metadata.Name, project.Metadata.Id)
 				return project.Metadata.Id, nil
 			}
 		}
@@ -165,26 +159,12 @@ func findProjectForRegion(ctx context.Context, sdk *gosdk.SDK, tenantID, region 
 	regionLower := strings.ToLower(region)
 	for _, project := range projects {
 		if project.Metadata != nil && strings.Contains(strings.ToLower(project.Metadata.Name), regionLower) {
-			fmt.Printf("[NEBIUS_DEBUG] findProjectForRegion: Selected project by region in name: %s (ID: %s)\n",
-				project.Metadata.Name, project.Metadata.Id)
 			return project.Metadata.Id, nil
 		}
 	}
 
 	// Priority 3: Return first available project (now deterministic due to sorting)
 	if projects[0].Metadata != nil {
-		fmt.Printf("[NEBIUS_DEBUG] findProjectForRegion: Selected first available project (sorted): %s (ID: %s)\n",
-			projects[0].Metadata.Name, projects[0].Metadata.Id)
-		fmt.Printf("[NEBIUS_DEBUG] findProjectForRegion: Total projects: %d, All IDs: %v\n",
-			len(projects), func() []string {
-				ids := make([]string, 0, len(projects))
-				for _, p := range projects {
-					if p.Metadata != nil {
-						ids = append(ids, p.Metadata.Id)
-					}
-				}
-				return ids
-			}())
 		return projects[0].Metadata.Id, nil
 	}
 
