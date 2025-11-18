@@ -165,7 +165,7 @@ func (c *NebiusClient) getInstanceTypesForLocation(ctx context.Context, platform
 			// ID and Type are the same - no region/provider prefix
 			instanceTypeID := fmt.Sprintf("%s.%s", platform.Metadata.Name, preset.Name)
 
-			c.logger.Info(ctx, "building instance type",
+			c.logger.Debug(ctx, "building instance type",
 				v1.LogField("instanceTypeID", instanceTypeID),
 				v1.LogField("platformName", platform.Metadata.Name),
 				v1.LogField("presetName", preset.Name),
@@ -178,8 +178,8 @@ func (c *NebiusClient) getInstanceTypesForLocation(ctx context.Context, platform
 				Location:           location.Name,
 				Type:               instanceTypeID, // Same as ID - both use dot-separated format
 				VCPU:               preset.Resources.VcpuCount,
-				Memory:             units.Base2Bytes(int64(preset.Resources.MemoryGibibytes) * 1024 * 1024 * 1024), // Convert GiB to bytes
-				NetworkPerformance: "standard",                                                                     // Default network performance
+				MemoryBytes:        v1.NewBytes(v1.BytesValue(preset.Resources.MemoryGibibytes), v1.Gibibyte), // Memory in GiB
+				NetworkPerformance: "standard", // Default network performance
 				IsAvailable:        isAvailable,
 				Stoppable:          true, // All Nebius instances support stop/start operations
 				ElasticRootVolume:  true, // Nebius supports dynamic disk allocation

@@ -117,7 +117,7 @@ func (c *NebiusClient) CreateInstance(ctx context.Context, attrs v1.CreateInstan
 
 	// Add labels/tags to metadata (always create labels for resource tracking)
 	createReq.Metadata.Labels = make(map[string]string)
-	c.logger.Info(ctx, "🏷️  Setting instance tags during CreateInstance",
+	c.logger.Info(ctx, "Setting instance tags during CreateInstance",
 		v1.LogField("providedTagsCount", len(attrs.Tags)),
 		v1.LogField("providedTags", fmt.Sprintf("%+v", attrs.Tags)),
 		v1.LogField("refID", attrs.RefID))
@@ -337,7 +337,7 @@ func (c *NebiusClient) convertNebiusInstanceToV1(ctx context.Context, instance *
 		InstanceType:   instanceTypeID,                    // Full instance type ID (e.g., "gpu-h100-sxm.8gpu-128vcpu-1600gb")
 		InstanceTypeID: v1.InstanceTypeID(instanceTypeID), // Same as InstanceType - required for dev-plane lookup
 		ImageID:        imageFamily,
-		DiskSize:       units.Base2Bytes(diskSize), // diskSize is already in bytes from getBootDiskSize
+		DiskSizeBytes:  v1.NewBytes(v1.BytesValue(diskSize), v1.Byte), // diskSize is already in bytes from getBootDiskSize
 		Tags:           tags,
 		Status:         v1.Status{LifecycleStatus: lifecycleStatus},
 		// SSH connectivity details
@@ -717,7 +717,7 @@ func (c *NebiusClient) ListInstances(ctx context.Context, args v1.ListInstancesA
 			continue
 		}
 
-		c.logger.Info(ctx, "🔍 Processing instance from Nebius API",
+		c.logger.Info(ctx, "Processing instance from Nebius API",
 			v1.LogField("instanceID", nebiusInstance.Metadata.Id),
 			v1.LogField("instanceName", nebiusInstance.Metadata.Name),
 			v1.LogField("rawLabelsCount", len(nebiusInstance.Metadata.Labels)),
@@ -732,7 +732,7 @@ func (c *NebiusClient) ListInstances(ctx context.Context, args v1.ListInstancesA
 			continue
 		}
 
-		c.logger.Info(ctx, "🏷️  Instance after conversion",
+		c.logger.Info(ctx, "Instance after conversion",
 			v1.LogField("instanceID", instance.CloudID),
 			v1.LogField("convertedTagsCount", len(instance.Tags)),
 			v1.LogField("convertedTags", fmt.Sprintf("%+v", instance.Tags)))
