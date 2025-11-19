@@ -137,10 +137,10 @@ func (c *NebiusClient) getCrossRegionPublicImages(ctx context.Context) ([]v1.Ima
 func (c *NebiusClient) getPublicImagesParentForRegion(region string) string {
 	// Map region to routing code patterns
 	regionToRoutingCode := map[string]string{
-		"eu-north1":  "e00",
-		"eu-west1":   "e00",
-		"us-central1": "u00",
-		"us-west1":   "u00",
+		"eu-north1":       "e00",
+		"eu-west1":        "e00",
+		"us-central1":     "u00",
+		"us-west1":        "u00",
 		"asia-southeast1": "a00",
 	}
 
@@ -177,9 +177,9 @@ func (c *NebiusClient) getDefaultImages(ctx context.Context) ([]v1.Image, error)
 		}
 
 		img := v1.Image{
-			ID:          image.Metadata.Id,
-			Name:        image.Metadata.Name,
-			Description: getImageDescription(image),
+			ID:           image.Metadata.Id,
+			Name:         image.Metadata.Name,
+			Description:  getImageDescription(image),
 			Architecture: "x86_64",
 		}
 
@@ -221,22 +221,12 @@ func extractArchitecture(image *compute.Image) string {
 			return "arm64"
 		}
 		if strings.Contains(name, "x86_64") || strings.Contains(name, "amd64") {
+			//nolint:goconst // Architecture string used in detection and returned as default
 			return "x86_64"
 		}
 	}
 
-	return "x86_64" // Default assumption
-}
-
-// filterImagesByArchitecture filters images by architecture
-func filterImagesByArchitecture(images []v1.Image, architecture string) []v1.Image {
-	var filtered []v1.Image
-	for _, img := range images {
-		if img.Architecture == architecture {
-			filtered = append(filtered, img)
-		}
-	}
-	return filtered
+	return "x86_64"
 }
 
 // filterImagesByArchitectures filters images by multiple architectures

@@ -54,13 +54,13 @@ func TestSmoke_InstanceLifecycle(t *testing.T) {
 	// Setup cleanup regardless of test outcome
 	if cleanupResources {
 		t.Cleanup(func() {
-			cleanupSmokeTestResources(t, ctx, client, createdResources)
+			cleanupSmokeTestResources(ctx, t, client, createdResources)
 		})
 	}
 
 	// Step 1: Create an instance
 	t.Log("Step 1: Creating instance...")
-	instance := createTestInstance(t, ctx, client, testID, createdResources)
+	instance := createTestInstance(ctx, t, client, testID, createdResources)
 
 	// If instance creation was skipped, end the test here
 	if instance == nil {
@@ -70,51 +70,51 @@ func TestSmoke_InstanceLifecycle(t *testing.T) {
 
 	// Step 2: Verify instance was created and is accessible
 	t.Log("Step 2: Verifying instance creation...")
-	verifyInstanceCreation(t, ctx, client, instance)
+	verifyInstanceCreation(ctx, t, client, instance)
 
 	// Step 3: Wait for instance to be running (if not already)
 	t.Log("Step 3: Waiting for instance to be running...")
-	waitForInstanceRunning(t, ctx, client, instance.CloudID)
+	waitForInstanceRunning(ctx, t, client, instance.CloudID)
 
 	// Step 4: Stop the instance
 	t.Log("Step 4: Stopping instance...")
-	stopInstance(t, ctx, client, instance.CloudID)
+	stopInstance(ctx, t, client, instance.CloudID)
 
 	// Step 5: Verify instance is stopped
 	t.Log("Step 5: Verifying instance is stopped...")
-	waitForInstanceStopped(t, ctx, client, instance.CloudID)
+	waitForInstanceStopped(ctx, t, client, instance.CloudID)
 
 	// Step 6: Start the instance again
 	t.Log("Step 6: Starting instance...")
-	startInstance(t, ctx, client, instance.CloudID)
+	startInstance(ctx, t, client, instance.CloudID)
 
 	// Step 7: Verify instance is running again
 	t.Log("Step 7: Verifying instance is running...")
-	waitForInstanceRunning(t, ctx, client, instance.CloudID)
+	waitForInstanceRunning(ctx, t, client, instance.CloudID)
 
 	// Step 8: Reboot the instance
 	t.Log("Step 8: Rebooting instance...")
-	rebootInstance(t, ctx, client, instance.CloudID)
+	rebootInstance(ctx, t, client, instance.CloudID)
 
 	// Step 9: Verify instance is still running after reboot
 	t.Log("Step 9: Verifying instance is running after reboot...")
-	waitForInstanceRunning(t, ctx, client, instance.CloudID)
+	waitForInstanceRunning(ctx, t, client, instance.CloudID)
 
 	// Step 10: Update instance tags
 	t.Log("Step 10: Updating instance tags...")
-	updateInstanceTags(t, ctx, client, instance.CloudID)
+	updateInstanceTags(ctx, t, client, instance.CloudID)
 
 	// Step 11: Resize instance volume (if supported)
 	t.Log("Step 11: Resizing instance volume...")
-	resizeInstanceVolume(t, ctx, client, instance.CloudID)
+	resizeInstanceVolume(ctx, t, client, instance.CloudID)
 
 	// Step 12: Terminate the instance
 	t.Log("Step 12: Terminating instance...")
-	terminateInstance(t, ctx, client, instance.CloudID)
+	terminateInstance(ctx, t, client, instance.CloudID)
 
 	// Step 13: Verify instance is terminated
 	t.Log("Step 13: Verifying instance termination...")
-	verifyInstanceTermination(t, ctx, client, instance.CloudID)
+	verifyInstanceTermination(ctx, t, client, instance.CloudID)
 
 	t.Log("Smoke test completed successfully!")
 }
@@ -134,6 +134,7 @@ func setupSmokeTestClient(t *testing.T) *NebiusClient {
 
 	// Read from file if path is provided
 	if _, err := os.Stat(serviceAccountJSON); err == nil {
+		//nolint:gosec // Test code: reading service account from controlled test environment
 		data, err := os.ReadFile(serviceAccountJSON)
 		require.NoError(t, err, "Failed to read service account file")
 		serviceAccountJSON = string(data)
@@ -153,7 +154,8 @@ func setupSmokeTestClient(t *testing.T) *NebiusClient {
 	return client
 }
 
-func createTestInstance(t *testing.T, ctx context.Context, client *NebiusClient, testID string, resources *SmokeTestResources) *v1.Instance {
+//nolint:gocognit,gocyclo,funlen // Comprehensive test helper creating instance with multiple validation steps
+func createTestInstance(ctx context.Context, t *testing.T, client *NebiusClient, testID string, resources *SmokeTestResources) *v1.Instance {
 	// Test regional and quota features
 	t.Log("Testing regional and quota features...")
 
@@ -317,7 +319,7 @@ func createTestInstance(t *testing.T, ctx context.Context, client *NebiusClient,
 	return instance
 }
 
-func verifyInstanceCreation(t *testing.T, ctx context.Context, client *NebiusClient, expectedInstance *v1.Instance) {
+func verifyInstanceCreation(ctx context.Context, t *testing.T, client *NebiusClient, expectedInstance *v1.Instance) {
 	instance, err := client.GetInstance(ctx, expectedInstance.CloudID)
 	require.NoError(t, err, "Failed to get instance after creation")
 	require.NotNil(t, instance, "Instance should exist")
@@ -330,7 +332,7 @@ func verifyInstanceCreation(t *testing.T, ctx context.Context, client *NebiusCli
 	t.Logf("Instance verified: %s (%s)", instance.Name, instance.Status.LifecycleStatus)
 }
 
-func waitForInstanceRunning(t *testing.T, ctx context.Context, client *NebiusClient, instanceID v1.CloudProviderInstanceID) {
+func waitForInstanceRunning(ctx context.Context, t *testing.T, client *NebiusClient, instanceID v1.CloudProviderInstanceID) {
 	maxWaitTime := 5 * time.Minute
 	checkInterval := 10 * time.Second
 	deadline := time.Now().Add(maxWaitTime)
@@ -361,7 +363,7 @@ func waitForInstanceRunning(t *testing.T, ctx context.Context, client *NebiusCli
 	t.Fatal("Timeout waiting for instance to be running")
 }
 
-func stopInstance(t *testing.T, ctx context.Context, client *NebiusClient, instanceID v1.CloudProviderInstanceID) {
+func stopInstance(ctx context.Context, t *testing.T, client *NebiusClient, instanceID v1.CloudProviderInstanceID) {
 	err := client.StopInstance(ctx, instanceID)
 	if err != nil {
 		if fmt.Sprintf("%v", err) == "nebius stop instance implementation pending" {
@@ -371,7 +373,7 @@ func stopInstance(t *testing.T, ctx context.Context, client *NebiusClient, insta
 	}
 }
 
-func waitForInstanceStopped(t *testing.T, ctx context.Context, client *NebiusClient, instanceID v1.CloudProviderInstanceID) {
+func waitForInstanceStopped(ctx context.Context, t *testing.T, client *NebiusClient, instanceID v1.CloudProviderInstanceID) {
 	maxWaitTime := 3 * time.Minute
 	checkInterval := 10 * time.Second
 	deadline := time.Now().Add(maxWaitTime)
@@ -402,7 +404,7 @@ func waitForInstanceStopped(t *testing.T, ctx context.Context, client *NebiusCli
 	t.Fatal("Timeout waiting for instance to be stopped")
 }
 
-func startInstance(t *testing.T, ctx context.Context, client *NebiusClient, instanceID v1.CloudProviderInstanceID) {
+func startInstance(ctx context.Context, t *testing.T, client *NebiusClient, instanceID v1.CloudProviderInstanceID) {
 	err := client.StartInstance(ctx, instanceID)
 	if err != nil {
 		if fmt.Sprintf("%v", err) == "nebius start instance implementation pending" {
@@ -412,7 +414,7 @@ func startInstance(t *testing.T, ctx context.Context, client *NebiusClient, inst
 	}
 }
 
-func rebootInstance(t *testing.T, ctx context.Context, client *NebiusClient, instanceID v1.CloudProviderInstanceID) {
+func rebootInstance(ctx context.Context, t *testing.T, client *NebiusClient, instanceID v1.CloudProviderInstanceID) {
 	err := client.RebootInstance(ctx, instanceID)
 	if err != nil {
 		if fmt.Sprintf("%v", err) == "nebius reboot instance implementation pending" {
@@ -422,7 +424,7 @@ func rebootInstance(t *testing.T, ctx context.Context, client *NebiusClient, ins
 	}
 }
 
-func updateInstanceTags(t *testing.T, ctx context.Context, client *NebiusClient, instanceID v1.CloudProviderInstanceID) {
+func updateInstanceTags(ctx context.Context, t *testing.T, client *NebiusClient, instanceID v1.CloudProviderInstanceID) {
 	newTags := map[string]string{
 		"smoke-test":     "passed",
 		"last-updated":   time.Now().Format(time.RFC3339),
@@ -458,7 +460,7 @@ func updateInstanceTags(t *testing.T, ctx context.Context, client *NebiusClient,
 	t.Log("Instance tags updated successfully")
 }
 
-func resizeInstanceVolume(t *testing.T, ctx context.Context, client *NebiusClient, instanceID v1.CloudProviderInstanceID) {
+func resizeInstanceVolume(ctx context.Context, t *testing.T, client *NebiusClient, instanceID v1.CloudProviderInstanceID) {
 	args := v1.ResizeInstanceVolumeArgs{
 		InstanceID: instanceID,
 		Size:       30, // Increase from default 20GB to 30GB
@@ -475,7 +477,7 @@ func resizeInstanceVolume(t *testing.T, ctx context.Context, client *NebiusClien
 	t.Log("Instance volume resized successfully")
 }
 
-func terminateInstance(t *testing.T, ctx context.Context, client *NebiusClient, instanceID v1.CloudProviderInstanceID) {
+func terminateInstance(ctx context.Context, t *testing.T, client *NebiusClient, instanceID v1.CloudProviderInstanceID) {
 	err := client.TerminateInstance(ctx, instanceID)
 	if err != nil {
 		if fmt.Sprintf("%v", err) == "nebius terminate instance implementation pending" {
@@ -485,7 +487,7 @@ func terminateInstance(t *testing.T, ctx context.Context, client *NebiusClient, 
 	}
 }
 
-func verifyInstanceTermination(t *testing.T, ctx context.Context, client *NebiusClient, instanceID v1.CloudProviderInstanceID) {
+func verifyInstanceTermination(ctx context.Context, t *testing.T, client *NebiusClient, instanceID v1.CloudProviderInstanceID) {
 	maxWaitTime := 3 * time.Minute
 	checkInterval := 10 * time.Second
 	deadline := time.Now().Add(maxWaitTime)
@@ -513,7 +515,7 @@ func verifyInstanceTermination(t *testing.T, ctx context.Context, client *Nebius
 	t.Log("Could not verify instance termination within timeout")
 }
 
-func cleanupSmokeTestResources(t *testing.T, ctx context.Context, client *NebiusClient, resources *SmokeTestResources) {
+func cleanupSmokeTestResources(ctx context.Context, t *testing.T, client *NebiusClient, resources *SmokeTestResources) {
 	t.Logf("Starting cleanup of smoke test resources for test ID: %s", resources.TestID)
 
 	// Clean up instance first (if it exists)

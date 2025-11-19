@@ -32,7 +32,7 @@ func (c *NebiusClient) GetLocations(ctx context.Context, args v1.GetLocationsArg
 		if quota.Spec == nil || quota.Status == nil {
 			continue
 		}
-		
+
 		// Only include regions with active quotas
 		if quota.Status.State == quotas.QuotaAllowanceStatus_STATE_ACTIVE {
 			region := quota.Spec.Region
@@ -84,7 +84,7 @@ func getRegionDescription(region string) string {
 		"us-west1":    "US West 1 (California)",
 		"asia-east1":  "Asia East 1 (Taiwan)",
 	}
-	
+
 	if desc, ok := descriptions[region]; ok {
 		return desc
 	}
@@ -104,7 +104,7 @@ func getRegionCountry(region string) string {
 		"us-west1":    "USA",
 		"asia-east1":  "TWN",
 	}
-	
+
 	if country, ok := countries[region]; ok {
 		return country
 	}

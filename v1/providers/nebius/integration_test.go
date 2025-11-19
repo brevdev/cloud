@@ -30,6 +30,7 @@ func setupIntegrationTest(t *testing.T) *NebiusClient {
 
 	// Read from file if path is provided
 	if _, err := os.Stat(serviceAccountJSON); err == nil {
+		//nolint:gosec // Test code: reading service account from controlled test environment
 		data, err := os.ReadFile(serviceAccountJSON)
 		require.NoError(t, err, "Failed to read service account file")
 		serviceAccountJSON = string(data)
@@ -85,6 +86,7 @@ func waitForSSH(t *testing.T, publicIP, privateKey, sshUser string, timeout time
 		Auth: []ssh.AuthMethod{
 			ssh.PublicKeys(signer),
 		},
+		//nolint:gosec // Test code: SSH host key verification disabled for testing only
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(), // For testing only - NEVER use in production
 		Timeout:         5 * time.Second,
 	}
@@ -123,6 +125,7 @@ func testSSHConnectivity(t *testing.T, publicIP, privateKey, sshUser string) {
 		Auth: []ssh.AuthMethod{
 			ssh.PublicKeys(signer),
 		},
+		//nolint:gosec // Test code: SSH host key verification disabled for testing only
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(), // For testing only
 		Timeout:         10 * time.Second,
 	}
@@ -458,6 +461,7 @@ func TestIntegration_ErrorHandling(t *testing.T) {
 	})
 }
 
+//nolint:gocognit,gocyclo,funlen // Comprehensive integration test covering multiple instance type scenarios
 func TestIntegration_GetInstanceTypes(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")

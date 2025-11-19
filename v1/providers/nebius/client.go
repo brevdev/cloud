@@ -12,7 +12,6 @@ import (
 	v1 "github.com/brevdev/cloud/v1"
 	"github.com/nebius/gosdk"
 	"github.com/nebius/gosdk/auth"
-	iam "github.com/nebius/gosdk/proto/nebius/iam/v1"
 	nebiusiamv1 "github.com/nebius/gosdk/proto/nebius/iam/v1"
 )
 
@@ -118,7 +117,7 @@ func NewNebiusClientWithOrg(ctx context.Context, refID, serviceAccountKey, tenan
 // 3. First available project
 func findProjectForRegion(ctx context.Context, sdk *gosdk.SDK, tenantID, region string) (string, error) {
 	pageSize := int64(1000)
-	projectsResp, err := sdk.Services().IAM().V1().Project().List(ctx, &iam.ListProjectsRequest{
+	projectsResp, err := sdk.Services().IAM().V1().Project().List(ctx, &nebiusiamv1.ListProjectsRequest{
 		ParentId: tenantID,
 		PageSize: &pageSize,
 	})
@@ -173,9 +172,11 @@ func findProjectForRegion(ctx context.Context, sdk *gosdk.SDK, tenantID, region 
 
 // discoverAllProjects returns all project IDs in the tenant
 // This is used by ListInstances to query across all projects
+//
+//nolint:unused // Reserved for future multi-project support
 func (c *NebiusClient) discoverAllProjects(ctx context.Context) ([]string, error) {
 	pageSize := int64(1000)
-	projectsResp, err := c.sdk.Services().IAM().V1().Project().List(ctx, &iam.ListProjectsRequest{
+	projectsResp, err := c.sdk.Services().IAM().V1().Project().List(ctx, &nebiusiamv1.ListProjectsRequest{
 		ParentId: c.tenantID,
 		PageSize: &pageSize,
 	})
@@ -201,7 +202,7 @@ func (c *NebiusClient) discoverAllProjects(ctx context.Context) ([]string, error
 // This is used by ListInstances to correctly attribute instances to their regions
 func (c *NebiusClient) discoverAllProjectsWithRegions(ctx context.Context) (map[string]string, error) {
 	pageSize := int64(1000)
-	projectsResp, err := c.sdk.Services().IAM().V1().Project().List(ctx, &iam.ListProjectsRequest{
+	projectsResp, err := c.sdk.Services().IAM().V1().Project().List(ctx, &nebiusiamv1.ListProjectsRequest{
 		ParentId: c.tenantID,
 		PageSize: &pageSize,
 	})

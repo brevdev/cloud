@@ -31,7 +31,7 @@ func NewNebiusCredential(refID, serviceAccountKey, tenantID string) *NebiusCrede
 }
 
 // NewNebiusCredentialWithOrg creates a new Nebius credential with organization ID
-func NewNebiusCredentialWithOrg(refID, serviceAccountKey, tenantID, organizationID string) *NebiusCredential {
+func NewNebiusCredentialWithOrg(refID, serviceAccountKey, tenantID, _ string) *NebiusCredential {
 	return &NebiusCredential{
 		RefID:             refID,
 		ServiceAccountKey: serviceAccountKey,

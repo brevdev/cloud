@@ -381,10 +381,10 @@ func TestParseInstanceTypeFormat(t *testing.T) {
 				// Test DOT format parsing: platform.preset
 				dotParts := strings.SplitN(tt.instanceTypeID, ".", 2)
 				assert.Equal(t, 2, len(dotParts), "Dot format should have exactly 2 parts")
-				
+
 				platformName := dotParts[0]
 				presetName := dotParts[1]
-				
+
 				assert.Equal(t, tt.expectedGPUType, platformName, "Should extract correct platform name")
 				assert.Equal(t, tt.expectedPreset, presetName, "Should extract correct preset name")
 			} else {
@@ -398,6 +398,7 @@ func TestParseInstanceTypeFormat(t *testing.T) {
 				var presetStartIdx int
 				for i := 1; i < len(parts); i++ {
 					partLower := strings.ToLower(parts[i])
+					//nolint:goconst // GPU type strings are test-specific comparisons
 					if partLower == "cpu" || partLower == "l40s" || partLower == "h100" ||
 						partLower == "h200" || partLower == "a100" || partLower == "v100" {
 						gpuType = partLower
@@ -408,7 +409,7 @@ func TestParseInstanceTypeFormat(t *testing.T) {
 
 				assert.Equal(t, tt.expectedGPUType, gpuType, "Should extract correct GPU type")
 				assert.Greater(t, presetStartIdx, 0, "Should find preset start index")
-				
+
 				if presetStartIdx > 0 && presetStartIdx < len(parts) {
 					presetName := strings.Join(parts[presetStartIdx:], "-")
 					assert.Equal(t, tt.expectedPreset, presetName, "Should extract correct preset name")

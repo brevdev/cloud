@@ -14,6 +14,7 @@ import (
 	vpc "github.com/nebius/gosdk/proto/nebius/vpc/v1"
 )
 
+//nolint:gocyclo,funlen // Complex instance creation with resource management
 func (c *NebiusClient) CreateInstance(ctx context.Context, attrs v1.CreateInstanceAttrs) (*v1.Instance, error) {
 	// Track created resources for automatic cleanup on failure
 	var networkID, subnetID, bootDiskID, instanceID string
@@ -198,7 +199,7 @@ func (c *NebiusClient) GetInstance(ctx context.Context, instanceID v1.CloudProvi
 // This is used by both GetInstance and ListInstances for consistent conversion
 // projectToRegion is an optional map of project ID to region for determining instance location
 //
-//nolint:gocognit // Complex function converting Nebius instance to v1.Instance with many field mappings
+//nolint:gocognit,gocyclo,funlen // Complex function converting Nebius instance to v1.Instance with many field mappings
 func (c *NebiusClient) convertNebiusInstanceToV1(ctx context.Context, instance *compute.Instance, projectToRegion map[string]string) (*v1.Instance, error) {
 	if instance.Metadata == nil || instance.Spec == nil {
 		return nil, fmt.Errorf("invalid instance response from Nebius API")
@@ -369,9 +370,9 @@ func (c *NebiusClient) waitForInstanceRunning(ctx context.Context, instanceID v1
 			return nil, fmt.Errorf("timeout waiting for instance to reach RUNNING state after %v", timeout)
 		}
 
-		// Check if context is cancelled
+		// Check if context is canceled
 		if ctx.Err() != nil {
-			return nil, fmt.Errorf("context cancelled while waiting for instance: %w", ctx.Err())
+			return nil, fmt.Errorf("context canceled while waiting for instance: %w", ctx.Err())
 		}
 
 		// Get current instance state
@@ -429,9 +430,9 @@ func (c *NebiusClient) waitForInstanceState(ctx context.Context, instanceID v1.C
 			return fmt.Errorf("timeout waiting for instance to reach %s state after %v", targetState, timeout)
 		}
 
-		// Check if context is cancelled
+		// Check if context is canceled
 		if ctx.Err() != nil {
-			return fmt.Errorf("context cancelled while waiting for instance: %w", ctx.Err())
+			return fmt.Errorf("context canceled while waiting for instance: %w", ctx.Err())
 		}
 
 		// Get current instance state
@@ -492,9 +493,9 @@ func (c *NebiusClient) waitForInstanceDeleted(ctx context.Context, instanceID v1
 			return fmt.Errorf("timeout waiting for instance to be deleted after %v", timeout)
 		}
 
-		// Check if context is cancelled
+		// Check if context is canceled
 		if ctx.Err() != nil {
-			return fmt.Errorf("context cancelled while waiting for instance deletion: %w", ctx.Err())
+			return fmt.Errorf("context canceled while waiting for instance deletion: %w", ctx.Err())
 		}
 
 		// Try to get the instance
@@ -549,6 +550,8 @@ func stripCIDR(ipWithCIDR string) string {
 }
 
 // extractImageFamily extracts the image family from attached disk spec
+//
+//nolint:unparam // Reserved for future image metadata extraction
 func extractImageFamily(bootDisk *compute.AttachedDiskSpec) string {
 	if bootDisk == nil {
 		return ""
@@ -658,7 +661,7 @@ func (c *NebiusClient) deleteInstanceIfExists(ctx context.Context, instanceID v1
 	return nil
 }
 
-//nolint:gocognit // Complex function listing instances across multiple projects with filtering
+//nolint:gocognit,gocyclo,funlen // Complex function listing instances across multiple projects with filtering
 func (c *NebiusClient) ListInstances(ctx context.Context, args v1.ListInstancesArgs) ([]v1.Instance, error) {
 	c.logger.Info(ctx, "listing nebius instances",
 		v1.LogField("primaryProjectID", c.projectID),
@@ -827,6 +830,7 @@ func matchesTagFilters(instanceTags map[string]string, tagFilters map[string][]s
 	return true
 }
 
+//nolint:dupl // StopInstance and StartInstance have similar structure but different operations
 func (c *NebiusClient) StopInstance(ctx context.Context, instanceID v1.CloudProviderInstanceID) error {
 	c.logger.Info(ctx, "initiating instance stop operation",
 		v1.LogField("instanceID", instanceID))
@@ -864,6 +868,7 @@ func (c *NebiusClient) StopInstance(ctx context.Context, instanceID v1.CloudProv
 	return nil
 }
 
+//nolint:dupl // StartInstance and StopInstance have similar structure but different operations
 func (c *NebiusClient) StartInstance(ctx context.Context, instanceID v1.CloudProviderInstanceID) error {
 	c.logger.Info(ctx, "initiating instance start operation",
 		v1.LogField("instanceID", instanceID))
@@ -901,27 +906,27 @@ func (c *NebiusClient) StartInstance(ctx context.Context, instanceID v1.CloudPro
 	return nil
 }
 
-func (c *NebiusClient) RebootInstance(ctx context.Context, instanceID v1.CloudProviderInstanceID) error {
+func (c *NebiusClient) RebootInstance(_ context.Context, _ v1.CloudProviderInstanceID) error {
 	return fmt.Errorf("nebius reboot instance implementation pending: %w", v1.ErrNotImplemented)
 }
 
-func (c *NebiusClient) ChangeInstanceType(ctx context.Context, instanceID v1.CloudProviderInstanceID, newInstanceType string) error {
+func (c *NebiusClient) ChangeInstanceType(_ context.Context, _ v1.CloudProviderInstanceID, _ string) error {
 	return fmt.Errorf("nebius change instance type implementation pending: %w", v1.ErrNotImplemented)
 }
 
-func (c *NebiusClient) UpdateInstanceTags(ctx context.Context, args v1.UpdateInstanceTagsArgs) error {
+func (c *NebiusClient) UpdateInstanceTags(_ context.Context, _ v1.UpdateInstanceTagsArgs) error {
 	return fmt.Errorf("nebius update instance tags implementation pending: %w", v1.ErrNotImplemented)
 }
 
-func (c *NebiusClient) ResizeInstanceVolume(ctx context.Context, args v1.ResizeInstanceVolumeArgs) error {
+func (c *NebiusClient) ResizeInstanceVolume(_ context.Context, _ v1.ResizeInstanceVolumeArgs) error {
 	return fmt.Errorf("nebius resize instance volume implementation pending: %w", v1.ErrNotImplemented)
 }
 
-func (c *NebiusClient) AddFirewallRulesToInstance(ctx context.Context, args v1.AddFirewallRulesToInstanceArgs) error {
+func (c *NebiusClient) AddFirewallRulesToInstance(_ context.Context, _ v1.AddFirewallRulesToInstanceArgs) error {
 	return fmt.Errorf("nebius firewall rules management not yet implemented: %w", v1.ErrNotImplemented)
 }
 
-func (c *NebiusClient) RevokeSecurityGroupRules(ctx context.Context, args v1.RevokeSecurityGroupRuleArgs) error {
+func (c *NebiusClient) RevokeSecurityGroupRules(_ context.Context, _ v1.RevokeSecurityGroupRuleArgs) error {
 	return fmt.Errorf("nebius security group rules management not yet implemented: %w", v1.ErrNotImplemented)
 }
 
@@ -1219,7 +1224,7 @@ func (c *NebiusClient) buildDiskCreateRequest(ctx context.Context, diskName stri
 
 // getWorkingPublicImageID gets a working public image ID based on the requested image type
 //
-//nolint:gocognit // Complex function trying multiple image resolution strategies
+//nolint:gocognit,gocyclo // Complex function trying multiple image resolution strategies
 func (c *NebiusClient) getWorkingPublicImageID(ctx context.Context, requestedImage string) (string, error) {
 	// Get available public images from the correct region
 	publicImagesParent := c.getPublicImagesParent()
@@ -1255,6 +1260,7 @@ func (c *NebiusClient) getWorkingPublicImageID(ctx context.Context, requestedIma
 		// Look for Ubuntu matches
 		if strings.Contains(requestedLower, "ubuntu") && strings.Contains(imageName, "ubuntu") {
 			// Prefer specific version matches
+			//nolint:gocritic // if-else chain is clearer than switch for version matching logic
 			if strings.Contains(requestedLower, "24.04") || strings.Contains(requestedLower, "24") {
 				if strings.Contains(imageName, "ubuntu24.04") {
 					bestMatch = image
@@ -1316,7 +1322,7 @@ func (c *NebiusClient) getPublicImagesParent() string {
 //	nebius-eu-north1-l40s-4gpu-96vcpu-768gb
 //	nebius-eu-north1-cpu-4vcpu-16gb
 //
-//nolint:gocognit // Complex function with multiple fallback strategies for parsing instance types
+//nolint:gocognit,gocyclo,funlen // Complex function with multiple fallback strategies for parsing instance types
 func (c *NebiusClient) parseInstanceType(ctx context.Context, instanceTypeID string) (platform string, preset string, err error) {
 	c.logger.Info(ctx, "parsing instance type",
 		v1.LogField("instanceTypeID", instanceTypeID),
@@ -1420,7 +1426,6 @@ func (c *NebiusClient) parseInstanceType(ctx context.Context, instanceTypeID str
 				// Match platform by GPU type
 				if (gpuType == "cpu" && strings.Contains(platformNameLower, "cpu")) ||
 					(gpuType != "cpu" && strings.Contains(platformNameLower, gpuType)) {
-
 					// Log ALL available presets for this platform for debugging
 					availablePresets := make([]string, 0, len(p.Spec.Presets))
 					for _, preset := range p.Spec.Presets {
@@ -1533,6 +1538,8 @@ func (c *NebiusClient) parseInstanceType(ctx context.Context, instanceTypeID str
 // resolveImageFamily resolves an ImageID to an image family name
 // If ImageID is already a family name, use it directly
 // Otherwise, try to get the image and extract its family
+//
+//nolint:gocyclo,unparam // Complex image family resolution with fallback logic
 func (c *NebiusClient) resolveImageFamily(ctx context.Context, imageID string) (string, error) {
 	// Common Nebius image families - if ImageID matches one of these, use it directly
 	commonFamilies := []string{
@@ -1690,7 +1697,6 @@ func (c *NebiusClient) cleanupOrphanedBootDisks(ctx context.Context, testID stri
 			(disk.Metadata.Labels != nil &&
 				(disk.Metadata.Labels["test-id"] == testID ||
 					disk.Metadata.Labels["created-by"] == "brev-cloud-sdk")) {
-
 			// Delete this orphaned disk
 			err := c.deleteBootDisk(ctx, disk.Metadata.Id)
 			if err != nil {

@@ -94,8 +94,12 @@ func TestNebiusCredential_GetCapabilities(t *testing.T) {
 		v1.CapabilityRebootInstance,
 		v1.CapabilityStopStartInstance,
 		v1.CapabilityResizeInstanceVolume,
+		v1.CapabilityModifyFirewall,
 		v1.CapabilityMachineImage,
 		v1.CapabilityTags,
+		v1.CapabilityInstanceUserData,
+		v1.CapabilityVPC,
+		v1.CapabilityManagedKubernetes,
 	}
 
 	assert.ElementsMatch(t, expectedCapabilities, capabilities)
@@ -150,13 +154,11 @@ func TestNebiusClient_Creation(t *testing.T) {
 				assert.Error(t, err)
 				assert.Contains(t, err.Error(), tt.errorContains)
 				assert.Nil(t, client)
-			} else {
+			} else if err != nil {
 				// Note: This will likely fail due to invalid credentials
 				// but we're testing the JSON parsing part
-				if err != nil {
-					// Check if it's a JSON parsing error vs SDK initialization error
-					assert.NotContains(t, err.Error(), "failed to parse service account key JSON")
-				}
+				// Check if it's a JSON parsing error vs SDK initialization error
+				assert.NotContains(t, err.Error(), "failed to parse service account key JSON")
 			}
 		})
 	}
@@ -219,8 +221,12 @@ func TestNebiusClient_GetCapabilities(t *testing.T) {
 		v1.CapabilityRebootInstance,
 		v1.CapabilityStopStartInstance,
 		v1.CapabilityResizeInstanceVolume,
+		v1.CapabilityModifyFirewall,
 		v1.CapabilityMachineImage,
 		v1.CapabilityTags,
+		v1.CapabilityInstanceUserData,
+		v1.CapabilityVPC,
+		v1.CapabilityManagedKubernetes,
 	}
 
 	assert.ElementsMatch(t, expectedCapabilities, capabilities)

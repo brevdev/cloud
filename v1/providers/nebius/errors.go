@@ -31,6 +31,8 @@ func isNotFoundError(err error) bool {
 }
 
 // isAlreadyExistsError checks if an error is an "already exists" error
+//
+//nolint:unused // Reserved for future error handling improvements
 func isAlreadyExistsError(err error) bool {
 	// Check for gRPC AlreadyExists status code
 	if status, ok := status.FromError(err); ok {
@@ -40,6 +42,8 @@ func isAlreadyExistsError(err error) bool {
 }
 
 // wrapNebiusError wraps a gRPC error into a NebiusError
+//
+//nolint:unused // Reserved for future error handling improvements
 func wrapNebiusError(err error, context string) error {
 	if err == nil {
 		return nil

@@ -93,7 +93,7 @@ func (c *NebiusClient) MergeInstanceTypeForUpdate(currIt v1.InstanceType, newIt 
 	return merged
 }
 
-func (c *NebiusClient) GetInstanceTypeQuotas(ctx context.Context, args v1.GetInstanceTypeQuotasArgs) (v1.Quota, error) {
+func (c *NebiusClient) GetInstanceTypeQuotas(_ context.Context, _ v1.GetInstanceTypeQuotasArgs) (v1.Quota, error) {
 	// Query actual Nebius quotas from the compute service
 	// For now, return a default quota structure
 	quota := v1.Quota{
@@ -109,8 +109,8 @@ func (c *NebiusClient) GetInstanceTypeQuotas(ctx context.Context, args v1.GetIns
 
 // getInstanceTypesForLocation gets instance types for a specific location with quota/availability checking
 //
-//nolint:gocognit // Complex function iterating platforms, presets, and quota checks
-func (c *NebiusClient) getInstanceTypesForLocation(ctx context.Context, platformsResp *compute.ListPlatformsResponse, location v1.Location, args v1.GetInstanceTypeArgs, quotaMap map[string]*quotas.QuotaAllowance) ([]v1.InstanceType, error) {
+//nolint:gocognit,unparam // Complex function iterating platforms, presets, and quota checks
+func (c *NebiusClient) getInstanceTypesForLocation(ctx context.Context, platformsResp *compute.ListPlatformsResponse, location v1.Location, _ v1.GetInstanceTypeArgs, quotaMap map[string]*quotas.QuotaAllowance) ([]v1.InstanceType, error) {
 	var instanceTypes []v1.InstanceType
 
 	for _, platform := range platformsResp.GetItems() {
@@ -181,7 +181,7 @@ func (c *NebiusClient) getInstanceTypesForLocation(ctx context.Context, platform
 				Type:               instanceTypeID, // Same as ID - both use dot-separated format
 				VCPU:               preset.Resources.VcpuCount,
 				MemoryBytes:        v1.NewBytes(v1.BytesValue(preset.Resources.MemoryGibibytes), v1.Gibibyte), // Memory in GiB
-				NetworkPerformance: "standard", // Default network performance
+				NetworkPerformance: "standard",                                                                // Default network performance
 				IsAvailable:        isAvailable,
 				Stoppable:          true, // All Nebius instances support stop/start operations
 				ElasticRootVolume:  true, // Nebius supports dynamic disk allocation
@@ -247,6 +247,8 @@ func (c *NebiusClient) getQuotaMap(ctx context.Context) (map[string]*quotas.Quot
 }
 
 // checkPresetQuotaAvailability checks if a preset has available quota in the specified region
+//
+//nolint:gocyclo // Complex quota checking with multiple resource types
 func (c *NebiusClient) checkPresetQuotaAvailability(resources *compute.PresetResources, region string, platformName string, quotaMap map[string]*quotas.QuotaAllowance) bool {
 	// Check GPU quota if GPUs are requested
 	if resources.GpuCount > 0 {
@@ -267,6 +269,7 @@ func (c *NebiusClient) checkPresetQuotaAvailability(resources *compute.PresetRes
 			return false
 		}
 
+		//nolint:gosec // Safe conversion: quota limits are controlled by cloud provider
 		available := int64(*quota.Spec.Limit) - int64(quota.Status.Usage)
 		if available < int64(resources.GpuCount) {
 			return false // Not enough GPU quota
@@ -280,6 +283,7 @@ func (c *NebiusClient) checkPresetQuotaAvailability(resources *compute.PresetRes
 	cpuQuotaKey := fmt.Sprintf("compute.instance.non-gpu.vcpu:%s", region)
 	if cpuQuota, exists := quotaMap[cpuQuotaKey]; exists {
 		if cpuQuota.Status != nil && cpuQuota.Spec != nil && cpuQuota.Spec.Limit != nil {
+			//nolint:gosec // Safe conversion: quota limits are controlled by cloud provider
 			cpuAvailable := int64(*cpuQuota.Spec.Limit) - int64(cpuQuota.Status.Usage)
 			if cpuAvailable < int64(resources.VcpuCount) {
 				return false
@@ -292,6 +296,7 @@ func (c *NebiusClient) checkPresetQuotaAvailability(resources *compute.PresetRes
 	if memQuota, exists := quotaMap[memoryQuotaKey]; exists {
 		if memQuota.Status != nil && memQuota.Spec != nil && memQuota.Spec.Limit != nil {
 			memoryRequired := int64(resources.MemoryGibibytes) * 1024 * 1024 * 1024 // Convert GiB to bytes
+			//nolint:gosec // Safe conversion: quota limits are controlled by cloud provider
 			memAvailable := int64(*memQuota.Spec.Limit) - int64(memQuota.Status.Usage)
 			if memAvailable < memoryRequired {
 				return false
@@ -362,8 +367,8 @@ func (c *NebiusClient) isCPUOnlyPlatform(platformName string) bool {
 func (c *NebiusClient) buildSupportedStorage() []v1.Storage {
 	// Nebius supports dynamically allocatable network SSD disks
 	// Minimum: 50GB, Maximum: 2560GB
-	minSize := units.Base2Bytes(50 * units.GiB)
-	maxSize := units.Base2Bytes(2560 * units.GiB)
+	minSize := 50 * units.GiB
+	maxSize := 2560 * units.GiB
 
 	// Pricing is roughly $0.10 per GB-month, which is ~$0.00014 per GB-hour
 	pricePerGBHr, _ := currency.NewAmount("0.00014", "USD")
@@ -381,6 +386,8 @@ func (c *NebiusClient) buildSupportedStorage() []v1.Storage {
 }
 
 // applyInstanceTypeFilters applies various filters to the instance type list
+//
+//nolint:gocognit // Complex function with multiple filter conditions for instance types
 func (c *NebiusClient) applyInstanceTypeFilters(instanceTypes []v1.InstanceType, args v1.GetInstanceTypeArgs) []v1.InstanceType {
 	var filtered []v1.InstanceType
 
@@ -487,7 +494,7 @@ func determineInstanceTypeArchitecture(instanceType v1.InstanceType) string {
 
 // getPricingForInstanceType fetches real pricing from Nebius Billing Calculator API
 // Returns nil if pricing cannot be fetched (non-critical failure)
-func (c *NebiusClient) getPricingForInstanceType(ctx context.Context, platformName, presetName, region string) *currency.Amount {
+func (c *NebiusClient) getPricingForInstanceType(ctx context.Context, platformName, presetName, _ string) *currency.Amount {
 	// Build minimal instance spec for pricing estimation
 	req := &billing.EstimateRequest{
 		ResourceSpec: &billing.ResourceSpec{
