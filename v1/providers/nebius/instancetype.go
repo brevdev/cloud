@@ -108,6 +108,8 @@ func (c *NebiusClient) GetInstanceTypeQuotas(ctx context.Context, args v1.GetIns
 }
 
 // getInstanceTypesForLocation gets instance types for a specific location with quota/availability checking
+//
+//nolint:gocognit // Complex function iterating platforms, presets, and quota checks
 func (c *NebiusClient) getInstanceTypesForLocation(ctx context.Context, platformsResp *compute.ListPlatformsResponse, location v1.Location, args v1.GetInstanceTypeArgs, quotaMap map[string]*quotas.QuotaAllowance) ([]v1.InstanceType, error) {
 	var instanceTypes []v1.InstanceType
 

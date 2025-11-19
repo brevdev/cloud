@@ -21,7 +21,7 @@ func TestKubernetesValidation(t *testing.T) {
 	tenantID := os.Getenv("NEBIUS_TENANT_ID")
 
 	if serviceAccountJSON == "" || tenantID == "" {
-		t.Fatalf("NEBIUS_SERVICE_ACCOUNT_JSON and NEBIUS_TENANT_ID must be set")
+		t.Skip("NEBIUS_SERVICE_ACCOUNT_JSON and NEBIUS_TENANT_ID must be set")
 	}
 
 	config := validation.ProviderConfig{

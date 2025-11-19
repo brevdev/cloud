@@ -197,6 +197,8 @@ func (c *NebiusClient) GetInstance(ctx context.Context, instanceID v1.CloudProvi
 // convertNebiusInstanceToV1 converts a Nebius instance to v1.Instance
 // This is used by both GetInstance and ListInstances for consistent conversion
 // projectToRegion is an optional map of project ID to region for determining instance location
+//
+//nolint:gocognit // Complex function converting Nebius instance to v1.Instance with many field mappings
 func (c *NebiusClient) convertNebiusInstanceToV1(ctx context.Context, instance *compute.Instance, projectToRegion map[string]string) (*v1.Instance, error) {
 	if instance.Metadata == nil || instance.Spec == nil {
 		return nil, fmt.Errorf("invalid instance response from Nebius API")
@@ -656,6 +658,7 @@ func (c *NebiusClient) deleteInstanceIfExists(ctx context.Context, instanceID v1
 	return nil
 }
 
+//nolint:gocognit // Complex function listing instances across multiple projects with filtering
 func (c *NebiusClient) ListInstances(ctx context.Context, args v1.ListInstancesArgs) ([]v1.Instance, error) {
 	c.logger.Info(ctx, "listing nebius instances",
 		v1.LogField("primaryProjectID", c.projectID),
@@ -1215,6 +1218,8 @@ func (c *NebiusClient) buildDiskCreateRequest(ctx context.Context, diskName stri
 }
 
 // getWorkingPublicImageID gets a working public image ID based on the requested image type
+//
+//nolint:gocognit // Complex function trying multiple image resolution strategies
 func (c *NebiusClient) getWorkingPublicImageID(ctx context.Context, requestedImage string) (string, error) {
 	// Get available public images from the correct region
 	publicImagesParent := c.getPublicImagesParent()
@@ -1310,6 +1315,8 @@ func (c *NebiusClient) getPublicImagesParent() string {
 //
 //	nebius-eu-north1-l40s-4gpu-96vcpu-768gb
 //	nebius-eu-north1-cpu-4vcpu-16gb
+//
+//nolint:gocognit // Complex function with multiple fallback strategies for parsing instance types
 func (c *NebiusClient) parseInstanceType(ctx context.Context, instanceTypeID string) (platform string, preset string, err error) {
 	c.logger.Info(ctx, "parsing instance type",
 		v1.LogField("instanceTypeID", instanceTypeID),
