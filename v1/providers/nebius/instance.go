@@ -14,6 +14,10 @@ import (
 	vpc "github.com/nebius/gosdk/proto/nebius/vpc/v1"
 )
 
+const (
+	platformTypeCPU = "cpu"
+)
+
 //nolint:gocyclo,funlen // Complex instance creation with resource management
 func (c *NebiusClient) CreateInstance(ctx context.Context, attrs v1.CreateInstanceAttrs) (*v1.Instance, error) {
 	// Track created resources for automatic cleanup on failure
@@ -1389,15 +1393,15 @@ func (c *NebiusClient) parseInstanceType(ctx context.Context, instanceTypeID str
 		//          parts[0]=nebius, parts[1]=eu, parts[2]=north1, parts[3]=l40s, parts[4+]=preset
 
 		// Find where the preset starts (after region and gpu-type)
-		// Region could be multi-part (eu-north1) so we need to find the GPU type or "cpu"
+		// Region could be multi-part (eu-north1) so we need to find the GPU type or platformTypeCPU
 		var gpuType string
 		var presetStartIdx int
 
-		// Look for GPU type indicators or "cpu"
+		// Look for GPU type indicators or platformTypeCPU
 		for i := 1; i < len(parts); i++ {
 			partLower := strings.ToLower(parts[i])
-			// Check if this part is a known GPU type or "cpu"
-			if partLower == "cpu" || partLower == "l40s" || partLower == "h100" ||
+			// Check if this part is a known GPU type or platformTypeCPU
+			if partLower == platformTypeCPU || partLower == "l40s" || partLower == "h100" ||
 				partLower == "h200" || partLower == "a100" || partLower == "v100" ||
 				partLower == "b200" || partLower == "a10" || partLower == "t4" || partLower == "l4" {
 				gpuType = partLower
@@ -1424,8 +1428,8 @@ func (c *NebiusClient) parseInstanceType(ctx context.Context, instanceTypeID str
 				platformNameLower := strings.ToLower(p.Metadata.Name)
 
 				// Match platform by GPU type
-				if (gpuType == "cpu" && strings.Contains(platformNameLower, "cpu")) ||
-					(gpuType != "cpu" && strings.Contains(platformNameLower, gpuType)) {
+				if (gpuType == platformTypeCPU && strings.Contains(platformNameLower, platformTypeCPU)) ||
+					(gpuType != platformTypeCPU && strings.Contains(platformNameLower, gpuType)) {
 					// Log ALL available presets for this platform for debugging
 					availablePresets := make([]string, 0, len(p.Spec.Presets))
 					for _, preset := range p.Spec.Presets {

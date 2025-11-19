@@ -398,8 +398,7 @@ func TestParseInstanceTypeFormat(t *testing.T) {
 				var presetStartIdx int
 				for i := 1; i < len(parts); i++ {
 					partLower := strings.ToLower(parts[i])
-					//nolint:goconst // GPU type comparison strings used in test
-					if partLower == "cpu" || partLower == "l40s" || partLower == "h100" ||
+					if partLower == platformTypeCPU || partLower == "l40s" || partLower == "h100" ||
 						partLower == "h200" || partLower == "a100" || partLower == "v100" {
 						gpuType = partLower
 						presetStartIdx = i + 1
