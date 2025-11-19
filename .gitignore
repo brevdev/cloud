@@ -1,4 +1,5 @@
 .env
 __debug_bin*
 .idea/*
+.claude
 coverage/*

@@ -81,12 +81,148 @@ Nebius AI Cloud is known for:
 - Integration with VPC, IAM, billing, and quota services
 - Container registry and managed services
 
+## Implementation Notes
+
+### Platform Name vs Platform ID
+The Nebius API requires **platform NAME** (e.g., `"gpu-h100-sxm"`) in `ResourcesSpec.Platform`, **NOT** platform ID (e.g., `"computeplatform-e00caqbn6nysa972yq"`). The `parseInstanceType` function must always return `platform.Metadata.Name`, not `platform.Metadata.Id`.
+
+### Instance Type ID Preservation
+**Critical**: When creating instances, the SDK stores the full instance type ID (e.g., `"gpu-h100-sxm.8gpu-128vcpu-1600gb"`) in metadata labels (`instance-type-id`). When retrieving instances via `GetInstance`, the SDK:
+
+1. **Retrieves the stored ID** from the `instance-type-id` label
+2. **Populates both** `Instance.InstanceType` and `Instance.InstanceTypeID` with this full ID
+3. **Falls back to reconstruction** from platform + preset if the label is missing (backwards compatibility)
+
+This ensures that dev-plane can correctly look up the instance type in the database without having to derive it from provider-specific naming conventions like `"<provider>-<region>-<subregion>-<platform>"`.
+
+**Without this**, dev-plane would construct an incorrect ID like `"nebius-brev-dev1-eu-north1-noSub-gpu-l40s"` which doesn't exist in the database, causing `"ent: instance_type not found"` errors.
+
+### GPU VRAM Mapping
+GPU memory (VRAM) is populated via static mapping since the Nebius SDK doesn't natively provide this information:
+- L40S: 48 GiB
+- H100: 80 GiB
+- H200: 141 GiB
+- A100: 80 GiB
+- V100: 32 GiB
+- A10: 24 GiB
+- T4: 16 GiB
+- L4: 24 GiB
+- B200: 192 GiB
+
+See `getGPUMemory()` in `instancetype.go` for the complete mapping.
+
+### Logging Support
+The Nebius provider supports structured logging via the `v1.Logger` interface. To enable logging:
+
+```go
+import (
+    nebiusv1 "github.com/brevdev/cloud/v1/providers/nebius"
+    "github.com/brevdev/cloud/v1"
+)
+
+// Create a logger (implement v1.Logger interface)
+logger := myLogger{}
+
+// Option 1: Via credential
+cred := nebiusv1.NewNebiusCredential(refID, serviceKey, tenantID)
+client, err := cred.MakeClientWithOptions(ctx, location, nebiusv1.WithLogger(logger))
+
+// Option 2: Via direct client construction
+client, err := nebiusv1.NewNebiusClientWithOrg(ctx, refID, serviceKey, tenantID, projectID, orgID, location, nebiusv1.WithLogger(logger))
+```
+
+Without a logger, the client defaults to `v1.NoopLogger{}` which discards all log messages.
+
+### Error Tracing
+Critical error paths use `errors.WrapAndTrace()` from `github.com/brevdev/cloud/internal/errors` to add stack traces and detailed context to errors. This improves debugging when errors propagate through the system.
+
+### Resource Naming and Correlation
+All Nebius resources (instances, VPCs, subnets, boot disks) are named using the `RefID` (environment ID) for easy correlation:
+- VPC: `{refID}-vpc`
+- Subnet: `{refID}-subnet`
+- Boot Disk: `{refID}-boot-disk`
+- Instance: `{refID}`
+
+All resources include the `environment-id` label for filtering and tracking.
+
+### Automatic Cleanup on Failure
+If instance creation fails at any step, all created resources are automatically cleaned up to prevent orphaned resources:
+- **Instances** (if created but failed to reach RUNNING state)
+- **Boot disks**
+- **Subnets**
+- **VPC networks**
+
+**How it works:**
+1. After the instance creation API call succeeds, the SDK waits for the instance to reach **RUNNING** state (5-minute timeout)
+2. If the instance enters a terminal failure state (ERROR, FAILED) or times out, cleanup is triggered
+3. The cleanup handler deletes **all** correlated resources (instance, boot disk, subnet, VPC) in the correct order
+4. Only when the instance reaches RUNNING state is cleanup disabled
+
+This prevents orphaned resources when:
+- The Nebius API call succeeds but the instance fails to start due to provider issues
+- The instance is created but never transitions to a usable state
+- Network/timeout errors occur during instance provisioning
+
+The cleanup is handled via a deferred function that tracks all created resource IDs and deletes them if the operation doesn't complete successfully.
+
+### State Transition Waiting
+The SDK properly waits for instances to reach their target states after issuing operations:
+
+- **CreateInstance**: Waits for `RUNNING` state (5-minute timeout) before returning
+- **StopInstance**: Issues stop command, then waits for `STOPPED` state (3-minute timeout)
+- **StartInstance**: Issues start command, then waits for `RUNNING` state (5-minute timeout)
+- **TerminateInstance**: Issues delete command, then waits for instance to be fully deleted (5-minute timeout)
+
+**Why this is critical**: Nebius operations complete when the action is *initiated*, not when the instance reaches the final state. Without explicit state waiting:
+- Stop operations would return while instance is still `STOPPING`, causing UI to hang
+- Start operations would return while instance is still `STARTING`, before it's accessible
+- Delete operations would return while instance is still `DELETING`, leaving UI stuck
+- State polling on the frontend would show stale states
+
+The SDK uses `waitForInstanceState()` and `waitForInstanceDeleted()` helpers which poll instance status every 5 seconds until the target state is reached or a timeout occurs.
+
+### Instance Listing and State Polling
+**ListInstances** is fully implemented and enables dev-plane to poll instance states:
+
+- Queries all instances across ALL projects in the tenant (projects are region-specific in Nebius)
+- Automatically determines the region for each instance from its parent project
+- Converts each instance to `v1.Instance` with the correct `Location` field set to the instance's actual region
+- **Properly filters by `TagFilters`, `InstanceIDs`, and `Locations`** passed in `ListInstancesArgs`
+- Returns instances with current state (RUNNING, STOPPED, DELETING, etc.)
+- Enables dev-plane's `WaitForChangedInstancesAndUpdate` workflow to track state changes
+
+**Multi-Region Enumeration:**
+When a Nebius client is created with an empty `location` (e.g., from dev-plane's cloud credential without a specific region context), `ListInstances` automatically:
+1. Discovers all projects in the tenant via IAM API
+2. Extracts the region from each project name (e.g., "default-project-eu-north1" → "eu-north1")
+3. Queries instances from each project
+4. Sets each instance's `Location` field to its actual region (from the project-to-region mapping)
+
+This prevents the issue where instances would have `Location = ""` (from the client's empty location), causing location-based filtering to incorrectly exclude all instances and mark them as terminated in dev-plane.
+
+**Tag Filtering is Critical** - This is a fundamental architectural difference from Shadeform/Launchpad:
+
+**Why Nebius REQUIRES Tag Filtering:**
+- **Shadeform & Launchpad**: Single-tenant per API key. Each cloud credential only sees its own instances through API-level isolation.
+- **Nebius**: Multi-tenant project. Multiple dev-plane cloud credentials can share one Nebius project. Without tag filtering, `ListInstances` returns ALL instances in the project, including those from other services/organizations.
+
+**How Tag Filtering Works:**
+1. Dev-plane calls `ListInstances` with `TagFilters` (e.g., `{"devplane-service": ["dev-plane"], "devplane-org": ["org-xyz"]}`)
+2. Nebius SDK queries ALL instances in the project
+3. SDK filters results to only return instances where **all** specified tags match
+4. Dev-plane builds a map of cloud instances by CloudID
+5. For each database instance, checks if it exists in the cloud map
+6. If NOT in map → marks as TERMINATED (line 3011-3024 in `dev-plane/internal/instance/service.go`)
+
+**Without Tag Filtering:** 
+1. `ListInstances` returns instances with mismatched/missing tags
+2. dev-plane's instance is excluded from filtered results
+3. dev-plane's `getInstancesChangeSet` sees instance missing from cloud → marks as TERMINATED
+4. `WaitForInstanceToBeRunning` queries database → sees TERMINATED → fails with "instance terminated" error
+5. `BuildEnvironment` workflow fails, orphaning all cloud resources
+
 ## TODO
 
-- [ ] Implement actual API integration for supported features
-- [ ] Add proper service account authentication handling
 - [ ] Add comprehensive error handling and retry logic
-- [ ] Add logging and monitoring
-- [ ] Add comprehensive testing
 - [ ] Investigate VPC integration for networking features
 - [ ] Verify instance type changes work correctly via ResourcesSpec.preset field
