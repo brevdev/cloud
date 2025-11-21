@@ -1,0 +1,59 @@
+name: AWS Validation Tests
+
+on:
+    schedule:
+        # Run daily at 2 AM UTC
+        - cron: "0 2 * * *"
+    workflow_dispatch:
+        # Allow manual triggering
+    pull_request:
+        paths:
+            - "v1/providers/aws/**"
+            - "internal/validation/**"
+            - "v1/**"
+        branches: [main]
+
+jobs:
+    aws-validation:
+        name: AWS Provider Validation
+        runs-on: ubuntu-latest
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request'
+
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Set up Go
+              uses: actions/setup-go@v4
+              with:
+                  go-version-file: 'go.mod'
+
+            - name: Cache Go modules
+              uses: actions/cache@v4
+              with:
+                  path: |
+                      ~/.cache/go-build
+                      ~/go/pkg/mod
+                  key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+                  restore-keys: |
+                      ${{ runner.os }}-go-
+
+            - name: Install dependencies
+              run: make deps
+
+            - name: Run AWS validation tests
+              env:
+                  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+                  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+                  TEST_USER_PRIVATE_KEY_PEM_BASE64: ${{ secrets.TEST_USER_PRIVATE_KEY_PEM_BASE64 }}
+                  VALIDATION_TEST: true
+              run: |
+                  cd v1/providers/aws
+                  go test -v -short=false -timeout=30m ./...
+
+            - name: Upload test results
+              uses: actions/upload-artifact@v4
+              if: always()
+              with:
+                  name: aws-validation-results
+                  path: |
+                      v1/providers/aws/coverage.out

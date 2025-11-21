@@ -64,7 +64,8 @@ type InstanceType struct {
 	SupportedStorage                []Storage
 	ElasticRootVolume               bool
 	SupportedUsageClasses           []string
-	Memory                          units.Base2Bytes
+	Memory                          units.Base2Bytes // TODO: deprecate in favor of MemoryByteValue
+	MemoryBytes                     Bytes
 	MaximumNetworkInterfaces        int32
 	NetworkPerformance              string
 	SupportedNumCores               []int32
@@ -114,7 +115,8 @@ func MakeGenericInstanceTypeIDFromInstance(instance Instance) InstanceTypeID {
 
 type GPU struct {
 	Count          int32
-	Memory         units.Base2Bytes
+	Memory         units.Base2Bytes // TODO: deprecate in favor of MemoryByteValue
+	MemoryBytes    Bytes
 	MemoryDetails  string // "", "HBM", "GDDR", "DDR", etc.
 	NetworkDetails string // "PCIe", "SXM4", "SXM5", etc.
 	Manufacturer   Manufacturer
@@ -378,7 +380,7 @@ func normalizeInstanceTypes(types []InstanceType) []InstanceType {
 
 // ValidateStableInstanceTypeIDs validates that the provided stable instance type IDs are valid and stable
 // This function ensures that stable IDs exist in the current instance types and have required properties
-func ValidateStableInstanceTypeIDs(ctx context.Context, client CloudInstanceType, stableIDs []InstanceTypeID) error {
+func ValidateStableInstanceTypeIDs(ctx context.Context, client CloudInstanceType, stableIDs []InstanceTypeID) error { //nolint:gocyclo // test
 	// Get all instance types
 	allTypes, err := client.GetInstanceTypes(ctx, GetInstanceTypeArgs{})
 	if err != nil {
@@ -427,7 +429,7 @@ func ValidateStableInstanceTypeIDs(ctx context.Context, client CloudInstanceType
 
 		// Check that supported storage has price information
 		for i, storage := range instanceType.SupportedStorage {
-			if storage.MinSize != nil {
+			if storage.MinSize != nil || storage.MinSizeBytes != nil {
 				if storage.PricePerGBHr == nil {
 					return fmt.Errorf("instance type %s should have storage %d price", instanceType.ID, i)
 				}

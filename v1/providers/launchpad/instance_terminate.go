@@ -13,7 +13,7 @@ func (c *LaunchpadClient) TerminateInstance(ctx context.Context, instanceID v1.C
 	if err != nil {
 		return errors.WrapAndTrace(err)
 	}
-	_, resp, err := c.client.CatalogDeploymentsAPI.CatalogDeploymentsDestroy(c.makeAuthContext(ctx), string(instanceID)).
+	_, resp, err := c.client.CatalogDeploymentsAPI.V1CatalogDeploymentsDestroy(c.makeAuthContext(ctx), string(instanceID)).
 		Execute()
 	if resp != nil {
 		defer resp.Body.Close() //nolint:errcheck // handled in err check

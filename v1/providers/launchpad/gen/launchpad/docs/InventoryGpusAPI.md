@@ -4,21 +4,21 @@ All URIs are relative to *http://localhost*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
-[**InventoryGpusBulkPartialUpdate**](InventoryGpusAPI.md#InventoryGpusBulkPartialUpdate) | **Patch** /v1/inventory/gpus/bulk/ | 
-[**InventoryGpusCreate**](InventoryGpusAPI.md#InventoryGpusCreate) | **Post** /v1/inventory/gpus/ | 
-[**InventoryGpusDestroy**](InventoryGpusAPI.md#InventoryGpusDestroy) | **Delete** /v1/inventory/gpus/{id}/ | 
-[**InventoryGpusHistoryList**](InventoryGpusAPI.md#InventoryGpusHistoryList) | **Get** /v1/inventory/gpus/{id}/history/ | 
-[**InventoryGpusList**](InventoryGpusAPI.md#InventoryGpusList) | **Get** /v1/inventory/gpus/ | 
-[**InventoryGpusPartialUpdate**](InventoryGpusAPI.md#InventoryGpusPartialUpdate) | **Patch** /v1/inventory/gpus/{id}/ | 
-[**InventoryGpusRetrieve**](InventoryGpusAPI.md#InventoryGpusRetrieve) | **Get** /v1/inventory/gpus/{id}/ | 
-[**InventoryGpusStatsRetrieve**](InventoryGpusAPI.md#InventoryGpusStatsRetrieve) | **Get** /v1/inventory/gpus/stats/ | 🚧 [Beta Feature]
-[**InventoryGpusUpdate**](InventoryGpusAPI.md#InventoryGpusUpdate) | **Put** /v1/inventory/gpus/{id}/ | 
+[**V1InventoryGpusBulkPartialUpdate**](InventoryGpusAPI.md#V1InventoryGpusBulkPartialUpdate) | **Patch** /v1/inventory/gpus/bulk/ | 
+[**V1InventoryGpusCreate**](InventoryGpusAPI.md#V1InventoryGpusCreate) | **Post** /v1/inventory/gpus/ | 
+[**V1InventoryGpusDestroy**](InventoryGpusAPI.md#V1InventoryGpusDestroy) | **Delete** /v1/inventory/gpus/{id}/ | 
+[**V1InventoryGpusHistoryList**](InventoryGpusAPI.md#V1InventoryGpusHistoryList) | **Get** /v1/inventory/gpus/{id}/history/ | 
+[**V1InventoryGpusList**](InventoryGpusAPI.md#V1InventoryGpusList) | **Get** /v1/inventory/gpus/ | 
+[**V1InventoryGpusPartialUpdate**](InventoryGpusAPI.md#V1InventoryGpusPartialUpdate) | **Patch** /v1/inventory/gpus/{id}/ | 
+[**V1InventoryGpusRetrieve**](InventoryGpusAPI.md#V1InventoryGpusRetrieve) | **Get** /v1/inventory/gpus/{id}/ | 
+[**V1InventoryGpusStatsRetrieve**](InventoryGpusAPI.md#V1InventoryGpusStatsRetrieve) | **Get** /v1/inventory/gpus/stats/ | 🚧 [Beta Feature]
+[**V1InventoryGpusUpdate**](InventoryGpusAPI.md#V1InventoryGpusUpdate) | **Put** /v1/inventory/gpus/{id}/ | 
 
 
 
-## InventoryGpusBulkPartialUpdate
+## V1InventoryGpusBulkPartialUpdate
 
-> GpuBulkUpdate InventoryGpusBulkPartialUpdate(ctx).GpuBulkUpdate(gpuBulkUpdate).Execute()
+> GpuBulkUpdate V1InventoryGpusBulkPartialUpdate(ctx).GpuBulkUpdate(gpuBulkUpdate).Execute()
 
 
 
@@ -40,13 +40,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.InventoryGpusAPI.InventoryGpusBulkPartialUpdate(context.Background()).GpuBulkUpdate(gpuBulkUpdate).Execute()
+	resp, r, err := apiClient.InventoryGpusAPI.V1InventoryGpusBulkPartialUpdate(context.Background()).GpuBulkUpdate(gpuBulkUpdate).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `InventoryGpusAPI.InventoryGpusBulkPartialUpdate``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryGpusAPI.V1InventoryGpusBulkPartialUpdate``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `InventoryGpusBulkPartialUpdate`: GpuBulkUpdate
-	fmt.Fprintf(os.Stdout, "Response from `InventoryGpusAPI.InventoryGpusBulkPartialUpdate`: %v\n", resp)
+	// response from `V1InventoryGpusBulkPartialUpdate`: GpuBulkUpdate
+	fmt.Fprintf(os.Stdout, "Response from `InventoryGpusAPI.V1InventoryGpusBulkPartialUpdate`: %v\n", resp)
 }
 ```
 
@@ -56,7 +56,7 @@ func main() {
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiInventoryGpusBulkPartialUpdateRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1InventoryGpusBulkPartialUpdateRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -81,9 +81,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## InventoryGpusCreate
+## V1InventoryGpusCreate
 
-> Gpu InventoryGpusCreate(ctx).Gpu(gpu).Execute()
+> Gpu V1InventoryGpusCreate(ctx).Gpu(gpu).Execute()
 
 
 
@@ -105,13 +105,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.InventoryGpusAPI.InventoryGpusCreate(context.Background()).Gpu(gpu).Execute()
+	resp, r, err := apiClient.InventoryGpusAPI.V1InventoryGpusCreate(context.Background()).Gpu(gpu).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `InventoryGpusAPI.InventoryGpusCreate``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryGpusAPI.V1InventoryGpusCreate``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `InventoryGpusCreate`: Gpu
-	fmt.Fprintf(os.Stdout, "Response from `InventoryGpusAPI.InventoryGpusCreate`: %v\n", resp)
+	// response from `V1InventoryGpusCreate`: Gpu
+	fmt.Fprintf(os.Stdout, "Response from `InventoryGpusAPI.V1InventoryGpusCreate`: %v\n", resp)
 }
 ```
 
@@ -121,7 +121,7 @@ func main() {
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiInventoryGpusCreateRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1InventoryGpusCreateRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -146,9 +146,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## InventoryGpusDestroy
+## V1InventoryGpusDestroy
 
-> InventoryGpusDestroy(ctx, id).Execute()
+> V1InventoryGpusDestroy(ctx, id).Execute()
 
 
 
@@ -169,9 +169,9 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	r, err := apiClient.InventoryGpusAPI.InventoryGpusDestroy(context.Background(), id).Execute()
+	r, err := apiClient.InventoryGpusAPI.V1InventoryGpusDestroy(context.Background(), id).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `InventoryGpusAPI.InventoryGpusDestroy``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryGpusAPI.V1InventoryGpusDestroy``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
 }
@@ -187,7 +187,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiInventoryGpusDestroyRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1InventoryGpusDestroyRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -212,9 +212,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## InventoryGpusHistoryList
+## V1InventoryGpusHistoryList
 
-> PaginatedModelChangeList InventoryGpusHistoryList(ctx, id).Page(page).PageSize(pageSize).Execute()
+> PaginatedModelChangeList V1InventoryGpusHistoryList(ctx, id).Page(page).PageSize(pageSize).Execute()
 
 
 
@@ -237,13 +237,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.InventoryGpusAPI.InventoryGpusHistoryList(context.Background(), id).Page(page).PageSize(pageSize).Execute()
+	resp, r, err := apiClient.InventoryGpusAPI.V1InventoryGpusHistoryList(context.Background(), id).Page(page).PageSize(pageSize).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `InventoryGpusAPI.InventoryGpusHistoryList``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryGpusAPI.V1InventoryGpusHistoryList``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `InventoryGpusHistoryList`: PaginatedModelChangeList
-	fmt.Fprintf(os.Stdout, "Response from `InventoryGpusAPI.InventoryGpusHistoryList`: %v\n", resp)
+	// response from `V1InventoryGpusHistoryList`: PaginatedModelChangeList
+	fmt.Fprintf(os.Stdout, "Response from `InventoryGpusAPI.V1InventoryGpusHistoryList`: %v\n", resp)
 }
 ```
 
@@ -257,7 +257,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiInventoryGpusHistoryListRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1InventoryGpusHistoryListRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -284,9 +284,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## InventoryGpusList
+## V1InventoryGpusList
 
-> PaginatedGpuList InventoryGpusList(ctx).Fields(fields).FormFactor(formFactor).Id(id).Model(model).Omit(omit).Ordering(ordering).Page(page).PageSize(pageSize).Priority(priority).Search(search).Execute()
+> PaginatedGpuList V1InventoryGpusList(ctx).Fields(fields).FormFactor(formFactor).Id(id).Model(model).Omit(omit).Ordering(ordering).Page(page).PageSize(pageSize).Priority(priority).Search(search).Execute()
 
 
 
@@ -316,13 +316,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.InventoryGpusAPI.InventoryGpusList(context.Background()).Fields(fields).FormFactor(formFactor).Id(id).Model(model).Omit(omit).Ordering(ordering).Page(page).PageSize(pageSize).Priority(priority).Search(search).Execute()
+	resp, r, err := apiClient.InventoryGpusAPI.V1InventoryGpusList(context.Background()).Fields(fields).FormFactor(formFactor).Id(id).Model(model).Omit(omit).Ordering(ordering).Page(page).PageSize(pageSize).Priority(priority).Search(search).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `InventoryGpusAPI.InventoryGpusList``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryGpusAPI.V1InventoryGpusList``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `InventoryGpusList`: PaginatedGpuList
-	fmt.Fprintf(os.Stdout, "Response from `InventoryGpusAPI.InventoryGpusList`: %v\n", resp)
+	// response from `V1InventoryGpusList`: PaginatedGpuList
+	fmt.Fprintf(os.Stdout, "Response from `InventoryGpusAPI.V1InventoryGpusList`: %v\n", resp)
 }
 ```
 
@@ -332,7 +332,7 @@ func main() {
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiInventoryGpusListRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1InventoryGpusListRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -366,9 +366,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## InventoryGpusPartialUpdate
+## V1InventoryGpusPartialUpdate
 
-> Gpu InventoryGpusPartialUpdate(ctx, id).Gpu(gpu).Execute()
+> Gpu V1InventoryGpusPartialUpdate(ctx, id).Gpu(gpu).Execute()
 
 
 
@@ -391,13 +391,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.InventoryGpusAPI.InventoryGpusPartialUpdate(context.Background(), id).Gpu(gpu).Execute()
+	resp, r, err := apiClient.InventoryGpusAPI.V1InventoryGpusPartialUpdate(context.Background(), id).Gpu(gpu).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `InventoryGpusAPI.InventoryGpusPartialUpdate``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryGpusAPI.V1InventoryGpusPartialUpdate``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `InventoryGpusPartialUpdate`: Gpu
-	fmt.Fprintf(os.Stdout, "Response from `InventoryGpusAPI.InventoryGpusPartialUpdate`: %v\n", resp)
+	// response from `V1InventoryGpusPartialUpdate`: Gpu
+	fmt.Fprintf(os.Stdout, "Response from `InventoryGpusAPI.V1InventoryGpusPartialUpdate`: %v\n", resp)
 }
 ```
 
@@ -411,7 +411,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiInventoryGpusPartialUpdateRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1InventoryGpusPartialUpdateRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -437,9 +437,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## InventoryGpusRetrieve
+## V1InventoryGpusRetrieve
 
-> Gpu InventoryGpusRetrieve(ctx, id).Fields(fields).Omit(omit).Execute()
+> Gpu V1InventoryGpusRetrieve(ctx, id).Fields(fields).Omit(omit).Execute()
 
 
 
@@ -462,13 +462,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.InventoryGpusAPI.InventoryGpusRetrieve(context.Background(), id).Fields(fields).Omit(omit).Execute()
+	resp, r, err := apiClient.InventoryGpusAPI.V1InventoryGpusRetrieve(context.Background(), id).Fields(fields).Omit(omit).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `InventoryGpusAPI.InventoryGpusRetrieve``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryGpusAPI.V1InventoryGpusRetrieve``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `InventoryGpusRetrieve`: Gpu
-	fmt.Fprintf(os.Stdout, "Response from `InventoryGpusAPI.InventoryGpusRetrieve`: %v\n", resp)
+	// response from `V1InventoryGpusRetrieve`: Gpu
+	fmt.Fprintf(os.Stdout, "Response from `InventoryGpusAPI.V1InventoryGpusRetrieve`: %v\n", resp)
 }
 ```
 
@@ -482,7 +482,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiInventoryGpusRetrieveRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1InventoryGpusRetrieveRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
@@ -509,9 +509,9 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
-## InventoryGpusStatsRetrieve
+## V1InventoryGpusStatsRetrieve
 
-> InventoryGpusStatsRetrieve(ctx).Execute()
+> V1InventoryGpusStatsRetrieve(ctx).Execute()
 
 🚧 [Beta Feature]
 
@@ -531,9 +531,9 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	r, err := apiClient.InventoryGpusAPI.InventoryGpusStatsRetrieve(context.Background()).Execute()
+	r, err := apiClient.InventoryGpusAPI.V1InventoryGpusStatsRetrieve(context.Background()).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `InventoryGpusAPI.InventoryGpusStatsRetrieve``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryGpusAPI.V1InventoryGpusStatsRetrieve``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
 }
@@ -545,7 +545,7 @@ This endpoint does not need any parameter.
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiInventoryGpusStatsRetrieveRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1InventoryGpusStatsRetrieveRequest struct via the builder pattern
 
 
 ### Return type
@@ -566,9 +566,9 @@ Other parameters are passed through a pointer to a apiInventoryGpusStatsRetrieve
 [[Back to README]](../README.md)
 
 
-## InventoryGpusUpdate
+## V1InventoryGpusUpdate
 
-> Gpu InventoryGpusUpdate(ctx, id).Gpu(gpu).Execute()
+> Gpu V1InventoryGpusUpdate(ctx, id).Gpu(gpu).Execute()
 
 
 
@@ -591,13 +591,13 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.InventoryGpusAPI.InventoryGpusUpdate(context.Background(), id).Gpu(gpu).Execute()
+	resp, r, err := apiClient.InventoryGpusAPI.V1InventoryGpusUpdate(context.Background(), id).Gpu(gpu).Execute()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `InventoryGpusAPI.InventoryGpusUpdate``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryGpusAPI.V1InventoryGpusUpdate``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `InventoryGpusUpdate`: Gpu
-	fmt.Fprintf(os.Stdout, "Response from `InventoryGpusAPI.InventoryGpusUpdate`: %v\n", resp)
+	// response from `V1InventoryGpusUpdate`: Gpu
+	fmt.Fprintf(os.Stdout, "Response from `InventoryGpusAPI.V1InventoryGpusUpdate`: %v\n", resp)
 }
 ```
 
@@ -611,7 +611,7 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiInventoryGpusUpdateRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiV1InventoryGpusUpdateRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes

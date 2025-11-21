@@ -29,6 +29,8 @@ Name | Type | Description | Notes
 **ProviderCapacity** | **bool** | Does the provider have capacity to provision this cluster? | [readonly] 
 **ProvisionUser** | Pointer to **string** | Username used for provisioning this cluster | [optional] 
 **ProvisioningAttempts** | Pointer to **int32** | The number of attempts that have been made to provision this cluster. Automatically resets to 0 after successful provisioning. | [optional] 
+**ProvisioningConfig** | Pointer to **string** | Applied provisioning configuration for the cluster | [optional] 
+**ProvisioningRequest** | Pointer to **string** | Requested provisioning configuration for the cluster | [optional] 
 **ProvisioningState** | Pointer to [**ProvisioningStateEnum**](ProvisioningStateEnum.md) | Is the cluster currently provisioned?  * &#x60;deployed&#x60; - Cluster is in use by a deployment * &#x60;deploying&#x60; - Provisioning is in progress * &#x60;destroying&#x60; - Cluster is being destroyed * &#x60;pending&#x60; - Provisioning will begin soon * &#x60;ready&#x60; - Provisioning has completed and is ready for a deployment * &#x60;reserved&#x60; - Cluster is unprovisioned but reserved for later use * &#x60;unprovisioned&#x60; - Cluster has not yet been provisioned | [optional] 
 **PublicAddress** | Pointer to **string** | Public IP address or fully-qualified domain name of this cluster | [optional] 
 **RequestId** | Pointer to **string** | The request ID for the lab that is currently provisioned on this cluster (ex: TRY-1234) | [optional] 
@@ -636,6 +638,56 @@ SetProvisioningAttempts sets ProvisioningAttempts field to given value.
 `func (o *DeploymentCluster) HasProvisioningAttempts() bool`
 
 HasProvisioningAttempts returns a boolean if a field has been set.
+
+### GetProvisioningConfig
+
+`func (o *DeploymentCluster) GetProvisioningConfig() string`
+
+GetProvisioningConfig returns the ProvisioningConfig field if non-nil, zero value otherwise.
+
+### GetProvisioningConfigOk
+
+`func (o *DeploymentCluster) GetProvisioningConfigOk() (*string, bool)`
+
+GetProvisioningConfigOk returns a tuple with the ProvisioningConfig field if it's non-nil, zero value otherwise
+and a boolean to check if the value has been set.
+
+### SetProvisioningConfig
+
+`func (o *DeploymentCluster) SetProvisioningConfig(v string)`
+
+SetProvisioningConfig sets ProvisioningConfig field to given value.
+
+### HasProvisioningConfig
+
+`func (o *DeploymentCluster) HasProvisioningConfig() bool`
+
+HasProvisioningConfig returns a boolean if a field has been set.
+
+### GetProvisioningRequest
+
+`func (o *DeploymentCluster) GetProvisioningRequest() string`
+
+GetProvisioningRequest returns the ProvisioningRequest field if non-nil, zero value otherwise.
+
+### GetProvisioningRequestOk
+
+`func (o *DeploymentCluster) GetProvisioningRequestOk() (*string, bool)`
+
+GetProvisioningRequestOk returns a tuple with the ProvisioningRequest field if it's non-nil, zero value otherwise
+and a boolean to check if the value has been set.
+
+### SetProvisioningRequest
+
+`func (o *DeploymentCluster) SetProvisioningRequest(v string)`
+
+SetProvisioningRequest sets ProvisioningRequest field to given value.
+
+### HasProvisioningRequest
+
+`func (o *DeploymentCluster) HasProvisioningRequest() bool`
+
+HasProvisioningRequest returns a boolean if a field has been set.
 
 ### GetProvisioningState
 
