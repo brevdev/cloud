@@ -25,7 +25,7 @@ jobs:
             - name: Set up Go
               uses: actions/setup-go@v4
               with:
-                  go-version-file: 'go.mod'
+                  go-version-file: "go.mod"
 
             - name: Cache Go modules
               uses: actions/cache@v4
@@ -47,6 +47,10 @@ jobs:
                   NEBIUS_SERVICE_ACCOUNT_ID: ${{ secrets.NEBIUS_SERVICE_ACCOUNT_ID }}
                   NEBIUS_PROJECT_ID: ${{ secrets.NEBIUS_PROJECT_ID }}
                   TEST_USER_PRIVATE_KEY_PEM_BASE64: ${{ secrets.TEST_USER_PRIVATE_KEY_PEM_BASE64 }}
+                  NEBIUS_SERVICE_ACCOUNT_JSON: ${{ secrets.NEBIUS_SERVICE_ACCOUNT_JSON }}
+                  NEBIUS_TENANT_ID: ${{ secrets.NEBIUS_TENANT_ID }}
+                  TEST_PRIVATE_KEY_BASE64: ${{ secrets.TEST_PRIVATE_KEY_BASE64 }}
+                  TEST_PUBLIC_KEY_BASE64: ${{ secrets.TEST_PUBLIC_KEY_BASE64 }}
                   VALIDATION_TEST: true
               run: |
                   cd v1/providers/nebius

@@ -17,10 +17,11 @@ import (
 
 // Test_EnumerateImages enumerates all available images in Nebius
 // Usage:
-//   export NEBIUS_SERVICE_ACCOUNT_JSON='/path/to/service-account.json'
-//   export NEBIUS_TENANT_ID='tenant-e00xxx'
-//   export NEBIUS_LOCATION='eu-north1'
-//   go test -tags scripts -v -run Test_EnumerateImages
+//
+//	export NEBIUS_SERVICE_ACCOUNT_JSON='/path/to/service-account.json'
+//	export NEBIUS_TENANT_ID='tenant-e00xxx'
+//	export NEBIUS_LOCATION='eu-north1'
+//	go test -tags scripts -v -run Test_EnumerateImages
 func Test_EnumerateImages(t *testing.T) {
 	serviceAccountJSON := os.Getenv("NEBIUS_SERVICE_ACCOUNT_JSON")
 	tenantID := os.Getenv("NEBIUS_TENANT_ID")
@@ -93,7 +94,7 @@ func Test_EnumerateImages(t *testing.T) {
 		t.Fatalf("Error marshaling JSON: %v", err)
 	}
 
-	err = os.WriteFile(outputFile, output, 0644)
+	err = os.WriteFile(outputFile, output, 0o644)
 	if err != nil {
 		t.Fatalf("Error writing to file: %v", err)
 	}
@@ -103,9 +104,10 @@ func Test_EnumerateImages(t *testing.T) {
 
 // Test_EnumerateImagesAllRegions enumerates images across all Nebius regions
 // Usage:
-//   export NEBIUS_SERVICE_ACCOUNT_JSON='/path/to/service-account.json'
-//   export NEBIUS_TENANT_ID='tenant-e00xxx'
-//   go test -tags scripts -v -run Test_EnumerateImagesAllRegions
+//
+//	export NEBIUS_SERVICE_ACCOUNT_JSON='/path/to/service-account.json'
+//	export NEBIUS_TENANT_ID='tenant-e00xxx'
+//	go test -tags scripts -v -run Test_EnumerateImagesAllRegions
 func Test_EnumerateImagesAllRegions(t *testing.T) {
 	serviceAccountJSON := os.Getenv("NEBIUS_SERVICE_ACCOUNT_JSON")
 	tenantID := os.Getenv("NEBIUS_TENANT_ID")
@@ -173,7 +175,7 @@ func Test_EnumerateImagesAllRegions(t *testing.T) {
 		t.Fatalf("Error marshaling JSON: %v", err)
 	}
 
-	err = os.WriteFile(outputFile, output, 0644)
+	err = os.WriteFile(outputFile, output, 0o644)
 	if err != nil {
 		t.Fatalf("Error writing to file: %v", err)
 	}
@@ -183,10 +185,11 @@ func Test_EnumerateImagesAllRegions(t *testing.T) {
 
 // Test_FilterGPUImages filters images suitable for GPU instances
 // Usage:
-//   export NEBIUS_SERVICE_ACCOUNT_JSON='/path/to/service-account.json'
-//   export NEBIUS_TENANT_ID='tenant-e00xxx'
-//   export NEBIUS_LOCATION='eu-north1'
-//   go test -tags scripts -v -run Test_FilterGPUImages
+//
+//	export NEBIUS_SERVICE_ACCOUNT_JSON='/path/to/service-account.json'
+//	export NEBIUS_TENANT_ID='tenant-e00xxx'
+//	export NEBIUS_LOCATION='eu-north1'
+//	go test -tags scripts -v -run Test_FilterGPUImages
 func Test_FilterGPUImages(t *testing.T) {
 	serviceAccountJSON := os.Getenv("NEBIUS_SERVICE_ACCOUNT_JSON")
 	tenantID := os.Getenv("NEBIUS_TENANT_ID")

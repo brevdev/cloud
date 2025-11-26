@@ -18,9 +18,10 @@ import (
 
 // Test_EnumerateInstanceTypes enumerates all instance types across all Nebius regions
 // Usage:
-//   export NEBIUS_SERVICE_ACCOUNT_JSON='/path/to/service-account.json'
-//   export NEBIUS_TENANT_ID='tenant-e00xxx'
-//   go test -tags scripts -v -run Test_EnumerateInstanceTypes
+//
+//	export NEBIUS_SERVICE_ACCOUNT_JSON='/path/to/service-account.json'
+//	export NEBIUS_TENANT_ID='tenant-e00xxx'
+//	go test -tags scripts -v -run Test_EnumerateInstanceTypes
 func Test_EnumerateInstanceTypes(t *testing.T) {
 	serviceAccountJSON := os.Getenv("NEBIUS_SERVICE_ACCOUNT_JSON")
 	tenantID := os.Getenv("NEBIUS_TENANT_ID")
@@ -120,7 +121,7 @@ func Test_EnumerateInstanceTypes(t *testing.T) {
 		t.Fatalf("Error marshaling JSON: %v", err)
 	}
 
-	err = os.WriteFile(outputFile, output, 0644)
+	err = os.WriteFile(outputFile, output, 0o644)
 	if err != nil {
 		t.Fatalf("Error writing to file: %v", err)
 	}
@@ -130,10 +131,11 @@ func Test_EnumerateInstanceTypes(t *testing.T) {
 
 // Test_EnumerateInstanceTypesSingleRegion enumerates instance types for a specific region
 // Usage:
-//   export NEBIUS_SERVICE_ACCOUNT_JSON='/path/to/service-account.json'
-//   export NEBIUS_TENANT_ID='tenant-e00xxx'
-//   export NEBIUS_LOCATION='eu-north1'
-//   go test -tags scripts -v -run Test_EnumerateInstanceTypesSingleRegion
+//
+//	export NEBIUS_SERVICE_ACCOUNT_JSON='/path/to/service-account.json'
+//	export NEBIUS_TENANT_ID='tenant-e00xxx'
+//	export NEBIUS_LOCATION='eu-north1'
+//	go test -tags scripts -v -run Test_EnumerateInstanceTypesSingleRegion
 func Test_EnumerateInstanceTypesSingleRegion(t *testing.T) {
 	serviceAccountJSON := os.Getenv("NEBIUS_SERVICE_ACCOUNT_JSON")
 	tenantID := os.Getenv("NEBIUS_TENANT_ID")
@@ -217,7 +219,7 @@ func Test_EnumerateInstanceTypesSingleRegion(t *testing.T) {
 		t.Fatalf("Error marshaling JSON: %v", err)
 	}
 
-	err = os.WriteFile(outputFile, output, 0644)
+	err = os.WriteFile(outputFile, output, 0o644)
 	if err != nil {
 		t.Fatalf("Error writing to file: %v", err)
 	}
@@ -227,10 +229,11 @@ func Test_EnumerateInstanceTypesSingleRegion(t *testing.T) {
 
 // Test_EnumerateGPUTypes filters and displays only GPU instance types with detailed specs
 // Usage:
-//   export NEBIUS_SERVICE_ACCOUNT_JSON='/path/to/service-account.json'
-//   export NEBIUS_TENANT_ID='tenant-e00xxx'
-//   export NEBIUS_LOCATION='eu-north1'
-//   go test -tags scripts -v -run Test_EnumerateGPUTypes
+//
+//	export NEBIUS_SERVICE_ACCOUNT_JSON='/path/to/service-account.json'
+//	export NEBIUS_TENANT_ID='tenant-e00xxx'
+//	export NEBIUS_LOCATION='eu-north1'
+//	go test -tags scripts -v -run Test_EnumerateGPUTypes
 func Test_EnumerateGPUTypes(t *testing.T) {
 	serviceAccountJSON := os.Getenv("NEBIUS_SERVICE_ACCOUNT_JSON")
 	tenantID := os.Getenv("NEBIUS_TENANT_ID")

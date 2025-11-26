@@ -29,7 +29,13 @@ func (c *NebiusClient) GetInstanceTypes(ctx context.Context, args v1.GetInstance
 	// Default behavior: check ALL regions to show all available quota
 	var locations []v1.Location
 
-	if len(args.Locations) > 0 && !args.Locations.IsAll() {
+	if args.Locations.IsAll() { //nolint:gocritic // prefer if statement over switch statement
+		allLocations, err := c.GetLocations(ctx, v1.GetLocationsArgs{})
+		if err != nil {
+			return nil, errors.WrapAndTrace(err)
+		}
+		locations = allLocations
+	} else if len(args.Locations) > 0 {
 		// User requested specific locations - filter to those
 		allLocations, err := c.GetLocations(ctx, v1.GetLocationsArgs{})
 		if err == nil {
@@ -48,15 +54,8 @@ func (c *NebiusClient) GetInstanceTypes(ctx context.Context, args v1.GetInstance
 			locations = []v1.Location{{Name: c.location}}
 		}
 	} else {
-		// Default behavior: enumerate ALL regions for quota-aware discovery
-		// This shows users all instance types they have quota for, regardless of region
-		allLocations, err := c.GetLocations(ctx, v1.GetLocationsArgs{})
-		if err == nil {
-			locations = allLocations
-		} else {
-			// Fallback to client's configured location if we can't get all locations
-			locations = []v1.Location{{Name: c.location}}
-		}
+		// Fallback to client's configured location if we can't get all locations
+		locations = []v1.Location{{Name: c.location}}
 	}
 
 	// Get quota information for all regions
@@ -176,10 +175,10 @@ func (c *NebiusClient) getInstanceTypesForLocation(ctx context.Context, platform
 
 			// Convert Nebius platform preset to our InstanceType format
 			instanceType := v1.InstanceType{
-				ID:                 v1.InstanceTypeID(instanceTypeID), // Dot-separated format (e.g., "gpu-h100-sxm.8gpu-128vcpu-1600gb")
 				Location:           location.Name,
 				Type:               instanceTypeID, // Same as ID - both use dot-separated format
 				VCPU:               preset.Resources.VcpuCount,
+				Memory:             units.Base2Bytes(preset.Resources.MemoryGibibytes) * units.Gibibyte,
 				MemoryBytes:        v1.NewBytes(v1.BytesValue(preset.Resources.MemoryGibibytes), v1.Gibibyte), // Memory in GiB
 				NetworkPerformance: "standard",                                                                // Default network performance
 				IsAvailable:        isAvailable,
@@ -191,12 +190,14 @@ func (c *NebiusClient) getInstanceTypesForLocation(ctx context.Context, platform
 
 			// Add GPU information if available
 			if preset.Resources.GpuCount > 0 && !isCPUOnly {
+				memory := getGPUMemory(gpuType)
 				gpu := v1.GPU{
 					Count:        preset.Resources.GpuCount,
 					Type:         gpuType,
 					Name:         gpuName,
 					Manufacturer: v1.ManufacturerNVIDIA, // Nebius currently only supports NVIDIA GPUs
-					Memory:       getGPUMemory(gpuType), // Populate VRAM based on GPU type
+					Memory:       memory,                // Populate VRAM based on GPU type
+					MemoryBytes:  v1.NewBytes(v1.BytesValue(int64(memory)/int64(units.Gibibyte)), v1.Gibibyte),
 				}
 				instanceType.SupportedGPUs = []v1.GPU{gpu}
 			}
@@ -206,6 +207,9 @@ func (c *NebiusClient) getInstanceTypesForLocation(ctx context.Context, platform
 			if pricing != nil {
 				instanceType.BasePrice = pricing
 			}
+
+			// Make the instance type ID
+			instanceType.ID = v1.MakeGenericInstanceTypeID(instanceType)
 
 			instanceTypes = append(instanceTypes, instanceType)
 		}
@@ -368,7 +372,9 @@ func (c *NebiusClient) buildSupportedStorage() []v1.Storage {
 	// Nebius supports dynamically allocatable network SSD disks
 	// Minimum: 50GB, Maximum: 2560GB
 	minSize := 50 * units.GiB
+	minSizeBytes := v1.NewBytes(50, v1.Gibibyte)
 	maxSize := 2560 * units.GiB
+	maxSizeBytes := v1.NewBytes(2560, v1.Gibibyte)
 
 	// Pricing is roughly $0.10 per GB-month, which is ~$0.00014 per GB-hour
 	pricePerGBHr, _ := currency.NewAmount("0.00014", "USD")
@@ -379,6 +385,8 @@ func (c *NebiusClient) buildSupportedStorage() []v1.Storage {
 			Count:        1,
 			MinSize:      &minSize,
 			MaxSize:      &maxSize,
+			MinSizeBytes: &minSizeBytes,
+			MaxSizeBytes: &maxSizeBytes,
 			IsElastic:    true,
 			PricePerGBHr: &pricePerGBHr,
 		},
@@ -396,7 +404,7 @@ func (c *NebiusClient) applyInstanceTypeFilters(instanceTypes []v1.InstanceType,
 		if len(args.InstanceTypes) > 0 {
 			found := false
 			for _, requestedType := range args.InstanceTypes {
-				if string(instanceType.ID) == requestedType {
+				if instanceType.Type == requestedType {
 					found = true
 					break
 				}

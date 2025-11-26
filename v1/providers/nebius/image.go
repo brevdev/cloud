@@ -202,6 +202,13 @@ func getImageDescription(image *compute.Image) string {
 	return ""
 }
 
+const (
+	ArchitectureX86_64  = "x86_64"
+	ArchitectureArm64   = "arm64"
+	ArchitectureAMD64   = "amd64"
+	ArchitectureAArch64 = "aarch64"
+)
+
 // extractArchitecture extracts architecture information from image metadata
 func extractArchitecture(image *compute.Image) string {
 	// Check labels for architecture info
@@ -217,16 +224,15 @@ func extractArchitecture(image *compute.Image) string {
 	// Infer from image name
 	if image.Metadata != nil {
 		name := strings.ToLower(image.Metadata.Name)
-		if strings.Contains(name, "arm64") || strings.Contains(name, "aarch64") {
-			return "arm64"
+		if strings.Contains(name, ArchitectureArm64) || strings.Contains(name, ArchitectureAArch64) {
+			return ArchitectureArm64
 		}
-		if strings.Contains(name, "x86_64") || strings.Contains(name, "amd64") {
-			//nolint:goconst // Architecture string used in detection and returned as default
-			return "x86_64"
+		if strings.Contains(name, ArchitectureX86_64) || strings.Contains(name, ArchitectureAMD64) {
+			return ArchitectureX86_64
 		}
 	}
 
-	return "x86_64"
+	return ArchitectureX86_64
 }
 
 // filterImagesByArchitectures filters images by multiple architectures

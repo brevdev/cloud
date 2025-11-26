@@ -344,6 +344,7 @@ func (c *NebiusClient) convertNebiusInstanceToV1(ctx context.Context, instance *
 		InstanceType:   instanceTypeID,                    // Full instance type ID (e.g., "gpu-h100-sxm.8gpu-128vcpu-1600gb")
 		InstanceTypeID: v1.InstanceTypeID(instanceTypeID), // Same as InstanceType - required for dev-plane lookup
 		ImageID:        imageFamily,
+		DiskSize:       units.Base2Bytes(diskSize),
 		DiskSizeBytes:  v1.NewBytes(v1.BytesValue(diskSize), v1.Byte), // diskSize is already in bytes from getBootDiskSize
 		Tags:           tags,
 		Status:         v1.Status{LifecycleStatus: lifecycleStatus},
@@ -1150,6 +1151,10 @@ func (c *NebiusClient) createBootDisk(ctx context.Context, attrs v1.CreateInstan
 
 // buildDiskCreateRequest builds a disk creation request, trying image family first, then image ID
 func (c *NebiusClient) buildDiskCreateRequest(ctx context.Context, diskName string, attrs v1.CreateInstanceAttrs) (*compute.CreateDiskRequest, error) {
+	if attrs.DiskSize == 0 {
+		attrs.DiskSize = 1280 * units.Gibibyte // Defaulted by the Nebius Console
+	}
+
 	baseReq := &compute.CreateDiskRequest{
 		Metadata: &common.ResourceMetadata{
 			ParentId: c.projectID,
