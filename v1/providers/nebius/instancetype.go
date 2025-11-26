@@ -180,6 +180,7 @@ func (c *NebiusClient) getInstanceTypesForLocation(ctx context.Context, platform
 				Location:           location.Name,
 				Type:               instanceTypeID, // Same as ID - both use dot-separated format
 				VCPU:               preset.Resources.VcpuCount,
+				Memory:             units.Base2Bytes(preset.Resources.MemoryGibibytes) * units.Gibibyte,
 				MemoryBytes:        v1.NewBytes(v1.BytesValue(preset.Resources.MemoryGibibytes), v1.Gibibyte), // Memory in GiB
 				NetworkPerformance: "standard",                                                                // Default network performance
 				IsAvailable:        isAvailable,
@@ -191,12 +192,14 @@ func (c *NebiusClient) getInstanceTypesForLocation(ctx context.Context, platform
 
 			// Add GPU information if available
 			if preset.Resources.GpuCount > 0 && !isCPUOnly {
+				memory := getGPUMemory(gpuType)
 				gpu := v1.GPU{
 					Count:        preset.Resources.GpuCount,
 					Type:         gpuType,
 					Name:         gpuName,
 					Manufacturer: v1.ManufacturerNVIDIA, // Nebius currently only supports NVIDIA GPUs
-					Memory:       getGPUMemory(gpuType), // Populate VRAM based on GPU type
+					Memory:       memory,                // Populate VRAM based on GPU type
+					MemoryBytes:  v1.NewBytes(v1.BytesValue(int64(memory)/int64(units.Gibibyte)), v1.Gibibyte),
 				}
 				instanceType.SupportedGPUs = []v1.GPU{gpu}
 			}
@@ -368,7 +371,9 @@ func (c *NebiusClient) buildSupportedStorage() []v1.Storage {
 	// Nebius supports dynamically allocatable network SSD disks
 	// Minimum: 50GB, Maximum: 2560GB
 	minSize := 50 * units.GiB
+	minSizeBytes := v1.NewBytes(50, v1.Gibibyte)
 	maxSize := 2560 * units.GiB
+	maxSizeBytes := v1.NewBytes(2560, v1.Gibibyte)
 
 	// Pricing is roughly $0.10 per GB-month, which is ~$0.00014 per GB-hour
 	pricePerGBHr, _ := currency.NewAmount("0.00014", "USD")
@@ -379,6 +384,8 @@ func (c *NebiusClient) buildSupportedStorage() []v1.Storage {
 			Count:        1,
 			MinSize:      &minSize,
 			MaxSize:      &maxSize,
+			MinSizeBytes: &minSizeBytes,
+			MaxSizeBytes: &maxSizeBytes,
 			IsElastic:    true,
 			PricePerGBHr: &pricePerGBHr,
 		},

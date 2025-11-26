@@ -344,6 +344,7 @@ func (c *NebiusClient) convertNebiusInstanceToV1(ctx context.Context, instance *
 		InstanceType:   instanceTypeID,                    // Full instance type ID (e.g., "gpu-h100-sxm.8gpu-128vcpu-1600gb")
 		InstanceTypeID: v1.InstanceTypeID(instanceTypeID), // Same as InstanceType - required for dev-plane lookup
 		ImageID:        imageFamily,
+		DiskSize:       units.Base2Bytes(diskSize),
 		DiskSizeBytes:  v1.NewBytes(v1.BytesValue(diskSize), v1.Byte), // diskSize is already in bytes from getBootDiskSize
 		Tags:           tags,
 		Status:         v1.Status{LifecycleStatus: lifecycleStatus},
