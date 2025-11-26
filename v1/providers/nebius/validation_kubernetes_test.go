@@ -11,18 +11,21 @@ import (
 )
 
 func TestKubernetesValidation(t *testing.T) {
+	isValidationTest := os.Getenv("VALIDATION_TEST")
 	if isValidationTest == "" {
 		t.Skip("VALIDATION_TEST is not set, skipping Nebius Kubernetes validation tests")
 	}
 
 	testUserPrivateKeyPEMBase64 := os.Getenv("TEST_USER_PRIVATE_KEY_PEM_BASE64")
+	serviceAccountJSON := os.Getenv("NEBIUS_SERVICE_ACCOUNT_JSON")
+	tenantID := os.Getenv("NEBIUS_TENANT_ID")
 
-	if privateKeyPEMBase64 == "" || publicKeyID == "" || serviceAccountID == "" || projectID == "" {
-		t.Fatalf("NEBIUS_PRIVATE_KEY_PEM_BASE64, NEBIUS_PUBLIC_KEY_ID, NEBIUS_SERVICE_ACCOUNT_ID, and NEBIUS_PROJECT_ID must be set")
+	if serviceAccountJSON == "" || tenantID == "" {
+		t.Skip("NEBIUS_SERVICE_ACCOUNT_JSON and NEBIUS_TENANT_ID must be set")
 	}
 
 	config := validation.ProviderConfig{
-		Credential: NewNebiusCredential(fmt.Sprintf("validation-%s", t.Name()), publicKeyID, privateKeyPEMBase64, serviceAccountID, projectID),
+		Credential: NewNebiusCredential(fmt.Sprintf("validation-%s", t.Name()), serviceAccountJSON, tenantID),
 	}
 
 	// Use the test name as the name of the cluster and node group
