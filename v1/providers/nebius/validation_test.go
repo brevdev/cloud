@@ -2,7 +2,6 @@ package v1
 
 import (
 	"os"
-	"strings"
 	"testing"
 
 	"github.com/brevdev/cloud/internal/validation"
