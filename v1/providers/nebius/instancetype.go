@@ -29,7 +29,13 @@ func (c *NebiusClient) GetInstanceTypes(ctx context.Context, args v1.GetInstance
 	// Default behavior: check ALL regions to show all available quota
 	var locations []v1.Location
 
-	if len(args.Locations) > 0 && !args.Locations.IsAll() {
+	if args.Locations.IsAll() { //nolint:gocritic // prefer if statement over switch statement
+		allLocations, err := c.GetLocations(ctx, v1.GetLocationsArgs{})
+		if err != nil {
+			return nil, errors.WrapAndTrace(err)
+		}
+		locations = allLocations
+	} else if len(args.Locations) > 0 {
 		// User requested specific locations - filter to those
 		allLocations, err := c.GetLocations(ctx, v1.GetLocationsArgs{})
 		if err == nil {
@@ -48,15 +54,8 @@ func (c *NebiusClient) GetInstanceTypes(ctx context.Context, args v1.GetInstance
 			locations = []v1.Location{{Name: c.location}}
 		}
 	} else {
-		// Default behavior: enumerate ALL regions for quota-aware discovery
-		// This shows users all instance types they have quota for, regardless of region
-		allLocations, err := c.GetLocations(ctx, v1.GetLocationsArgs{})
-		if err == nil {
-			locations = allLocations
-		} else {
-			// Fallback to client's configured location if we can't get all locations
-			locations = []v1.Location{{Name: c.location}}
-		}
+		// Fallback to client's configured location if we can't get all locations
+		locations = []v1.Location{{Name: c.location}}
 	}
 
 	// Get quota information for all regions
