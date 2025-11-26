@@ -1151,6 +1151,10 @@ func (c *NebiusClient) createBootDisk(ctx context.Context, attrs v1.CreateInstan
 
 // buildDiskCreateRequest builds a disk creation request, trying image family first, then image ID
 func (c *NebiusClient) buildDiskCreateRequest(ctx context.Context, diskName string, attrs v1.CreateInstanceAttrs) (*compute.CreateDiskRequest, error) {
+	if attrs.DiskSize == 0 {
+		attrs.DiskSize = 1280 * units.Gibibyte // Defaulted by the Nebius Console
+	}
+
 	baseReq := &compute.CreateDiskRequest{
 		Metadata: &common.ResourceMetadata{
 			ParentId: c.projectID,
