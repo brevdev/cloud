@@ -22,6 +22,7 @@ func TestValidationFunctions(t *testing.T) {
 
 	config := validation.ProviderConfig{
 		Credential: newNebiusCredential(t),
+		Location:   "eu-north1",
 		StableIDs:  []v1.InstanceTypeID{"gpu-l40s-a.1gpu-8vcpu-32gb"},
 	}
 
@@ -36,6 +37,7 @@ func TestInstanceLifecycleValidation(t *testing.T) {
 
 	config := validation.ProviderConfig{
 		Credential: newNebiusCredential(t),
+		Location:   "eu-north1",
 	}
 
 	validation.RunInstanceLifecycleValidation(t, config)
