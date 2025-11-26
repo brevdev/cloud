@@ -176,7 +176,6 @@ func (c *NebiusClient) getInstanceTypesForLocation(ctx context.Context, platform
 
 			// Convert Nebius platform preset to our InstanceType format
 			instanceType := v1.InstanceType{
-				ID:                 v1.InstanceTypeID(instanceTypeID), // Dot-separated format (e.g., "gpu-h100-sxm.8gpu-128vcpu-1600gb")
 				Location:           location.Name,
 				Type:               instanceTypeID, // Same as ID - both use dot-separated format
 				VCPU:               preset.Resources.VcpuCount,
@@ -209,6 +208,9 @@ func (c *NebiusClient) getInstanceTypesForLocation(ctx context.Context, platform
 			if pricing != nil {
 				instanceType.BasePrice = pricing
 			}
+
+			// Make the instance type ID
+			instanceType.ID = v1.MakeGenericInstanceTypeID(instanceType)
 
 			instanceTypes = append(instanceTypes, instanceType)
 		}
@@ -403,7 +405,7 @@ func (c *NebiusClient) applyInstanceTypeFilters(instanceTypes []v1.InstanceType,
 		if len(args.InstanceTypes) > 0 {
 			found := false
 			for _, requestedType := range args.InstanceTypes {
-				if string(instanceType.ID) == requestedType {
+				if instanceType.Type == requestedType {
 					found = true
 					break
 				}
