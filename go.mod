@@ -26,7 +26,7 @@ require (
 	golang.org/x/text v0.29.0
 	google.golang.org/grpc v1.75.0
 	gopkg.in/validator.v2 v2.0.1
-	github.com/sfcompute/nodes-go v0.1.0-alpha.3
+	github.com/sfcompute/nodes-go v0.1.0-alpha.4
 	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/api v0.34.1
 	k8s.io/apimachinery v0.34.1
