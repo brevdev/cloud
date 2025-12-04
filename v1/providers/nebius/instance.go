@@ -1558,7 +1558,6 @@ func (c *NebiusClient) resolveImageFamily(ctx context.Context, imageID string) (
 		"mk8s-worker-node-v-1-31-ubuntu24.04-cuda12",
 		"ubuntu22.04",
 		"ubuntu20.04",
-		"ubuntu18.04",
 	}
 
 	// Check if ImageID is already a known family name
@@ -1604,9 +1603,6 @@ func (c *NebiusClient) resolveImageFamily(ctx context.Context, imageID string) (
 		}
 		if strings.Contains(name, "ubuntu20") || strings.Contains(name, "ubuntu-20") {
 			return "ubuntu20.04", nil
-		}
-		if strings.Contains(name, "ubuntu18") || strings.Contains(name, "ubuntu-18") {
-			return "ubuntu18.04", nil
 		}
 	}
 
