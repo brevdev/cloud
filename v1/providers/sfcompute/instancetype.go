@@ -22,7 +22,7 @@ func (c *SFCClient) GetLocations(ctx context.Context, _ v1.GetLocationsArgs) ([]
 	if resp != nil {
 		for _, zone := range resp.Data {
 			var available = false
-			if len(zone.AvailableCapacity) != 0 && zone.DeliveryType == "VM" && slices.Contains(allowedZones, zone.Name) == true {
+			if len(zone.AvailableCapacity) > 0 && zone.DeliveryType == "VM" && slices.Contains(allowedZones, zone.Name) == true {
 				available = true
 				locations[zone.Name] = v1.Location{
 					Name:        zone.Name,
