@@ -3,6 +3,7 @@ package v1
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	v1 "github.com/brevdev/cloud/v1"
 )
@@ -17,10 +18,11 @@ func (c *SFCClient) GetLocations(ctx context.Context, _ v1.GetLocationsArgs) ([]
 		return nil, err
 	}
 	var locations map[string]v1.Location
+	allowedZones := []string{"hayesvalley"}
 	if resp != nil {
 		for _, zone := range resp.Data {
 			var available = false
-			if len(zone.AvailableCapacity) != 0 && zone.DeliveryType == "VM" {
+			if len(zone.AvailableCapacity) != 0 && zone.DeliveryType == "VM" && slices.Contains(allowedZones, zone.Name) == true {
 				available = true
 				locations[zone.Name] = v1.Location{
 					Name:        zone.Name,
