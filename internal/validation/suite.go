@@ -65,7 +65,11 @@ func RunInstanceLifecycleValidation(t *testing.T, config ProviderConfig) {
 	capabilities, err := client.GetCapabilities(ctx)
 	require.NoError(t, err)
 
-	types, err := client.GetInstanceTypes(ctx, v1.GetInstanceTypeArgs{})
+	types, err := client.GetInstanceTypes(ctx, v1.GetInstanceTypeArgs{
+		ArchitectureFilter: &v1.ArchitectureFilter{
+			IncludeArchitectures: []v1.Architecture{v1.ArchitectureX86_64},
+		},
+	})
 	require.NoError(t, err)
 	require.NotEmpty(t, types, "Should have instance types")
 

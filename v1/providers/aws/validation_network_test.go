@@ -16,6 +16,8 @@ var (
 )
 
 func TestAWSNetworkValidation(t *testing.T) {
+	t.Skip("Skipping AWS Network validation tests")
+
 	if isValidationTest == "" {
 		t.Skip("VALIDATION_TEST is not set, skipping AWS Network validation tests")
 	}

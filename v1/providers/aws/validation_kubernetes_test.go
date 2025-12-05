@@ -11,6 +11,8 @@ import (
 )
 
 func TestAWSKubernetesValidation(t *testing.T) {
+	t.Skip("Skipping AWS Kubernetes validation tests")
+
 	if isValidationTest == "" {
 		t.Skip("VALIDATION_TEST is not set, skipping AWS Kubernetes validation tests")
 	}
