@@ -15,8 +15,8 @@ const defaultNebiusLocation = "eu-north1"
 // NebiusCredential implements the CloudCredential interface for Nebius AI Cloud
 type NebiusCredential struct {
 	RefID             string
-	ServiceAccountKey string `json:"sa_json"`   // JSON service account key
-	TenantID          string `json:"tenant_id"` // Nebius tenant ID (top-level organization)
+	ServiceAccountKey string `json:"service_account_key"` // JSON service account key
+	TenantID          string `json:"tenant_id"`           // Nebius tenant ID (top-level organization)
 }
 
 var _ v1.CloudCredential = &NebiusCredential{}
