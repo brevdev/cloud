@@ -130,6 +130,11 @@ func findProjectForRegion(ctx context.Context, sdk *gosdk.SDK, tenantID, region 
 		return "", fmt.Errorf("no projects found in tenant %s", tenantID)
 	}
 
+	// TODO: I don't think the following code is correct, as the use of monikers like "default" or "default-project"
+	// or even the nebius convention of "default-project-{region}" will work with the nebius SDK. The SDK expects
+	// the project *ID* to be used, not the name. If we get to this part of the code, it likely implies that we will
+	// not be able to proceed.
+
 	// Sort projects by ID for deterministic selection
 	// This ensures CreateInstance and ListInstances always use the same project!
 	sort.Slice(projects, func(i, j int) bool {

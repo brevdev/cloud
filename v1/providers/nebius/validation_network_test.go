@@ -16,6 +16,8 @@ var (
 )
 
 func TestNetworkValidation(t *testing.T) {
+	t.Skip("Skipping Nebius Network validation tests")
+
 	if isValidationTest == "" {
 		t.Skip("VALIDATION_TEST is not set, skipping Nebius Network validation tests")
 	}

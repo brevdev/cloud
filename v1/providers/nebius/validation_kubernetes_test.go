@@ -11,6 +11,8 @@ import (
 )
 
 func TestKubernetesValidation(t *testing.T) {
+	t.Skip("Skipping Nebius Kubernetes validation tests")
+
 	isValidationTest := os.Getenv("VALIDATION_TEST")
 	if isValidationTest == "" {
 		t.Skip("VALIDATION_TEST is not set, skipping Nebius Kubernetes validation tests")

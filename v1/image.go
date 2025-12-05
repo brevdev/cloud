@@ -112,7 +112,7 @@ func validateOSVersion(ctx context.Context, sshClient *ssh.Client) (string, erro
 	}
 
 	osVersion := strings.Trim(parts[1], "\"")
-	ubuntuRegex := regexp.MustCompile(`Ubuntu 20\.04|22\.04`)
+	ubuntuRegex := regexp.MustCompile(`Ubuntu 20\.04|22\.04|24\.04`)
 	if !ubuntuRegex.MatchString(osVersion) {
 		return "", fmt.Errorf("expected Ubuntu 20.04 or 22.04, got: %s", osVersion)
 	}
