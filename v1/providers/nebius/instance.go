@@ -344,6 +344,7 @@ func (c *NebiusClient) convertNebiusInstanceToV1(ctx context.Context, instance *
 		InstanceType:   instanceTypeID,                    // Full instance type ID (e.g., "gpu-h100-sxm.8gpu-128vcpu-1600gb")
 		InstanceTypeID: v1.InstanceTypeID(instanceTypeID), // Same as InstanceType - required for dev-plane lookup
 		ImageID:        imageFamily,
+		DiskSize:       units.Base2Bytes(diskSize),
 		DiskSizeBytes:  v1.NewBytes(v1.BytesValue(diskSize), v1.Byte), // diskSize is already in bytes from getBootDiskSize
 		Tags:           tags,
 		Status:         v1.Status{LifecycleStatus: lifecycleStatus},
@@ -1150,6 +1151,10 @@ func (c *NebiusClient) createBootDisk(ctx context.Context, attrs v1.CreateInstan
 
 // buildDiskCreateRequest builds a disk creation request, trying image family first, then image ID
 func (c *NebiusClient) buildDiskCreateRequest(ctx context.Context, diskName string, attrs v1.CreateInstanceAttrs) (*compute.CreateDiskRequest, error) {
+	if attrs.DiskSize == 0 {
+		attrs.DiskSize = 1280 * units.Gibibyte // Defaulted by the Nebius Console
+	}
+
 	baseReq := &compute.CreateDiskRequest{
 		Metadata: &common.ResourceMetadata{
 			ParentId: c.projectID,
@@ -1553,7 +1558,6 @@ func (c *NebiusClient) resolveImageFamily(ctx context.Context, imageID string) (
 		"mk8s-worker-node-v-1-31-ubuntu24.04-cuda12",
 		"ubuntu22.04",
 		"ubuntu20.04",
-		"ubuntu18.04",
 	}
 
 	// Check if ImageID is already a known family name
@@ -1599,9 +1603,6 @@ func (c *NebiusClient) resolveImageFamily(ctx context.Context, imageID string) (
 		}
 		if strings.Contains(name, "ubuntu20") || strings.Contains(name, "ubuntu-20") {
 			return "ubuntu20.04", nil
-		}
-		if strings.Contains(name, "ubuntu18") || strings.Contains(name, "ubuntu-18") {
-			return "ubuntu18.04", nil
 		}
 	}
 
