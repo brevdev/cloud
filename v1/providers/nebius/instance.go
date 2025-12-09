@@ -334,7 +334,7 @@ func (c *NebiusClient) convertNebiusInstanceToV1(ctx context.Context, instance *
 		sshUser = "admin"
 	}
 
-	return &v1.Instance{
+	inst := &v1.Instance{
 		RefID:          refID,
 		CloudCredRefID: c.refID,
 		Name:           instance.Metadata.Name,
@@ -342,7 +342,6 @@ func (c *NebiusClient) convertNebiusInstanceToV1(ctx context.Context, instance *
 		Location:       location,
 		CreatedAt:      createdAt,
 		InstanceType:   instanceTypeID, // Full instance type ID (e.g., "gpu-h100-sxm.8gpu-128vcpu-1600gb")
-		InstanceTypeID: v1.InstanceTypeID(getInstanceTypeID(instanceTypeID, location)),
 		ImageID:        imageFamily,
 		DiskSize:       units.Base2Bytes(diskSize),
 		DiskSizeBytes:  v1.NewBytes(v1.BytesValue(diskSize), v1.Byte), // diskSize is already in bytes from getBootDiskSize
@@ -355,11 +354,9 @@ func (c *NebiusClient) convertNebiusInstanceToV1(ctx context.Context, instance *
 		Hostname:  hostname,
 		SSHUser:   sshUser,
 		SSHPort:   22, // Standard SSH port
-	}, nil
-}
-
-func getInstanceTypeID(instanceType string, region string) string {
-	return fmt.Sprintf("%v-%v", instanceType, region)
+	}
+	inst.InstanceTypeID = v1.MakeGenericInstanceTypeIDFromInstance(*inst)
+	return inst, nil
 }
 
 // waitForInstanceRunning polls the instance until it reaches RUNNING state or fails
