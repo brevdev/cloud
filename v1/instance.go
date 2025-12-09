@@ -28,7 +28,7 @@ type CloudCreateTerminateInstance interface {
 	CloudInstanceReader
 }
 
-func ValidateCreateInstance(ctx context.Context, client CloudCreateTerminateInstance, attrs CreateInstanceAttrs) (*Instance, error) {
+func ValidateCreateInstance(ctx context.Context, client CloudCreateTerminateInstance, attrs CreateInstanceAttrs, selectedType InstanceType) (*Instance, error) { //nolint:gocyclo // ok
 	t0 := time.Now().Add(-time.Minute)
 	attrs.RefID = uuid.New().String()
 	name, err := makeDebuggableName(attrs.Name)
@@ -66,6 +66,9 @@ func ValidateCreateInstance(ctx context.Context, client CloudCreateTerminateInst
 	}
 	if attrs.InstanceType != "" && attrs.InstanceType != i.InstanceType {
 		validationErr = errors.Join(validationErr, fmt.Errorf("instanceType mismatch: %s != %s", attrs.InstanceType, i.InstanceType))
+	}
+	if selectedType.ID != "" && selectedType.ID != i.InstanceTypeID {
+		validationErr = errors.Join(validationErr, fmt.Errorf("instanceTypeID mismatch: %s != %s", selectedType.ID, i.InstanceTypeID))
 	}
 
 	return i, validationErr

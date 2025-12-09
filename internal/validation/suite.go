@@ -79,15 +79,17 @@ func RunInstanceLifecycleValidation(t *testing.T, config ProviderConfig) {
 
 	t.Run("ValidateCreateInstance", func(t *testing.T) {
 		attrs := v1.CreateInstanceAttrs{}
+		selectedType := v1.InstanceType{}
 		for _, typ := range types {
 			if typ.IsAvailable {
 				attrs.InstanceType = typ.Type
 				attrs.Location = typ.Location
 				attrs.PublicKey = ssh.GetTestPublicKey()
+				selectedType = typ
 				break
 			}
 		}
-		instance, err := v1.ValidateCreateInstance(ctx, client, attrs)
+		instance, err := v1.ValidateCreateInstance(ctx, client, attrs, selectedType)
 		if err != nil {
 			t.Fatalf("ValidateCreateInstance failed: %v", err)
 		}
