@@ -341,8 +341,8 @@ func (c *NebiusClient) convertNebiusInstanceToV1(ctx context.Context, instance *
 		CloudID:        instanceID,
 		Location:       location,
 		CreatedAt:      createdAt,
-		InstanceType:   instanceTypeID,                    // Full instance type ID (e.g., "gpu-h100-sxm.8gpu-128vcpu-1600gb")
-		InstanceTypeID: v1.InstanceTypeID(instanceTypeID), // Same as InstanceType - required for dev-plane lookup
+		InstanceType:   instanceTypeID, // Full instance type ID (e.g., "gpu-h100-sxm.8gpu-128vcpu-1600gb")
+		InstanceTypeID: v1.InstanceTypeID(getInstanceTypeID(instanceTypeID, location)),
 		ImageID:        imageFamily,
 		DiskSize:       units.Base2Bytes(diskSize),
 		DiskSizeBytes:  v1.NewBytes(v1.BytesValue(diskSize), v1.Byte), // diskSize is already in bytes from getBootDiskSize
@@ -356,6 +356,10 @@ func (c *NebiusClient) convertNebiusInstanceToV1(ctx context.Context, instance *
 		SSHUser:   sshUser,
 		SSHPort:   22, // Standard SSH port
 	}, nil
+}
+
+func getInstanceTypeID(instanceType string, region string) string {
+	return fmt.Sprintf("%v-%v", instanceType, region)
 }
 
 // waitForInstanceRunning polls the instance until it reaches RUNNING state or fails
