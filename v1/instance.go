@@ -28,7 +28,7 @@ type CloudCreateTerminateInstance interface {
 	CloudInstanceReader
 }
 
-func ValidateCreateInstance(ctx context.Context, client CloudCreateTerminateInstance, attrs CreateInstanceAttrs, selectedType InstanceType) (*Instance, error) {
+func ValidateCreateInstance(ctx context.Context, client CloudCreateTerminateInstance, attrs CreateInstanceAttrs, selectedType InstanceType) (*Instance, error) { //nolint:gocyclo // ok
 	t0 := time.Now().Add(-time.Minute)
 	attrs.RefID = uuid.New().String()
 	name, err := makeDebuggableName(attrs.Name)
