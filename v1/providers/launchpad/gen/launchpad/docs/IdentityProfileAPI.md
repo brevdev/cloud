@@ -29,7 +29,7 @@ import (
 )
 
 func main() {
-	profile := *openapiclient.NewProfile(time.Now(), []string{"Groups_example"}, "Id_example", time.Now(), "Username_example") // Profile | 
+	profile := *openapiclient.NewProfile(time.Now(), "DisplayName_example", []string{"Groups_example"}, "Id_example", time.Now(), "Username_example") // Profile | 
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)

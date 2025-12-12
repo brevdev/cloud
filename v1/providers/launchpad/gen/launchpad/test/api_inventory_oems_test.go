@@ -11,18 +11,19 @@ package openapi
 
 import (
 	"context"
-	"testing"
-
 	openapiclient "github.com/brevdev/cloud/v1/providers/launchpad/gen/launchpad"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"testing"
 )
 
 func Test_openapi_InventoryOemsAPIService(t *testing.T) {
+
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
 
 	t.Run("Test InventoryOemsAPIService V1InventoryOemsCreate", func(t *testing.T) {
+
 		t.Skip("skip test") // remove to run test
 
 		resp, httpRes, err := apiClient.InventoryOemsAPI.V1InventoryOemsCreate(context.Background()).Execute()
@@ -30,9 +31,11 @@ func Test_openapi_InventoryOemsAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
 
 	t.Run("Test InventoryOemsAPIService V1InventoryOemsDestroy", func(t *testing.T) {
+
 		t.Skip("skip test") // remove to run test
 
 		var id string
@@ -41,9 +44,11 @@ func Test_openapi_InventoryOemsAPIService(t *testing.T) {
 
 		require.Nil(t, err)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
 
 	t.Run("Test InventoryOemsAPIService V1InventoryOemsHistoryList", func(t *testing.T) {
+
 		t.Skip("skip test") // remove to run test
 
 		var id string
@@ -53,9 +58,11 @@ func Test_openapi_InventoryOemsAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
 
 	t.Run("Test InventoryOemsAPIService V1InventoryOemsList", func(t *testing.T) {
+
 		t.Skip("skip test") // remove to run test
 
 		resp, httpRes, err := apiClient.InventoryOemsAPI.V1InventoryOemsList(context.Background()).Execute()
@@ -63,9 +70,11 @@ func Test_openapi_InventoryOemsAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
 
 	t.Run("Test InventoryOemsAPIService V1InventoryOemsPartialUpdate", func(t *testing.T) {
+
 		t.Skip("skip test") // remove to run test
 
 		var id string
@@ -75,9 +84,11 @@ func Test_openapi_InventoryOemsAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
 
 	t.Run("Test InventoryOemsAPIService V1InventoryOemsRetrieve", func(t *testing.T) {
+
 		t.Skip("skip test") // remove to run test
 
 		var id string
@@ -87,9 +98,11 @@ func Test_openapi_InventoryOemsAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
 
 	t.Run("Test InventoryOemsAPIService V1InventoryOemsUpdate", func(t *testing.T) {
+
 		t.Skip("skip test") // remove to run test
 
 		var id string
@@ -99,5 +112,7 @@ func Test_openapi_InventoryOemsAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
+
 }

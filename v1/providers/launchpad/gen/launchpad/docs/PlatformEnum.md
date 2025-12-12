@@ -15,6 +15,8 @@
 
 * `PlatformOpenshift` (value: `"openshift"`)
 
+* `PlatformProxmox` (value: `"proxmox"`)
+
 * `PlatformVsphere` (value: `"vsphere"`)
 
 * `PlatformVsphereHorizon` (value: `"vsphere_horizon"`)

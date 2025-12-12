@@ -1,4 +1,4 @@
-# DeploymentCluster
+# ClusterPipelineCluster
 
 ## Properties
 
@@ -16,6 +16,7 @@ Name | Type | Description | Notes
 **GpuCount** | Pointer to **int32** |  | [optional] [readonly] 
 **Id** | **string** |  | [readonly] 
 **Instances** | [**[]ClusterInstancesInner**](ClusterInstancesInner.md) |  | 
+**LastProvisioningStateChange** | **time.Time** | Timestamp of the last time the cluster&#39;s provisioning_state changed | [readonly] 
 **LastUsed** | **time.Time** | Timestamp of when the cluster was last in use | [readonly] 
 **Maintenance** | Pointer to **bool** | Is the cluster in maintenance mode? | [optional] 
 **MgmtIp** | Pointer to **string** | Management IP address | [optional] 
@@ -42,845 +43,865 @@ Name | Type | Description | Notes
 
 ## Methods
 
-### NewDeploymentCluster
+### NewClusterPipelineCluster
 
-`func NewDeploymentCluster(available bool, created time.Time, deployment ClusterDeployment, gpus []ClusterGpusInner, id string, instances []ClusterInstancesInner, lastUsed time.Time, modified time.Time, providerCapacity bool, tenantIds []string, ) *DeploymentCluster`
+`func NewClusterPipelineCluster(available bool, created time.Time, deployment ClusterDeployment, gpus []ClusterGpusInner, id string, instances []ClusterInstancesInner, lastProvisioningStateChange time.Time, lastUsed time.Time, modified time.Time, providerCapacity bool, tenantIds []string, ) *ClusterPipelineCluster`
 
-NewDeploymentCluster instantiates a new DeploymentCluster object
+NewClusterPipelineCluster instantiates a new ClusterPipelineCluster object
 This constructor will assign default values to properties that have it defined,
 and makes sure properties required by API are set, but the set of arguments
 will change when the set of required properties is changed
 
-### NewDeploymentClusterWithDefaults
+### NewClusterPipelineClusterWithDefaults
 
-`func NewDeploymentClusterWithDefaults() *DeploymentCluster`
+`func NewClusterPipelineClusterWithDefaults() *ClusterPipelineCluster`
 
-NewDeploymentClusterWithDefaults instantiates a new DeploymentCluster object
+NewClusterPipelineClusterWithDefaults instantiates a new ClusterPipelineCluster object
 This constructor will only assign default values to properties that have it defined,
 but it doesn't guarantee that properties required by API are set
 
 ### GetAvailable
 
-`func (o *DeploymentCluster) GetAvailable() bool`
+`func (o *ClusterPipelineCluster) GetAvailable() bool`
 
 GetAvailable returns the Available field if non-nil, zero value otherwise.
 
 ### GetAvailableOk
 
-`func (o *DeploymentCluster) GetAvailableOk() (*bool, bool)`
+`func (o *ClusterPipelineCluster) GetAvailableOk() (*bool, bool)`
 
 GetAvailableOk returns a tuple with the Available field if it's non-nil, zero value otherwise
 and a boolean to check if the value has been set.
 
 ### SetAvailable
 
-`func (o *DeploymentCluster) SetAvailable(v bool)`
+`func (o *ClusterPipelineCluster) SetAvailable(v bool)`
 
 SetAvailable sets Available field to given value.
 
 
 ### GetBastionName
 
-`func (o *DeploymentCluster) GetBastionName() string`
+`func (o *ClusterPipelineCluster) GetBastionName() string`
 
 GetBastionName returns the BastionName field if non-nil, zero value otherwise.
 
 ### GetBastionNameOk
 
-`func (o *DeploymentCluster) GetBastionNameOk() (*string, bool)`
+`func (o *ClusterPipelineCluster) GetBastionNameOk() (*string, bool)`
 
 GetBastionNameOk returns a tuple with the BastionName field if it's non-nil, zero value otherwise
 and a boolean to check if the value has been set.
 
 ### SetBastionName
 
-`func (o *DeploymentCluster) SetBastionName(v string)`
+`func (o *ClusterPipelineCluster) SetBastionName(v string)`
 
 SetBastionName sets BastionName field to given value.
 
 ### HasBastionName
 
-`func (o *DeploymentCluster) HasBastionName() bool`
+`func (o *ClusterPipelineCluster) HasBastionName() bool`
 
 HasBastionName returns a boolean if a field has been set.
 
 ### GetCreated
 
-`func (o *DeploymentCluster) GetCreated() time.Time`
+`func (o *ClusterPipelineCluster) GetCreated() time.Time`
 
 GetCreated returns the Created field if non-nil, zero value otherwise.
 
 ### GetCreatedOk
 
-`func (o *DeploymentCluster) GetCreatedOk() (*time.Time, bool)`
+`func (o *ClusterPipelineCluster) GetCreatedOk() (*time.Time, bool)`
 
 GetCreatedOk returns a tuple with the Created field if it's non-nil, zero value otherwise
 and a boolean to check if the value has been set.
 
 ### SetCreated
 
-`func (o *DeploymentCluster) SetCreated(v time.Time)`
+`func (o *ClusterPipelineCluster) SetCreated(v time.Time)`
 
 SetCreated sets Created field to given value.
 
 
 ### GetDeployment
 
-`func (o *DeploymentCluster) GetDeployment() ClusterDeployment`
+`func (o *ClusterPipelineCluster) GetDeployment() ClusterDeployment`
 
 GetDeployment returns the Deployment field if non-nil, zero value otherwise.
 
 ### GetDeploymentOk
 
-`func (o *DeploymentCluster) GetDeploymentOk() (*ClusterDeployment, bool)`
+`func (o *ClusterPipelineCluster) GetDeploymentOk() (*ClusterDeployment, bool)`
 
 GetDeploymentOk returns a tuple with the Deployment field if it's non-nil, zero value otherwise
 and a boolean to check if the value has been set.
 
 ### SetDeployment
 
-`func (o *DeploymentCluster) SetDeployment(v ClusterDeployment)`
+`func (o *ClusterPipelineCluster) SetDeployment(v ClusterDeployment)`
 
 SetDeployment sets Deployment field to given value.
 
 
 ### GetEnabled
 
-`func (o *DeploymentCluster) GetEnabled() bool`
+`func (o *ClusterPipelineCluster) GetEnabled() bool`
 
 GetEnabled returns the Enabled field if non-nil, zero value otherwise.
 
 ### GetEnabledOk
 
-`func (o *DeploymentCluster) GetEnabledOk() (*bool, bool)`
+`func (o *ClusterPipelineCluster) GetEnabledOk() (*bool, bool)`
 
 GetEnabledOk returns a tuple with the Enabled field if it's non-nil, zero value otherwise
 and a boolean to check if the value has been set.
 
 ### SetEnabled
 
-`func (o *DeploymentCluster) SetEnabled(v bool)`
+`func (o *ClusterPipelineCluster) SetEnabled(v bool)`
 
 SetEnabled sets Enabled field to given value.
 
 ### HasEnabled
 
-`func (o *DeploymentCluster) HasEnabled() bool`
+`func (o *ClusterPipelineCluster) HasEnabled() bool`
 
 HasEnabled returns a boolean if a field has been set.
 
 ### GetExperience
 
-`func (o *DeploymentCluster) GetExperience() string`
+`func (o *ClusterPipelineCluster) GetExperience() string`
 
 GetExperience returns the Experience field if non-nil, zero value otherwise.
 
 ### GetExperienceOk
 
-`func (o *DeploymentCluster) GetExperienceOk() (*string, bool)`
+`func (o *ClusterPipelineCluster) GetExperienceOk() (*string, bool)`
 
 GetExperienceOk returns a tuple with the Experience field if it's non-nil, zero value otherwise
 and a boolean to check if the value has been set.
 
 ### SetExperience
 
-`func (o *DeploymentCluster) SetExperience(v string)`
+`func (o *ClusterPipelineCluster) SetExperience(v string)`
 
 SetExperience sets Experience field to given value.
 
 ### HasExperience
 
-`func (o *DeploymentCluster) HasExperience() bool`
+`func (o *ClusterPipelineCluster) HasExperience() bool`
 
 HasExperience returns a boolean if a field has been set.
 
 ### GetFreeBy
 
-`func (o *DeploymentCluster) GetFreeBy() time.Time`
+`func (o *ClusterPipelineCluster) GetFreeBy() time.Time`
 
 GetFreeBy returns the FreeBy field if non-nil, zero value otherwise.
 
 ### GetFreeByOk
 
-`func (o *DeploymentCluster) GetFreeByOk() (*time.Time, bool)`
+`func (o *ClusterPipelineCluster) GetFreeByOk() (*time.Time, bool)`
 
 GetFreeByOk returns a tuple with the FreeBy field if it's non-nil, zero value otherwise
 and a boolean to check if the value has been set.
 
 ### SetFreeBy
 
-`func (o *DeploymentCluster) SetFreeBy(v time.Time)`
+`func (o *ClusterPipelineCluster) SetFreeBy(v time.Time)`
 
 SetFreeBy sets FreeBy field to given value.
 
 ### HasFreeBy
 
-`func (o *DeploymentCluster) HasFreeBy() bool`
+`func (o *ClusterPipelineCluster) HasFreeBy() bool`
 
 HasFreeBy returns a boolean if a field has been set.
 
 ### GetGpus
 
-`func (o *DeploymentCluster) GetGpus() []ClusterGpusInner`
+`func (o *ClusterPipelineCluster) GetGpus() []ClusterGpusInner`
 
 GetGpus returns the Gpus field if non-nil, zero value otherwise.
 
 ### GetGpusOk
 
-`func (o *DeploymentCluster) GetGpusOk() (*[]ClusterGpusInner, bool)`
+`func (o *ClusterPipelineCluster) GetGpusOk() (*[]ClusterGpusInner, bool)`
 
 GetGpusOk returns a tuple with the Gpus field if it's non-nil, zero value otherwise
 and a boolean to check if the value has been set.
 
 ### SetGpus
 
-`func (o *DeploymentCluster) SetGpus(v []ClusterGpusInner)`
+`func (o *ClusterPipelineCluster) SetGpus(v []ClusterGpusInner)`
 
 SetGpus sets Gpus field to given value.
 
 
 ### GetGpuAlias
 
-`func (o *DeploymentCluster) GetGpuAlias() string`
+`func (o *ClusterPipelineCluster) GetGpuAlias() string`
 
 GetGpuAlias returns the GpuAlias field if non-nil, zero value otherwise.
 
 ### GetGpuAliasOk
 
-`func (o *DeploymentCluster) GetGpuAliasOk() (*string, bool)`
+`func (o *ClusterPipelineCluster) GetGpuAliasOk() (*string, bool)`
 
 GetGpuAliasOk returns a tuple with the GpuAlias field if it's non-nil, zero value otherwise
 and a boolean to check if the value has been set.
 
 ### SetGpuAlias
 
-`func (o *DeploymentCluster) SetGpuAlias(v string)`
+`func (o *ClusterPipelineCluster) SetGpuAlias(v string)`
 
 SetGpuAlias sets GpuAlias field to given value.
 
 ### HasGpuAlias
 
-`func (o *DeploymentCluster) HasGpuAlias() bool`
+`func (o *ClusterPipelineCluster) HasGpuAlias() bool`
 
 HasGpuAlias returns a boolean if a field has been set.
 
 ### GetGpuCount
 
-`func (o *DeploymentCluster) GetGpuCount() int32`
+`func (o *ClusterPipelineCluster) GetGpuCount() int32`
 
 GetGpuCount returns the GpuCount field if non-nil, zero value otherwise.
 
 ### GetGpuCountOk
 
-`func (o *DeploymentCluster) GetGpuCountOk() (*int32, bool)`
+`func (o *ClusterPipelineCluster) GetGpuCountOk() (*int32, bool)`
 
 GetGpuCountOk returns a tuple with the GpuCount field if it's non-nil, zero value otherwise
 and a boolean to check if the value has been set.
 
 ### SetGpuCount
 
-`func (o *DeploymentCluster) SetGpuCount(v int32)`
+`func (o *ClusterPipelineCluster) SetGpuCount(v int32)`
 
 SetGpuCount sets GpuCount field to given value.
 
 ### HasGpuCount
 
-`func (o *DeploymentCluster) HasGpuCount() bool`
+`func (o *ClusterPipelineCluster) HasGpuCount() bool`
 
 HasGpuCount returns a boolean if a field has been set.
 
 ### GetId
 
-`func (o *DeploymentCluster) GetId() string`
+`func (o *ClusterPipelineCluster) GetId() string`
 
 GetId returns the Id field if non-nil, zero value otherwise.
 
 ### GetIdOk
 
-`func (o *DeploymentCluster) GetIdOk() (*string, bool)`
+`func (o *ClusterPipelineCluster) GetIdOk() (*string, bool)`
 
 GetIdOk returns a tuple with the Id field if it's non-nil, zero value otherwise
 and a boolean to check if the value has been set.
 
 ### SetId
 
-`func (o *DeploymentCluster) SetId(v string)`
+`func (o *ClusterPipelineCluster) SetId(v string)`
 
 SetId sets Id field to given value.
 
 
 ### GetInstances
 
-`func (o *DeploymentCluster) GetInstances() []ClusterInstancesInner`
+`func (o *ClusterPipelineCluster) GetInstances() []ClusterInstancesInner`
 
 GetInstances returns the Instances field if non-nil, zero value otherwise.
 
 ### GetInstancesOk
 
-`func (o *DeploymentCluster) GetInstancesOk() (*[]ClusterInstancesInner, bool)`
+`func (o *ClusterPipelineCluster) GetInstancesOk() (*[]ClusterInstancesInner, bool)`
 
 GetInstancesOk returns a tuple with the Instances field if it's non-nil, zero value otherwise
 and a boolean to check if the value has been set.
 
 ### SetInstances
 
-`func (o *DeploymentCluster) SetInstances(v []ClusterInstancesInner)`
+`func (o *ClusterPipelineCluster) SetInstances(v []ClusterInstancesInner)`
 
 SetInstances sets Instances field to given value.
 
 
+### GetLastProvisioningStateChange
+
+`func (o *ClusterPipelineCluster) GetLastProvisioningStateChange() time.Time`
+
+GetLastProvisioningStateChange returns the LastProvisioningStateChange field if non-nil, zero value otherwise.
+
+### GetLastProvisioningStateChangeOk
+
+`func (o *ClusterPipelineCluster) GetLastProvisioningStateChangeOk() (*time.Time, bool)`
+
+GetLastProvisioningStateChangeOk returns a tuple with the LastProvisioningStateChange field if it's non-nil, zero value otherwise
+and a boolean to check if the value has been set.
+
+### SetLastProvisioningStateChange
+
+`func (o *ClusterPipelineCluster) SetLastProvisioningStateChange(v time.Time)`
+
+SetLastProvisioningStateChange sets LastProvisioningStateChange field to given value.
+
+
 ### GetLastUsed
 
-`func (o *DeploymentCluster) GetLastUsed() time.Time`
+`func (o *ClusterPipelineCluster) GetLastUsed() time.Time`
 
 GetLastUsed returns the LastUsed field if non-nil, zero value otherwise.
 
 ### GetLastUsedOk
 
-`func (o *DeploymentCluster) GetLastUsedOk() (*time.Time, bool)`
+`func (o *ClusterPipelineCluster) GetLastUsedOk() (*time.Time, bool)`
 
 GetLastUsedOk returns a tuple with the LastUsed field if it's non-nil, zero value otherwise
 and a boolean to check if the value has been set.
 
 ### SetLastUsed
 
-`func (o *DeploymentCluster) SetLastUsed(v time.Time)`
+`func (o *ClusterPipelineCluster) SetLastUsed(v time.Time)`
 
 SetLastUsed sets LastUsed field to given value.
 
 
 ### GetMaintenance
 
-`func (o *DeploymentCluster) GetMaintenance() bool`
+`func (o *ClusterPipelineCluster) GetMaintenance() bool`
 
 GetMaintenance returns the Maintenance field if non-nil, zero value otherwise.
 
 ### GetMaintenanceOk
 
-`func (o *DeploymentCluster) GetMaintenanceOk() (*bool, bool)`
+`func (o *ClusterPipelineCluster) GetMaintenanceOk() (*bool, bool)`
 
 GetMaintenanceOk returns a tuple with the Maintenance field if it's non-nil, zero value otherwise
 and a boolean to check if the value has been set.
 
 ### SetMaintenance
 
-`func (o *DeploymentCluster) SetMaintenance(v bool)`
+`func (o *ClusterPipelineCluster) SetMaintenance(v bool)`
 
 SetMaintenance sets Maintenance field to given value.
 
 ### HasMaintenance
 
-`func (o *DeploymentCluster) HasMaintenance() bool`
+`func (o *ClusterPipelineCluster) HasMaintenance() bool`
 
 HasMaintenance returns a boolean if a field has been set.
 
 ### GetMgmtIp
 
-`func (o *DeploymentCluster) GetMgmtIp() string`
+`func (o *ClusterPipelineCluster) GetMgmtIp() string`
 
 GetMgmtIp returns the MgmtIp field if non-nil, zero value otherwise.
 
 ### GetMgmtIpOk
 
-`func (o *DeploymentCluster) GetMgmtIpOk() (*string, bool)`
+`func (o *ClusterPipelineCluster) GetMgmtIpOk() (*string, bool)`
 
 GetMgmtIpOk returns a tuple with the MgmtIp field if it's non-nil, zero value otherwise
 and a boolean to check if the value has been set.
 
 ### SetMgmtIp
 
-`func (o *DeploymentCluster) SetMgmtIp(v string)`
+`func (o *ClusterPipelineCluster) SetMgmtIp(v string)`
 
 SetMgmtIp sets MgmtIp field to given value.
 
 ### HasMgmtIp
 
-`func (o *DeploymentCluster) HasMgmtIp() bool`
+`func (o *ClusterPipelineCluster) HasMgmtIp() bool`
 
 HasMgmtIp returns a boolean if a field has been set.
 
 ### GetMgmtMac
 
-`func (o *DeploymentCluster) GetMgmtMac() string`
+`func (o *ClusterPipelineCluster) GetMgmtMac() string`
 
 GetMgmtMac returns the MgmtMac field if non-nil, zero value otherwise.
 
 ### GetMgmtMacOk
 
-`func (o *DeploymentCluster) GetMgmtMacOk() (*string, bool)`
+`func (o *ClusterPipelineCluster) GetMgmtMacOk() (*string, bool)`
 
 GetMgmtMacOk returns a tuple with the MgmtMac field if it's non-nil, zero value otherwise
 and a boolean to check if the value has been set.
 
 ### SetMgmtMac
 
-`func (o *DeploymentCluster) SetMgmtMac(v string)`
+`func (o *ClusterPipelineCluster) SetMgmtMac(v string)`
 
 SetMgmtMac sets MgmtMac field to given value.
 
 ### HasMgmtMac
 
-`func (o *DeploymentCluster) HasMgmtMac() bool`
+`func (o *ClusterPipelineCluster) HasMgmtMac() bool`
 
 HasMgmtMac returns a boolean if a field has been set.
 
 ### GetModified
 
-`func (o *DeploymentCluster) GetModified() time.Time`
+`func (o *ClusterPipelineCluster) GetModified() time.Time`
 
 GetModified returns the Modified field if non-nil, zero value otherwise.
 
 ### GetModifiedOk
 
-`func (o *DeploymentCluster) GetModifiedOk() (*time.Time, bool)`
+`func (o *ClusterPipelineCluster) GetModifiedOk() (*time.Time, bool)`
 
 GetModifiedOk returns a tuple with the Modified field if it's non-nil, zero value otherwise
 and a boolean to check if the value has been set.
 
 ### SetModified
 
-`func (o *DeploymentCluster) SetModified(v time.Time)`
+`func (o *ClusterPipelineCluster) SetModified(v time.Time)`
 
 SetModified sets Modified field to given value.
 
 
 ### GetNetmask
 
-`func (o *DeploymentCluster) GetNetmask() int32`
+`func (o *ClusterPipelineCluster) GetNetmask() int32`
 
 GetNetmask returns the Netmask field if non-nil, zero value otherwise.
 
 ### GetNetmaskOk
 
-`func (o *DeploymentCluster) GetNetmaskOk() (*int32, bool)`
+`func (o *ClusterPipelineCluster) GetNetmaskOk() (*int32, bool)`
 
 GetNetmaskOk returns a tuple with the Netmask field if it's non-nil, zero value otherwise
 and a boolean to check if the value has been set.
 
 ### SetNetmask
 
-`func (o *DeploymentCluster) SetNetmask(v int32)`
+`func (o *ClusterPipelineCluster) SetNetmask(v int32)`
 
 SetNetmask sets Netmask field to given value.
 
 ### HasNetmask
 
-`func (o *DeploymentCluster) HasNetmask() bool`
+`func (o *ClusterPipelineCluster) HasNetmask() bool`
 
 HasNetmask returns a boolean if a field has been set.
 
 ### GetNodeCount
 
-`func (o *DeploymentCluster) GetNodeCount() int32`
+`func (o *ClusterPipelineCluster) GetNodeCount() int32`
 
 GetNodeCount returns the NodeCount field if non-nil, zero value otherwise.
 
 ### GetNodeCountOk
 
-`func (o *DeploymentCluster) GetNodeCountOk() (*int32, bool)`
+`func (o *ClusterPipelineCluster) GetNodeCountOk() (*int32, bool)`
 
 GetNodeCountOk returns a tuple with the NodeCount field if it's non-nil, zero value otherwise
 and a boolean to check if the value has been set.
 
 ### SetNodeCount
 
-`func (o *DeploymentCluster) SetNodeCount(v int32)`
+`func (o *ClusterPipelineCluster) SetNodeCount(v int32)`
 
 SetNodeCount sets NodeCount field to given value.
 
 ### HasNodeCount
 
-`func (o *DeploymentCluster) HasNodeCount() bool`
+`func (o *ClusterPipelineCluster) HasNodeCount() bool`
 
 HasNodeCount returns a boolean if a field has been set.
 
 ### GetNodes
 
-`func (o *DeploymentCluster) GetNodes() []ClusterNodesInner`
+`func (o *ClusterPipelineCluster) GetNodes() []ClusterNodesInner`
 
 GetNodes returns the Nodes field if non-nil, zero value otherwise.
 
 ### GetNodesOk
 
-`func (o *DeploymentCluster) GetNodesOk() (*[]ClusterNodesInner, bool)`
+`func (o *ClusterPipelineCluster) GetNodesOk() (*[]ClusterNodesInner, bool)`
 
 GetNodesOk returns a tuple with the Nodes field if it's non-nil, zero value otherwise
 and a boolean to check if the value has been set.
 
 ### SetNodes
 
-`func (o *DeploymentCluster) SetNodes(v []ClusterNodesInner)`
+`func (o *ClusterPipelineCluster) SetNodes(v []ClusterNodesInner)`
 
 SetNodes sets Nodes field to given value.
 
 ### HasNodes
 
-`func (o *DeploymentCluster) HasNodes() bool`
+`func (o *ClusterPipelineCluster) HasNodes() bool`
 
 HasNodes returns a boolean if a field has been set.
 
 ### GetNotes
 
-`func (o *DeploymentCluster) GetNotes() string`
+`func (o *ClusterPipelineCluster) GetNotes() string`
 
 GetNotes returns the Notes field if non-nil, zero value otherwise.
 
 ### GetNotesOk
 
-`func (o *DeploymentCluster) GetNotesOk() (*string, bool)`
+`func (o *ClusterPipelineCluster) GetNotesOk() (*string, bool)`
 
 GetNotesOk returns a tuple with the Notes field if it's non-nil, zero value otherwise
 and a boolean to check if the value has been set.
 
 ### SetNotes
 
-`func (o *DeploymentCluster) SetNotes(v string)`
+`func (o *ClusterPipelineCluster) SetNotes(v string)`
 
 SetNotes sets Notes field to given value.
 
 ### HasNotes
 
-`func (o *DeploymentCluster) HasNotes() bool`
+`func (o *ClusterPipelineCluster) HasNotes() bool`
 
 HasNotes returns a boolean if a field has been set.
 
 ### GetPersist
 
-`func (o *DeploymentCluster) GetPersist() bool`
+`func (o *ClusterPipelineCluster) GetPersist() bool`
 
 GetPersist returns the Persist field if non-nil, zero value otherwise.
 
 ### GetPersistOk
 
-`func (o *DeploymentCluster) GetPersistOk() (*bool, bool)`
+`func (o *ClusterPipelineCluster) GetPersistOk() (*bool, bool)`
 
 GetPersistOk returns a tuple with the Persist field if it's non-nil, zero value otherwise
 and a boolean to check if the value has been set.
 
 ### SetPersist
 
-`func (o *DeploymentCluster) SetPersist(v bool)`
+`func (o *ClusterPipelineCluster) SetPersist(v bool)`
 
 SetPersist sets Persist field to given value.
 
 ### HasPersist
 
-`func (o *DeploymentCluster) HasPersist() bool`
+`func (o *ClusterPipelineCluster) HasPersist() bool`
 
 HasPersist returns a boolean if a field has been set.
 
 ### GetProviderCapacity
 
-`func (o *DeploymentCluster) GetProviderCapacity() bool`
+`func (o *ClusterPipelineCluster) GetProviderCapacity() bool`
 
 GetProviderCapacity returns the ProviderCapacity field if non-nil, zero value otherwise.
 
 ### GetProviderCapacityOk
 
-`func (o *DeploymentCluster) GetProviderCapacityOk() (*bool, bool)`
+`func (o *ClusterPipelineCluster) GetProviderCapacityOk() (*bool, bool)`
 
 GetProviderCapacityOk returns a tuple with the ProviderCapacity field if it's non-nil, zero value otherwise
 and a boolean to check if the value has been set.
 
 ### SetProviderCapacity
 
-`func (o *DeploymentCluster) SetProviderCapacity(v bool)`
+`func (o *ClusterPipelineCluster) SetProviderCapacity(v bool)`
 
 SetProviderCapacity sets ProviderCapacity field to given value.
 
 
 ### GetProvisionUser
 
-`func (o *DeploymentCluster) GetProvisionUser() string`
+`func (o *ClusterPipelineCluster) GetProvisionUser() string`
 
 GetProvisionUser returns the ProvisionUser field if non-nil, zero value otherwise.
 
 ### GetProvisionUserOk
 
-`func (o *DeploymentCluster) GetProvisionUserOk() (*string, bool)`
+`func (o *ClusterPipelineCluster) GetProvisionUserOk() (*string, bool)`
 
 GetProvisionUserOk returns a tuple with the ProvisionUser field if it's non-nil, zero value otherwise
 and a boolean to check if the value has been set.
 
 ### SetProvisionUser
 
-`func (o *DeploymentCluster) SetProvisionUser(v string)`
+`func (o *ClusterPipelineCluster) SetProvisionUser(v string)`
 
 SetProvisionUser sets ProvisionUser field to given value.
 
 ### HasProvisionUser
 
-`func (o *DeploymentCluster) HasProvisionUser() bool`
+`func (o *ClusterPipelineCluster) HasProvisionUser() bool`
 
 HasProvisionUser returns a boolean if a field has been set.
 
 ### GetProvisioningAttempts
 
-`func (o *DeploymentCluster) GetProvisioningAttempts() int32`
+`func (o *ClusterPipelineCluster) GetProvisioningAttempts() int32`
 
 GetProvisioningAttempts returns the ProvisioningAttempts field if non-nil, zero value otherwise.
 
 ### GetProvisioningAttemptsOk
 
-`func (o *DeploymentCluster) GetProvisioningAttemptsOk() (*int32, bool)`
+`func (o *ClusterPipelineCluster) GetProvisioningAttemptsOk() (*int32, bool)`
 
 GetProvisioningAttemptsOk returns a tuple with the ProvisioningAttempts field if it's non-nil, zero value otherwise
 and a boolean to check if the value has been set.
 
 ### SetProvisioningAttempts
 
-`func (o *DeploymentCluster) SetProvisioningAttempts(v int32)`
+`func (o *ClusterPipelineCluster) SetProvisioningAttempts(v int32)`
 
 SetProvisioningAttempts sets ProvisioningAttempts field to given value.
 
 ### HasProvisioningAttempts
 
-`func (o *DeploymentCluster) HasProvisioningAttempts() bool`
+`func (o *ClusterPipelineCluster) HasProvisioningAttempts() bool`
 
 HasProvisioningAttempts returns a boolean if a field has been set.
 
 ### GetProvisioningConfig
 
-`func (o *DeploymentCluster) GetProvisioningConfig() string`
+`func (o *ClusterPipelineCluster) GetProvisioningConfig() string`
 
 GetProvisioningConfig returns the ProvisioningConfig field if non-nil, zero value otherwise.
 
 ### GetProvisioningConfigOk
 
-`func (o *DeploymentCluster) GetProvisioningConfigOk() (*string, bool)`
+`func (o *ClusterPipelineCluster) GetProvisioningConfigOk() (*string, bool)`
 
 GetProvisioningConfigOk returns a tuple with the ProvisioningConfig field if it's non-nil, zero value otherwise
 and a boolean to check if the value has been set.
 
 ### SetProvisioningConfig
 
-`func (o *DeploymentCluster) SetProvisioningConfig(v string)`
+`func (o *ClusterPipelineCluster) SetProvisioningConfig(v string)`
 
 SetProvisioningConfig sets ProvisioningConfig field to given value.
 
 ### HasProvisioningConfig
 
-`func (o *DeploymentCluster) HasProvisioningConfig() bool`
+`func (o *ClusterPipelineCluster) HasProvisioningConfig() bool`
 
 HasProvisioningConfig returns a boolean if a field has been set.
 
 ### GetProvisioningRequest
 
-`func (o *DeploymentCluster) GetProvisioningRequest() string`
+`func (o *ClusterPipelineCluster) GetProvisioningRequest() string`
 
 GetProvisioningRequest returns the ProvisioningRequest field if non-nil, zero value otherwise.
 
 ### GetProvisioningRequestOk
 
-`func (o *DeploymentCluster) GetProvisioningRequestOk() (*string, bool)`
+`func (o *ClusterPipelineCluster) GetProvisioningRequestOk() (*string, bool)`
 
 GetProvisioningRequestOk returns a tuple with the ProvisioningRequest field if it's non-nil, zero value otherwise
 and a boolean to check if the value has been set.
 
 ### SetProvisioningRequest
 
-`func (o *DeploymentCluster) SetProvisioningRequest(v string)`
+`func (o *ClusterPipelineCluster) SetProvisioningRequest(v string)`
 
 SetProvisioningRequest sets ProvisioningRequest field to given value.
 
 ### HasProvisioningRequest
 
-`func (o *DeploymentCluster) HasProvisioningRequest() bool`
+`func (o *ClusterPipelineCluster) HasProvisioningRequest() bool`
 
 HasProvisioningRequest returns a boolean if a field has been set.
 
 ### GetProvisioningState
 
-`func (o *DeploymentCluster) GetProvisioningState() ProvisioningStateEnum`
+`func (o *ClusterPipelineCluster) GetProvisioningState() ProvisioningStateEnum`
 
 GetProvisioningState returns the ProvisioningState field if non-nil, zero value otherwise.
 
 ### GetProvisioningStateOk
 
-`func (o *DeploymentCluster) GetProvisioningStateOk() (*ProvisioningStateEnum, bool)`
+`func (o *ClusterPipelineCluster) GetProvisioningStateOk() (*ProvisioningStateEnum, bool)`
 
 GetProvisioningStateOk returns a tuple with the ProvisioningState field if it's non-nil, zero value otherwise
 and a boolean to check if the value has been set.
 
 ### SetProvisioningState
 
-`func (o *DeploymentCluster) SetProvisioningState(v ProvisioningStateEnum)`
+`func (o *ClusterPipelineCluster) SetProvisioningState(v ProvisioningStateEnum)`
 
 SetProvisioningState sets ProvisioningState field to given value.
 
 ### HasProvisioningState
 
-`func (o *DeploymentCluster) HasProvisioningState() bool`
+`func (o *ClusterPipelineCluster) HasProvisioningState() bool`
 
 HasProvisioningState returns a boolean if a field has been set.
 
 ### GetPublicAddress
 
-`func (o *DeploymentCluster) GetPublicAddress() string`
+`func (o *ClusterPipelineCluster) GetPublicAddress() string`
 
 GetPublicAddress returns the PublicAddress field if non-nil, zero value otherwise.
 
 ### GetPublicAddressOk
 
-`func (o *DeploymentCluster) GetPublicAddressOk() (*string, bool)`
+`func (o *ClusterPipelineCluster) GetPublicAddressOk() (*string, bool)`
 
 GetPublicAddressOk returns a tuple with the PublicAddress field if it's non-nil, zero value otherwise
 and a boolean to check if the value has been set.
 
 ### SetPublicAddress
 
-`func (o *DeploymentCluster) SetPublicAddress(v string)`
+`func (o *ClusterPipelineCluster) SetPublicAddress(v string)`
 
 SetPublicAddress sets PublicAddress field to given value.
 
 ### HasPublicAddress
 
-`func (o *DeploymentCluster) HasPublicAddress() bool`
+`func (o *ClusterPipelineCluster) HasPublicAddress() bool`
 
 HasPublicAddress returns a boolean if a field has been set.
 
 ### GetRequestId
 
-`func (o *DeploymentCluster) GetRequestId() string`
+`func (o *ClusterPipelineCluster) GetRequestId() string`
 
 GetRequestId returns the RequestId field if non-nil, zero value otherwise.
 
 ### GetRequestIdOk
 
-`func (o *DeploymentCluster) GetRequestIdOk() (*string, bool)`
+`func (o *ClusterPipelineCluster) GetRequestIdOk() (*string, bool)`
 
 GetRequestIdOk returns a tuple with the RequestId field if it's non-nil, zero value otherwise
 and a boolean to check if the value has been set.
 
 ### SetRequestId
 
-`func (o *DeploymentCluster) SetRequestId(v string)`
+`func (o *ClusterPipelineCluster) SetRequestId(v string)`
 
 SetRequestId sets RequestId field to given value.
 
 ### HasRequestId
 
-`func (o *DeploymentCluster) HasRequestId() bool`
+`func (o *ClusterPipelineCluster) HasRequestId() bool`
 
 HasRequestId returns a boolean if a field has been set.
 
 ### GetReservation
 
-`func (o *DeploymentCluster) GetReservation() bool`
+`func (o *ClusterPipelineCluster) GetReservation() bool`
 
 GetReservation returns the Reservation field if non-nil, zero value otherwise.
 
 ### GetReservationOk
 
-`func (o *DeploymentCluster) GetReservationOk() (*bool, bool)`
+`func (o *ClusterPipelineCluster) GetReservationOk() (*bool, bool)`
 
 GetReservationOk returns a tuple with the Reservation field if it's non-nil, zero value otherwise
 and a boolean to check if the value has been set.
 
 ### SetReservation
 
-`func (o *DeploymentCluster) SetReservation(v bool)`
+`func (o *ClusterPipelineCluster) SetReservation(v bool)`
 
 SetReservation sets Reservation field to given value.
 
 ### HasReservation
 
-`func (o *DeploymentCluster) HasReservation() bool`
+`func (o *ClusterPipelineCluster) HasReservation() bool`
 
 HasReservation returns a boolean if a field has been set.
 
 ### GetTenantIds
 
-`func (o *DeploymentCluster) GetTenantIds() []string`
+`func (o *ClusterPipelineCluster) GetTenantIds() []string`
 
 GetTenantIds returns the TenantIds field if non-nil, zero value otherwise.
 
 ### GetTenantIdsOk
 
-`func (o *DeploymentCluster) GetTenantIdsOk() (*[]string, bool)`
+`func (o *ClusterPipelineCluster) GetTenantIdsOk() (*[]string, bool)`
 
 GetTenantIdsOk returns a tuple with the TenantIds field if it's non-nil, zero value otherwise
 and a boolean to check if the value has been set.
 
 ### SetTenantIds
 
-`func (o *DeploymentCluster) SetTenantIds(v []string)`
+`func (o *ClusterPipelineCluster) SetTenantIds(v []string)`
 
 SetTenantIds sets TenantIds field to given value.
 
 
 ### GetVlanId
 
-`func (o *DeploymentCluster) GetVlanId() int32`
+`func (o *ClusterPipelineCluster) GetVlanId() int32`
 
 GetVlanId returns the VlanId field if non-nil, zero value otherwise.
 
 ### GetVlanIdOk
 
-`func (o *DeploymentCluster) GetVlanIdOk() (*int32, bool)`
+`func (o *ClusterPipelineCluster) GetVlanIdOk() (*int32, bool)`
 
 GetVlanIdOk returns a tuple with the VlanId field if it's non-nil, zero value otherwise
 and a boolean to check if the value has been set.
 
 ### SetVlanId
 
-`func (o *DeploymentCluster) SetVlanId(v int32)`
+`func (o *ClusterPipelineCluster) SetVlanId(v int32)`
 
 SetVlanId sets VlanId field to given value.
 
 ### HasVlanId
 
-`func (o *DeploymentCluster) HasVlanId() bool`
+`func (o *ClusterPipelineCluster) HasVlanId() bool`
 
 HasVlanId returns a boolean if a field has been set.
 
 ### GetWorkshop
 
-`func (o *DeploymentCluster) GetWorkshop() bool`
+`func (o *ClusterPipelineCluster) GetWorkshop() bool`
 
 GetWorkshop returns the Workshop field if non-nil, zero value otherwise.
 
 ### GetWorkshopOk
 
-`func (o *DeploymentCluster) GetWorkshopOk() (*bool, bool)`
+`func (o *ClusterPipelineCluster) GetWorkshopOk() (*bool, bool)`
 
 GetWorkshopOk returns a tuple with the Workshop field if it's non-nil, zero value otherwise
 and a boolean to check if the value has been set.
 
 ### SetWorkshop
 
-`func (o *DeploymentCluster) SetWorkshop(v bool)`
+`func (o *ClusterPipelineCluster) SetWorkshop(v bool)`
 
 SetWorkshop sets Workshop field to given value.
 
 ### HasWorkshop
 
-`func (o *DeploymentCluster) HasWorkshop() bool`
+`func (o *ClusterPipelineCluster) HasWorkshop() bool`
 
 HasWorkshop returns a boolean if a field has been set.
 
 ### GetWorkshopId
 
-`func (o *DeploymentCluster) GetWorkshopId() string`
+`func (o *ClusterPipelineCluster) GetWorkshopId() string`
 
 GetWorkshopId returns the WorkshopId field if non-nil, zero value otherwise.
 
 ### GetWorkshopIdOk
 
-`func (o *DeploymentCluster) GetWorkshopIdOk() (*string, bool)`
+`func (o *ClusterPipelineCluster) GetWorkshopIdOk() (*string, bool)`
 
 GetWorkshopIdOk returns a tuple with the WorkshopId field if it's non-nil, zero value otherwise
 and a boolean to check if the value has been set.
 
 ### SetWorkshopId
 
-`func (o *DeploymentCluster) SetWorkshopId(v string)`
+`func (o *ClusterPipelineCluster) SetWorkshopId(v string)`
 
 SetWorkshopId sets WorkshopId field to given value.
 
 ### HasWorkshopId
 
-`func (o *DeploymentCluster) HasWorkshopId() bool`
+`func (o *ClusterPipelineCluster) HasWorkshopId() bool`
 
 HasWorkshopId returns a boolean if a field has been set.
 

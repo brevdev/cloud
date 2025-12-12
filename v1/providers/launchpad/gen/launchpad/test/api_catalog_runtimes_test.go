@@ -11,18 +11,19 @@ package openapi
 
 import (
 	"context"
-	"testing"
-
 	openapiclient "github.com/brevdev/cloud/v1/providers/launchpad/gen/launchpad"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"testing"
 )
 
 func Test_openapi_CatalogRuntimesAPIService(t *testing.T) {
+
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
 
 	t.Run("Test CatalogRuntimesAPIService V1CatalogRuntimesCreate", func(t *testing.T) {
+
 		t.Skip("skip test") // remove to run test
 
 		resp, httpRes, err := apiClient.CatalogRuntimesAPI.V1CatalogRuntimesCreate(context.Background()).Execute()
@@ -30,9 +31,11 @@ func Test_openapi_CatalogRuntimesAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
 
 	t.Run("Test CatalogRuntimesAPIService V1CatalogRuntimesDestroy", func(t *testing.T) {
+
 		t.Skip("skip test") // remove to run test
 
 		var id string
@@ -41,9 +44,11 @@ func Test_openapi_CatalogRuntimesAPIService(t *testing.T) {
 
 		require.Nil(t, err)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
 
 	t.Run("Test CatalogRuntimesAPIService V1CatalogRuntimesHistoryList", func(t *testing.T) {
+
 		t.Skip("skip test") // remove to run test
 
 		var id string
@@ -53,9 +58,11 @@ func Test_openapi_CatalogRuntimesAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
 
 	t.Run("Test CatalogRuntimesAPIService V1CatalogRuntimesList", func(t *testing.T) {
+
 		t.Skip("skip test") // remove to run test
 
 		resp, httpRes, err := apiClient.CatalogRuntimesAPI.V1CatalogRuntimesList(context.Background()).Execute()
@@ -63,9 +70,11 @@ func Test_openapi_CatalogRuntimesAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
 
 	t.Run("Test CatalogRuntimesAPIService V1CatalogRuntimesPartialUpdate", func(t *testing.T) {
+
 		t.Skip("skip test") // remove to run test
 
 		var id string
@@ -75,9 +84,11 @@ func Test_openapi_CatalogRuntimesAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
 
 	t.Run("Test CatalogRuntimesAPIService V1CatalogRuntimesRetrieve", func(t *testing.T) {
+
 		t.Skip("skip test") // remove to run test
 
 		var id string
@@ -87,9 +98,11 @@ func Test_openapi_CatalogRuntimesAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
 
 	t.Run("Test CatalogRuntimesAPIService V1CatalogRuntimesUpdate", func(t *testing.T) {
+
 		t.Skip("skip test") // remove to run test
 
 		var id string
@@ -99,5 +112,7 @@ func Test_openapi_CatalogRuntimesAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
+
 }

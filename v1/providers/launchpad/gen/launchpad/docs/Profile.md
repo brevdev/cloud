@@ -5,6 +5,7 @@
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **Created** | **time.Time** | Timestamp of when the object was created | [readonly] 
+**DisplayName** | **NullableString** | Display name of the user | [readonly] 
 **Groups** | **[]string** |  | 
 **Id** | **string** |  | [readonly] 
 **Modified** | **time.Time** | Timestamp of when the object was last modified | [readonly] 
@@ -16,7 +17,7 @@ Name | Type | Description | Notes
 
 ### NewProfile
 
-`func NewProfile(created time.Time, groups []string, id string, modified time.Time, username string, ) *Profile`
+`func NewProfile(created time.Time, displayName NullableString, groups []string, id string, modified time.Time, username string, ) *Profile`
 
 NewProfile instantiates a new Profile object
 This constructor will assign default values to properties that have it defined,
@@ -51,6 +52,36 @@ and a boolean to check if the value has been set.
 SetCreated sets Created field to given value.
 
 
+### GetDisplayName
+
+`func (o *Profile) GetDisplayName() string`
+
+GetDisplayName returns the DisplayName field if non-nil, zero value otherwise.
+
+### GetDisplayNameOk
+
+`func (o *Profile) GetDisplayNameOk() (*string, bool)`
+
+GetDisplayNameOk returns a tuple with the DisplayName field if it's non-nil, zero value otherwise
+and a boolean to check if the value has been set.
+
+### SetDisplayName
+
+`func (o *Profile) SetDisplayName(v string)`
+
+SetDisplayName sets DisplayName field to given value.
+
+
+### SetDisplayNameNil
+
+`func (o *Profile) SetDisplayNameNil(b bool)`
+
+ SetDisplayNameNil sets the value for DisplayName to be an explicit nil
+
+### UnsetDisplayName
+`func (o *Profile) UnsetDisplayName()`
+
+UnsetDisplayName ensures that no value is present for DisplayName, not even an explicit nil
 ### GetGroups
 
 `func (o *Profile) GetGroups() []string`

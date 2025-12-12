@@ -11,18 +11,19 @@ package openapi
 
 import (
 	"context"
-	"testing"
-
 	openapiclient "github.com/brevdev/cloud/v1/providers/launchpad/gen/launchpad"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"testing"
 )
 
 func Test_openapi_CatalogGpuOsChoicesAPIService(t *testing.T) {
+
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
 
 	t.Run("Test CatalogGpuOsChoicesAPIService V1CatalogGpuOsChoicesCreate", func(t *testing.T) {
+
 		t.Skip("skip test") // remove to run test
 
 		resp, httpRes, err := apiClient.CatalogGpuOsChoicesAPI.V1CatalogGpuOsChoicesCreate(context.Background()).Execute()
@@ -30,9 +31,11 @@ func Test_openapi_CatalogGpuOsChoicesAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
 
 	t.Run("Test CatalogGpuOsChoicesAPIService V1CatalogGpuOsChoicesList", func(t *testing.T) {
+
 		t.Skip("skip test") // remove to run test
 
 		resp, httpRes, err := apiClient.CatalogGpuOsChoicesAPI.V1CatalogGpuOsChoicesList(context.Background()).Execute()
@@ -40,5 +43,7 @@ func Test_openapi_CatalogGpuOsChoicesAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
+
 }

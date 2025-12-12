@@ -1,4 +1,4 @@
-SPEC_VERSION    ?= v2.39.5
+SPEC_VERSION    ?= v2.40.9
 SPEC_FILE       ?= swagger-${SPEC_VERSION}.yaml
 SPEC_FILE_FINAL ?= swagger-${SPEC_VERSION}.final.yaml
 OUTPUT_DIR      ?= launchpad

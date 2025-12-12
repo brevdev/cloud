@@ -18,6 +18,7 @@ Name | Type | Description | Notes
 **ExperienceBranch** | Pointer to **string** | Experience branch name used during deployment (default: origin/main) | [optional] 
 **FcPlatform** | Pointer to [**NullableFcPlatformEnum**](FcPlatformEnum.md) |  | [optional] 
 **FcSupport** | Pointer to **bool** | Does the experience support Flight Control? | [optional] 
+**Featured** | **bool** | Is the experience featured in the catalog? | [readonly] 
 **GarageId** | Pointer to **NullableString** | ID of the garage where nodes for this experience should be selected from | [optional] 
 **GcBranch** | Pointer to **string** | Ground Control branch name (default: main) | [optional] 
 **GpuCount** | Pointer to **int32** | Number of GPUs used | [optional] 
@@ -27,9 +28,10 @@ Name | Type | Description | Notes
 **Lifetime** | Pointer to **NullableInt32** | Default number of days a provisioned experience should remain active (default: 3). A null lifetime will cause a deployment to remain active indefinitely. | [optional] 
 **Modified** | **time.Time** | Timestamp of when the object was last modified | [readonly] 
 **NodeCount** | Pointer to **int32** | Number of Nodes used | [optional] 
+**Oem** | Pointer to **NullableString** | If set, the experience must be provisioned to hardware manufactured by the given OEM | [optional] 
 **Persona** | **string** |  | 
 **Pipeline** | **int64** | Pipeline ID used for provisioning | 
-**Platform** | [**PlatformEnum**](PlatformEnum.md) | Base platform that the experience will be provisioned onto  * &#x60;air&#x60; - NVIDIA Air * &#x60;flight_deck&#x60; - Flight Deck * &#x60;kvm_bastion&#x60; - KVM Bastion * &#x60;lp-vmware-platform&#x60; - lp-vmware-platform * &#x60;minimal&#x60; - minimal * &#x60;openshift&#x60; - OpenShift * &#x60;vsphere&#x60; - vSphere * &#x60;vsphere_horizon&#x60; - VMware Horizon * &#x60;vsphere7&#x60; - vSphere 7 * &#x60;vsphere8&#x60; - vSphere 8 | 
+**Platform** | [**PlatformEnum**](PlatformEnum.md) | Base platform that the experience will be provisioned onto  * &#x60;air&#x60; - NVIDIA Air * &#x60;flight_deck&#x60; - Flight Deck * &#x60;kvm_bastion&#x60; - KVM Bastion * &#x60;lp-vmware-platform&#x60; - lp-vmware-platform * &#x60;minimal&#x60; - minimal * &#x60;openshift&#x60; - OpenShift * &#x60;proxmox&#x60; - Proxmox * &#x60;vsphere&#x60; - vSphere * &#x60;vsphere_horizon&#x60; - VMware Horizon * &#x60;vsphere7&#x60; - vSphere 7 * &#x60;vsphere8&#x60; - vSphere 8 | 
 **Provider** | Pointer to **NullableString** | If set, the experience must be provisioned to the given provider | [optional] 
 **Published** | Pointer to [**PublishedEnum**](PublishedEnum.md) | Is the experience published for use?  * &#x60;draft&#x60; - draft * &#x60;no&#x60; - no * &#x60;yes&#x60; - yes | [optional] 
 **Repo** | Pointer to **NullableString** | URL of the repository for provisioning automation | [optional] 
@@ -38,13 +40,13 @@ Name | Type | Description | Notes
 **SaLab** | Pointer to **bool** | Is this a persistent experience for SAs? | [optional] 
 **SystemArch** | [**SystemArchEnum**](SystemArchEnum.md) | Required CPU architecture  * &#x60;amd64&#x60; - amd64 * &#x60;arm64&#x60; - arm64 | 
 **Title** | **string** |  | 
-**VgpuProfile** | Pointer to [**NullableVgpuProfileEnum**](VgpuProfileEnum.md) |  | [optional] 
+**VgpuProfile** | Pointer to **NullableString** |  | [optional] 
 
 ## Methods
 
 ### NewExperience
 
-`func NewExperience(catalogId string, category CategoryEnum, created time.Time, experience string, gpuOs GpuOs, id string, modified time.Time, persona string, pipeline int64, platform PlatformEnum, systemArch SystemArchEnum, title string, ) *Experience`
+`func NewExperience(catalogId string, category CategoryEnum, created time.Time, experience string, featured bool, gpuOs GpuOs, id string, modified time.Time, persona string, pipeline int64, platform PlatformEnum, systemArch SystemArchEnum, title string, ) *Experience`
 
 NewExperience instantiates a new Experience object
 This constructor will assign default values to properties that have it defined,
@@ -429,6 +431,26 @@ SetFcSupport sets FcSupport field to given value.
 
 HasFcSupport returns a boolean if a field has been set.
 
+### GetFeatured
+
+`func (o *Experience) GetFeatured() bool`
+
+GetFeatured returns the Featured field if non-nil, zero value otherwise.
+
+### GetFeaturedOk
+
+`func (o *Experience) GetFeaturedOk() (*bool, bool)`
+
+GetFeaturedOk returns a tuple with the Featured field if it's non-nil, zero value otherwise
+and a boolean to check if the value has been set.
+
+### SetFeatured
+
+`func (o *Experience) SetFeatured(v bool)`
+
+SetFeatured sets Featured field to given value.
+
+
 ### GetGarageId
 
 `func (o *Experience) GetGarageId() string`
@@ -659,6 +681,41 @@ SetNodeCount sets NodeCount field to given value.
 
 HasNodeCount returns a boolean if a field has been set.
 
+### GetOem
+
+`func (o *Experience) GetOem() string`
+
+GetOem returns the Oem field if non-nil, zero value otherwise.
+
+### GetOemOk
+
+`func (o *Experience) GetOemOk() (*string, bool)`
+
+GetOemOk returns a tuple with the Oem field if it's non-nil, zero value otherwise
+and a boolean to check if the value has been set.
+
+### SetOem
+
+`func (o *Experience) SetOem(v string)`
+
+SetOem sets Oem field to given value.
+
+### HasOem
+
+`func (o *Experience) HasOem() bool`
+
+HasOem returns a boolean if a field has been set.
+
+### SetOemNil
+
+`func (o *Experience) SetOemNil(b bool)`
+
+ SetOemNil sets the value for Oem to be an explicit nil
+
+### UnsetOem
+`func (o *Experience) UnsetOem()`
+
+UnsetOem ensures that no value is present for Oem, not even an explicit nil
 ### GetPersona
 
 `func (o *Experience) GetPersona() string`
@@ -941,20 +998,20 @@ SetTitle sets Title field to given value.
 
 ### GetVgpuProfile
 
-`func (o *Experience) GetVgpuProfile() VgpuProfileEnum`
+`func (o *Experience) GetVgpuProfile() string`
 
 GetVgpuProfile returns the VgpuProfile field if non-nil, zero value otherwise.
 
 ### GetVgpuProfileOk
 
-`func (o *Experience) GetVgpuProfileOk() (*VgpuProfileEnum, bool)`
+`func (o *Experience) GetVgpuProfileOk() (*string, bool)`
 
 GetVgpuProfileOk returns a tuple with the VgpuProfile field if it's non-nil, zero value otherwise
 and a boolean to check if the value has been set.
 
 ### SetVgpuProfile
 
-`func (o *Experience) SetVgpuProfile(v VgpuProfileEnum)`
+`func (o *Experience) SetVgpuProfile(v string)`
 
 SetVgpuProfile sets VgpuProfile field to given value.
 
