@@ -11,18 +11,19 @@ package openapi
 
 import (
 	"context"
-	"testing"
-
 	openapiclient "github.com/brevdev/cloud/v1/providers/launchpad/gen/launchpad"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"testing"
 )
 
 func Test_openapi_CatalogInstanceTypesAPIService(t *testing.T) {
+
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
 
 	t.Run("Test CatalogInstanceTypesAPIService V1CatalogInstanceTypesList", func(t *testing.T) {
+
 		t.Skip("skip test") // remove to run test
 
 		resp, httpRes, err := apiClient.CatalogInstanceTypesAPI.V1CatalogInstanceTypesList(context.Background()).Execute()
@@ -30,5 +31,7 @@ func Test_openapi_CatalogInstanceTypesAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
+
 }

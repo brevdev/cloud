@@ -10,6 +10,7 @@ Method | HTTP request | Description
 [**V1InventoryClustersHistoryList**](InventoryClustersAPI.md#V1InventoryClustersHistoryList) | **Get** /v1/inventory/clusters/{id}/history/ | 
 [**V1InventoryClustersList**](InventoryClustersAPI.md#V1InventoryClustersList) | **Get** /v1/inventory/clusters/ | 
 [**V1InventoryClustersPartialUpdate**](InventoryClustersAPI.md#V1InventoryClustersPartialUpdate) | **Patch** /v1/inventory/clusters/{id}/ | 
+[**V1InventoryClustersPipelinesList**](InventoryClustersAPI.md#V1InventoryClustersPipelinesList) | **Get** /v1/inventory/clusters/{cluster_id}/pipelines/ | 
 [**V1InventoryClustersPipelinesTriggerCreate**](InventoryClustersAPI.md#V1InventoryClustersPipelinesTriggerCreate) | **Post** /v1/inventory/clusters/{id}/pipelines/trigger/ | 
 [**V1InventoryClustersProvisionCreate**](InventoryClustersAPI.md#V1InventoryClustersProvisionCreate) | **Post** /v1/inventory/clusters/provision/ | 
 [**V1InventoryClustersProvisionDestroy**](InventoryClustersAPI.md#V1InventoryClustersProvisionDestroy) | **Delete** /v1/inventory/clusters/{id}/provision/ | 
@@ -42,7 +43,7 @@ import (
 )
 
 func main() {
-	clusterBulkUpdate := *openapiclient.NewClusterBulkUpdate(false, time.Now(), openapiclient.Cluster_deployment{Deployment: openapiclient.NewDeployment(time.Now(), "Id_example", time.Now(), "OrgName_example", *openapiclient.NewOverrides(), []string{"Pipelines_example"}, "RequesterEmail_example", "RequesterName_example", int32(123), []string{"Services_example"}, int32(123), "SshUser_example", openapiclient.DeploymentState("destroyed"))}, []openapiclient.ClusterGpusInner{openapiclient.Cluster_gpus_inner{Gpu: openapiclient.NewGpu(time.Now(), "Id_example", "Model_example", time.Now())}}, "GpuAlias_example", int32(123), "Id_example", []openapiclient.ClusterInstancesInner{openapiclient.Cluster_instances_inner{Instance: openapiclient.NewInstance(openapiclient.Deployment_cluster{Cluster: openapiclient.NewCluster(false, time.Now(), openapiclient.Cluster_deployment{Deployment: openapiclient.NewDeployment(time.Now(), "Id_example", time.Now(), "OrgName_example", *openapiclient.NewOverrides(), []string{"Pipelines_example"}, "RequesterEmail_example", "RequesterName_example", int32(123), []string{"Services_example"}, int32(123), "SshUser_example", openapiclient.DeploymentState("destroyed"))}, []openapiclient.ClusterGpusInner{openapiclient.Cluster_gpus_inner{Gpu: openapiclient.NewGpu(time.Now(), "Id_example", "Model_example", time.Now())}}, "Id_example", []openapiclient.ClusterInstancesInner{openapiclient.Cluster_instances_inner{Instance: openapiclient.NewInstance(openapiclient.Deployment_cluster{Cluster: openapiclient.NewCluster(false, time.Now(), openapiclient.Cluster_deployment{Deployment: }, []openapiclient.ClusterGpusInner{openapiclient.Cluster_gpus_inner{Gpu: }}, "Id_example", []openapiclient.ClusterInstancesInner{openapiclient.Cluster_instances_inner{Instance: }}, time.Now(), time.Now(), false, []string{"TenantIds_example"})}, time.Now(), "Id_example", "InstanceId_example", time.Now(), time.Now())}}, time.Now(), time.Now(), false, []string{"TenantIds_example"})}, time.Now(), "Id_example", "InstanceId_example", time.Now(), time.Now())}}, time.Now(), time.Now(), int32(123), false, "PublicAddress_example", "RequestId_example", []string{"TenantIds_example"}, int32(123), []string{"Ids_example"}, "Result_example") // ClusterBulkUpdate | 
+	clusterBulkUpdate := *openapiclient.NewClusterBulkUpdate(false, time.Now(), openapiclient.Cluster_deployment{Deployment: openapiclient.NewDeployment(time.Now(), "Id_example", time.Now(), "OrgName_example", *openapiclient.NewOverrides(), []string{"Pipelines_example"}, "RequesterEmail_example", "RequesterName_example", int32(123), []string{"Services_example"}, int32(123), "SshUser_example", openapiclient.DeploymentState("destroyed"))}, []openapiclient.ClusterGpusInner{openapiclient.Cluster_gpus_inner{Gpu: openapiclient.NewGpu(time.Now(), "Id_example", "Model_example", time.Now())}}, "GpuAlias_example", int32(123), "Id_example", []openapiclient.ClusterInstancesInner{openapiclient.Cluster_instances_inner{Instance: openapiclient.NewInstance(openapiclient.ClusterPipeline_cluster{Cluster: openapiclient.NewCluster(false, time.Now(), openapiclient.Cluster_deployment{Deployment: openapiclient.NewDeployment(time.Now(), "Id_example", time.Now(), "OrgName_example", *openapiclient.NewOverrides(), []string{"Pipelines_example"}, "RequesterEmail_example", "RequesterName_example", int32(123), []string{"Services_example"}, int32(123), "SshUser_example", openapiclient.DeploymentState("destroyed"))}, []openapiclient.ClusterGpusInner{openapiclient.Cluster_gpus_inner{Gpu: openapiclient.NewGpu(time.Now(), "Id_example", "Model_example", time.Now())}}, "Id_example", []openapiclient.ClusterInstancesInner{openapiclient.Cluster_instances_inner{Instance: openapiclient.NewInstance(openapiclient.ClusterPipeline_cluster{Cluster: openapiclient.NewCluster(false, time.Now(), openapiclient.Cluster_deployment{Deployment: }, []openapiclient.ClusterGpusInner{openapiclient.Cluster_gpus_inner{Gpu: }}, "Id_example", []openapiclient.ClusterInstancesInner{openapiclient.Cluster_instances_inner{Instance: }}, time.Now(), time.Now(), time.Now(), false, []string{"TenantIds_example"})}, time.Now(), "Id_example", "InstanceId_example", time.Now(), time.Now())}}, time.Now(), time.Now(), time.Now(), false, []string{"TenantIds_example"})}, time.Now(), "Id_example", "InstanceId_example", time.Now(), time.Now())}}, time.Now(), time.Now(), time.Now(), int32(123), false, "PublicAddress_example", "RequestId_example", []string{"TenantIds_example"}, int32(123), []string{"Ids_example"}, "Result_example") // ClusterBulkUpdate | 
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
@@ -107,7 +108,7 @@ import (
 )
 
 func main() {
-	cluster := *openapiclient.NewCluster(false, time.Now(), openapiclient.Cluster_deployment{Deployment: openapiclient.NewDeployment(time.Now(), "Id_example", time.Now(), "OrgName_example", *openapiclient.NewOverrides(), []string{"Pipelines_example"}, "RequesterEmail_example", "RequesterName_example", int32(123), []string{"Services_example"}, int32(123), "SshUser_example", openapiclient.DeploymentState("destroyed"))}, []openapiclient.ClusterGpusInner{openapiclient.Cluster_gpus_inner{Gpu: openapiclient.NewGpu(time.Now(), "Id_example", "Model_example", time.Now())}}, "Id_example", []openapiclient.ClusterInstancesInner{openapiclient.Cluster_instances_inner{Instance: openapiclient.NewInstance(openapiclient.Deployment_cluster{Cluster: openapiclient.NewCluster(false, time.Now(), openapiclient.Cluster_deployment{Deployment: openapiclient.NewDeployment(time.Now(), "Id_example", time.Now(), "OrgName_example", *openapiclient.NewOverrides(), []string{"Pipelines_example"}, "RequesterEmail_example", "RequesterName_example", int32(123), []string{"Services_example"}, int32(123), "SshUser_example", openapiclient.DeploymentState("destroyed"))}, []openapiclient.ClusterGpusInner{openapiclient.Cluster_gpus_inner{Gpu: openapiclient.NewGpu(time.Now(), "Id_example", "Model_example", time.Now())}}, "Id_example", []openapiclient.ClusterInstancesInner{openapiclient.Cluster_instances_inner{Instance: openapiclient.NewInstance(openapiclient.Deployment_cluster{Cluster: }, time.Now(), "Id_example", "InstanceId_example", time.Now(), time.Now())}}, time.Now(), time.Now(), false, []string{"TenantIds_example"})}, time.Now(), "Id_example", "InstanceId_example", time.Now(), time.Now())}}, time.Now(), time.Now(), false, []string{"TenantIds_example"}) // Cluster |  (optional)
+	cluster := *openapiclient.NewCluster(false, time.Now(), openapiclient.Cluster_deployment{Deployment: openapiclient.NewDeployment(time.Now(), "Id_example", time.Now(), "OrgName_example", *openapiclient.NewOverrides(), []string{"Pipelines_example"}, "RequesterEmail_example", "RequesterName_example", int32(123), []string{"Services_example"}, int32(123), "SshUser_example", openapiclient.DeploymentState("destroyed"))}, []openapiclient.ClusterGpusInner{openapiclient.Cluster_gpus_inner{Gpu: openapiclient.NewGpu(time.Now(), "Id_example", "Model_example", time.Now())}}, "Id_example", []openapiclient.ClusterInstancesInner{openapiclient.Cluster_instances_inner{Instance: openapiclient.NewInstance(openapiclient.ClusterPipeline_cluster{Cluster: openapiclient.NewCluster(false, time.Now(), openapiclient.Cluster_deployment{Deployment: openapiclient.NewDeployment(time.Now(), "Id_example", time.Now(), "OrgName_example", *openapiclient.NewOverrides(), []string{"Pipelines_example"}, "RequesterEmail_example", "RequesterName_example", int32(123), []string{"Services_example"}, int32(123), "SshUser_example", openapiclient.DeploymentState("destroyed"))}, []openapiclient.ClusterGpusInner{openapiclient.Cluster_gpus_inner{Gpu: openapiclient.NewGpu(time.Now(), "Id_example", "Model_example", time.Now())}}, "Id_example", []openapiclient.ClusterInstancesInner{openapiclient.Cluster_instances_inner{Instance: openapiclient.NewInstance(openapiclient.ClusterPipeline_cluster{Cluster: }, time.Now(), "Id_example", "InstanceId_example", time.Now(), time.Now())}}, time.Now(), time.Now(), time.Now(), false, []string{"TenantIds_example"})}, time.Now(), "Id_example", "InstanceId_example", time.Now(), time.Now())}}, time.Now(), time.Now(), time.Now(), false, []string{"TenantIds_example"}) // Cluster |  (optional)
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
@@ -292,7 +293,7 @@ Name | Type | Description  | Notes
 
 ## V1InventoryClustersList
 
-> PaginatedClusterList V1InventoryClustersList(ctx).Available(available).BastionName(bastionName).Deployment(deployment).Enabled(enabled).Expand(expand).Experience(experience).Fields(fields).GarageId(garageId).Gpu(gpu).GpuAlias(gpuAlias).GpuCount(gpuCount).GpuModel(gpuModel).HasDeployment(hasDeployment).HasRequestId(hasRequestId).HasWorkshopId(hasWorkshopId).Id(id).Location(location).LocationName(locationName).LocationRegion(locationRegion).Maintenance(maintenance).MgmtIp(mgmtIp).MgmtMac(mgmtMac).MinGpuCount(minGpuCount).MinNodeCount(minNodeCount).MinProvisioningAttempts(minProvisioningAttempts).MinTenantCount(minTenantCount).Netmask(netmask).NodeCount(nodeCount).Oem(oem).Omit(omit).Ordering(ordering).Page(page).PageSize(pageSize).Persist(persist).Provider(provider).ProviderCapacity(providerCapacity).ProviderName(providerName).ProviderNodeId(providerNodeId).ProvisionUser(provisionUser).ProvisioningAttempts(provisioningAttempts).ProvisioningState(provisioningState).PublicAddress(publicAddress).Rack(rack).RequestId(requestId).Reservation(reservation).Search(search).SystemArch(systemArch).VlanId(vlanId).Workshop(workshop).WorkshopId(workshopId).WorkshopIdNot(workshopIdNot).Execute()
+> PaginatedClusterList V1InventoryClustersList(ctx).Available(available).BastionName(bastionName).Deployment(deployment).Enabled(enabled).Expand(expand).Experience(experience).Fields(fields).GarageId(garageId).Gpu(gpu).GpuAlias(gpuAlias).GpuCount(gpuCount).GpuModel(gpuModel).HasDeployment(hasDeployment).HasRequestId(hasRequestId).HasWorkshopId(hasWorkshopId).Id(id).Location(location).LocationName(locationName).LocationRegion(locationRegion).Maintenance(maintenance).MgmtIp(mgmtIp).MgmtMac(mgmtMac).MinGpuCount(minGpuCount).MinNodeCount(minNodeCount).MinProvisioningAttempts(minProvisioningAttempts).MinTenantCount(minTenantCount).Netmask(netmask).NodeCount(nodeCount).Oem(oem).Omit(omit).Ordering(ordering).Page(page).PageSize(pageSize).Persist(persist).Provider(provider).ProviderCapacity(providerCapacity).ProviderName(providerName).ProviderNodeId(providerNodeId).ProvisionUser(provisionUser).ProvisioningAttempts(provisioningAttempts).ProvisioningState(provisioningState).ProvisioningStateNot(provisioningStateNot).PublicAddress(publicAddress).Rack(rack).RequestId(requestId).Reservation(reservation).Search(search).SystemArch(systemArch).VlanId(vlanId).Workshop(workshop).WorkshopId(workshopId).WorkshopIdNot(workshopIdNot).Execute()
 
 
 
@@ -350,6 +351,7 @@ func main() {
 	provisionUser := "provisionUser_example" // string |  (optional)
 	provisioningAttempts := int32(56) // int32 |  (optional)
 	provisioningState := []string{"ProvisioningState_example"} // []string | Multiple values may be separated by commas.  * `deployed` - Cluster is in use by a deployment * `deploying` - Provisioning is in progress * `destroying` - Cluster is being destroyed * `pending` - Provisioning will begin soon * `ready` - Provisioning has completed and is ready for a deployment * `reserved` - Cluster is unprovisioned but reserved for later use * `unprovisioned` - Cluster has not yet been provisioned (optional)
+	provisioningStateNot := []string{"ProvisioningStateNot_example"} // []string | Multiple values may be separated by commas.  * `deployed` - Cluster is in use by a deployment * `deploying` - Provisioning is in progress * `destroying` - Cluster is being destroyed * `pending` - Provisioning will begin soon * `ready` - Provisioning has completed and is ready for a deployment * `reserved` - Cluster is unprovisioned but reserved for later use * `unprovisioned` - Cluster has not yet been provisioned (optional)
 	publicAddress := "publicAddress_example" // string |  (optional)
 	rack := "rack_example" // string | Only include clusters whose nodes are in the given rack (optional)
 	requestId := "requestId_example" // string |  (optional)
@@ -363,7 +365,7 @@ func main() {
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.InventoryClustersAPI.V1InventoryClustersList(context.Background()).Available(available).BastionName(bastionName).Deployment(deployment).Enabled(enabled).Expand(expand).Experience(experience).Fields(fields).GarageId(garageId).Gpu(gpu).GpuAlias(gpuAlias).GpuCount(gpuCount).GpuModel(gpuModel).HasDeployment(hasDeployment).HasRequestId(hasRequestId).HasWorkshopId(hasWorkshopId).Id(id).Location(location).LocationName(locationName).LocationRegion(locationRegion).Maintenance(maintenance).MgmtIp(mgmtIp).MgmtMac(mgmtMac).MinGpuCount(minGpuCount).MinNodeCount(minNodeCount).MinProvisioningAttempts(minProvisioningAttempts).MinTenantCount(minTenantCount).Netmask(netmask).NodeCount(nodeCount).Oem(oem).Omit(omit).Ordering(ordering).Page(page).PageSize(pageSize).Persist(persist).Provider(provider).ProviderCapacity(providerCapacity).ProviderName(providerName).ProviderNodeId(providerNodeId).ProvisionUser(provisionUser).ProvisioningAttempts(provisioningAttempts).ProvisioningState(provisioningState).PublicAddress(publicAddress).Rack(rack).RequestId(requestId).Reservation(reservation).Search(search).SystemArch(systemArch).VlanId(vlanId).Workshop(workshop).WorkshopId(workshopId).WorkshopIdNot(workshopIdNot).Execute()
+	resp, r, err := apiClient.InventoryClustersAPI.V1InventoryClustersList(context.Background()).Available(available).BastionName(bastionName).Deployment(deployment).Enabled(enabled).Expand(expand).Experience(experience).Fields(fields).GarageId(garageId).Gpu(gpu).GpuAlias(gpuAlias).GpuCount(gpuCount).GpuModel(gpuModel).HasDeployment(hasDeployment).HasRequestId(hasRequestId).HasWorkshopId(hasWorkshopId).Id(id).Location(location).LocationName(locationName).LocationRegion(locationRegion).Maintenance(maintenance).MgmtIp(mgmtIp).MgmtMac(mgmtMac).MinGpuCount(minGpuCount).MinNodeCount(minNodeCount).MinProvisioningAttempts(minProvisioningAttempts).MinTenantCount(minTenantCount).Netmask(netmask).NodeCount(nodeCount).Oem(oem).Omit(omit).Ordering(ordering).Page(page).PageSize(pageSize).Persist(persist).Provider(provider).ProviderCapacity(providerCapacity).ProviderName(providerName).ProviderNodeId(providerNodeId).ProvisionUser(provisionUser).ProvisioningAttempts(provisioningAttempts).ProvisioningState(provisioningState).ProvisioningStateNot(provisioningStateNot).PublicAddress(publicAddress).Rack(rack).RequestId(requestId).Reservation(reservation).Search(search).SystemArch(systemArch).VlanId(vlanId).Workshop(workshop).WorkshopId(workshopId).WorkshopIdNot(workshopIdNot).Execute()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error when calling `InventoryClustersAPI.V1InventoryClustersList``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
@@ -425,6 +427,7 @@ Name | Type | Description  | Notes
  **provisionUser** | **string** |  | 
  **provisioningAttempts** | **int32** |  | 
  **provisioningState** | **[]string** | Multiple values may be separated by commas.  * &#x60;deployed&#x60; - Cluster is in use by a deployment * &#x60;deploying&#x60; - Provisioning is in progress * &#x60;destroying&#x60; - Cluster is being destroyed * &#x60;pending&#x60; - Provisioning will begin soon * &#x60;ready&#x60; - Provisioning has completed and is ready for a deployment * &#x60;reserved&#x60; - Cluster is unprovisioned but reserved for later use * &#x60;unprovisioned&#x60; - Cluster has not yet been provisioned | 
+ **provisioningStateNot** | **[]string** | Multiple values may be separated by commas.  * &#x60;deployed&#x60; - Cluster is in use by a deployment * &#x60;deploying&#x60; - Provisioning is in progress * &#x60;destroying&#x60; - Cluster is being destroyed * &#x60;pending&#x60; - Provisioning will begin soon * &#x60;ready&#x60; - Provisioning has completed and is ready for a deployment * &#x60;reserved&#x60; - Cluster is unprovisioned but reserved for later use * &#x60;unprovisioned&#x60; - Cluster has not yet been provisioned | 
  **publicAddress** | **string** |  | 
  **rack** | **string** | Only include clusters whose nodes are in the given rack | 
  **requestId** | **string** |  | 
@@ -475,7 +478,7 @@ import (
 
 func main() {
 	id := "38400000-8cf0-11bd-b23e-10b96e4ef00d" // string | A UUID string identifying this cluster.
-	cluster := *openapiclient.NewCluster(false, time.Now(), openapiclient.Cluster_deployment{Deployment: openapiclient.NewDeployment(time.Now(), "Id_example", time.Now(), "OrgName_example", *openapiclient.NewOverrides(), []string{"Pipelines_example"}, "RequesterEmail_example", "RequesterName_example", int32(123), []string{"Services_example"}, int32(123), "SshUser_example", openapiclient.DeploymentState("destroyed"))}, []openapiclient.ClusterGpusInner{openapiclient.Cluster_gpus_inner{Gpu: openapiclient.NewGpu(time.Now(), "Id_example", "Model_example", time.Now())}}, "Id_example", []openapiclient.ClusterInstancesInner{openapiclient.Cluster_instances_inner{Instance: openapiclient.NewInstance(openapiclient.Deployment_cluster{Cluster: openapiclient.NewCluster(false, time.Now(), openapiclient.Cluster_deployment{Deployment: openapiclient.NewDeployment(time.Now(), "Id_example", time.Now(), "OrgName_example", *openapiclient.NewOverrides(), []string{"Pipelines_example"}, "RequesterEmail_example", "RequesterName_example", int32(123), []string{"Services_example"}, int32(123), "SshUser_example", openapiclient.DeploymentState("destroyed"))}, []openapiclient.ClusterGpusInner{openapiclient.Cluster_gpus_inner{Gpu: openapiclient.NewGpu(time.Now(), "Id_example", "Model_example", time.Now())}}, "Id_example", []openapiclient.ClusterInstancesInner{openapiclient.Cluster_instances_inner{Instance: openapiclient.NewInstance(openapiclient.Deployment_cluster{Cluster: }, time.Now(), "Id_example", "InstanceId_example", time.Now(), time.Now())}}, time.Now(), time.Now(), false, []string{"TenantIds_example"})}, time.Now(), "Id_example", "InstanceId_example", time.Now(), time.Now())}}, time.Now(), time.Now(), false, []string{"TenantIds_example"}) // Cluster |  (optional)
+	cluster := *openapiclient.NewCluster(false, time.Now(), openapiclient.Cluster_deployment{Deployment: openapiclient.NewDeployment(time.Now(), "Id_example", time.Now(), "OrgName_example", *openapiclient.NewOverrides(), []string{"Pipelines_example"}, "RequesterEmail_example", "RequesterName_example", int32(123), []string{"Services_example"}, int32(123), "SshUser_example", openapiclient.DeploymentState("destroyed"))}, []openapiclient.ClusterGpusInner{openapiclient.Cluster_gpus_inner{Gpu: openapiclient.NewGpu(time.Now(), "Id_example", "Model_example", time.Now())}}, "Id_example", []openapiclient.ClusterInstancesInner{openapiclient.Cluster_instances_inner{Instance: openapiclient.NewInstance(openapiclient.ClusterPipeline_cluster{Cluster: openapiclient.NewCluster(false, time.Now(), openapiclient.Cluster_deployment{Deployment: openapiclient.NewDeployment(time.Now(), "Id_example", time.Now(), "OrgName_example", *openapiclient.NewOverrides(), []string{"Pipelines_example"}, "RequesterEmail_example", "RequesterName_example", int32(123), []string{"Services_example"}, int32(123), "SshUser_example", openapiclient.DeploymentState("destroyed"))}, []openapiclient.ClusterGpusInner{openapiclient.Cluster_gpus_inner{Gpu: openapiclient.NewGpu(time.Now(), "Id_example", "Model_example", time.Now())}}, "Id_example", []openapiclient.ClusterInstancesInner{openapiclient.Cluster_instances_inner{Instance: openapiclient.NewInstance(openapiclient.ClusterPipeline_cluster{Cluster: }, time.Now(), "Id_example", "InstanceId_example", time.Now(), time.Now())}}, time.Now(), time.Now(), time.Now(), false, []string{"TenantIds_example"})}, time.Now(), "Id_example", "InstanceId_example", time.Now(), time.Now())}}, time.Now(), time.Now(), time.Now(), false, []string{"TenantIds_example"}) // Cluster |  (optional)
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
@@ -518,6 +521,90 @@ Name | Type | Description  | Notes
 ### HTTP request headers
 
 - **Content-Type**: application/json, application/x-www-form-urlencoded, multipart/form-data
+- **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints)
+[[Back to Model list]](../README.md#documentation-for-models)
+[[Back to README]](../README.md)
+
+
+## V1InventoryClustersPipelinesList
+
+> PaginatedClusterPipelineList V1InventoryClustersPipelinesList(ctx, clusterId).Action(action).Id(id).Ordering(ordering).Page(page).PageSize(pageSize).PipelineId(pipelineId).RequestId(requestId).Search(search).Execute()
+
+
+
+### Example
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+	"os"
+	openapiclient "github.com/brevdev/cloud"
+)
+
+func main() {
+	clusterId := "38400000-8cf0-11bd-b23e-10b96e4ef00d" // string | 
+	action := "action_example" // string | Action for the pipeline to run  * `apply` - apply * `destroy` - destroy * `notify` - notify (optional)
+	id := "38400000-8cf0-11bd-b23e-10b96e4ef00d" // string |  (optional)
+	ordering := "ordering_example" // string | Which field to use when ordering the results. (optional)
+	page := int32(56) // int32 | A page number within the paginated result set. (optional)
+	pageSize := int32(56) // int32 | Number of results to return per page. (optional)
+	pipelineId := int32(56) // int32 |  (optional)
+	requestId := "requestId_example" // string |  (optional)
+	search := "search_example" // string | Search for cluster-pipelines by action, id, pipeline_id, request_id, url (optional)
+
+	configuration := openapiclient.NewConfiguration()
+	apiClient := openapiclient.NewAPIClient(configuration)
+	resp, r, err := apiClient.InventoryClustersAPI.V1InventoryClustersPipelinesList(context.Background(), clusterId).Action(action).Id(id).Ordering(ordering).Page(page).PageSize(pageSize).PipelineId(pipelineId).RequestId(requestId).Search(search).Execute()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error when calling `InventoryClustersAPI.V1InventoryClustersPipelinesList``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
+	}
+	// response from `V1InventoryClustersPipelinesList`: PaginatedClusterPipelineList
+	fmt.Fprintf(os.Stdout, "Response from `InventoryClustersAPI.V1InventoryClustersPipelinesList`: %v\n", resp)
+}
+```
+
+### Path Parameters
+
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+**ctx** | **context.Context** | context for authentication, logging, cancellation, deadlines, tracing, etc.
+**clusterId** | **string** |  | 
+
+### Other Parameters
+
+Other parameters are passed through a pointer to a apiV1InventoryClustersPipelinesListRequest struct via the builder pattern
+
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+
+ **action** | **string** | Action for the pipeline to run  * &#x60;apply&#x60; - apply * &#x60;destroy&#x60; - destroy * &#x60;notify&#x60; - notify | 
+ **id** | **string** |  | 
+ **ordering** | **string** | Which field to use when ordering the results. | 
+ **page** | **int32** | A page number within the paginated result set. | 
+ **pageSize** | **int32** | Number of results to return per page. | 
+ **pipelineId** | **int32** |  | 
+ **requestId** | **string** |  | 
+ **search** | **string** | Search for cluster-pipelines by action, id, pipeline_id, request_id, url | 
+
+### Return type
+
+[**PaginatedClusterPipelineList**](PaginatedClusterPipelineList.md)
+
+### Authorization
+
+[TokenAuthentication](../README.md#TokenAuthentication)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
 - **Accept**: application/json
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints)
@@ -598,7 +685,7 @@ Name | Type | Description  | Notes
 
 ## V1InventoryClustersProvisionCreate
 
-> ProvisioningRequest V1InventoryClustersProvisionCreate(ctx).ProvisioningRequest(provisioningRequest).Expand(expand).Execute()
+> ClusterProvisionCreateResponse V1InventoryClustersProvisionCreate(ctx).ProvisioningRequest(provisioningRequest).Expand(expand).Execute()
 
 
 
@@ -625,7 +712,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Error when calling `InventoryClustersAPI.V1InventoryClustersProvisionCreate``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 	}
-	// response from `V1InventoryClustersProvisionCreate`: ProvisioningRequest
+	// response from `V1InventoryClustersProvisionCreate`: ClusterProvisionCreateResponse
 	fmt.Fprintf(os.Stdout, "Response from `InventoryClustersAPI.V1InventoryClustersProvisionCreate`: %v\n", resp)
 }
 ```
@@ -646,7 +733,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-[**ProvisioningRequest**](ProvisioningRequest.md)
+[**ClusterProvisionCreateResponse**](ClusterProvisionCreateResponse.md)
 
 ### Authorization
 
@@ -1093,7 +1180,7 @@ import (
 
 func main() {
 	id := "38400000-8cf0-11bd-b23e-10b96e4ef00d" // string | A UUID string identifying this cluster.
-	cluster := *openapiclient.NewCluster(false, time.Now(), openapiclient.Cluster_deployment{Deployment: openapiclient.NewDeployment(time.Now(), "Id_example", time.Now(), "OrgName_example", *openapiclient.NewOverrides(), []string{"Pipelines_example"}, "RequesterEmail_example", "RequesterName_example", int32(123), []string{"Services_example"}, int32(123), "SshUser_example", openapiclient.DeploymentState("destroyed"))}, []openapiclient.ClusterGpusInner{openapiclient.Cluster_gpus_inner{Gpu: openapiclient.NewGpu(time.Now(), "Id_example", "Model_example", time.Now())}}, "Id_example", []openapiclient.ClusterInstancesInner{openapiclient.Cluster_instances_inner{Instance: openapiclient.NewInstance(openapiclient.Deployment_cluster{Cluster: openapiclient.NewCluster(false, time.Now(), openapiclient.Cluster_deployment{Deployment: openapiclient.NewDeployment(time.Now(), "Id_example", time.Now(), "OrgName_example", *openapiclient.NewOverrides(), []string{"Pipelines_example"}, "RequesterEmail_example", "RequesterName_example", int32(123), []string{"Services_example"}, int32(123), "SshUser_example", openapiclient.DeploymentState("destroyed"))}, []openapiclient.ClusterGpusInner{openapiclient.Cluster_gpus_inner{Gpu: openapiclient.NewGpu(time.Now(), "Id_example", "Model_example", time.Now())}}, "Id_example", []openapiclient.ClusterInstancesInner{openapiclient.Cluster_instances_inner{Instance: openapiclient.NewInstance(openapiclient.Deployment_cluster{Cluster: }, time.Now(), "Id_example", "InstanceId_example", time.Now(), time.Now())}}, time.Now(), time.Now(), false, []string{"TenantIds_example"})}, time.Now(), "Id_example", "InstanceId_example", time.Now(), time.Now())}}, time.Now(), time.Now(), false, []string{"TenantIds_example"}) // Cluster |  (optional)
+	cluster := *openapiclient.NewCluster(false, time.Now(), openapiclient.Cluster_deployment{Deployment: openapiclient.NewDeployment(time.Now(), "Id_example", time.Now(), "OrgName_example", *openapiclient.NewOverrides(), []string{"Pipelines_example"}, "RequesterEmail_example", "RequesterName_example", int32(123), []string{"Services_example"}, int32(123), "SshUser_example", openapiclient.DeploymentState("destroyed"))}, []openapiclient.ClusterGpusInner{openapiclient.Cluster_gpus_inner{Gpu: openapiclient.NewGpu(time.Now(), "Id_example", "Model_example", time.Now())}}, "Id_example", []openapiclient.ClusterInstancesInner{openapiclient.Cluster_instances_inner{Instance: openapiclient.NewInstance(openapiclient.ClusterPipeline_cluster{Cluster: openapiclient.NewCluster(false, time.Now(), openapiclient.Cluster_deployment{Deployment: openapiclient.NewDeployment(time.Now(), "Id_example", time.Now(), "OrgName_example", *openapiclient.NewOverrides(), []string{"Pipelines_example"}, "RequesterEmail_example", "RequesterName_example", int32(123), []string{"Services_example"}, int32(123), "SshUser_example", openapiclient.DeploymentState("destroyed"))}, []openapiclient.ClusterGpusInner{openapiclient.Cluster_gpus_inner{Gpu: openapiclient.NewGpu(time.Now(), "Id_example", "Model_example", time.Now())}}, "Id_example", []openapiclient.ClusterInstancesInner{openapiclient.Cluster_instances_inner{Instance: openapiclient.NewInstance(openapiclient.ClusterPipeline_cluster{Cluster: }, time.Now(), "Id_example", "InstanceId_example", time.Now(), time.Now())}}, time.Now(), time.Now(), time.Now(), false, []string{"TenantIds_example"})}, time.Now(), "Id_example", "InstanceId_example", time.Now(), time.Now())}}, time.Now(), time.Now(), time.Now(), false, []string{"TenantIds_example"}) // Cluster |  (optional)
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)

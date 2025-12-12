@@ -4,7 +4,7 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**Cluster** | [**DeploymentCluster**](DeploymentCluster.md) |  | 
+**Cluster** | [**ClusterPipelineCluster**](ClusterPipelineCluster.md) |  | 
 **Created** | **time.Time** | Timestamp of when the object was created | [readonly] 
 **Id** | **string** |  | [readonly] 
 **InstanceId** | **string** | Unique ID for this instance assigned by its provider | 
@@ -18,7 +18,7 @@ Name | Type | Description | Notes
 
 ### NewInstance
 
-`func NewInstance(cluster DeploymentCluster, created time.Time, id string, instanceId string, modified time.Time, stateModified time.Time, ) *Instance`
+`func NewInstance(cluster ClusterPipelineCluster, created time.Time, id string, instanceId string, modified time.Time, stateModified time.Time, ) *Instance`
 
 NewInstance instantiates a new Instance object
 This constructor will assign default values to properties that have it defined,
@@ -35,20 +35,20 @@ but it doesn't guarantee that properties required by API are set
 
 ### GetCluster
 
-`func (o *Instance) GetCluster() DeploymentCluster`
+`func (o *Instance) GetCluster() ClusterPipelineCluster`
 
 GetCluster returns the Cluster field if non-nil, zero value otherwise.
 
 ### GetClusterOk
 
-`func (o *Instance) GetClusterOk() (*DeploymentCluster, bool)`
+`func (o *Instance) GetClusterOk() (*ClusterPipelineCluster, bool)`
 
 GetClusterOk returns a tuple with the Cluster field if it's non-nil, zero value otherwise
 and a boolean to check if the value has been set.
 
 ### SetCluster
 
-`func (o *Instance) SetCluster(v DeploymentCluster)`
+`func (o *Instance) SetCluster(v ClusterPipelineCluster)`
 
 SetCluster sets Cluster field to given value.
 
