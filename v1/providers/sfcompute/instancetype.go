@@ -28,6 +28,12 @@ func (c *SFCClient) GetLocations(ctx context.Context, _ v1.GetLocationsArgs) ([]
 					Name:        zone.Name,
 					Description: fmt.Sprintf("sfc_%s_%s", zone.Name, string(zone.HardwareType)),
 					Available:   available}
+			} else {
+				available = false
+				locations[zone.Name] = v1.Location{
+					Name:        zone.Name,
+					Description: fmt.Sprintf("sfc_%s_%s", zone.Name, string(zone.HardwareType)),
+					Available:   available}
 			}
 		}
 	}
