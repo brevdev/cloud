@@ -11,7 +11,7 @@ import (
 )
 
 func (c *LaunchpadClient) ListInstances(ctx context.Context, args v1.ListInstancesArgs) ([]v1.Instance, error) {
-	deployments, err := c.paginateListDeployments(ctx, 1000)
+	deployments, err := c.paginateListDeployments(ctx, 100)
 	if err != nil {
 		return nil, errors.WrapAndTrace(err)
 	}
