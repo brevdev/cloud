@@ -11,18 +11,19 @@ package openapi
 
 import (
 	"context"
-	"testing"
-
 	openapiclient "github.com/brevdev/cloud/v1/providers/launchpad/gen/launchpad"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"testing"
 )
 
 func Test_openapi_InventoryGpusAPIService(t *testing.T) {
+
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
 
 	t.Run("Test InventoryGpusAPIService V1InventoryGpusBulkPartialUpdate", func(t *testing.T) {
+
 		t.Skip("skip test") // remove to run test
 
 		resp, httpRes, err := apiClient.InventoryGpusAPI.V1InventoryGpusBulkPartialUpdate(context.Background()).Execute()
@@ -30,9 +31,11 @@ func Test_openapi_InventoryGpusAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
 
 	t.Run("Test InventoryGpusAPIService V1InventoryGpusCreate", func(t *testing.T) {
+
 		t.Skip("skip test") // remove to run test
 
 		resp, httpRes, err := apiClient.InventoryGpusAPI.V1InventoryGpusCreate(context.Background()).Execute()
@@ -40,9 +43,11 @@ func Test_openapi_InventoryGpusAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
 
 	t.Run("Test InventoryGpusAPIService V1InventoryGpusDestroy", func(t *testing.T) {
+
 		t.Skip("skip test") // remove to run test
 
 		var id string
@@ -51,9 +56,11 @@ func Test_openapi_InventoryGpusAPIService(t *testing.T) {
 
 		require.Nil(t, err)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
 
 	t.Run("Test InventoryGpusAPIService V1InventoryGpusHistoryList", func(t *testing.T) {
+
 		t.Skip("skip test") // remove to run test
 
 		var id string
@@ -63,9 +70,11 @@ func Test_openapi_InventoryGpusAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
 
 	t.Run("Test InventoryGpusAPIService V1InventoryGpusList", func(t *testing.T) {
+
 		t.Skip("skip test") // remove to run test
 
 		resp, httpRes, err := apiClient.InventoryGpusAPI.V1InventoryGpusList(context.Background()).Execute()
@@ -73,9 +82,11 @@ func Test_openapi_InventoryGpusAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
 
 	t.Run("Test InventoryGpusAPIService V1InventoryGpusPartialUpdate", func(t *testing.T) {
+
 		t.Skip("skip test") // remove to run test
 
 		var id string
@@ -85,9 +96,11 @@ func Test_openapi_InventoryGpusAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
 
 	t.Run("Test InventoryGpusAPIService V1InventoryGpusRetrieve", func(t *testing.T) {
+
 		t.Skip("skip test") // remove to run test
 
 		var id string
@@ -97,18 +110,22 @@ func Test_openapi_InventoryGpusAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
 
 	t.Run("Test InventoryGpusAPIService V1InventoryGpusStatsRetrieve", func(t *testing.T) {
+
 		t.Skip("skip test") // remove to run test
 
 		httpRes, err := apiClient.InventoryGpusAPI.V1InventoryGpusStatsRetrieve(context.Background()).Execute()
 
 		require.Nil(t, err)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
 
 	t.Run("Test InventoryGpusAPIService V1InventoryGpusUpdate", func(t *testing.T) {
+
 		t.Skip("skip test") // remove to run test
 
 		var id string
@@ -118,5 +135,7 @@ func Test_openapi_InventoryGpusAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
+
 	})
+
 }

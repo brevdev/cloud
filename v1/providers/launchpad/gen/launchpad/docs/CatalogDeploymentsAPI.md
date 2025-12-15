@@ -19,6 +19,7 @@ Method | HTTP request | Description
 [**V1CatalogDeploymentsPartialUpdate**](CatalogDeploymentsAPI.md#V1CatalogDeploymentsPartialUpdate) | **Patch** /v1/catalog/deployments/{id}/ | 
 [**V1CatalogDeploymentsPipelinesCreate**](CatalogDeploymentsAPI.md#V1CatalogDeploymentsPipelinesCreate) | **Post** /v1/catalog/deployments/{deployment_id}/pipelines/ | 
 [**V1CatalogDeploymentsPipelinesList**](CatalogDeploymentsAPI.md#V1CatalogDeploymentsPipelinesList) | **Get** /v1/catalog/deployments/{deployment_id}/pipelines/ | 
+[**V1CatalogDeploymentsPipelinesTriggerCreate**](CatalogDeploymentsAPI.md#V1CatalogDeploymentsPipelinesTriggerCreate) | **Post** /v1/catalog/deployments/{id}/pipelines/trigger/ | 
 [**V1CatalogDeploymentsRetrieve**](CatalogDeploymentsAPI.md#V1CatalogDeploymentsRetrieve) | **Get** /v1/catalog/deployments/{id}/ | 
 [**V1CatalogDeploymentsServicesCreate**](CatalogDeploymentsAPI.md#V1CatalogDeploymentsServicesCreate) | **Post** /v1/catalog/deployments/{deployment_id}/services/ | 
 [**V1CatalogDeploymentsServicesList**](CatalogDeploymentsAPI.md#V1CatalogDeploymentsServicesList) | **Get** /v1/catalog/deployments/{deployment_id}/services/ | 
@@ -30,12 +31,6 @@ Method | HTTP request | Description
 [**V1CatalogDeploymentsTasksList**](CatalogDeploymentsAPI.md#V1CatalogDeploymentsTasksList) | **Get** /v1/catalog/deployments/{deployment_id}/tasks/ | 🚧 [Beta Feature]
 [**V1CatalogDeploymentsTasksRetrieve**](CatalogDeploymentsAPI.md#V1CatalogDeploymentsTasksRetrieve) | **Get** /v1/catalog/deployments/{deployment_id}/tasks/{id}/ | 🚧 [Beta Feature]
 [**V1CatalogDeploymentsUpdate**](CatalogDeploymentsAPI.md#V1CatalogDeploymentsUpdate) | **Put** /v1/catalog/deployments/{id}/ | 
-[**V1CatalogExperiencesNotesCreate**](CatalogDeploymentsAPI.md#V1CatalogExperiencesNotesCreate) | **Post** /v1/catalog/experiences/{experience_id}/notes/ | 
-[**V1CatalogExperiencesNotesDestroy**](CatalogDeploymentsAPI.md#V1CatalogExperiencesNotesDestroy) | **Delete** /v1/catalog/experiences/{experience_id}/notes/{id}/ | 
-[**V1CatalogExperiencesNotesList**](CatalogDeploymentsAPI.md#V1CatalogExperiencesNotesList) | **Get** /v1/catalog/experiences/{experience_id}/notes/ | 
-[**V1CatalogExperiencesNotesPartialUpdate**](CatalogDeploymentsAPI.md#V1CatalogExperiencesNotesPartialUpdate) | **Patch** /v1/catalog/experiences/{experience_id}/notes/{id}/ | 
-[**V1CatalogExperiencesNotesRetrieve**](CatalogDeploymentsAPI.md#V1CatalogExperiencesNotesRetrieve) | **Get** /v1/catalog/experiences/{experience_id}/notes/{id}/ | 
-[**V1CatalogExperiencesNotesUpdate**](CatalogDeploymentsAPI.md#V1CatalogExperiencesNotesUpdate) | **Put** /v1/catalog/experiences/{experience_id}/notes/{id}/ | 
 
 
 
@@ -1249,6 +1244,77 @@ Name | Type | Description  | Notes
 [[Back to README]](../README.md)
 
 
+## V1CatalogDeploymentsPipelinesTriggerCreate
+
+> DeploymentPipelineTrigger V1CatalogDeploymentsPipelinesTriggerCreate(ctx, id).DeploymentPipelineTrigger(deploymentPipelineTrigger).Execute()
+
+
+
+### Example
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+	"os"
+    "time"
+	openapiclient "github.com/brevdev/cloud"
+)
+
+func main() {
+	id := "38400000-8cf0-11bd-b23e-10b96e4ef00d" // string | 
+	deploymentPipelineTrigger := *openapiclient.NewDeploymentPipelineTrigger(openapiclient.PipelineAction("apply"), time.Now(), "Id_example", time.Now(), int32(123), "Url_example") // DeploymentPipelineTrigger | 
+
+	configuration := openapiclient.NewConfiguration()
+	apiClient := openapiclient.NewAPIClient(configuration)
+	resp, r, err := apiClient.CatalogDeploymentsAPI.V1CatalogDeploymentsPipelinesTriggerCreate(context.Background(), id).DeploymentPipelineTrigger(deploymentPipelineTrigger).Execute()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.V1CatalogDeploymentsPipelinesTriggerCreate``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
+	}
+	// response from `V1CatalogDeploymentsPipelinesTriggerCreate`: DeploymentPipelineTrigger
+	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.V1CatalogDeploymentsPipelinesTriggerCreate`: %v\n", resp)
+}
+```
+
+### Path Parameters
+
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+**ctx** | **context.Context** | context for authentication, logging, cancellation, deadlines, tracing, etc.
+**id** | **string** |  | 
+
+### Other Parameters
+
+Other parameters are passed through a pointer to a apiV1CatalogDeploymentsPipelinesTriggerCreateRequest struct via the builder pattern
+
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+
+ **deploymentPipelineTrigger** | [**DeploymentPipelineTrigger**](DeploymentPipelineTrigger.md) |  | 
+
+### Return type
+
+[**DeploymentPipelineTrigger**](DeploymentPipelineTrigger.md)
+
+### Authorization
+
+[TokenAuthentication](../README.md#TokenAuthentication)
+
+### HTTP request headers
+
+- **Content-Type**: application/json, application/x-www-form-urlencoded, multipart/form-data
+- **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints)
+[[Back to Model list]](../README.md#documentation-for-models)
+[[Back to README]](../README.md)
+
+
 ## V1CatalogDeploymentsRetrieve
 
 > Deployment V1CatalogDeploymentsRetrieve(ctx, id).Expand(expand).Expiring(expiring).Fields(fields).Omit(omit).Execute()
@@ -2033,457 +2099,6 @@ Name | Type | Description  | Notes
 ### Return type
 
 [**DeploymentUpdate**](DeploymentUpdate.md)
-
-### Authorization
-
-[TokenAuthentication](../README.md#TokenAuthentication)
-
-### HTTP request headers
-
-- **Content-Type**: application/json, application/x-www-form-urlencoded, multipart/form-data
-- **Accept**: application/json
-
-[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints)
-[[Back to Model list]](../README.md#documentation-for-models)
-[[Back to README]](../README.md)
-
-
-## V1CatalogExperiencesNotesCreate
-
-> ExperienceNote V1CatalogExperiencesNotesCreate(ctx, experienceId).ExperienceNote(experienceNote).Execute()
-
-
-
-### Example
-
-```go
-package main
-
-import (
-	"context"
-	"fmt"
-	"os"
-    "time"
-	openapiclient "github.com/brevdev/cloud"
-)
-
-func main() {
-	experienceId := "38400000-8cf0-11bd-b23e-10b96e4ef00d" // string | 
-	experienceNote := *openapiclient.NewExperienceNote(time.Now(), "CreatedBy_example", openapiclient.ExperienceNote_experience{Experience: openapiclient.NewExperience("CatalogId_example", openapiclient.CategoryEnum("AI"), time.Now(), "Experience_example", *openapiclient.NewGpuOs("Name_example", "Release_example", "Version_example"), "Id_example", time.Now(), "Persona_example", int64(123), openapiclient.PlatformEnum("air"), openapiclient.SystemArchEnum("amd64"), "Title_example")}, "Id_example", time.Now(), "ModifiedBy_example") // ExperienceNote | 
-
-	configuration := openapiclient.NewConfiguration()
-	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.CatalogDeploymentsAPI.V1CatalogExperiencesNotesCreate(context.Background(), experienceId).ExperienceNote(experienceNote).Execute()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.V1CatalogExperiencesNotesCreate``: %v\n", err)
-		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
-	}
-	// response from `V1CatalogExperiencesNotesCreate`: ExperienceNote
-	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.V1CatalogExperiencesNotesCreate`: %v\n", resp)
-}
-```
-
-### Path Parameters
-
-
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
-**ctx** | **context.Context** | context for authentication, logging, cancellation, deadlines, tracing, etc.
-**experienceId** | **string** |  | 
-
-### Other Parameters
-
-Other parameters are passed through a pointer to a apiV1CatalogExperiencesNotesCreateRequest struct via the builder pattern
-
-
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
-
- **experienceNote** | [**ExperienceNote**](ExperienceNote.md) |  | 
-
-### Return type
-
-[**ExperienceNote**](ExperienceNote.md)
-
-### Authorization
-
-[TokenAuthentication](../README.md#TokenAuthentication)
-
-### HTTP request headers
-
-- **Content-Type**: application/json, application/x-www-form-urlencoded, multipart/form-data
-- **Accept**: application/json
-
-[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints)
-[[Back to Model list]](../README.md#documentation-for-models)
-[[Back to README]](../README.md)
-
-
-## V1CatalogExperiencesNotesDestroy
-
-> V1CatalogExperiencesNotesDestroy(ctx, experienceId, id).Execute()
-
-
-
-### Example
-
-```go
-package main
-
-import (
-	"context"
-	"fmt"
-	"os"
-	openapiclient "github.com/brevdev/cloud"
-)
-
-func main() {
-	experienceId := "38400000-8cf0-11bd-b23e-10b96e4ef00d" // string | 
-	id := "38400000-8cf0-11bd-b23e-10b96e4ef00d" // string | 
-
-	configuration := openapiclient.NewConfiguration()
-	apiClient := openapiclient.NewAPIClient(configuration)
-	r, err := apiClient.CatalogDeploymentsAPI.V1CatalogExperiencesNotesDestroy(context.Background(), experienceId, id).Execute()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.V1CatalogExperiencesNotesDestroy``: %v\n", err)
-		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
-	}
-}
-```
-
-### Path Parameters
-
-
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
-**ctx** | **context.Context** | context for authentication, logging, cancellation, deadlines, tracing, etc.
-**experienceId** | **string** |  | 
-**id** | **string** |  | 
-
-### Other Parameters
-
-Other parameters are passed through a pointer to a apiV1CatalogExperiencesNotesDestroyRequest struct via the builder pattern
-
-
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
-
-
-
-### Return type
-
- (empty response body)
-
-### Authorization
-
-[TokenAuthentication](../README.md#TokenAuthentication)
-
-### HTTP request headers
-
-- **Content-Type**: Not defined
-- **Accept**: Not defined
-
-[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints)
-[[Back to Model list]](../README.md#documentation-for-models)
-[[Back to README]](../README.md)
-
-
-## V1CatalogExperiencesNotesList
-
-> PaginatedExperienceNoteList V1CatalogExperiencesNotesList(ctx, experienceId).CreatedBy(createdBy).Experience(experience).Fields(fields).Id(id).ModifiedBy(modifiedBy).Omit(omit).Ordering(ordering).Page(page).PageSize(pageSize).Search(search).Execute()
-
-
-
-### Example
-
-```go
-package main
-
-import (
-	"context"
-	"fmt"
-	"os"
-	openapiclient "github.com/brevdev/cloud"
-)
-
-func main() {
-	experienceId := "38400000-8cf0-11bd-b23e-10b96e4ef00d" // string | 
-	createdBy := int32(56) // int32 |  (optional)
-	experience := "38400000-8cf0-11bd-b23e-10b96e4ef00d" // string |  (optional)
-	fields := "fields_example" // string | Include only the specified fields in the response (optional)
-	id := "38400000-8cf0-11bd-b23e-10b96e4ef00d" // string |  (optional)
-	modifiedBy := int32(56) // int32 |  (optional)
-	omit := "omit_example" // string | Exclude the specified fields in the response (optional)
-	ordering := "ordering_example" // string | Which field to use when ordering the results. (optional)
-	page := int32(56) // int32 | A page number within the paginated result set. (optional)
-	pageSize := int32(56) // int32 | Number of results to return per page. (optional)
-	search := "search_example" // string | Search for experience-notes by content (optional)
-
-	configuration := openapiclient.NewConfiguration()
-	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.CatalogDeploymentsAPI.V1CatalogExperiencesNotesList(context.Background(), experienceId).CreatedBy(createdBy).Experience(experience).Fields(fields).Id(id).ModifiedBy(modifiedBy).Omit(omit).Ordering(ordering).Page(page).PageSize(pageSize).Search(search).Execute()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.V1CatalogExperiencesNotesList``: %v\n", err)
-		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
-	}
-	// response from `V1CatalogExperiencesNotesList`: PaginatedExperienceNoteList
-	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.V1CatalogExperiencesNotesList`: %v\n", resp)
-}
-```
-
-### Path Parameters
-
-
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
-**ctx** | **context.Context** | context for authentication, logging, cancellation, deadlines, tracing, etc.
-**experienceId** | **string** |  | 
-
-### Other Parameters
-
-Other parameters are passed through a pointer to a apiV1CatalogExperiencesNotesListRequest struct via the builder pattern
-
-
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
-
- **createdBy** | **int32** |  | 
- **experience** | **string** |  | 
- **fields** | **string** | Include only the specified fields in the response | 
- **id** | **string** |  | 
- **modifiedBy** | **int32** |  | 
- **omit** | **string** | Exclude the specified fields in the response | 
- **ordering** | **string** | Which field to use when ordering the results. | 
- **page** | **int32** | A page number within the paginated result set. | 
- **pageSize** | **int32** | Number of results to return per page. | 
- **search** | **string** | Search for experience-notes by content | 
-
-### Return type
-
-[**PaginatedExperienceNoteList**](PaginatedExperienceNoteList.md)
-
-### Authorization
-
-[TokenAuthentication](../README.md#TokenAuthentication)
-
-### HTTP request headers
-
-- **Content-Type**: Not defined
-- **Accept**: application/json
-
-[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints)
-[[Back to Model list]](../README.md#documentation-for-models)
-[[Back to README]](../README.md)
-
-
-## V1CatalogExperiencesNotesPartialUpdate
-
-> ExperienceNote V1CatalogExperiencesNotesPartialUpdate(ctx, experienceId, id).ExperienceNote(experienceNote).Execute()
-
-
-
-### Example
-
-```go
-package main
-
-import (
-	"context"
-	"fmt"
-	"os"
-    "time"
-	openapiclient "github.com/brevdev/cloud"
-)
-
-func main() {
-	experienceId := "38400000-8cf0-11bd-b23e-10b96e4ef00d" // string | 
-	id := "38400000-8cf0-11bd-b23e-10b96e4ef00d" // string | 
-	experienceNote := *openapiclient.NewExperienceNote(time.Now(), "CreatedBy_example", openapiclient.ExperienceNote_experience{Experience: openapiclient.NewExperience("CatalogId_example", openapiclient.CategoryEnum("AI"), time.Now(), "Experience_example", *openapiclient.NewGpuOs("Name_example", "Release_example", "Version_example"), "Id_example", time.Now(), "Persona_example", int64(123), openapiclient.PlatformEnum("air"), openapiclient.SystemArchEnum("amd64"), "Title_example")}, "Id_example", time.Now(), "ModifiedBy_example") // ExperienceNote | 
-
-	configuration := openapiclient.NewConfiguration()
-	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.CatalogDeploymentsAPI.V1CatalogExperiencesNotesPartialUpdate(context.Background(), experienceId, id).ExperienceNote(experienceNote).Execute()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.V1CatalogExperiencesNotesPartialUpdate``: %v\n", err)
-		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
-	}
-	// response from `V1CatalogExperiencesNotesPartialUpdate`: ExperienceNote
-	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.V1CatalogExperiencesNotesPartialUpdate`: %v\n", resp)
-}
-```
-
-### Path Parameters
-
-
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
-**ctx** | **context.Context** | context for authentication, logging, cancellation, deadlines, tracing, etc.
-**experienceId** | **string** |  | 
-**id** | **string** |  | 
-
-### Other Parameters
-
-Other parameters are passed through a pointer to a apiV1CatalogExperiencesNotesPartialUpdateRequest struct via the builder pattern
-
-
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
-
-
- **experienceNote** | [**ExperienceNote**](ExperienceNote.md) |  | 
-
-### Return type
-
-[**ExperienceNote**](ExperienceNote.md)
-
-### Authorization
-
-[TokenAuthentication](../README.md#TokenAuthentication)
-
-### HTTP request headers
-
-- **Content-Type**: application/json, application/x-www-form-urlencoded, multipart/form-data
-- **Accept**: application/json
-
-[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints)
-[[Back to Model list]](../README.md#documentation-for-models)
-[[Back to README]](../README.md)
-
-
-## V1CatalogExperiencesNotesRetrieve
-
-> ExperienceNote V1CatalogExperiencesNotesRetrieve(ctx, experienceId, id).Fields(fields).Omit(omit).Execute()
-
-
-
-### Example
-
-```go
-package main
-
-import (
-	"context"
-	"fmt"
-	"os"
-	openapiclient "github.com/brevdev/cloud"
-)
-
-func main() {
-	experienceId := "38400000-8cf0-11bd-b23e-10b96e4ef00d" // string | 
-	id := "38400000-8cf0-11bd-b23e-10b96e4ef00d" // string | 
-	fields := "fields_example" // string | Include only the specified fields in the response (optional)
-	omit := "omit_example" // string | Exclude the specified fields in the response (optional)
-
-	configuration := openapiclient.NewConfiguration()
-	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.CatalogDeploymentsAPI.V1CatalogExperiencesNotesRetrieve(context.Background(), experienceId, id).Fields(fields).Omit(omit).Execute()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.V1CatalogExperiencesNotesRetrieve``: %v\n", err)
-		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
-	}
-	// response from `V1CatalogExperiencesNotesRetrieve`: ExperienceNote
-	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.V1CatalogExperiencesNotesRetrieve`: %v\n", resp)
-}
-```
-
-### Path Parameters
-
-
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
-**ctx** | **context.Context** | context for authentication, logging, cancellation, deadlines, tracing, etc.
-**experienceId** | **string** |  | 
-**id** | **string** |  | 
-
-### Other Parameters
-
-Other parameters are passed through a pointer to a apiV1CatalogExperiencesNotesRetrieveRequest struct via the builder pattern
-
-
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
-
-
- **fields** | **string** | Include only the specified fields in the response | 
- **omit** | **string** | Exclude the specified fields in the response | 
-
-### Return type
-
-[**ExperienceNote**](ExperienceNote.md)
-
-### Authorization
-
-[TokenAuthentication](../README.md#TokenAuthentication)
-
-### HTTP request headers
-
-- **Content-Type**: Not defined
-- **Accept**: application/json
-
-[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints)
-[[Back to Model list]](../README.md#documentation-for-models)
-[[Back to README]](../README.md)
-
-
-## V1CatalogExperiencesNotesUpdate
-
-> ExperienceNote V1CatalogExperiencesNotesUpdate(ctx, experienceId, id).ExperienceNote(experienceNote).Execute()
-
-
-
-### Example
-
-```go
-package main
-
-import (
-	"context"
-	"fmt"
-	"os"
-    "time"
-	openapiclient "github.com/brevdev/cloud"
-)
-
-func main() {
-	experienceId := "38400000-8cf0-11bd-b23e-10b96e4ef00d" // string | 
-	id := "38400000-8cf0-11bd-b23e-10b96e4ef00d" // string | 
-	experienceNote := *openapiclient.NewExperienceNote(time.Now(), "CreatedBy_example", openapiclient.ExperienceNote_experience{Experience: openapiclient.NewExperience("CatalogId_example", openapiclient.CategoryEnum("AI"), time.Now(), "Experience_example", *openapiclient.NewGpuOs("Name_example", "Release_example", "Version_example"), "Id_example", time.Now(), "Persona_example", int64(123), openapiclient.PlatformEnum("air"), openapiclient.SystemArchEnum("amd64"), "Title_example")}, "Id_example", time.Now(), "ModifiedBy_example") // ExperienceNote | 
-
-	configuration := openapiclient.NewConfiguration()
-	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.CatalogDeploymentsAPI.V1CatalogExperiencesNotesUpdate(context.Background(), experienceId, id).ExperienceNote(experienceNote).Execute()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `CatalogDeploymentsAPI.V1CatalogExperiencesNotesUpdate``: %v\n", err)
-		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
-	}
-	// response from `V1CatalogExperiencesNotesUpdate`: ExperienceNote
-	fmt.Fprintf(os.Stdout, "Response from `CatalogDeploymentsAPI.V1CatalogExperiencesNotesUpdate`: %v\n", resp)
-}
-```
-
-### Path Parameters
-
-
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
-**ctx** | **context.Context** | context for authentication, logging, cancellation, deadlines, tracing, etc.
-**experienceId** | **string** |  | 
-**id** | **string** |  | 
-
-### Other Parameters
-
-Other parameters are passed through a pointer to a apiV1CatalogExperiencesNotesUpdateRequest struct via the builder pattern
-
-
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
-
-
- **experienceNote** | [**ExperienceNote**](ExperienceNote.md) |  | 
-
-### Return type
-
-[**ExperienceNote**](ExperienceNote.md)
 
 ### Authorization
 

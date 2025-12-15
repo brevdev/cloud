@@ -10,6 +10,7 @@ api_catalog_gpu_os_choices.go
 api_catalog_instance_types.go
 api_catalog_persona_choices.go
 api_catalog_runtimes.go
+api_catalog_vgpu_profile_choices.go
 api_health.go
 api_identity_profile.go
 api_inventory_clusters.go
@@ -33,6 +34,7 @@ docs/CatalogGpuOsChoicesAPI.md
 docs/CatalogInstanceTypesAPI.md
 docs/CatalogPersonaChoicesAPI.md
 docs/CatalogRuntimesAPI.md
+docs/CatalogVgpuProfileChoicesAPI.md
 docs/CategoryEnum.md
 docs/Cluster.md
 docs/ClusterBulkUpdate.md
@@ -40,15 +42,18 @@ docs/ClusterDeployment.md
 docs/ClusterGpusInner.md
 docs/ClusterInstancesInner.md
 docs/ClusterNodesInner.md
+docs/ClusterPipeline.md
+docs/ClusterPipelineCluster.md
 docs/ClusterPipelineTrigger.md
+docs/ClusterProvisionCreateResponse.md
 docs/CpuManufacturerEnum.md
 docs/Deployment.md
 docs/DeploymentBulkUpdate.md
-docs/DeploymentCluster.md
 docs/DeploymentInstance.md
 docs/DeploymentKey.md
 docs/DeploymentNote.md
 docs/DeploymentPipeline.md
+docs/DeploymentPipelineTrigger.md
 docs/DeploymentService.md
 docs/DeploymentState.md
 docs/DeploymentTask.md
@@ -100,6 +105,7 @@ docs/OEM.md
 docs/OnDemandSpeedEnum.md
 docs/Overrides.md
 docs/PaginatedClusterList.md
+docs/PaginatedClusterPipelineList.md
 docs/PaginatedDeploymentInstanceList.md
 docs/PaginatedDeploymentKeyList.md
 docs/PaginatedDeploymentList.md
@@ -120,6 +126,7 @@ docs/PaginatedOEMList.md
 docs/PaginatedPersonaChoiceList.md
 docs/PaginatedProviderList.md
 docs/PaginatedRuntimeList.md
+docs/PaginatedVGpuProfileChoiceList.md
 docs/PasswordChange.md
 docs/PersonaChoice.md
 docs/PipelineAction.md
@@ -137,9 +144,9 @@ docs/StatusEnum.md
 docs/SystemArchEnum.md
 docs/Tenant.md
 docs/TypeEnum.md
+docs/VGpuProfileChoice.md
 docs/VersionAPI.md
 docs/VersionRetrieve200Response.md
-docs/VgpuProfileEnum.md
 git_push.sh
 go.mod
 go.sum
@@ -154,15 +161,18 @@ model_cluster_deployment.go
 model_cluster_gpus_inner.go
 model_cluster_instances_inner.go
 model_cluster_nodes_inner.go
+model_cluster_pipeline.go
+model_cluster_pipeline_cluster.go
 model_cluster_pipeline_trigger.go
+model_cluster_provision_create_response.go
 model_cpu_manufacturer_enum.go
 model_deployment.go
 model_deployment_bulk_update.go
-model_deployment_cluster.go
 model_deployment_instance.go
 model_deployment_key.go
 model_deployment_note.go
 model_deployment_pipeline.go
+model_deployment_pipeline_trigger.go
 model_deployment_service.go
 model_deployment_state.go
 model_deployment_task.go
@@ -205,6 +215,7 @@ model_oem.go
 model_on_demand_speed_enum.go
 model_overrides.go
 model_paginated_cluster_list.go
+model_paginated_cluster_pipeline_list.go
 model_paginated_deployment_instance_list.go
 model_paginated_deployment_key_list.go
 model_paginated_deployment_list.go
@@ -225,6 +236,7 @@ model_paginated_oem_list.go
 model_paginated_persona_choice_list.go
 model_paginated_provider_list.go
 model_paginated_runtime_list.go
+model_paginated_v_gpu_profile_choice_list.go
 model_password_change.go
 model_persona_choice.go
 model_pipeline_action.go
@@ -242,8 +254,8 @@ model_status_enum.go
 model_system_arch_enum.go
 model_tenant.go
 model_type_enum.go
+model_v_gpu_profile_choice.go
 model_version_retrieve_200_response.go
-model_vgpu_profile_enum.go
 response.go
 test/api_auth_test.go
 test/api_catalog_deployments_test.go
@@ -252,6 +264,7 @@ test/api_catalog_gpu_os_choices_test.go
 test/api_catalog_instance_types_test.go
 test/api_catalog_persona_choices_test.go
 test/api_catalog_runtimes_test.go
+test/api_catalog_vgpu_profile_choices_test.go
 test/api_health_test.go
 test/api_identity_profile_test.go
 test/api_inventory_clusters_test.go
