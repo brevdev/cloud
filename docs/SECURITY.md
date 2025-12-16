@@ -62,7 +62,7 @@ This document outlines the security requirements and best practices for implemen
 
 **Implementation Requirements:**
 
-1. **Default State**: All inbound traffic must be blocked by default
+1. **Default State**: All inbound traffic must be blocked by default (exemption may be made to 22, though the sdk prefers to explicitly set this)
 2. **Explicit Allow**: Inbound access must be explicitly granted through `FirewallRule` resources
 3. **Outbound Freedom**: Outbound traffic should be unrestricted by default
 5. **Security Groups**: Use cloud provider security groups or equivalent (AWS Security Groups, GCP Firewall Rules, Azure NSGs) for network isolation
