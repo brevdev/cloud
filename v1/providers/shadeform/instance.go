@@ -253,7 +253,7 @@ func (c *ShadeformClient) ListInstances(ctx context.Context, _ v1.ListInstancesA
 	for _, instance := range resp.Instances {
 		singleInstance, err := c.convertShadeformInstanceToV1Instance(instance)
 		if err != nil {
-			return nil, errors.WrapAndTrace(err)
+			continue
 		}
 		instances = append(instances, *singleInstance)
 	}
@@ -357,13 +357,13 @@ func (c *ShadeformClient) convertShadeformInstanceToV1Instance(shadeformInstance
 
 	refID, found := tags[refIDTagName]
 	if !found {
-		return nil, errors.WrapAndTrace(errors.New("could not find refID tag"))
+		return nil, fmt.Errorf("instance missing refID tag: instanceID=%s, instanceName=%s", shadeformInstance.Id, shadeformInstance.Name)
 	}
 	delete(tags, refIDTagName)
 
 	cloudCredRefID, found := tags[cloudCredRefIDTagName]
 	if !found {
-		return nil, errors.WrapAndTrace(errors.New("could not find cloudCredRefID tag"))
+		return nil, fmt.Errorf("instance missing cloudCredRefID tag: instanceID=%s, instanceName=%s", shadeformInstance.Id, shadeformInstance.Name)
 	}
 	delete(tags, cloudCredRefIDTagName)
 
