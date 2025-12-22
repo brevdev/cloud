@@ -253,6 +253,10 @@ func (c *ShadeformClient) ListInstances(ctx context.Context, _ v1.ListInstancesA
 	for _, instance := range resp.Instances {
 		singleInstance, err := c.convertShadeformInstanceToV1Instance(instance)
 		if err != nil {
+			c.logger.Warn(ctx, "skipping instance without refID tag",
+				v1.LogField("instanceID", instance.Id),
+				v1.LogField("instanceName", instance.Name),
+				v1.LogField("error", err.Error()))
 			continue
 		}
 		instances = append(instances, *singleInstance)
