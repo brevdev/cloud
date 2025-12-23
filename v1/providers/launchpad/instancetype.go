@@ -356,6 +356,7 @@ func launchpadClusterToInstanceType(cluster openapi.Cluster) *v1.InstanceType {
 		Provider:         CloudProviderID,
 		TunneledSSH:      false,
 	}
+
 	it.ID = v1.MakeGenericInstanceTypeID(*it)
 	return it
 }
