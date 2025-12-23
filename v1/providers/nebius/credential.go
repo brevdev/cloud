@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/brevdev/cloud/internal/errors"
+	"github.com/brevdev/cloud/internal/clouderrors"
 	v1 "github.com/brevdev/cloud/v1"
 )
 
@@ -79,7 +79,7 @@ func (c *NebiusCredential) MakeClientWithOptions(ctx context.Context, location s
 	// Pass empty string and let the client constructor set it
 	client, err := NewNebiusClientWithOrg(ctx, c.RefID, c.ServiceAccountKey, c.TenantID, "", "", location, opts...)
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 	return client, nil
 }

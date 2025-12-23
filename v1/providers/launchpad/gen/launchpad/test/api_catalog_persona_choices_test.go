@@ -11,19 +11,18 @@ package openapi
 
 import (
 	"context"
+	"testing"
+
 	openapiclient "github.com/brevdev/cloud/v1/providers/launchpad/gen/launchpad"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func Test_openapi_CatalogPersonaChoicesAPIService(t *testing.T) {
-
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
 
 	t.Run("Test CatalogPersonaChoicesAPIService V1CatalogPersonaChoicesCreate", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		resp, httpRes, err := apiClient.CatalogPersonaChoicesAPI.V1CatalogPersonaChoicesCreate(context.Background()).Execute()
@@ -31,11 +30,9 @@ func Test_openapi_CatalogPersonaChoicesAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test CatalogPersonaChoicesAPIService V1CatalogPersonaChoicesList", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		resp, httpRes, err := apiClient.CatalogPersonaChoicesAPI.V1CatalogPersonaChoicesList(context.Background()).Execute()
@@ -43,7 +40,5 @@ func Test_openapi_CatalogPersonaChoicesAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
-
 }

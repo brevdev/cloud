@@ -10,7 +10,7 @@ import (
 	"github.com/alecthomas/units"
 	"github.com/bojanz/currency"
 
-	"github.com/brevdev/cloud/internal/errors"
+	"github.com/brevdev/cloud/internal/clouderrors"
 	v1 "github.com/brevdev/cloud/v1"
 	openapi "github.com/brevdev/cloud/v1/providers/launchpad/gen/launchpad"
 )
@@ -26,7 +26,7 @@ const (
 func (c *LaunchpadClient) GetInstanceTypes(ctx context.Context, args v1.GetInstanceTypeArgs) ([]v1.InstanceType, error) {
 	launchpadInstanceTypes, err := c.paginateInstanceTypes(ctx, 100)
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	instanceTypes := []v1.InstanceType{}
@@ -40,7 +40,7 @@ func (c *LaunchpadClient) GetInstanceTypes(ctx context.Context, args v1.GetInsta
 			// Convert the Launchpad instance type to a v1 instance type
 			instanceType, err := launchpadInstanceTypeToInstanceType(launchpadInstanceType, region)
 			if err != nil {
-				return nil, errors.WrapAndTrace(err)
+				return nil, clouderrors.WrapAndTrace(err)
 			}
 
 			// Collect the instance type if it is selected by the args
@@ -102,11 +102,11 @@ func (c *LaunchpadClient) paginateInstanceTypes(ctx context.Context, pageSize in
 		defer func() {
 			err = resp.Body.Close()
 			if err != nil {
-				c.logger.Error(ctx, errors.Wrap(err, "failed to close response body"))
+				c.logger.Error(ctx, clouderrors.Wrap(err, "failed to close response body"))
 			}
 		}()
 		if err != nil {
-			return nil, errors.WrapAndTrace(err)
+			return nil, clouderrors.WrapAndTrace(err)
 		}
 
 		// Append results to list
@@ -144,7 +144,7 @@ func makeInstanceTypeName(info instanceTypeInfo) string {
 func getInstanceTypeInfo(name string) (instanceTypeInfo, error) {
 	parts := strings.Split(name, ".")
 	if len(parts) != 3 && len(parts) != 4 {
-		return instanceTypeInfo{}, errors.Errorf("invalid instance type name: %s", name)
+		return instanceTypeInfo{}, clouderrors.Errorf("invalid instance type name: %s", name)
 	}
 	cloud := parts[0]
 
@@ -152,13 +152,13 @@ func getInstanceTypeInfo(name string) (instanceTypeInfo, error) {
 	gpuPart := parts[1]
 	xIndex := strings.LastIndex(gpuPart, "x")
 	if xIndex == -1 {
-		return instanceTypeInfo{}, errors.New("invalid GPU part format")
+		return instanceTypeInfo{}, clouderrors.New("invalid GPU part format")
 	}
 	gpuName := gpuPart[:xIndex]
 	gpuCountStr := gpuPart[xIndex+1:]
 	gpuCount, err := strconv.ParseInt(gpuCountStr, 10, 32)
 	if err != nil {
-		return instanceTypeInfo{}, errors.WrapAndTrace(err)
+		return instanceTypeInfo{}, clouderrors.WrapAndTrace(err)
 	}
 
 	gpuNetworkDetails := parts[2]
@@ -186,7 +186,7 @@ func launchpadInstanceTypeToInstanceType(launchpadInstanceType openapi.InstanceT
 	// Launchpad returns only a single GPU
 	gpus := launchpadGpusToGpus([]openapi.InstanceTypeGpu{launchpadInstanceType.Gpu})
 	if len(gpus) != 1 {
-		return nil, errors.Errorf("expected 1 GPU, got %d", len(gpus))
+		return nil, clouderrors.Errorf("expected 1 GPU, got %d", len(gpus))
 	}
 	gpu := gpus[0]
 
@@ -227,6 +227,7 @@ func launchpadInstanceTypeToInstanceType(launchpadInstanceType openapi.InstanceT
 		Cloud:                  launchpadInstanceType.Cloud,
 		ReservedInstancePoolID: launchpadWorkshopIDToReservedInstancePoolID(info.workshopID),
 		EstimatedDeployTime:    &estimatedDeployTime,
+		TunneledSSH:            false,
 	}
 
 	// Make the instance type ID
@@ -353,7 +354,9 @@ func launchpadClusterToInstanceType(cluster openapi.Cluster) *v1.InstanceType {
 		BasePrice:        getInstanceTypePrice(gpu),
 		Cloud:            cloud,
 		Provider:         CloudProviderID,
+		TunneledSSH:      false,
 	}
+
 	it.ID = v1.MakeGenericInstanceTypeID(*it)
 	return it
 }

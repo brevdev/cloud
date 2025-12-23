@@ -2,58 +2,58 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   test:
     name: Test and Lint
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Go
-      uses: actions/setup-go@v4
-      with:
-        go-version-file: 'go.mod'
-        
-    - name: Cache Go modules
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.cache/go-build
-          ~/go/pkg/mod
-        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-        restore-keys: |
-          ${{ runner.os }}-go-
-          
-    - name: Install dependencies
-      run: make deps
-      
-    - name: golangci-lint
-      uses: golangci/golangci-lint-action@v8
-      with:
-        version: v2.6.0
+      - uses: actions/checkout@v4
 
-    - name: Run checks (vet, fmt-check, test)
-      run: make vet fmt-check test
-      
-    # Note: Validation tests with real cloud providers run in separate workflows
-    # See .github/workflows/validation-*.yml for provider-specific validation tests
-      
-    - name: Run security scan
-      run: make security
-      continue-on-error: true
-      
-    - name: Run tests with coverage
-      run: make test-coverage
-      
-    - name: Upload coverage reports
-      uses: actions/upload-artifact@v4
-      with:
-        name: coverage-report
-        path: coverage/
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version-file: "go.mod"
+
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Install dependencies
+        run: make deps
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: v2.7.1
+
+      - name: Run checks (vet, fmt-check, test)
+        run: make vet fmt-check test
+
+      # Note: Validation tests with real cloud providers run in separate workflows
+      # See .github/workflows/validation-*.yml for provider-specific validation tests
+
+      - name: Run security scan
+        run: make security
+        continue-on-error: true
+
+      - name: Run tests with coverage
+        run: make test-coverage
+
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
 
   build:
     name: Cross-platform Build
@@ -63,31 +63,31 @@ jobs:
       matrix:
         target: [linux, darwin, windows]
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Go
-      uses: actions/setup-go@v4
-      with:
-        go-version-file: 'go.mod'
-        
-    - name: Cache Go modules
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.cache/go-build
-          ~/go/pkg/mod
-        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-        restore-keys: |
-          ${{ runner.os }}-go-
-          
-    - name: Install dependencies
-      run: make deps
-      
-    - name: Build for ${{ matrix.target }}
-      run: make build-${{ matrix.target }}
-      
-    - name: Upload build artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: build-${{ matrix.target }}
-        path: build/
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version-file: "go.mod"
+
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Install dependencies
+        run: make deps
+
+      - name: Build for ${{ matrix.target }}
+        run: make build-${{ matrix.target }}
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ matrix.target }}
+          path: build/

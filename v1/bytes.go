@@ -6,15 +6,15 @@ import (
 	"math"
 	"math/big"
 
-	"github.com/brevdev/cloud/internal/errors"
+	"github.com/brevdev/cloud/internal/clouderrors"
 )
 
 var (
 	zero = Bytes{}
 
-	ErrBytesInvalidUnit = errors.New("invalid unit")
-	ErrBytesNotAnInt64  = errors.New("byte count is not an int64")
-	ErrBytesNotAnInt32  = errors.New("byte count is not an int32")
+	ErrBytesInvalidUnit = clouderrors.New("invalid unit")
+	ErrBytesNotAnInt64  = clouderrors.New("byte count is not an int64")
+	ErrBytesNotAnInt32  = clouderrors.New("byte count is not an int32")
 )
 
 // NewBytes creates a new Bytes with the given value and unit.
@@ -86,10 +86,10 @@ func (b Bytes) ByteCountInUnitInt64(unit BytesUnit) (int64, error) {
 
 	byteCountInt64, accuracy := byteCount.Int64()
 	if byteCountInt64 == math.MaxInt64 && accuracy == big.Below {
-		return 0, errors.WrapAndTrace(errors.Join(ErrBytesNotAnInt64, fmt.Errorf("byte count %v is greater than %d", byteCount, math.MaxInt64)))
+		return 0, clouderrors.WrapAndTrace(clouderrors.Join(ErrBytesNotAnInt64, fmt.Errorf("byte count %v is greater than %d", byteCount, math.MaxInt64)))
 	}
 	if byteCountInt64 == math.MinInt64 && accuracy == big.Above {
-		return 0, errors.WrapAndTrace(errors.Join(ErrBytesNotAnInt64, fmt.Errorf("byte count %v is less than %d", byteCount, math.MinInt64)))
+		return 0, clouderrors.WrapAndTrace(clouderrors.Join(ErrBytesNotAnInt64, fmt.Errorf("byte count %v is less than %d", byteCount, math.MinInt64)))
 	}
 	return byteCountInt64, nil
 }
@@ -99,12 +99,12 @@ func (b Bytes) ByteCountInUnitInt64(unit BytesUnit) (int64, error) {
 func (b Bytes) ByteCountInUnitInt32(unit BytesUnit) (int32, error) {
 	byteCountInt64, err := b.ByteCountInUnitInt64(unit)
 	if err != nil {
-		return 0, errors.WrapAndTrace(err)
+		return 0, clouderrors.WrapAndTrace(err)
 	}
 	if byteCountInt64 > math.MaxInt32 {
-		return 0, errors.WrapAndTrace(errors.Join(ErrBytesNotAnInt32, fmt.Errorf("byte count %v is greater than %d", byteCountInt64, math.MaxInt32)))
+		return 0, clouderrors.WrapAndTrace(clouderrors.Join(ErrBytesNotAnInt32, fmt.Errorf("byte count %v is greater than %d", byteCountInt64, math.MaxInt32)))
 	}
-	return int32(byteCountInt64), nil //nolint:gosec // checked above
+	return int32(byteCountInt64), nil
 }
 
 // String returns the string representation of the Bytes
@@ -124,7 +124,7 @@ func (b Bytes) MarshalJSON() ([]byte, error) {
 func (b *Bytes) UnmarshalJSON(data []byte) error {
 	var bytesJSON bytesJSON
 	if err := json.Unmarshal(data, &bytesJSON); err != nil {
-		return errors.WrapAndTrace(err)
+		return clouderrors.WrapAndTrace(err)
 	}
 
 	if bytesJSON.Value == 0 && bytesJSON.Unit == "" {
@@ -134,7 +134,7 @@ func (b *Bytes) UnmarshalJSON(data []byte) error {
 
 	unit, err := stringToBytesUnit(bytesJSON.Unit)
 	if err != nil {
-		return errors.WrapAndTrace(err)
+		return clouderrors.WrapAndTrace(err)
 	}
 
 	newBytes := NewBytes(BytesValue(bytesJSON.Value), unit)
@@ -214,5 +214,5 @@ func stringToBytesUnit(unit string) (BytesUnit, error) {
 	case Pebibyte.name:
 		return Pebibyte, nil
 	}
-	return BytesUnit{}, errors.WrapAndTrace(errors.Join(ErrBytesInvalidUnit, fmt.Errorf("invalid unit: %s", unit)))
+	return BytesUnit{}, clouderrors.WrapAndTrace(clouderrors.Join(ErrBytesInvalidUnit, fmt.Errorf("invalid unit: %s", unit)))
 }

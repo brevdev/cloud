@@ -5,21 +5,21 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/brevdev/cloud/internal/errors"
+	"github.com/brevdev/cloud/internal/clouderrors"
 )
 
 var (
-	ErrRefIDRequired                                            = errors.New("refID is required")
-	ErrNameRequired                                             = errors.New("name is required")
-	ErrNodeGroupInvalidStatus                                   = errors.New("invalid node group status")
-	ErrClusterInvalidStatus                                     = errors.New("invalid cluster status")
-	ErrClusterUserClusterNameRequired                           = errors.New("clusterName is required")
-	ErrClusterUserClusterCertificateAuthorityDataBase64Required = errors.New("clusterCertificateAuthorityDataBase64 is required")
-	ErrClusterUserClusterServerURLRequired                      = errors.New("clusterServerURL is required")
-	ErrClusterUserUsernameRequired                              = errors.New("username is required")
-	ErrClusterUserUserClientCertificateDataBase64Required       = errors.New("userClientCertificateDataBase64 is required")
-	ErrClusterUserUserClientKeyDataBase64Required               = errors.New("userClientKeyDataBase64 is required")
-	ErrClusterUserKubeconfigBase64Required                      = errors.New("kubeconfigBase64 is required")
+	ErrRefIDRequired                                            = clouderrors.New("refID is required")
+	ErrNameRequired                                             = clouderrors.New("name is required")
+	ErrNodeGroupInvalidStatus                                   = clouderrors.New("invalid node group status")
+	ErrClusterInvalidStatus                                     = clouderrors.New("invalid cluster status")
+	ErrClusterUserClusterNameRequired                           = clouderrors.New("clusterName is required")
+	ErrClusterUserClusterCertificateAuthorityDataBase64Required = clouderrors.New("clusterCertificateAuthorityDataBase64 is required")
+	ErrClusterUserClusterServerURLRequired                      = clouderrors.New("clusterServerURL is required")
+	ErrClusterUserUsernameRequired                              = clouderrors.New("username is required")
+	ErrClusterUserUserClientCertificateDataBase64Required       = clouderrors.New("userClientCertificateDataBase64 is required")
+	ErrClusterUserUserClientKeyDataBase64Required               = clouderrors.New("userClientKeyDataBase64 is required")
+	ErrClusterUserKubeconfigBase64Required                      = clouderrors.New("kubeconfigBase64 is required")
 )
 
 // Cluster represents the complete specification of a Brev Kubernetes cluster.
@@ -115,7 +115,7 @@ func (c *Cluster) MarshalJSON() ([]byte, error) {
 func (c *Cluster) UnmarshalJSON(data []byte) error {
 	var clusterJSON clusterJSON
 	if err := json.Unmarshal(data, &clusterJSON); err != nil {
-		return errors.WrapAndTrace(err)
+		return clouderrors.WrapAndTrace(err)
 	}
 
 	subnetIDs := make([]CloudProviderResourceID, len(clusterJSON.SubnetIDs))
@@ -125,7 +125,7 @@ func (c *Cluster) UnmarshalJSON(data []byte) error {
 
 	status, err := stringToClusterStatus(clusterJSON.Status)
 	if err != nil {
-		return errors.WrapAndTrace(err)
+		return clouderrors.WrapAndTrace(err)
 	}
 
 	newCluster, err := NewCluster(ClusterSettings{
@@ -145,7 +145,7 @@ func (c *Cluster) UnmarshalJSON(data []byte) error {
 		Tags:                       clusterJSON.Tags,
 	})
 	if err != nil {
-		return errors.WrapAndTrace(err)
+		return clouderrors.WrapAndTrace(err)
 	}
 
 	*c = *newCluster
@@ -183,7 +183,7 @@ func stringToClusterStatus(status string) (ClusterStatus, error) {
 	case ClusterStatusFailed.value:
 		return ClusterStatusFailed, nil
 	}
-	return ClusterStatusUnknown, errors.Join(ErrClusterInvalidStatus, fmt.Errorf("invalid status: %s", status))
+	return ClusterStatusUnknown, clouderrors.Join(ErrClusterInvalidStatus, fmt.Errorf("invalid status: %s", status))
 }
 
 func (c *Cluster) GetID() CloudProviderResourceID {
@@ -298,7 +298,7 @@ func (s *ClusterSettings) validate() error {
 	if s.Name == "" {
 		errs = append(errs, ErrNameRequired)
 	}
-	return errors.WrapAndTrace(errors.Join(errs...))
+	return clouderrors.WrapAndTrace(clouderrors.Join(errs...))
 }
 
 // NewCluster creates a new Cluster from the provided settings.
@@ -306,7 +306,7 @@ func NewCluster(settings ClusterSettings) (*Cluster, error) {
 	settings.setDefaults()
 	err := settings.validate()
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 	return &Cluster{
 		id:                         settings.ID,
@@ -389,12 +389,12 @@ func (n *NodeGroup) MarshalJSON() ([]byte, error) {
 func (n *NodeGroup) UnmarshalJSON(data []byte) error {
 	var nodeGroupJSON nodeGroupJSON
 	if err := json.Unmarshal(data, &nodeGroupJSON); err != nil {
-		return errors.WrapAndTrace(err)
+		return clouderrors.WrapAndTrace(err)
 	}
 
 	status, err := stringToNodeGroupStatus(nodeGroupJSON.Status)
 	if err != nil {
-		return errors.WrapAndTrace(err)
+		return clouderrors.WrapAndTrace(err)
 	}
 
 	newNodeGroup, err := NewNodeGroup(NodeGroupSettings{
@@ -409,7 +409,7 @@ func (n *NodeGroup) UnmarshalJSON(data []byte) error {
 		Tags:         nodeGroupJSON.Tags,
 	})
 	if err != nil {
-		return errors.WrapAndTrace(err)
+		return clouderrors.WrapAndTrace(err)
 	}
 
 	*n = *newNodeGroup
@@ -447,7 +447,7 @@ func stringToNodeGroupStatus(status string) (NodeGroupStatus, error) {
 	case NodeGroupStatusFailed.value:
 		return NodeGroupStatusFailed, nil
 	}
-	return NodeGroupStatusUnknown, errors.Join(ErrNodeGroupInvalidStatus, fmt.Errorf("invalid status: %s", status))
+	return NodeGroupStatusUnknown, clouderrors.Join(ErrNodeGroupInvalidStatus, fmt.Errorf("invalid status: %s", status))
 }
 
 func (n *NodeGroup) GetName() string {
@@ -527,7 +527,7 @@ func (s *NodeGroupSettings) validate() error {
 	if s.Name == "" {
 		errs = append(errs, ErrNameRequired)
 	}
-	return errors.WrapAndTrace(errors.Join(errs...))
+	return clouderrors.WrapAndTrace(clouderrors.Join(errs...))
 }
 
 // NewNodeGroup creates a new NodeGroup from the provided settings.
@@ -535,7 +535,7 @@ func NewNodeGroup(settings NodeGroupSettings) (*NodeGroup, error) {
 	settings.setDefaults()
 	err := settings.validate()
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 	return &NodeGroup{
 		name:         settings.Name,
@@ -652,7 +652,7 @@ func (s *ClusterUserSettings) validate() error {
 	if s.KubeconfigBase64 == "" {
 		errs = append(errs, ErrClusterUserKubeconfigBase64Required)
 	}
-	return errors.WrapAndTrace(errors.Join(errs...))
+	return clouderrors.WrapAndTrace(clouderrors.Join(errs...))
 }
 
 // NewClusterUser creates a new ClusterUser from the provided settings.
@@ -660,7 +660,7 @@ func NewClusterUser(settings ClusterUserSettings) (*ClusterUser, error) {
 	settings.setDefaults()
 	err := settings.validate()
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 	return &ClusterUser{
 		clusterName:                           settings.ClusterName,

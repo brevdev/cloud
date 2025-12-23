@@ -206,6 +206,7 @@ func convertLambdaLabsInstanceTypeToV1InstanceType(location string, instType ope
 		BasePrice:                &amount,
 		Provider:                 CloudProviderID,
 		Cloud:                    CloudProviderID,
+		TunneledSSH:              false,
 	}
 	it.ID = v1.MakeGenericInstanceTypeID(it)
 	return it, nil

@@ -18,7 +18,7 @@ import (
 	k8scmd "k8s.io/client-go/tools/clientcmd/api"
 	"sigs.k8s.io/aws-iam-authenticator/pkg/token"
 
-	"github.com/brevdev/cloud/internal/errors"
+	"github.com/brevdev/cloud/internal/clouderrors"
 	cloudk8s "github.com/brevdev/cloud/internal/kubernetes"
 	"github.com/brevdev/cloud/internal/rsa"
 	v1 "github.com/brevdev/cloud/v1"
@@ -55,7 +55,7 @@ func (c *AWSClient) CreateCluster(ctx context.Context, args v1.CreateClusterArgs
 		ID: args.VPCID,
 	})
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	// Create a map of subnetID->subnet for this VPC so that we can find the target subnet
@@ -68,7 +68,7 @@ func (c *AWSClient) CreateCluster(ctx context.Context, args v1.CreateClusterArgs
 	subnets := make([]*v1.Subnet, len(args.SubnetIDs))
 	for i, subnetID := range args.SubnetIDs {
 		if _, ok := subnetMap[string(subnetID)]; !ok {
-			return nil, errors.WrapAndTrace(fmt.Errorf("subnet ID %s does not match VPC %s", subnetID, vpc.GetID()))
+			return nil, clouderrors.WrapAndTrace(fmt.Errorf("subnet ID %s does not match VPC %s", subnetID, vpc.GetID()))
 		} else {
 			subnets[i] = subnetMap[string(subnetID)]
 		}
@@ -77,7 +77,7 @@ func (c *AWSClient) CreateCluster(ctx context.Context, args v1.CreateClusterArgs
 	// Create the cluster
 	awsCluster, err := c.createEKSCluster(ctx, eksClient, iamClient, subnets, args)
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	brevCluster, err := v1.NewCluster(v1.ClusterSettings{
@@ -95,7 +95,7 @@ func (c *AWSClient) CreateCluster(ctx context.Context, args v1.CreateClusterArgs
 		Tags:              args.Tags,
 	})
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 	return brevCluster, nil
 }
@@ -103,17 +103,17 @@ func (c *AWSClient) CreateCluster(ctx context.Context, args v1.CreateClusterArgs
 func (c *AWSClient) createEKSCluster(ctx context.Context, eksClient *eks.Client, iamClient *iam.Client, subnets []*v1.Subnet, args v1.CreateClusterArgs) (*ekstypes.Cluster, error) {
 	serviceRole, err := c.createServiceRole(ctx, iamClient, args)
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	eksCluster, err := c.createCluster(ctx, eksClient, args, serviceRole, subnets)
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	err = c.installEKSAddons(ctx, eksClient, eksCluster)
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	return eksCluster, nil
@@ -162,7 +162,7 @@ func (c *AWSClient) createServiceRole(ctx context.Context, iamClient *iam.Client
 	}
 	output, err := iamClient.CreateRole(ctx, input)
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	// Attach the AmazonEKSClusterPolicy to the role
@@ -171,7 +171,7 @@ func (c *AWSClient) createServiceRole(ctx context.Context, iamClient *iam.Client
 		PolicyArn: aws.String("arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"),
 	})
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	return output.Role, nil
@@ -219,7 +219,7 @@ func (c *AWSClient) createCluster(ctx context.Context, eksClient *eks.Client, ar
 
 	output, err := eksClient.CreateCluster(ctx, input)
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	return output.Cluster, nil
@@ -264,10 +264,10 @@ func (c *AWSClient) GetCluster(ctx context.Context, args v1.GetClusterArgs) (*v1
 	})
 	if err != nil {
 		var noSuchEntityError *ekstypes.ResourceNotFoundException
-		if errors.As(err, &noSuchEntityError) {
+		if clouderrors.As(err, &noSuchEntityError) {
 			return nil, v1.ErrResourceNotFound
 		}
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	subnetIDs := make([]v1.CloudProviderResourceID, 0, len(eksCluster.Cluster.ResourcesVpcConfig.SubnetIds))
@@ -277,7 +277,7 @@ func (c *AWSClient) GetCluster(ctx context.Context, args v1.GetClusterArgs) (*v1
 
 	nodeGroups, err := c.getClusterNodeGroups(ctx, eksClient, eksCluster.Cluster)
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	// List all addons and use their status to determine if the cluster is ready
@@ -285,7 +285,7 @@ func (c *AWSClient) GetCluster(ctx context.Context, args v1.GetClusterArgs) (*v1
 		ClusterName: eksCluster.Cluster.Name,
 	})
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	inactiveAddons := 0
@@ -295,7 +295,7 @@ func (c *AWSClient) GetCluster(ctx context.Context, args v1.GetClusterArgs) (*v1
 			AddonName:   aws.String(name),
 		})
 		if err != nil {
-			return nil, errors.WrapAndTrace(err)
+			return nil, clouderrors.WrapAndTrace(err)
 		}
 		if addon.Addon.Status != ekstypes.AddonStatusActive {
 			inactiveAddons++
@@ -325,7 +325,7 @@ func (c *AWSClient) GetCluster(ctx context.Context, args v1.GetClusterArgs) (*v1
 		Tags:                       v1.Tags(eksCluster.Cluster.Tags),
 	})
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 	return brevCluster, nil
 }
@@ -371,7 +371,7 @@ func (c *AWSClient) getClusterNodeGroups(ctx context.Context, eksClient *eks.Cli
 		ClusterName: eksCluster.Name,
 	})
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	// Then fetch the details of each node group
@@ -382,12 +382,12 @@ func (c *AWSClient) getClusterNodeGroups(ctx context.Context, eksClient *eks.Cli
 			NodegroupName: aws.String(eksNodeGroupName),
 		})
 		if err != nil {
-			return nil, errors.WrapAndTrace(err)
+			return nil, clouderrors.WrapAndTrace(err)
 		}
 
 		brevNodeGroup, err := parseEKSNodeGroup(eksNodeGroup.Nodegroup)
 		if err != nil {
-			return nil, errors.WrapAndTrace(err)
+			return nil, clouderrors.WrapAndTrace(err)
 		}
 		nodeGroups = append(nodeGroups, brevNodeGroup)
 	}
@@ -409,7 +409,7 @@ func parseEKSNodeGroup(eksNodeGroup *ekstypes.Nodegroup) (*v1.NodeGroup, error) 
 		Tags:         v1.Tags(eksNodeGroup.Tags),
 	})
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 	return brevNodeGroup, nil
 }
@@ -433,7 +433,7 @@ func parseEKSNodeGroupStatus(status ekstypes.NodegroupStatus) v1.NodeGroupStatus
 func (c *AWSClient) CreateNodeGroup(ctx context.Context, args v1.CreateNodeGroupArgs) (*v1.NodeGroup, error) {
 	err := validateCreateNodeGroupArgs(args)
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	eksClient := eks.NewFromConfig(c.awsConfig)
@@ -444,7 +444,7 @@ func (c *AWSClient) CreateNodeGroup(ctx context.Context, args v1.CreateNodeGroup
 		ID: args.ClusterID,
 	})
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	// Convert the target cluster's subnet IDs to AWS subnet IDs
@@ -456,7 +456,7 @@ func (c *AWSClient) CreateNodeGroup(ctx context.Context, args v1.CreateNodeGroup
 	// Create the node role that will be attached to all nodes in the node group
 	nodeRoleARN, err := c.createNodeRole(ctx, iamClient, cluster, args)
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	// Convert the tags to AWS tags
@@ -477,7 +477,7 @@ func (c *AWSClient) CreateNodeGroup(ctx context.Context, args v1.CreateNodeGroup
 	// AWS expects the disk size in GiB, so we need to convert the disk size to GiB
 	diskSizeGiB, err := args.DiskSize.ByteCountInUnitInt32(v1.Gibibyte)
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	output, err := eksClient.CreateNodegroup(ctx, &eks.CreateNodegroupInput{
@@ -485,8 +485,8 @@ func (c *AWSClient) CreateNodeGroup(ctx context.Context, args v1.CreateNodeGroup
 		NodegroupName: aws.String(args.Name),
 		NodeRole:      aws.String(nodeRoleARN),
 		ScalingConfig: &ekstypes.NodegroupScalingConfig{
-			MinSize: aws.Int32(int32(args.MinNodeCount)), //nolint:gosec // checked in input validation
-			MaxSize: aws.Int32(int32(args.MaxNodeCount)), //nolint:gosec // checked in input validation
+			MinSize: aws.Int32(int32(args.MinNodeCount)),
+			MaxSize: aws.Int32(int32(args.MaxNodeCount)),
 		},
 		DiskSize: aws.Int32(diskSizeGiB),
 		Subnets:  subnetIDs,
@@ -496,12 +496,12 @@ func (c *AWSClient) CreateNodeGroup(ctx context.Context, args v1.CreateNodeGroup
 		Tags: tags,
 	})
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	brevNodeGroup, err := parseEKSNodeGroup(output.Nodegroup)
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 	return brevNodeGroup, nil
 }
@@ -532,7 +532,7 @@ func validateCreateNodeGroupArgs(args v1.CreateNodeGroupArgs) error {
 	if args.MinNodeCount > math.MaxInt32 {
 		errs = append(errs, errNodeGroupMinNodeCountMustBeLessThanOrEqualToMaxInt32)
 	}
-	return errors.WrapAndTrace(errors.Join(errs...))
+	return clouderrors.WrapAndTrace(clouderrors.Join(errs...))
 }
 
 func (c *AWSClient) createNodeRole(ctx context.Context, iamClient *iam.Client, cluster *v1.Cluster, args v1.CreateNodeGroupArgs) (string, error) {
@@ -578,7 +578,7 @@ func (c *AWSClient) createNodeRole(ctx context.Context, iamClient *iam.Client, c
 	}
 	output, err := iamClient.CreateRole(ctx, input)
 	if err != nil {
-		return "", errors.WrapAndTrace(err)
+		return "", clouderrors.WrapAndTrace(err)
 	}
 
 	// Attach the required managed policies to the role
@@ -593,7 +593,7 @@ func (c *AWSClient) createNodeRole(ctx context.Context, iamClient *iam.Client, c
 			PolicyArn: aws.String(policyArn),
 		})
 		if err != nil {
-			return "", errors.WrapAndTrace(err)
+			return "", clouderrors.WrapAndTrace(err)
 		}
 	}
 
@@ -609,15 +609,15 @@ func (c *AWSClient) GetNodeGroup(ctx context.Context, args v1.GetNodeGroupArgs) 
 	})
 	if err != nil {
 		var noSuchEntityError *ekstypes.ResourceNotFoundException
-		if errors.As(err, &noSuchEntityError) {
+		if clouderrors.As(err, &noSuchEntityError) {
 			return nil, v1.ErrResourceNotFound
 		}
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	brevNodeGroup, err := parseEKSNodeGroup(eksNodeGroup.Nodegroup)
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 	return brevNodeGroup, nil
 }
@@ -627,14 +627,14 @@ func (c *AWSClient) ModifyNodeGroup(ctx context.Context, args v1.ModifyNodeGroup
 
 	err := validateModifyNodeGroupArgs(args)
 	if err != nil {
-		return errors.WrapAndTrace(err)
+		return clouderrors.WrapAndTrace(err)
 	}
 
 	cluster, err := c.GetCluster(ctx, v1.GetClusterArgs{
 		ID: args.ClusterID,
 	})
 	if err != nil {
-		return errors.WrapAndTrace(err)
+		return clouderrors.WrapAndTrace(err)
 	}
 
 	nodeGroup, err := c.GetNodeGroup(ctx, v1.GetNodeGroupArgs{
@@ -642,20 +642,20 @@ func (c *AWSClient) ModifyNodeGroup(ctx context.Context, args v1.ModifyNodeGroup
 		ID:        args.ID,
 	})
 	if err != nil {
-		return errors.WrapAndTrace(err)
+		return clouderrors.WrapAndTrace(err)
 	}
 
 	_, err = eksClient.UpdateNodegroupConfig(ctx, &eks.UpdateNodegroupConfigInput{
 		ClusterName:   aws.String(cluster.GetName()),
 		NodegroupName: aws.String(nodeGroup.GetName()),
 		ScalingConfig: &ekstypes.NodegroupScalingConfig{
-			DesiredSize: aws.Int32(int32(args.MinNodeCount)), //nolint:gosec // checked in input validation
-			MinSize:     aws.Int32(int32(args.MinNodeCount)), //nolint:gosec // checked in input validation
-			MaxSize:     aws.Int32(int32(args.MaxNodeCount)), //nolint:gosec // checked in input validation
+			DesiredSize: aws.Int32(int32(args.MinNodeCount)),
+			MinSize:     aws.Int32(int32(args.MinNodeCount)),
+			MaxSize:     aws.Int32(int32(args.MaxNodeCount)),
 		},
 	})
 	if err != nil {
-		return errors.WrapAndTrace(err)
+		return clouderrors.WrapAndTrace(err)
 	}
 	return nil
 }
@@ -677,7 +677,7 @@ func validateModifyNodeGroupArgs(args v1.ModifyNodeGroupArgs) error {
 	if args.MaxNodeCount > math.MaxInt32 {
 		errs = append(errs, errNodeGroupMaxNodeCountMustBeLessThanOrEqualToMaxInt32)
 	}
-	return errors.WrapAndTrace(errors.Join(errs...))
+	return clouderrors.WrapAndTrace(clouderrors.Join(errs...))
 }
 
 func (c *AWSClient) DeleteNodeGroup(ctx context.Context, args v1.DeleteNodeGroupArgs) error {
@@ -689,7 +689,7 @@ func (c *AWSClient) DeleteNodeGroup(ctx context.Context, args v1.DeleteNodeGroup
 		ID: args.ClusterID,
 	})
 	if err != nil {
-		return errors.WrapAndTrace(err)
+		return clouderrors.WrapAndTrace(err)
 	}
 
 	// Fetch the target node group
@@ -698,7 +698,7 @@ func (c *AWSClient) DeleteNodeGroup(ctx context.Context, args v1.DeleteNodeGroup
 		ID:        args.ID,
 	})
 	if err != nil {
-		return errors.WrapAndTrace(err)
+		return clouderrors.WrapAndTrace(err)
 	}
 
 	// Get the roles associated with the node group
@@ -707,7 +707,7 @@ func (c *AWSClient) DeleteNodeGroup(ctx context.Context, args v1.DeleteNodeGroup
 		PathPrefix: aws.String(iamPath),
 	})
 	if err != nil {
-		return errors.WrapAndTrace(err)
+		return clouderrors.WrapAndTrace(err)
 	}
 
 	c.logger.Debug(ctx, fmt.Sprintf("found %d roles associated with node group", len(roles.Roles)),
@@ -725,13 +725,13 @@ func (c *AWSClient) DeleteNodeGroup(ctx context.Context, args v1.DeleteNodeGroup
 			PrincipalArn: role.Arn,
 		})
 		if err != nil {
-			return errors.WrapAndTrace(err)
+			return clouderrors.WrapAndTrace(err)
 		}
 
 		// Delete the role
 		err = c.deleteRole(ctx, iamClient, role)
 		if err != nil {
-			return errors.WrapAndTrace(err)
+			return clouderrors.WrapAndTrace(err)
 		}
 	}
 
@@ -745,7 +745,7 @@ func (c *AWSClient) DeleteNodeGroup(ctx context.Context, args v1.DeleteNodeGroup
 		NodegroupName: aws.String(nodeGroup.GetName()),
 	})
 	if err != nil {
-		return errors.WrapAndTrace(err)
+		return clouderrors.WrapAndTrace(err)
 	}
 
 	return nil
@@ -755,7 +755,7 @@ func (c *AWSClient) DeleteNodeGroup(ctx context.Context, args v1.DeleteNodeGroup
 func (c *AWSClient) SetClusterUser(ctx context.Context, args v1.SetClusterUserArgs) (*v1.ClusterUser, error) {
 	err := validatePutUserArgs(args)
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	// Fetch the cluster the user key will be added to
@@ -763,43 +763,43 @@ func (c *AWSClient) SetClusterUser(ctx context.Context, args v1.SetClusterUserAr
 		ID: args.ClusterID,
 	})
 	if err != nil {
-		return nil, errors.WrapAndTrace(fmt.Errorf("failed to get cluster: %w", err))
+		return nil, clouderrors.WrapAndTrace(fmt.Errorf("failed to get cluster: %w", err))
 	}
 
 	// Create a clientset to interact with the cluster using the bearer token and CA certificate
 	clientset, err := c.newK8sClient(ctx, cluster)
 	if err != nil {
-		return nil, errors.WrapAndTrace(fmt.Errorf("failed to create clientset: %w", err))
+		return nil, clouderrors.WrapAndTrace(fmt.Errorf("failed to create clientset: %w", err))
 	}
 
 	// Prepare the private key for the CSR
 	privateKeyBytes, err := base64.StdEncoding.DecodeString(args.RSAPEMBase64)
 	if err != nil {
-		return nil, errors.WrapAndTrace(fmt.Errorf("failed to decode base64 string: %w", err))
+		return nil, clouderrors.WrapAndTrace(fmt.Errorf("failed to decode base64 string: %w", err))
 	}
 
 	// Parse the private key
 	privateKey, err := rsa.BytesToRSAKey(privateKeyBytes)
 	if err != nil {
-		return nil, errors.WrapAndTrace(fmt.Errorf("failed to parse private key: %w", err))
+		return nil, clouderrors.WrapAndTrace(fmt.Errorf("failed to parse private key: %w", err))
 	}
 
 	// Create the client certificate to allow for external access to the cluster for the holders of this private key
 	signedCertificate, err := cloudk8s.ClientCertificateData(ctx, clientset, args.Username, privateKey)
 	if err != nil {
-		return nil, errors.WrapAndTrace(fmt.Errorf("failed to get signed certificate: %w", err))
+		return nil, clouderrors.WrapAndTrace(fmt.Errorf("failed to get signed certificate: %w", err))
 	}
 
 	// Make the user a cluster admin
 	err = cloudk8s.SetUserRole(ctx, clientset, args.Username, args.Role)
 	if err != nil {
-		return nil, errors.WrapAndTrace(fmt.Errorf("failed to set user role: %w", err))
+		return nil, clouderrors.WrapAndTrace(fmt.Errorf("failed to set user role: %w", err))
 	}
 
 	// Get the certificate authority data
 	certificateAuthorityData, err := base64.StdEncoding.DecodeString(cluster.GetClusterCACertificateBase64())
 	if err != nil {
-		return nil, errors.WrapAndTrace(fmt.Errorf("failed to decode certificate authority data: %w", err))
+		return nil, clouderrors.WrapAndTrace(fmt.Errorf("failed to decode certificate authority data: %w", err))
 	}
 
 	// Generate the complete kubeconfig
@@ -820,7 +820,7 @@ func (c *AWSClient) SetClusterUser(ctx context.Context, args v1.SetClusterUserAr
 		},
 	})
 	if err != nil {
-		return nil, errors.WrapAndTrace(fmt.Errorf("failed to write kubeconfig: %w", err))
+		return nil, clouderrors.WrapAndTrace(fmt.Errorf("failed to write kubeconfig: %w", err))
 	}
 
 	brevClusterUser, err := v1.NewClusterUser(v1.ClusterUserSettings{
@@ -833,7 +833,7 @@ func (c *AWSClient) SetClusterUser(ctx context.Context, args v1.SetClusterUserAr
 		KubeconfigBase64:                      base64.StdEncoding.EncodeToString(kubeconfigBytes),
 	})
 	if err != nil {
-		return nil, errors.WrapAndTrace(fmt.Errorf("failed to create cluster user: %w", err))
+		return nil, clouderrors.WrapAndTrace(fmt.Errorf("failed to create cluster user: %w", err))
 	}
 	return brevClusterUser, nil
 }
@@ -852,7 +852,7 @@ func validatePutUserArgs(args v1.SetClusterUserArgs) error {
 	if args.RSAPEMBase64 == "" {
 		errs = append(errs, errRSAPEMBase64IsRequired)
 	}
-	return errors.WrapAndTrace(errors.Join(errs...))
+	return clouderrors.WrapAndTrace(clouderrors.Join(errs...))
 }
 
 func (c *AWSClient) DeleteCluster(ctx context.Context, args v1.DeleteClusterArgs) error {
@@ -864,7 +864,7 @@ func (c *AWSClient) DeleteCluster(ctx context.Context, args v1.DeleteClusterArgs
 		ID: args.ID,
 	})
 	if err != nil {
-		return errors.WrapAndTrace(err)
+		return clouderrors.WrapAndTrace(err)
 	}
 
 	// Delete the cluster
@@ -873,7 +873,7 @@ func (c *AWSClient) DeleteCluster(ctx context.Context, args v1.DeleteClusterArgs
 		Name: aws.String(cluster.GetName()),
 	})
 	if err != nil {
-		return errors.WrapAndTrace(err)
+		return clouderrors.WrapAndTrace(err)
 	}
 
 	// Get the roles associated with the cluster
@@ -881,7 +881,7 @@ func (c *AWSClient) DeleteCluster(ctx context.Context, args v1.DeleteClusterArgs
 		PathPrefix: aws.String(iamRolePathPrefix),
 	})
 	if err != nil {
-		return errors.WrapAndTrace(err)
+		return clouderrors.WrapAndTrace(err)
 	}
 
 	c.logger.Debug(ctx, fmt.Sprintf("found %d roles associated with cluster", len(roles.Roles)),
@@ -892,7 +892,7 @@ func (c *AWSClient) DeleteCluster(ctx context.Context, args v1.DeleteClusterArgs
 	for _, role := range roles.Roles {
 		err = c.deleteRole(ctx, iamClient, role)
 		if err != nil {
-			return errors.WrapAndTrace(err)
+			return clouderrors.WrapAndTrace(err)
 		}
 	}
 
@@ -905,7 +905,7 @@ func (c *AWSClient) deleteRole(ctx context.Context, iamClient *iam.Client, role 
 		RoleName: role.RoleName,
 	})
 	if err != nil {
-		return errors.WrapAndTrace(err)
+		return clouderrors.WrapAndTrace(err)
 	}
 
 	c.logger.Debug(ctx, fmt.Sprintf("found %d instance profiles associated with role", len(instanceProfiles.InstanceProfiles)),
@@ -922,7 +922,7 @@ func (c *AWSClient) deleteRole(ctx context.Context, iamClient *iam.Client, role 
 			RoleName:            role.RoleName,
 		})
 		if err != nil {
-			return errors.WrapAndTrace(err)
+			return clouderrors.WrapAndTrace(err)
 		}
 
 		// Delete the instance profile
@@ -934,7 +934,7 @@ func (c *AWSClient) deleteRole(ctx context.Context, iamClient *iam.Client, role 
 			InstanceProfileName: instanceProfile.InstanceProfileName,
 		})
 		if err != nil {
-			return errors.WrapAndTrace(err)
+			return clouderrors.WrapAndTrace(err)
 		}
 	}
 
@@ -943,7 +943,7 @@ func (c *AWSClient) deleteRole(ctx context.Context, iamClient *iam.Client, role 
 		RoleName: role.RoleName,
 	})
 	if err != nil {
-		return errors.WrapAndTrace(err)
+		return clouderrors.WrapAndTrace(err)
 	}
 
 	c.logger.Debug(ctx, fmt.Sprintf("found %d policies associated with role", len(attachedPolicies.AttachedPolicies)),
@@ -959,7 +959,7 @@ func (c *AWSClient) deleteRole(ctx context.Context, iamClient *iam.Client, role 
 			PolicyArn: policy.PolicyArn,
 		})
 		if err != nil {
-			return errors.WrapAndTrace(err)
+			return clouderrors.WrapAndTrace(err)
 		}
 	}
 
@@ -969,7 +969,7 @@ func (c *AWSClient) deleteRole(ctx context.Context, iamClient *iam.Client, role 
 		RoleName: role.RoleName,
 	})
 	if err != nil {
-		return errors.WrapAndTrace(err)
+		return clouderrors.WrapAndTrace(err)
 	}
 
 	return nil
@@ -992,13 +992,13 @@ func getNodeGroupIAMRolePath(clusterRefID string, nodeGroupRefID string) string 
 func (c *AWSClient) newK8sClient(ctx context.Context, cluster *v1.Cluster) (*kubernetes.Clientset, error) {
 	newK8sConfig, err := c.newK8sConfig(ctx, cluster)
 	if err != nil {
-		return nil, errors.WrapAndTrace(fmt.Errorf("failed to create k8s config: %w", err))
+		return nil, clouderrors.WrapAndTrace(fmt.Errorf("failed to create k8s config: %w", err))
 	}
 
 	// Create a clientset to interact with the cluster using the bearer token and CA certificate
 	clientset, err := kubernetes.NewForConfig(newK8sConfig)
 	if err != nil {
-		return nil, errors.WrapAndTrace(fmt.Errorf("failed to create clientset: %w", err))
+		return nil, clouderrors.WrapAndTrace(fmt.Errorf("failed to create clientset: %w", err))
 	}
 
 	return clientset, nil
@@ -1008,7 +1008,7 @@ func (c *AWSClient) newK8sConfig(ctx context.Context, cluster *v1.Cluster) (*res
 	// Decode the cluster CA certificate
 	clusterCACertificate, err := base64.StdEncoding.DecodeString(cluster.GetClusterCACertificateBase64())
 	if err != nil {
-		return nil, errors.WrapAndTrace(fmt.Errorf("failed to decode cluster CA certificate: %w", err))
+		return nil, clouderrors.WrapAndTrace(fmt.Errorf("failed to decode cluster CA certificate: %w", err))
 	}
 
 	// Get a bearer token to authenticate to the cluster
@@ -1016,14 +1016,14 @@ func (c *AWSClient) newK8sConfig(ctx context.Context, cluster *v1.Cluster) (*res
 	cache := false
 	tokenGenerator, err := token.NewGenerator(forwardSessionName, cache)
 	if err != nil {
-		return nil, errors.WrapAndTrace(fmt.Errorf("failed to create token generator: %w", err))
+		return nil, clouderrors.WrapAndTrace(fmt.Errorf("failed to create token generator: %w", err))
 	}
 
 	token, err := tokenGenerator.GetWithOptions(ctx, &token.GetTokenOptions{
 		ClusterID: cluster.GetName(),
 	})
 	if err != nil {
-		return nil, errors.WrapAndTrace(fmt.Errorf("failed to generate token: %w", err))
+		return nil, clouderrors.WrapAndTrace(fmt.Errorf("failed to generate token: %w", err))
 	}
 
 	return &rest.Config{

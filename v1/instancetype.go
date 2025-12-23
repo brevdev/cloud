@@ -79,6 +79,7 @@ type InstanceType struct {
 	VariablePrice                   bool
 	Preemptible                     bool
 	IsAvailable                     bool
+	VerifiedAt                      *time.Time
 	BasePrice                       *currency.Amount
 	SubLocationTypeChangeable       bool
 	IsContainer                     bool
@@ -89,6 +90,7 @@ type InstanceType struct {
 	Cloud                           string
 	CanModifyFirewallRules          bool
 	ReservedInstancePoolID          string
+	TunneledSSH                     bool
 }
 
 func MakeGenericInstanceTypeID(instanceType InstanceType) InstanceTypeID {
@@ -374,6 +376,7 @@ func normalizeInstanceTypes(types []InstanceType) []InstanceType {
 		normalized[i].BasePrice = nil
 		normalized[i].Quota = InstanceTypeQuota{}
 		normalized[i].EstimatedDeployTime = nil
+		normalized[i].VerifiedAt = nil
 	}
 	return normalized
 }

@@ -5,7 +5,7 @@ import (
 
 	"github.com/alecthomas/units"
 
-	"github.com/brevdev/cloud/internal/errors"
+	"github.com/brevdev/cloud/internal/clouderrors"
 	v1 "github.com/brevdev/cloud/v1"
 	openapi "github.com/brevdev/cloud/v1/providers/launchpad/gen/launchpad"
 )
@@ -22,26 +22,26 @@ func (c *LaunchpadClient) GetInstance(ctx context.Context, id v1.CloudProviderIn
 		defer resp.Body.Close() //nolint:errcheck // handled in err check
 	}
 	if err != nil && resp == nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 	if err != nil {
-		return nil, errors.WrapAndTrace(c.handleLaunchpadAPIErr(ctx, resp, err))
+		return nil, clouderrors.WrapAndTrace(c.handleLaunchpadAPIErr(ctx, resp, err))
 	}
 	inst, err := launchpadDeploymentToInstance(getDeployment)
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 	return &inst, nil
 }
 
 func launchpadDeploymentToInstance(deployment *openapi.Deployment) (v1.Instance, error) {
 	if deployment == nil {
-		return v1.Instance{}, errors.WrapAndTrace(errors.New("deployment is nil"))
+		return v1.Instance{}, clouderrors.WrapAndTrace(clouderrors.New("deployment is nil"))
 	}
 
 	tags, err := launchpadTagsToInstanceTags(deployment.Tags)
 	if err != nil {
-		return v1.Instance{}, errors.WrapAndTrace(err)
+		return v1.Instance{}, clouderrors.WrapAndTrace(err)
 	}
 
 	var totalStorageSize int32
@@ -81,6 +81,7 @@ func launchpadDeploymentToInstance(deployment *openapi.Deployment) (v1.Instance,
 		Location:      deployment.GetRegion(),
 		PublicDNS:     deployment.GetCluster().Cluster.GetPublicAddress(),
 		PublicIP:      deployment.GetCluster().Cluster.GetPublicAddress(),
+		TunneledSSH:   false,
 	}
 
 	cluster := deployment.GetCluster().Cluster
@@ -98,13 +99,13 @@ func launchpadDeploymentToInstance(deployment *openapi.Deployment) (v1.Instance,
 func launchpadTagsToInstanceTags(tags interface{}) (map[string]string, error) {
 	tagsMap, ok := tags.(map[string]interface{})
 	if !ok {
-		return nil, errors.WrapAndTrace(errors.New("tags interface casting error"))
+		return nil, clouderrors.WrapAndTrace(clouderrors.New("tags interface casting error"))
 	}
 	result := make(map[string]string)
 	for key, value := range tagsMap {
 		valueString, ok := value.(string)
 		if !ok {
-			return nil, errors.WrapAndTrace(errors.New("tags interface casting error"))
+			return nil, clouderrors.WrapAndTrace(clouderrors.New("tags interface casting error"))
 		}
 		result[key] = valueString
 	}

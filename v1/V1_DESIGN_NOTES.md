@@ -51,3 +51,6 @@ The terminology around instance-attached storage is one of the more confusing pa
 - Instance management is treated as individual resources rather than as part of a larger distributed system.
 - Missing concepts like cluster membership, inter-instance communication, shared state, or cluster lifecycle management.
 - For support to be added we may need to more fomally implement networks/vpcs or instance groups.
+
+### SSH Connectivity Patterns
+- `TunneledSSH`: Indicates whether connections must be routed through a client-side tunnel proxy. This is required for instances that do not have public IP addresses. This is currently implemented as a field on both `InstanceType` and `Instance`.

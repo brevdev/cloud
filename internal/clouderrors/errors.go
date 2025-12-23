@@ -1,4 +1,4 @@
-package errors
+package clouderrors
 
 import (
 	stderrors "errors"

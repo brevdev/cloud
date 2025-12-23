@@ -55,6 +55,7 @@ func TestLambdaLabsClient_CreateInstance_Success(t *testing.T) {
 	assert.Equal(t, instanceID, string(instance.CloudID))
 	assert.Contains(t, instance.Name, "test-instance")
 	assert.Equal(t, v1.LifecycleStatusRunning, instance.Status.LifecycleStatus)
+	assert.False(t, instance.TunneledSSH)
 }
 
 func TestLambdaLabsClient_CreateInstance_WithoutPublicKey(t *testing.T) {
@@ -142,6 +143,7 @@ func TestLambdaLabsClient_GetInstance_Success(t *testing.T) {
 	assert.Equal(t, instanceID, string(instance.CloudID))
 	assert.Equal(t, "test-instance", instance.Name)
 	assert.Equal(t, v1.LifecycleStatusRunning, instance.Status.LifecycleStatus)
+	assert.False(t, instance.TunneledSSH)
 }
 
 func TestLambdaLabsClient_GetInstance_NotFound(t *testing.T) {
@@ -175,7 +177,9 @@ func TestLambdaLabsClient_ListInstances_Success(t *testing.T) {
 	require.NoError(t, err)
 	assert.Len(t, instances, 2)
 	assert.Equal(t, "instance-1", string(instances[0].CloudID))
+	assert.False(t, instances[0].TunneledSSH)
 	assert.Equal(t, "instance-2", string(instances[1].CloudID))
+	assert.False(t, instances[1].TunneledSSH)
 }
 
 func TestLambdaLabsClient_ListInstances_Empty(t *testing.T) {

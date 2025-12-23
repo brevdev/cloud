@@ -32,6 +32,7 @@ func TestLambdaLabsClient_GetInstanceTypes_Success(t *testing.T) {
 	require.NotNil(t, a10Type)
 	assert.Equal(t, "gpu_1x_a10", a10Type.Type)
 	assert.True(t, a10Type.IsAvailable)
+	assert.False(t, a10Type.TunneledSSH)
 	assert.Len(t, a10Type.SupportedGPUs, 1)
 	assert.Equal(t, int32(1), a10Type.SupportedGPUs[0].Count)
 	assert.Equal(t, v1.ManufacturerNVIDIA, a10Type.SupportedGPUs[0].Manufacturer)

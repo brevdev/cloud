@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/alecthomas/units"
-	"github.com/brevdev/cloud/internal/errors"
+	"github.com/brevdev/cloud/internal/clouderrors"
 	v1 "github.com/brevdev/cloud/v1"
 	common "github.com/nebius/gosdk/proto/nebius/common/v1"
 	compute "github.com/nebius/gosdk/proto/nebius/compute/v1"
@@ -142,13 +142,13 @@ func (c *NebiusClient) CreateInstance(ctx context.Context, attrs v1.CreateInstan
 
 	operation, err := c.sdk.Services().Compute().V1().Instance().Create(ctx, createReq)
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	// Wait for the operation to complete and get the actual instance ID
 	finalOp, err := operation.Wait(ctx)
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	if !finalOp.Successful() {
@@ -193,7 +193,7 @@ func (c *NebiusClient) GetInstance(ctx context.Context, instanceID v1.CloudProvi
 		Id: string(instanceID),
 	})
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	return c.convertNebiusInstanceToV1(ctx, instance, nil)
@@ -348,12 +348,13 @@ func (c *NebiusClient) convertNebiusInstanceToV1(ctx context.Context, instance *
 		Tags:           tags,
 		Status:         v1.Status{LifecycleStatus: lifecycleStatus},
 		// SSH connectivity details
-		PublicIP:  publicIP,
-		PrivateIP: privateIP,
-		PublicDNS: publicIP, // Nebius doesn't provide separate DNS, use public IP
-		Hostname:  hostname,
-		SSHUser:   sshUser,
-		SSHPort:   22, // Standard SSH port
+		PublicIP:    publicIP,
+		PrivateIP:   privateIP,
+		PublicDNS:   publicIP, // Nebius doesn't provide separate DNS, use public IP
+		Hostname:    hostname,
+		SSHUser:     sshUser,
+		SSHPort:     22, // Standard SSH port
+		TunneledSSH: false,
 	}
 	inst.InstanceTypeID = v1.MakeGenericInstanceTypeIDFromInstance(*inst)
 	return inst, nil
@@ -1343,7 +1344,7 @@ func (c *NebiusClient) parseInstanceType(ctx context.Context, instanceTypeID str
 		ParentId: c.projectID,
 	})
 	if err != nil {
-		return "", "", errors.WrapAndTrace(err)
+		return "", "", clouderrors.WrapAndTrace(err)
 	}
 
 	c.logger.Info(ctx, "listed platforms",

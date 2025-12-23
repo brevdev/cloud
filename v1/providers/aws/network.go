@@ -11,7 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/smithy-go"
 
-	"github.com/brevdev/cloud/internal/errors"
+	"github.com/brevdev/cloud/internal/clouderrors"
 	v1 "github.com/brevdev/cloud/v1"
 )
 
@@ -23,7 +23,7 @@ func (c *AWSClient) CreateVPC(ctx context.Context, args v1.CreateVPCArgs) (*v1.V
 	// If there are no public subnets but there are private subnets, return an error, as we need at least one
 	// public subnet to create NAT gateways for private subnets.
 	if len(publicSubnetArgs) == 0 && len(privateSubnetArgs) > 0 {
-		return nil, errors.WrapAndTrace(fmt.Errorf("VPC creation with private subnets requires at least one public subnet, but no public subnets were provided for VPC %s", args.RefID))
+		return nil, clouderrors.WrapAndTrace(fmt.Errorf("VPC creation with private subnets requires at least one public subnet, but no public subnets were provided for VPC %s", args.RefID))
 	}
 
 	// Create the AWS client in the specified region
@@ -32,7 +32,7 @@ func (c *AWSClient) CreateVPC(ctx context.Context, args v1.CreateVPCArgs) (*v1.V
 	// Create the VPC and subnets
 	awsVPC, subnets, err := c.createCompleteVPC(ctx, awsClient, args, publicSubnetArgs, privateSubnetArgs)
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	tags := make(map[string]string)
@@ -53,7 +53,7 @@ func (c *AWSClient) CreateVPC(ctx context.Context, args v1.CreateVPCArgs) (*v1.V
 		Tags:      v1.Tags(tags),
 	})
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 	return brevVPC, nil
 }
@@ -73,31 +73,31 @@ func (c *AWSClient) createCompleteVPC(ctx context.Context, awsClient *ec2.Client
 	// Create the VPC
 	vpc, err := c.createVPC(ctx, awsClient, args)
 	if err != nil {
-		return nil, nil, errors.WrapAndTrace(err)
+		return nil, nil, clouderrors.WrapAndTrace(err)
 	}
 
 	// Enable DNS support for the VPC
 	err = c.enableVPCDNSSupport(ctx, awsClient, vpc)
 	if err != nil {
-		return nil, nil, errors.WrapAndTrace(err)
+		return nil, nil, clouderrors.WrapAndTrace(err)
 	}
 
 	// Enable DNS hostnames for the VPC
 	err = c.enableVPCDNSHostnames(ctx, awsClient, vpc)
 	if err != nil {
-		return nil, nil, errors.WrapAndTrace(err)
+		return nil, nil, clouderrors.WrapAndTrace(err)
 	}
 
 	// Create an Internet Gateway for the VPC
 	_, err = c.createInternetGateway(ctx, awsClient, vpc, args)
 	if err != nil {
-		return nil, nil, errors.WrapAndTrace(err)
+		return nil, nil, clouderrors.WrapAndTrace(err)
 	}
 
 	// Get the availability zones in the context region
 	availabilityZones, err := getAvailabilityZones(ctx, awsClient)
 	if err != nil {
-		return nil, nil, errors.WrapAndTrace(err)
+		return nil, nil, clouderrors.WrapAndTrace(err)
 	}
 
 	var subnets []*v1.Subnet
@@ -111,13 +111,13 @@ func (c *AWSClient) createCompleteVPC(ctx context.Context, awsClient *ec2.Client
 		// Create the public subnet
 		publicSubnet, err := c.createPublicSubnet(ctx, awsClient, vpc, subnetArgs, args, availabilityZone)
 		if err != nil {
-			return nil, nil, errors.WrapAndTrace(err)
+			return nil, nil, clouderrors.WrapAndTrace(err)
 		}
 		publicSubnets = append(publicSubnets, publicSubnet)
 
 		brevSubnet, err := awsSubnetToCloudSubnet(publicSubnet, v1.SubnetTypePublic, vpc)
 		if err != nil {
-			return nil, nil, errors.WrapAndTrace(err)
+			return nil, nil, clouderrors.WrapAndTrace(err)
 		}
 		subnets = append(subnets, brevSubnet)
 	}
@@ -131,12 +131,12 @@ func (c *AWSClient) createCompleteVPC(ctx context.Context, awsClient *ec2.Client
 		// Create the private subnet
 		privateSubnet, err := c.createPrivateSubnet(ctx, awsClient, vpc, natGatewaySubnet, subnetArgs)
 		if err != nil {
-			return nil, nil, errors.WrapAndTrace(err)
+			return nil, nil, clouderrors.WrapAndTrace(err)
 		}
 
 		brevSubnet, err := awsSubnetToCloudSubnet(privateSubnet, v1.SubnetTypePrivate, vpc)
 		if err != nil {
-			return nil, nil, errors.WrapAndTrace(err)
+			return nil, nil, clouderrors.WrapAndTrace(err)
 		}
 		subnets = append(subnets, brevSubnet)
 	}
@@ -147,7 +147,7 @@ func (c *AWSClient) createCompleteVPC(ctx context.Context, awsClient *ec2.Client
 func getAvailabilityZones(ctx context.Context, awsClient *ec2.Client) ([]string, error) {
 	describeAvailabilityZonesOutput, err := awsClient.DescribeAvailabilityZones(ctx, &ec2.DescribeAvailabilityZonesInput{})
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	availabilityZones := []string{}
@@ -191,7 +191,7 @@ func (c *AWSClient) createVPC(ctx context.Context, awsClient *ec2.Client, args v
 	}
 	output, err := awsClient.CreateVpc(ctx, input)
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	return output.Vpc, nil
@@ -208,7 +208,7 @@ func (c *AWSClient) enableVPCDNSSupport(ctx context.Context, awsClient *ec2.Clie
 	c.logger.Debug(ctx, "enabling DNS support for VPC", v1.Field{Key: "vpcID", Value: *vpc.VpcId})
 	_, err := awsClient.ModifyVpcAttribute(ctx, input)
 	if err != nil {
-		return errors.WrapAndTrace(err)
+		return clouderrors.WrapAndTrace(err)
 	}
 	return nil
 }
@@ -224,7 +224,7 @@ func (c *AWSClient) enableVPCDNSHostnames(ctx context.Context, awsClient *ec2.Cl
 	c.logger.Debug(ctx, "enabling DNS hostnames for VPC", v1.Field{Key: "vpcID", Value: *vpc.VpcId})
 	_, err := awsClient.ModifyVpcAttribute(ctx, input)
 	if err != nil {
-		return errors.WrapAndTrace(err)
+		return clouderrors.WrapAndTrace(err)
 	}
 	return nil
 }
@@ -256,7 +256,7 @@ func (c *AWSClient) createInternetGateway(ctx context.Context, awsClient *ec2.Cl
 	}
 	createOutput, err := awsClient.CreateInternetGateway(ctx, createInput)
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	internetGateway := createOutput.InternetGateway
@@ -271,7 +271,7 @@ func (c *AWSClient) createInternetGateway(ctx context.Context, awsClient *ec2.Cl
 		VpcId:             vpc.VpcId,
 	})
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	return internetGateway, nil
@@ -294,7 +294,7 @@ func awsSubnetToCloudSubnet(awsSubnet *types.Subnet, subnetType v1.SubnetType, v
 		Tags:      v1.Tags(tags),
 	})
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 	return brevSubnet, nil
 }
@@ -338,7 +338,7 @@ func (c *AWSClient) createPublicSubnet(ctx context.Context, awsClient *ec2.Clien
 	}
 	output, err := awsClient.CreateSubnet(ctx, input)
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	subnet := output.Subnet
@@ -346,7 +346,7 @@ func (c *AWSClient) createPublicSubnet(ctx context.Context, awsClient *ec2.Clien
 	// Get or create the Public Route Table for the VPC
 	publicRouteTable, err := c.getOrCreatePublicRouteTable(ctx, awsClient, vpc, createVPCArgs)
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	// Associate the Public Subnet with the Public Route Table
@@ -355,7 +355,7 @@ func (c *AWSClient) createPublicSubnet(ctx context.Context, awsClient *ec2.Clien
 		SubnetId:     subnet.SubnetId,
 	})
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	return subnet, nil
@@ -378,7 +378,7 @@ func (c *AWSClient) getOrCreatePublicRouteTable(ctx context.Context, awsClient *
 		},
 	})
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	// If there are multiple public route tables, return an error
@@ -420,7 +420,7 @@ func (c *AWSClient) getOrCreatePublicRouteTable(ctx context.Context, awsClient *
 	}
 	output, err := awsClient.CreateRouteTable(ctx, input)
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	routeTable := output.RouteTable
@@ -428,7 +428,7 @@ func (c *AWSClient) getOrCreatePublicRouteTable(ctx context.Context, awsClient *
 	// Get or create the Internet Gateway
 	internetGateway, err := c.getOrCreateInternetGateway(ctx, awsClient, vpc, args)
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	// Create the route to the Internet Gateway
@@ -438,7 +438,7 @@ func (c *AWSClient) getOrCreatePublicRouteTable(ctx context.Context, awsClient *
 		DestinationCidrBlock: aws.String("0.0.0.0/0"),
 	})
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	return routeTable, nil
@@ -461,7 +461,7 @@ func (c *AWSClient) getOrCreateInternetGateway(ctx context.Context, awsClient *e
 		},
 	})
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	// If there are multiple internet gateways, return an error
@@ -502,7 +502,7 @@ func (c *AWSClient) getOrCreateInternetGateway(ctx context.Context, awsClient *e
 	}
 	output, err := awsClient.CreateInternetGateway(ctx, input)
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	return output.InternetGateway, nil
@@ -547,13 +547,13 @@ func (c *AWSClient) createPrivateSubnet(ctx context.Context, awsClient *ec2.Clie
 	}
 	createSubnetOutput, err := awsClient.CreateSubnet(ctx, createSubnetInput)
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	// Get or create the NAT Gateway
 	natGateway, err := c.createNatGateway(ctx, awsClient, vpc, natGatewaySubnet, createSubnetArgs)
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	// Create a private route table
@@ -579,7 +579,7 @@ func (c *AWSClient) createPrivateSubnet(ctx context.Context, awsClient *ec2.Clie
 	}
 	createRouteTableOutput, err := awsClient.CreateRouteTable(ctx, createRouteTableInput)
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	routeTable := createRouteTableOutput.RouteTable
@@ -590,7 +590,7 @@ func (c *AWSClient) createPrivateSubnet(ctx context.Context, awsClient *ec2.Clie
 		SubnetId:     createSubnetOutput.Subnet.SubnetId,
 	})
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	// Create a route to the NAT Gateway
@@ -600,7 +600,7 @@ func (c *AWSClient) createPrivateSubnet(ctx context.Context, awsClient *ec2.Clie
 		GatewayId:            natGateway.NatGatewayId,
 	})
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	return createSubnetOutput.Subnet, nil
@@ -612,7 +612,7 @@ func (c *AWSClient) createNatGateway(ctx context.Context, awsClient *ec2.Client,
 		Domain: types.DomainTypeVpc,
 	})
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	// Create the NAT Gateway in the provided subnet
@@ -646,7 +646,7 @@ func (c *AWSClient) createNatGateway(ctx context.Context, awsClient *ec2.Client,
 	}
 	createNatGatewayOutput, err := awsClient.CreateNatGateway(ctx, createNatGatewayInput)
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	natGateway := createNatGatewayOutput.NatGateway
@@ -666,7 +666,7 @@ func (c *AWSClient) createNatGateway(ctx context.Context, awsClient *ec2.Client,
 		NatGatewayIds: []string{*natGateway.NatGatewayId},
 	}, 10*time.Minute)
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	return natGateway, nil
@@ -678,7 +678,7 @@ func (c *AWSClient) GetVPC(ctx context.Context, args v1.GetVPCArgs) (*v1.VPC, er
 
 	awsVPC, err := getVPC(ctx, awsClient, args)
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	tags := make(map[string]string)
@@ -695,7 +695,7 @@ func (c *AWSClient) GetVPC(ctx context.Context, args v1.GetVPCArgs) (*v1.VPC, er
 
 	subnets, err := getVPCSubnets(ctx, awsClient, awsVPC)
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	brevVPC, err := v1.NewVPC(v1.VPCSettings{
@@ -711,7 +711,7 @@ func (c *AWSClient) GetVPC(ctx context.Context, args v1.GetVPCArgs) (*v1.VPC, er
 		Tags:      v1.Tags(tags),
 	})
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 	return brevVPC, nil
 }
@@ -722,10 +722,10 @@ func getVPC(ctx context.Context, awsClient *ec2.Client, args v1.GetVPCArgs) (*ty
 	})
 	if err != nil {
 		var apiErr smithy.APIError
-		if errors.As(err, &apiErr) && apiErr.ErrorCode() == "InvalidVpcID.NotFound" {
+		if clouderrors.As(err, &apiErr) && apiErr.ErrorCode() == "InvalidVpcID.NotFound" {
 			return nil, v1.ErrResourceNotFound
 		}
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	if len(describeVPCsOutput.Vpcs) == 0 {
@@ -750,7 +750,7 @@ func getVPCStatus(ctx context.Context, awsClient *ec2.Client, awsVPC *types.Vpc)
 		},
 	})
 	if err != nil {
-		return v1.VPCStatusAvailable, errors.WrapAndTrace(err)
+		return v1.VPCStatusAvailable, clouderrors.WrapAndTrace(err)
 	}
 
 	for _, natGateway := range natGateways.NatGateways {
@@ -772,7 +772,7 @@ func getVPCSubnets(ctx context.Context, awsClient *ec2.Client, awsVPC *types.Vpc
 		},
 	})
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	subnets := make([]*v1.Subnet, 0)
@@ -796,7 +796,7 @@ func getVPCSubnets(ctx context.Context, awsClient *ec2.Client, awsVPC *types.Vpc
 			Tags:      v1.Tags(tags),
 		})
 		if err != nil {
-			return nil, errors.WrapAndTrace(err)
+			return nil, clouderrors.WrapAndTrace(err)
 		}
 		subnets = append(subnets, brevSubnet)
 	}
@@ -808,7 +808,7 @@ func (c *AWSClient) DeleteVPC(ctx context.Context, args v1.DeleteVPCArgs) error 
 
 	err := c.deleteVPC(ctx, awsClient, string(args.ID))
 	if err != nil {
-		return errors.WrapAndTrace(err)
+		return clouderrors.WrapAndTrace(err)
 	}
 	return nil
 }
@@ -816,22 +816,22 @@ func (c *AWSClient) DeleteVPC(ctx context.Context, args v1.DeleteVPCArgs) error 
 func (c *AWSClient) deleteVPC(ctx context.Context, awsClient *ec2.Client, vpcID string) error {
 	err := c.deleteNATGateways(ctx, awsClient, vpcID)
 	if err != nil {
-		return errors.WrapAndTrace(err)
+		return clouderrors.WrapAndTrace(err)
 	}
 
 	err = c.deleteInternetGateways(ctx, awsClient, vpcID)
 	if err != nil {
-		return errors.WrapAndTrace(err)
+		return clouderrors.WrapAndTrace(err)
 	}
 
 	err = c.deleteSubnets(ctx, awsClient, vpcID)
 	if err != nil {
-		return errors.WrapAndTrace(err)
+		return clouderrors.WrapAndTrace(err)
 	}
 
 	err = c.deleteRouteTables(ctx, awsClient, vpcID)
 	if err != nil {
-		return errors.WrapAndTrace(err)
+		return clouderrors.WrapAndTrace(err)
 	}
 
 	// Delete the VPC
@@ -840,7 +840,7 @@ func (c *AWSClient) deleteVPC(ctx context.Context, awsClient *ec2.Client, vpcID 
 		VpcId: aws.String(vpcID),
 	})
 	if err != nil {
-		return errors.WrapAndTrace(err)
+		return clouderrors.WrapAndTrace(err)
 	}
 
 	return nil
@@ -857,7 +857,7 @@ func (c *AWSClient) deleteNATGateways(ctx context.Context, awsClient *ec2.Client
 		},
 	})
 	if err != nil {
-		return errors.WrapAndTrace(err)
+		return clouderrors.WrapAndTrace(err)
 	}
 
 	c.logger.Debug(ctx, fmt.Sprintf("found %d NAT gateways", len(describeNatGatewaysOutput.NatGateways)),
@@ -878,7 +878,7 @@ func (c *AWSClient) deleteNATGateways(ctx context.Context, awsClient *ec2.Client
 			NatGatewayId: natGateway.NatGatewayId,
 		})
 		if err != nil {
-			return errors.WrapAndTrace(err)
+			return clouderrors.WrapAndTrace(err)
 		}
 
 		// Wait until the NAT Gateway is deleted
@@ -894,7 +894,7 @@ func (c *AWSClient) deleteNATGateways(ctx context.Context, awsClient *ec2.Client
 			NatGatewayIds: []string{*natGateway.NatGatewayId},
 		}, 10*time.Minute)
 		if err != nil {
-			return errors.WrapAndTrace(err)
+			return clouderrors.WrapAndTrace(err)
 		}
 
 		// Release the Elastic IP address
@@ -906,7 +906,7 @@ func (c *AWSClient) deleteNATGateways(ctx context.Context, awsClient *ec2.Client
 			AllocationId: natGateway.NatGatewayAddresses[0].AllocationId,
 		})
 		if err != nil {
-			return errors.WrapAndTrace(err)
+			return clouderrors.WrapAndTrace(err)
 		}
 	}
 
@@ -924,7 +924,7 @@ func (c *AWSClient) deleteInternetGateways(ctx context.Context, awsClient *ec2.C
 		},
 	})
 	if err != nil {
-		return errors.WrapAndTrace(err)
+		return clouderrors.WrapAndTrace(err)
 	}
 
 	c.logger.Debug(ctx, fmt.Sprintf("found %d Internet gateways", len(describeInternetGatewaysOutput.InternetGateways)),
@@ -941,7 +941,7 @@ func (c *AWSClient) deleteInternetGateways(ctx context.Context, awsClient *ec2.C
 			VpcId:             aws.String(vpcID),
 		})
 		if err != nil {
-			return errors.WrapAndTrace(err)
+			return clouderrors.WrapAndTrace(err)
 		}
 
 		// Delete the Internet Gateway
@@ -953,7 +953,7 @@ func (c *AWSClient) deleteInternetGateways(ctx context.Context, awsClient *ec2.C
 			InternetGatewayId: internetGateway.InternetGatewayId,
 		})
 		if err != nil {
-			return errors.WrapAndTrace(err)
+			return clouderrors.WrapAndTrace(err)
 		}
 	}
 
@@ -971,7 +971,7 @@ func (c *AWSClient) deleteSubnets(ctx context.Context, awsClient *ec2.Client, vp
 		},
 	})
 	if err != nil {
-		return errors.WrapAndTrace(err)
+		return clouderrors.WrapAndTrace(err)
 	}
 
 	// Delete all subnets
@@ -988,7 +988,7 @@ func (c *AWSClient) deleteSubnets(ctx context.Context, awsClient *ec2.Client, vp
 			SubnetId: subnet.SubnetId,
 		})
 		if err != nil {
-			return errors.WrapAndTrace(err)
+			return clouderrors.WrapAndTrace(err)
 		}
 	}
 
@@ -1010,7 +1010,7 @@ func (c *AWSClient) deleteRouteTables(ctx context.Context, awsClient *ec2.Client
 		},
 	})
 	if err != nil {
-		return errors.WrapAndTrace(err)
+		return clouderrors.WrapAndTrace(err)
 	}
 
 	// Delete all route tables
@@ -1026,7 +1026,7 @@ func (c *AWSClient) deleteRouteTables(ctx context.Context, awsClient *ec2.Client
 			RouteTableId: routeTable.RouteTableId,
 		})
 		if err != nil {
-			return errors.WrapAndTrace(err)
+			return clouderrors.WrapAndTrace(err)
 		}
 	}
 

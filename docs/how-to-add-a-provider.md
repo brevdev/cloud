@@ -3,18 +3,21 @@
 This guide explains how to add a new cloud provider to the Brev Cloud SDK (v1). The Lambda Labs provider is the best working, well-tested example—use it as your canonical reference.
 
 Goals:
+
 - Implement a provider-specific CloudCredential (factory) and CloudClient (implementation) that satisfy pkg/v1 interfaces.
 - Accurately declare Capabilities based on the provider’s API surface.
 - Implement at least instance lifecycle and instance types, adhering to security requirements.
 - Add validation tests and (optionally) a GitHub Actions workflow to run them with real credentials.
 
 Helpful background:
+
 - Architecture overview: ../docs/ARCHITECTURE.md
 - Security requirements: ../docs/SECURITY.md
 - Validation testing framework: ../docs/VALIDATION_TESTING.md
 - v1 design notes: ../pkg/v1/V1_DESIGN_NOTES.md
 
 Provider examples:
+
 - Lambda Labs (canonical): ../internal/lambdalabs/v1/README.md
 - Nebius (in progress): ../internal/nebius/v1/README.md
 - Fluidstack (in progress): ../internal/fluidstack/v1/README.md
@@ -32,6 +35,7 @@ CloudClient is a composed interface of provider capabilities. You don’t need t
 - Instance types and validation helpers: ../pkg/v1/instancetype.go
 
 Patterns to follow:
+
 - Embed v1.NotImplCloudClient in your client so unsupported methods gracefully return ErrNotImplemented (see ../pkg/v1/notimplemented.go).
 - Accurately return capability flags that match your provider’s real API.
 - Prefer stable, provider-native identifiers; otherwise use MakeGenericInstanceTypeID/MakeGenericInstanceTypeIDFromInstance.
@@ -39,6 +43,7 @@ Patterns to follow:
 ---
 
 ---
+
 ## Compute Brokers & Marketplaces (Aggregators)
 
 This SDK supports providers that aggregate compute from multiple upstream sources (multi-cloud brokers, marketplaces, or exchanges). When implementing an aggregator, use these to differentiate where the compute comes from while keeping the interface consistent:
@@ -49,9 +54,11 @@ This SDK supports providers that aggregate compute from multiple upstream source
 - InstanceType attributes (recommended): Use instance type attributes to delineate behavior differences across upstream sources (e.g., performance, network, storage, locality). There is also a `provider` attribute on the instance type you can use to indicate the originating vendor/source.
 
 Notes:
+
 - Capabilities represent what your broker can support. Differences between upstream vendors should be reflected in instance type attributes rather than reducing declared capabilities to the lowest common denominator.
 - Keep your `Location`/`SubLocation` stable even if upstream identifiers change; translate upstream → broker-stable naming.
 - Conform to the default-deny inbound model; document any upstream limitations under `internal/{provider}/SECURITY.md`.
+
 ## Directory Layout
 
 Create a new provider folder:
@@ -68,6 +75,7 @@ Create a new provider folder:
     - validation_test.go (validation suite entry point)
 
 Use Lambda Labs as the pattern:
+
 - ../internal/lambdalabs/v1/client.go
 - ../internal/lambdalabs/v1/instance.go
 - ../internal/lambdalabs/v1/capabilities.go
@@ -220,6 +228,7 @@ func (c *{Provider}Client) MergeInstanceTypeForUpdate(_ v1.InstanceType, newIt v
 ```
 
 See the canonical mapping and conversion logic in Lambda Labs:
+
 - Create/terminate/list/reboot: ../internal/lambdalabs/v1/instance.go
 - Capabilities: ../internal/lambdalabs/v1/capabilities.go
 - Client/credential + NotImpl: ../internal/lambdalabs/v1/client.go
@@ -242,25 +251,34 @@ Implement instance types in internal/{provider}/v1/instancetype.go:
 The SDK uses a three-level capability system to accurately represent what operations are supported:
 
 ### 1. Provider-Level Capabilities
+
 These are high-level features that your cloud provider's API supports, declared in your `GetCapabilities()` method. Capability flags live in ../pkg/v1/capabilities.go. Only include capabilities your API actually supports. For example, Lambda Labs supports:
+
 - Create/terminate/reboot instance (`CapabilityCreateInstance`, `CapabilityTerminateInstance`, `CapabilityRebootInstance`)
 - Does not (currently) support stop/start, resize volume, machine image, tags
 
-### 2. Instance Type Capabilities  
+### 2. Instance Type Capabilities
+
 These are hardware-specific features that vary by instance configuration, expressed as boolean fields on the `InstanceType` struct:
+
 - `Stoppable`: Whether instances of this type can be stopped/started
 - `Rebootable`: Whether instances of this type can be rebooted
 - `CanModifyFirewallRules`: Whether firewall rules can be modified for this instance type
 - `Preemptible`: Whether this instance type supports spot/preemptible pricing
+- `TunneledSSH`: Whether connections must be routed through a client-side tunnel proxy. This is required for instances that do not have public IP addresses.
 
 ### 3. Instance Capabilities
+
 These are capability boolean fields replicated on individual `Instance` objects, similar to Instance Type capabilities but applied to the running instance rather than the type template. While these fields could theoretically be derived from the associated `InstanceType`, they are duplicated on the instance for performance and convenience reasons. Examples include:
+
 - `Stoppable`: Whether this specific instance can be stopped/started
 - `Rebootable`: Whether this specific instance can be rebooted
+- `TunneledSSH`: Whether connections must be routed through a client-side tunnel proxy. This is required for instances that do not have public IP addresses.
 
 These fields must be kept accurate and in sync with the corresponding InstanceType capabilities, even though they appear redundant. They can also reflect runtime state-dependent variations - for example, a running instance might support certain operations that a stopped instance cannot, based on the current `LifecycleStatus`.
 
 Reference:
+
 - Lambda capabilities: ../internal/lambdalabs/v1/capabilities.go
 
 ---
@@ -268,12 +286,14 @@ Reference:
 ## Security Requirements
 
 All providers must conform to ../docs/SECURITY.md:
+
 - Default deny all inbound, allow all outbound
 - SSH server must be available with key-based auth
 - Firewall rules should be explicitly configured via FirewallRule when supported
 - If your provider’s firewall model is global/project-scoped rather than per-instance, document limitations in internal/{provider}/SECURITY.md and reflect that by omitting CapabilityModifyFirewall if applicable.
 
 Provider-specific security doc examples:
+
 - Lambda Labs: ../internal/lambdalabs/SECURITY.md
 - Nebius: ../internal/nebius/SECURITY.md
 - Fluidstack: ../internal/fluidstack/v1/SECURITY.md
@@ -288,7 +308,8 @@ Use the shared validation suite to test your provider with real credentials.
 - Shared package: ../internal/validation/suite.go
 
 Steps:
-1) Create internal/{provider}/v1/validation_test.go:
+
+1. Create internal/{provider}/v1/validation_test.go:
 
 ```go
 package v1
@@ -317,12 +338,14 @@ func TestValidationFunctions(t *testing.T) {
 }
 ```
 
-2) Local runs:
-- make test           # skips validation (short)
-- make test-validation # runs validation (long)
-- make test-all        # runs everything
+2. Local runs:
 
-3) CI workflow (recommended):
+- make test # skips validation (short)
+- make test-validation # runs validation (long)
+- make test-all # runs everything
+
+3. CI workflow (recommended):
+
 - Add .github/workflows/validation-{provider}.yml (copy Lambda Labs workflow if available or follow VALIDATION_TESTING.md).
 - Store secrets in GitHub Actions (e.g., YOUR_PROVIDER_API_KEY).
 

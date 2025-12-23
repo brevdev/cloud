@@ -9,7 +9,7 @@ import (
 	"github.com/alecthomas/units"
 	"github.com/bojanz/currency"
 
-	"github.com/brevdev/cloud/internal/errors"
+	"github.com/brevdev/cloud/internal/clouderrors"
 	v1 "github.com/brevdev/cloud/v1"
 	openapi "github.com/brevdev/cloud/v1/providers/shadeform/gen/shadeform"
 )
@@ -36,7 +36,7 @@ func (c *ShadeformClient) GetInstanceTypes(ctx context.Context, args v1.GetInsta
 		defer func() { _ = httpResp.Body.Close() }()
 	}
 	if err != nil {
-		return nil, errors.WrapAndTrace(fmt.Errorf("failed to get instance types: %w", err))
+		return nil, clouderrors.WrapAndTrace(fmt.Errorf("failed to get instance types: %w", err))
 	}
 
 	var instanceTypes []v1.InstanceType
@@ -45,7 +45,7 @@ func (c *ShadeformClient) GetInstanceTypes(ctx context.Context, args v1.GetInsta
 	for _, sfInstanceType := range resp.InstanceTypes {
 		instanceTypesFromShadeformInstanceType, err := c.convertShadeformInstanceTypeToV1InstanceType(sfInstanceType)
 		if err != nil {
-			return nil, errors.WrapAndTrace(err)
+			return nil, clouderrors.WrapAndTrace(err)
 		}
 		// Filter the list down to the instance types that are allowed by the configuration filter and the args
 		for _, singleInstanceType := range instanceTypesFromShadeformInstanceType {
@@ -108,7 +108,7 @@ func (c *ShadeformClient) GetLocations(ctx context.Context, _ v1.GetLocationsArg
 	}
 
 	if err != nil {
-		return nil, errors.WrapAndTrace(fmt.Errorf("failed to get locations: %w", err))
+		return nil, clouderrors.WrapAndTrace(fmt.Errorf("failed to get locations: %w", err))
 	}
 
 	// Shadeform doesn't have a dedicated locations API but we can get the same result from using the
@@ -150,13 +150,13 @@ func (c *ShadeformClient) isInstanceTypeAllowed(instanceType string) (bool, erro
 	// Convert to Cloud and Instance Type
 	cloud, shadeInstanceType, err := c.getShadeformCloudAndInstanceType(instanceType)
 	if err != nil {
-		return false, errors.WrapAndTrace(err)
+		return false, clouderrors.WrapAndTrace(err)
 	}
 
 	// Convert to API Cloud Enum
 	cloudEnum, err := openapi.NewCloudFromValue(cloud)
 	if err != nil {
-		return false, errors.WrapAndTrace(err)
+		return false, clouderrors.WrapAndTrace(err)
 	}
 
 	return c.config.isAllowed(*cloudEnum, shadeInstanceType), nil
@@ -176,7 +176,7 @@ func (c *ShadeformClient) getInstanceTypeID(instanceType string, region string) 
 func (c *ShadeformClient) getShadeformCloudAndInstanceType(instanceType string) (string, string, error) {
 	shadeformCloud, shadeformInstanceType, found := strings.Cut(instanceType, "_")
 	if !found {
-		return "", "", errors.WrapAndTrace(errors.New("could not determine shadeform cloud and instance type from instance type"))
+		return "", "", clouderrors.WrapAndTrace(clouderrors.New("could not determine shadeform cloud and instance type from instance type"))
 	}
 	return shadeformCloud, shadeformInstanceType, nil
 }
@@ -213,7 +213,7 @@ func (c *ShadeformClient) convertShadeformInstanceTypeToV1InstanceType(shadeform
 
 	basePrice, err := convertHourlyPriceToAmount(shadeformInstanceType.HourlyPrice)
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	gpuName := shadeformGPUTypeToBrevGPUName(shadeformInstanceType.Configuration.GpuType)
@@ -257,6 +257,7 @@ func (c *ShadeformClient) convertShadeformInstanceTypeToV1InstanceType(shadeform
 			Provider:               CloudProviderID,
 			Cloud:                  cloud,
 			EstimatedDeployTime:    estimatedDeployTime,
+			TunneledSSH:            false,
 		})
 	}
 
@@ -268,7 +269,7 @@ func convertHourlyPriceToAmount(hourlyPrice int32) (*currency.Amount, error) {
 
 	amount, err := currency.NewAmount(number, UsdCurrentCode)
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 	return &amount, nil
 }
