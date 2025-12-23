@@ -11,19 +11,18 @@ package openapi
 
 import (
 	"context"
+	"testing"
+
 	openapiclient "github.com/brevdev/cloud/v1/providers/launchpad/gen/launchpad"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func Test_openapi_InventoryProvidersAPIService(t *testing.T) {
-
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
 
 	t.Run("Test InventoryProvidersAPIService V1InventoryProvidersBulkPartialUpdate", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		resp, httpRes, err := apiClient.InventoryProvidersAPI.V1InventoryProvidersBulkPartialUpdate(context.Background()).Execute()
@@ -31,11 +30,9 @@ func Test_openapi_InventoryProvidersAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test InventoryProvidersAPIService V1InventoryProvidersCreate", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		resp, httpRes, err := apiClient.InventoryProvidersAPI.V1InventoryProvidersCreate(context.Background()).Execute()
@@ -43,11 +40,9 @@ func Test_openapi_InventoryProvidersAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test InventoryProvidersAPIService V1InventoryProvidersDestroy", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		var id string
@@ -56,11 +51,9 @@ func Test_openapi_InventoryProvidersAPIService(t *testing.T) {
 
 		require.Nil(t, err)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test InventoryProvidersAPIService V1InventoryProvidersHistoryList", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		var id string
@@ -70,11 +63,9 @@ func Test_openapi_InventoryProvidersAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test InventoryProvidersAPIService V1InventoryProvidersList", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		resp, httpRes, err := apiClient.InventoryProvidersAPI.V1InventoryProvidersList(context.Background()).Execute()
@@ -82,11 +73,9 @@ func Test_openapi_InventoryProvidersAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test InventoryProvidersAPIService V1InventoryProvidersPartialUpdate", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		var id string
@@ -96,11 +85,9 @@ func Test_openapi_InventoryProvidersAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test InventoryProvidersAPIService V1InventoryProvidersRetrieve", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		var id string
@@ -110,22 +97,18 @@ func Test_openapi_InventoryProvidersAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test InventoryProvidersAPIService V1InventoryProvidersStatsRetrieve", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		httpRes, err := apiClient.InventoryProvidersAPI.V1InventoryProvidersStatsRetrieve(context.Background()).Execute()
 
 		require.Nil(t, err)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test InventoryProvidersAPIService V1InventoryProvidersUpdate", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		var id string
@@ -135,7 +118,5 @@ func Test_openapi_InventoryProvidersAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
-
 }

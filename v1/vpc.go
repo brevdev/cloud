@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/brevdev/cloud/internal/errors"
+	"github.com/brevdev/cloud/internal/clouderrors"
 )
 
 // VPC represents the complete specification of a Brev VPC.
@@ -150,7 +150,7 @@ func (s *VPCSettings) validate() error {
 	if s.Status == "" {
 		errs = append(errs, fmt.Errorf("status is required"))
 	}
-	return errors.WrapAndTrace(errors.Join(errs...))
+	return clouderrors.WrapAndTrace(clouderrors.Join(errs...))
 }
 
 // NewVPC creates a new VPC from the provided settings.
@@ -158,7 +158,7 @@ func NewVPC(settings VPCSettings) (*VPC, error) {
 	settings.setDefaults()
 	err := settings.validate()
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 	return &VPC{
 		name:      settings.Name,
@@ -285,7 +285,7 @@ func (s *SubnetSettings) validate() error {
 		errs = append(errs, fmt.Errorf("id is required"))
 	}
 
-	return errors.WrapAndTrace(errors.Join(errs...))
+	return clouderrors.WrapAndTrace(clouderrors.Join(errs...))
 }
 
 // NewSubnet creates a new Subnet from the provided settings.
@@ -293,7 +293,7 @@ func NewSubnet(settings SubnetSettings) (*Subnet, error) {
 	settings.setDefaults()
 	err := settings.validate()
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 	return &Subnet{
 		name:       settings.Name,

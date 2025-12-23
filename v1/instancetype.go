@@ -89,6 +89,7 @@ type InstanceType struct {
 	Cloud                           string
 	CanModifyFirewallRules          bool
 	ReservedInstancePoolID          string
+	TunneledSSH                     bool
 }
 
 func MakeGenericInstanceTypeID(instanceType InstanceType) InstanceTypeID {

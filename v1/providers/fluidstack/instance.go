@@ -143,7 +143,8 @@ func convertFluidStackInstanceToV1Instance(fsInstance openapi.Instance) *v1.Inst
 		Status: v1.Status{
 			LifecycleStatus: lifecycleStatus,
 		},
-		Tags: make(map[string]string),
+		Tags:        make(map[string]string),
+		TunneledSSH: false,
 	}
 
 	for key, value := range fsInstance.Tags {

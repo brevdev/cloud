@@ -184,11 +184,12 @@ func convertLambdaLabsInstanceToV1Instance(instance openapi.Instance) *v1.Instan
 			IngressRules: []v1.FirewallRule{generateFirewallRouteFromPort(22), generateFirewallRouteFromPort(2222)}, // TODO pull from api
 			EgressRules:  []v1.FirewallRule{generateFirewallRouteFromPort(22), generateFirewallRouteFromPort(2222)}, // TODO pull from api
 		},
-		SSHUser:    "ubuntu",
-		SSHPort:    22,
-		Stoppable:  false,
-		Rebootable: true,
-		Location:   instance.Region.Name,
+		SSHUser:     "ubuntu",
+		SSHPort:     22,
+		Stoppable:   false,
+		Rebootable:  true,
+		Location:    instance.Region.Name,
+		TunneledSSH: false,
 	}
 	inst.InstanceTypeID = v1.MakeGenericInstanceTypeIDFromInstance(inst)
 	return &inst

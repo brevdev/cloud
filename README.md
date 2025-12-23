@@ -7,6 +7,7 @@ An early-stage, vendor-agnostic Go SDK for managing **clusterable, GPU-accelerat
 ## Project Goals
 
 - Define a clean, minimal interface for cloud compute primitives:
+
   - `Instance`
   - `Storage`
   - `FirewallRule`
@@ -41,7 +42,7 @@ See [SECURITY.md](docs/SECURITY.md) for complete security specifications and imp
 
 - **Operating System**: Currently supports Ubuntu 22 only
 - **Architecture**: Designed for GPU-accelerated compute workloads
-- **Access Method**: Requires SSH server and SSH key-based authentication
+- **Access Method**: Requires SSH server and SSH key-based authentication. Supports `TunneledSSH`. Indicates whether connections must be routed through a client-side tunnel proxy. This is required for instances that do not have public IP addresses.
 - **System Requirements**: Requires systemd to be running and accessible
 
 ---
@@ -65,4 +66,3 @@ See [SECURITY.md](docs/SECURITY.md) for complete security specifications and imp
 ## Get Involved
 
 This is a foundation — we're opening it early to **learn with the community** and shape a clean, composable `v2`. If you're building GPU compute infrastructure or tooling, we'd love your input.
-

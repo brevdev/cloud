@@ -8,7 +8,7 @@ import (
 
 	"github.com/alecthomas/units"
 	"github.com/bojanz/currency"
-	"github.com/brevdev/cloud/internal/errors"
+	"github.com/brevdev/cloud/internal/clouderrors"
 	v1 "github.com/brevdev/cloud/v1"
 	billing "github.com/nebius/gosdk/proto/nebius/billing/v1alpha1"
 	common "github.com/nebius/gosdk/proto/nebius/common/v1"
@@ -22,7 +22,7 @@ func (c *NebiusClient) GetInstanceTypes(ctx context.Context, args v1.GetInstance
 		ParentId: c.projectID, // List platforms available in this project
 	})
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	// Get all available locations for quota-aware enumeration
@@ -32,7 +32,7 @@ func (c *NebiusClient) GetInstanceTypes(ctx context.Context, args v1.GetInstance
 	if args.Locations.IsAll() { //nolint:gocritic // prefer if statement over switch statement
 		allLocations, err := c.GetLocations(ctx, v1.GetLocationsArgs{})
 		if err != nil {
-			return nil, errors.WrapAndTrace(err)
+			return nil, clouderrors.WrapAndTrace(err)
 		}
 		locations = allLocations
 	} else if len(args.Locations) > 0 {
@@ -186,6 +186,7 @@ func (c *NebiusClient) getInstanceTypesForLocation(ctx context.Context, platform
 				ElasticRootVolume:  true, // Nebius supports dynamic disk allocation
 				SupportedStorage:   c.buildSupportedStorage(),
 				Provider:           CloudProviderID, // Nebius is the provider
+				TunneledSSH:        false,
 			}
 
 			// Add GPU information if available
@@ -228,7 +229,7 @@ func (c *NebiusClient) getQuotaMap(ctx context.Context) (map[string]*quotas.Quot
 		PageSize: 1000,       // Get all quotas in one request
 	})
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	// Build a map of quota name + region -> quota allowance
@@ -273,7 +274,6 @@ func (c *NebiusClient) checkPresetQuotaAvailability(resources *compute.PresetRes
 			return false
 		}
 
-		//nolint:gosec // Safe conversion: quota limits are controlled by cloud provider
 		available := int64(*quota.Spec.Limit) - int64(quota.Status.Usage)
 		if available < int64(resources.GpuCount) {
 			return false // Not enough GPU quota
@@ -287,7 +287,6 @@ func (c *NebiusClient) checkPresetQuotaAvailability(resources *compute.PresetRes
 	cpuQuotaKey := fmt.Sprintf("compute.instance.non-gpu.vcpu:%s", region)
 	if cpuQuota, exists := quotaMap[cpuQuotaKey]; exists {
 		if cpuQuota.Status != nil && cpuQuota.Spec != nil && cpuQuota.Spec.Limit != nil {
-			//nolint:gosec // Safe conversion: quota limits are controlled by cloud provider
 			cpuAvailable := int64(*cpuQuota.Spec.Limit) - int64(cpuQuota.Status.Usage)
 			if cpuAvailable < int64(resources.VcpuCount) {
 				return false
@@ -300,7 +299,6 @@ func (c *NebiusClient) checkPresetQuotaAvailability(resources *compute.PresetRes
 	if memQuota, exists := quotaMap[memoryQuotaKey]; exists {
 		if memQuota.Status != nil && memQuota.Spec != nil && memQuota.Spec.Limit != nil {
 			memoryRequired := int64(resources.MemoryGibibytes) * 1024 * 1024 * 1024 // Convert GiB to bytes
-			//nolint:gosec // Safe conversion: quota limits are controlled by cloud provider
 			memAvailable := int64(*memQuota.Spec.Limit) - int64(memQuota.Status.Usage)
 			if memAvailable < memoryRequired {
 				return false

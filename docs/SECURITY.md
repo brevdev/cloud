@@ -12,6 +12,7 @@ This document outlines the security requirements and best practices for implemen
 2. **SSH Key Authentication**: Instances must support SSH key-based authentication
 3. **Key Injection**: The SDK must support passing SSH public keys during instance creation
 4. **Secure Access**: SSH access provides the primary method for secure instance management and user access
+5. **SSH Tunneling**: Support for `TunneledSSH`. Indicates whether connections must be routed through a client-side tunnel proxy. This is required for instances that do not have public IP addresses.
 
 **Implementation Requirements:**
 

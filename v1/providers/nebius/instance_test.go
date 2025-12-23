@@ -56,6 +56,7 @@ func TestNebiusClient_MergeInstanceForUpdate(t *testing.T) {
 		CloudID:        "current-cloud-id",
 		InstanceType:   "current-type",
 		Status:         v1.Status{LifecycleStatus: v1.LifecycleStatusRunning},
+		TunneledSSH:    false,
 	}
 
 	newInstance := v1.Instance{
@@ -67,6 +68,7 @@ func TestNebiusClient_MergeInstanceForUpdate(t *testing.T) {
 		CloudID:        "new-cloud-id",
 		InstanceType:   "new-type",
 		Status:         v1.Status{LifecycleStatus: v1.LifecycleStatusStopped},
+		TunneledSSH:    true,
 	}
 
 	merged := client.MergeInstanceForUpdate(currInstance, newInstance)

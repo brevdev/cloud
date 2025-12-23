@@ -4,8 +4,8 @@ import (
 	"context"
 	"net"
 
+	"github.com/brevdev/cloud/internal/clouderrors"
 	"github.com/brevdev/cloud/internal/collections"
-	"github.com/brevdev/cloud/internal/errors"
 
 	v1 "github.com/brevdev/cloud/v1"
 	openapi "github.com/brevdev/cloud/v1/providers/launchpad/gen/launchpad"
@@ -21,12 +21,12 @@ func (c *LaunchpadClient) CreateInstance(ctx context.Context, attrs v1.CreateIns
 	createAttrs := launchpadCreateAttrs(attrs)
 	err := createAttrs.validate()
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 	ipAllowlist := c.getLaunchpadIPAllowlist(ctx, attrs.FirewallRules)
 	instanceTypeInfo, err := getInstanceTypeInfo(createAttrs.InstanceType)
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	var region openapi.NullableString
@@ -70,19 +70,19 @@ func (c *LaunchpadClient) CreateInstance(ctx context.Context, attrs v1.CreateIns
 	if resp != nil {
 		defer func() {
 			if err := resp.Body.Close(); err != nil {
-				c.logger.Error(ctx, errors.Wrap(err, "cloud/launchpad error closing response body"))
+				c.logger.Error(ctx, clouderrors.Wrap(err, "cloud/launchpad error closing response body"))
 			}
 		}()
 	}
 
 	if err != nil {
 		if resp == nil {
-			return nil, errors.WrapAndTrace(err)
+			return nil, clouderrors.WrapAndTrace(err)
 		}
 
 		lpErr := c.handleLaunchpadAPIErr(ctx, resp, err)
 		if !wasCreateDeploymentRequestAlreadyMade(lpErr) { // handleLaunchpadAPIErr casts error to include error message
-			return nil, errors.WrapAndTrace(lpErr)
+			return nil, clouderrors.WrapAndTrace(lpErr)
 		}
 
 		// Error was "create request already made", so we can continue
@@ -90,7 +90,7 @@ func (c *LaunchpadClient) CreateInstance(ctx context.Context, attrs v1.CreateIns
 
 	inst, err := c.GetInstance(ctx, v1.CloudProviderInstanceID(createDeployment.Id))
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 	return inst, nil
 }
@@ -113,7 +113,7 @@ func (l launchpadCreateAttrs) validate() error {
 		validation.Field(&l.InstanceType, validation.Required),
 	)
 	if err != nil {
-		return errors.WrapAndTrace(err)
+		return clouderrors.WrapAndTrace(err)
 	}
 	return nil
 }
@@ -139,7 +139,7 @@ func (c *LaunchpadClient) getLaunchpadIPAllowlist(ctx context.Context, firewallR
 		for _, cidr := range rule.IPRanges {
 			_, ipNet, err := net.ParseCIDR(cidr)
 			if err != nil {
-				c.logger.Error(ctx, errors.Wrap(err, "cloud/launchpad error parsing cidr"), v1.LogField("cidr", cidr))
+				c.logger.Error(ctx, clouderrors.Wrap(err, "cloud/launchpad error parsing cidr"), v1.LogField("cidr", cidr))
 				continue
 			}
 			ones, bits := ipNet.Mask.Size()
@@ -147,7 +147,7 @@ func (c *LaunchpadClient) getLaunchpadIPAllowlist(ctx context.Context, firewallR
 			if ones == bits {
 				ips = append(ips, ipNet.IP.String())
 			} else {
-				c.logger.Error(ctx, errors.New("cloud/launchpad only accept singular IPs"), v1.LogField("cidr", cidr))
+				c.logger.Error(ctx, clouderrors.New("cloud/launchpad only accept singular IPs"), v1.LogField("cidr", cidr))
 			}
 		}
 	}
@@ -156,5 +156,5 @@ func (c *LaunchpadClient) getLaunchpadIPAllowlist(ctx context.Context, firewallR
 }
 
 func wasCreateDeploymentRequestAlreadyMade(err error) bool {
-	return errors.ErrorContains(err, "request_id already exist")
+	return clouderrors.ErrorContains(err, "request_id already exist")
 }

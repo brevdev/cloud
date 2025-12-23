@@ -3,7 +3,7 @@ package v1
 import (
 	"context"
 
-	"github.com/brevdev/cloud/internal/errors"
+	"github.com/brevdev/cloud/internal/clouderrors"
 	openapi "github.com/brevdev/cloud/v1/providers/launchpad/gen/launchpad"
 
 	v1 "github.com/brevdev/cloud/v1"
@@ -12,7 +12,7 @@ import (
 func (c *LaunchpadClient) GetLocations(ctx context.Context, args v1.GetLocationsArgs) ([]v1.Location, error) {
 	launchpadInstanceTypes, err := c.paginateInstanceTypes(ctx, 100)
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	locations := launchpadInstanceTypesToLocations(launchpadInstanceTypes, args)

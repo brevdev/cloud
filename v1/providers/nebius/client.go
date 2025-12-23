@@ -8,7 +8,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/brevdev/cloud/internal/errors"
+	"github.com/brevdev/cloud/internal/clouderrors"
 	v1 "github.com/brevdev/cloud/v1"
 	"github.com/nebius/gosdk"
 	"github.com/nebius/gosdk/auth"
@@ -77,7 +77,7 @@ func NewNebiusClientWithOrg(ctx context.Context, refID, serviceAccountKey, tenan
 
 	sdk, err := gosdk.New(ctx, gosdk.WithCredentials(creds))
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	// Determine projectID: use provided ID, or find first available project, or use tenant ID
@@ -122,7 +122,7 @@ func findProjectForRegion(ctx context.Context, sdk *gosdk.SDK, tenantID, region 
 		PageSize: &pageSize,
 	})
 	if err != nil {
-		return "", errors.WrapAndTrace(err)
+		return "", clouderrors.WrapAndTrace(err)
 	}
 
 	projects := projectsResp.GetItems()
@@ -304,7 +304,7 @@ func (c *NebiusClient) GetLocation(ctx context.Context) (string, error) {
 		Id: c.projectID,
 	})
 	if err != nil {
-		return "", errors.WrapAndTrace(err)
+		return "", clouderrors.WrapAndTrace(err)
 	}
 	return project.GetSpec().GetRegion(), nil
 }

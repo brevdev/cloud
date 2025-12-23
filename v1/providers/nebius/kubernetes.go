@@ -16,7 +16,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	k8scmd "k8s.io/client-go/tools/clientcmd/api"
 
-	"github.com/brevdev/cloud/internal/errors"
+	"github.com/brevdev/cloud/internal/clouderrors"
 	cloudk8s "github.com/brevdev/cloud/internal/kubernetes"
 	"github.com/brevdev/cloud/internal/rsa"
 	v1 "github.com/brevdev/cloud/v1"
@@ -51,16 +51,16 @@ func (c *NebiusClient) CreateCluster(ctx context.Context, args v1.CreateClusterA
 
 	// Validate arguments
 	if len(args.SubnetIDs) == 0 {
-		return nil, errors.WrapAndTrace(errNoSubnetIDsSpecifiedForVPC)
+		return nil, clouderrors.WrapAndTrace(errNoSubnetIDsSpecifiedForVPC)
 	} else if len(args.SubnetIDs) > 1 {
-		return nil, errors.WrapAndTrace(errMultipleSubnetIDsNotAllowedForVPC)
+		return nil, clouderrors.WrapAndTrace(errMultipleSubnetIDsNotAllowedForVPC)
 	}
 	subnetID := string(args.SubnetIDs[0])
 
 	// Fetch the target location
 	location, err := c.GetLocation(ctx)
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	// Fetch the target VPC
@@ -68,13 +68,13 @@ func (c *NebiusClient) CreateCluster(ctx context.Context, args v1.CreateClusterA
 		ID: args.VPCID,
 	})
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	// Validate VPC
 	err = validateVPC(vpc)
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	// Create a map of subnetID->subnet for this VPC so that we can find the target subnet
@@ -86,7 +86,7 @@ func (c *NebiusClient) CreateCluster(ctx context.Context, args v1.CreateClusterA
 	// Get the target subnet from the map
 	var subnet *v1.Subnet
 	if _, ok := subnetMap[subnetID]; !ok {
-		return nil, errors.WrapAndTrace(fmt.Errorf("subnet ID %s does not match VPC %s", subnetID, vpc.GetID()))
+		return nil, clouderrors.WrapAndTrace(fmt.Errorf("subnet ID %s does not match VPC %s", subnetID, vpc.GetID()))
 	} else {
 		subnet = subnetMap[subnetID]
 	}
@@ -122,7 +122,7 @@ func (c *NebiusClient) CreateCluster(ctx context.Context, args v1.CreateClusterA
 		},
 	})
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	brevCluster, err := v1.NewCluster(v1.ClusterSettings{
@@ -139,7 +139,7 @@ func (c *NebiusClient) CreateCluster(ctx context.Context, args v1.CreateClusterA
 		Tags:              args.Tags,
 	})
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 	return brevCluster, nil
 }
@@ -151,7 +151,7 @@ func validateVPC(vpc *v1.VPC) error {
 	for _, subnet := range vpc.GetSubnets() {
 		larger, err := cidrBlockLargerThanMask(subnet.GetCidrBlock(), 24)
 		if err != nil {
-			return errors.WrapAndTrace(err)
+			return clouderrors.WrapAndTrace(err)
 		}
 		if !larger {
 			continue
@@ -172,7 +172,7 @@ func validateVPC(vpc *v1.VPC) error {
 		errs = append(errs, errVPCHasNoPrivateSubnets)
 	}
 
-	return errors.WrapAndTrace(errors.Join(errs...))
+	return clouderrors.WrapAndTrace(clouderrors.Join(errs...))
 }
 
 func (c *NebiusClient) GetCluster(ctx context.Context, args v1.GetClusterArgs) (*v1.Cluster, error) {
@@ -186,19 +186,19 @@ func (c *NebiusClient) GetCluster(ctx context.Context, args v1.GetClusterArgs) (
 		if grpcstatus.Code(err) == grpccodes.NotFound {
 			return nil, v1.ErrResourceNotFound
 		}
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	nebiusSubnet, err := nebiusSubnetService.Get(ctx, &nebiusvpc.GetSubnetRequest{
 		Id: cluster.Spec.ControlPlane.SubnetId,
 	})
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	nodeGroups, err := c.getClusterNodeGroups(ctx, cluster)
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	brevCluster, err := v1.NewCluster(v1.ClusterSettings{
@@ -215,7 +215,7 @@ func (c *NebiusClient) GetCluster(ctx context.Context, args v1.GetClusterArgs) (
 		Tags:                       v1.Tags(cluster.Metadata.Labels),
 	})
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 	return brevCluster, err
 }
@@ -247,14 +247,14 @@ func (c *NebiusClient) getClusterNodeGroups(ctx context.Context, cluster *nebius
 		ParentId: cluster.Metadata.Id,
 	})
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	nodeGroups := make([]*v1.NodeGroup, len(nebiusNodeGroups.Items))
 	for i, nebiusNodeGroup := range nebiusNodeGroups.Items {
 		brevNodeGroup, err := parseNebiusNodeGroup(nebiusNodeGroup)
 		if err != nil {
-			return nil, errors.WrapAndTrace(err)
+			return nil, clouderrors.WrapAndTrace(err)
 		}
 		nodeGroups[i] = brevNodeGroup
 	}
@@ -280,7 +280,7 @@ func parseNebiusClusterStatus(status *nebiusmk8s.ClusterStatus) v1.ClusterStatus
 func (c *NebiusClient) SetClusterUser(ctx context.Context, args v1.SetClusterUserArgs) (*v1.ClusterUser, error) {
 	err := validatePutUserArgs(args)
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	// Fetch the cluster the user key will be added to
@@ -288,43 +288,43 @@ func (c *NebiusClient) SetClusterUser(ctx context.Context, args v1.SetClusterUse
 		ID: args.ClusterID,
 	})
 	if err != nil {
-		return nil, errors.WrapAndTrace(fmt.Errorf("failed to get cluster: %w", err))
+		return nil, clouderrors.WrapAndTrace(fmt.Errorf("failed to get cluster: %w", err))
 	}
 
 	// Create a clientset to interact with the cluster using the bearer token and CA certificate
 	clientset, err := c.newK8sClient(ctx, cluster)
 	if err != nil {
-		return nil, errors.WrapAndTrace(fmt.Errorf("failed to create clientset: %w", err))
+		return nil, clouderrors.WrapAndTrace(fmt.Errorf("failed to create clientset: %w", err))
 	}
 
 	// Prepare the private key for the CSR
 	privateKeyBytes, err := base64.StdEncoding.DecodeString(args.RSAPEMBase64)
 	if err != nil {
-		return nil, errors.WrapAndTrace(fmt.Errorf("failed to decode base64 string: %w", err))
+		return nil, clouderrors.WrapAndTrace(fmt.Errorf("failed to decode base64 string: %w", err))
 	}
 
 	// Parse the private key
 	privateKey, err := rsa.BytesToRSAKey(privateKeyBytes)
 	if err != nil {
-		return nil, errors.WrapAndTrace(fmt.Errorf("failed to parse private key: %w", err))
+		return nil, clouderrors.WrapAndTrace(fmt.Errorf("failed to parse private key: %w", err))
 	}
 
 	// Create the client certificate to allow for external access to the cluster for the holders of this private key
 	signedCertificate, err := cloudk8s.ClientCertificateData(ctx, clientset, args.Username, privateKey)
 	if err != nil {
-		return nil, errors.WrapAndTrace(fmt.Errorf("failed to get signed certificate: %w", err))
+		return nil, clouderrors.WrapAndTrace(fmt.Errorf("failed to get signed certificate: %w", err))
 	}
 
 	// Make the user a cluster admin
 	err = cloudk8s.SetUserRole(ctx, clientset, args.Username, args.Role)
 	if err != nil {
-		return nil, errors.WrapAndTrace(fmt.Errorf("failed to set user role: %w", err))
+		return nil, clouderrors.WrapAndTrace(fmt.Errorf("failed to set user role: %w", err))
 	}
 
 	// Get the certificate authority data
 	certificateAuthorityData, err := base64.StdEncoding.DecodeString(cluster.GetClusterCACertificateBase64())
 	if err != nil {
-		return nil, errors.WrapAndTrace(fmt.Errorf("failed to decode certificate authority data: %w", err))
+		return nil, clouderrors.WrapAndTrace(fmt.Errorf("failed to decode certificate authority data: %w", err))
 	}
 
 	// Generate the complete kubeconfig
@@ -345,7 +345,7 @@ func (c *NebiusClient) SetClusterUser(ctx context.Context, args v1.SetClusterUse
 		},
 	})
 	if err != nil {
-		return nil, errors.WrapAndTrace(fmt.Errorf("failed to write kubeconfig: %w", err))
+		return nil, clouderrors.WrapAndTrace(fmt.Errorf("failed to write kubeconfig: %w", err))
 	}
 
 	brevClusterUser, err := v1.NewClusterUser(v1.ClusterUserSettings{
@@ -358,7 +358,7 @@ func (c *NebiusClient) SetClusterUser(ctx context.Context, args v1.SetClusterUse
 		KubeconfigBase64:                      base64.StdEncoding.EncodeToString(kubeconfigBytes),
 	})
 	if err != nil {
-		return nil, errors.WrapAndTrace(fmt.Errorf("failed to create cluster user: %w", err))
+		return nil, clouderrors.WrapAndTrace(fmt.Errorf("failed to create cluster user: %w", err))
 	}
 	return brevClusterUser, nil
 }
@@ -377,7 +377,7 @@ func validatePutUserArgs(args v1.SetClusterUserArgs) error {
 	if args.RSAPEMBase64 == "" {
 		errs = append(errs, errRSAPEMBase64IsRequired)
 	}
-	return errors.WrapAndTrace(errors.Join(errs...))
+	return clouderrors.WrapAndTrace(clouderrors.Join(errs...))
 }
 
 func (c *NebiusClient) CreateNodeGroup(ctx context.Context, args v1.CreateNodeGroupArgs) (*v1.NodeGroup, error) {
@@ -385,7 +385,7 @@ func (c *NebiusClient) CreateNodeGroup(ctx context.Context, args v1.CreateNodeGr
 
 	err := validateCreateNodeGroupArgs(args)
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	// Fetch the cluster the user key will be added to
@@ -393,7 +393,7 @@ func (c *NebiusClient) CreateNodeGroup(ctx context.Context, args v1.CreateNodeGr
 		ID: args.ClusterID,
 	})
 	if err != nil {
-		return nil, errors.WrapAndTrace(fmt.Errorf("failed to get cluster: %w", err))
+		return nil, clouderrors.WrapAndTrace(fmt.Errorf("failed to get cluster: %w", err))
 	}
 
 	// Placeholder for parsing instance type
@@ -413,7 +413,7 @@ func (c *NebiusClient) CreateNodeGroup(ctx context.Context, args v1.CreateNodeGr
 	// Nebius expects the disk size in GiB, so we need to convert the disk size to GiB
 	diskSizeGiB, err := args.DiskSize.ByteCountInUnitInt64(v1.Gibibyte)
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	// create the node groups
@@ -450,7 +450,7 @@ func (c *NebiusClient) CreateNodeGroup(ctx context.Context, args v1.CreateNodeGr
 		},
 	})
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	brevNodeGroup, err := v1.NewNodeGroup(v1.NodeGroupSettings{
@@ -465,7 +465,7 @@ func (c *NebiusClient) CreateNodeGroup(ctx context.Context, args v1.CreateNodeGr
 		Tags:         args.Tags,
 	})
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 	return brevNodeGroup, nil
 }
@@ -505,12 +505,12 @@ func (c *NebiusClient) GetNodeGroup(ctx context.Context, args v1.GetNodeGroupArg
 		if grpcstatus.Code(err) == grpccodes.NotFound {
 			return nil, v1.ErrResourceNotFound
 		}
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	brevNodeGroup, err := parseNebiusNodeGroup(nodeGroup)
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 	return brevNodeGroup, nil
 }
@@ -528,7 +528,7 @@ func parseNebiusNodeGroup(nodeGroup *nebiusmk8s.NodeGroup) (*v1.NodeGroup, error
 		Tags:         v1.Tags(nodeGroup.Metadata.Labels),
 	})
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 	return brevNodeGroup, nil
 }
@@ -553,14 +553,14 @@ func (c *NebiusClient) ModifyNodeGroup(ctx context.Context, args v1.ModifyNodeGr
 
 	err := validateModifyNodeGroupArgs(args)
 	if err != nil {
-		return errors.WrapAndTrace(err)
+		return clouderrors.WrapAndTrace(err)
 	}
 
 	nodeGroup, err := nebiusNodeGroupService.Get(ctx, &nebiusmk8s.GetNodeGroupRequest{
 		Id: string(args.ID),
 	})
 	if err != nil {
-		return errors.WrapAndTrace(err)
+		return clouderrors.WrapAndTrace(err)
 	}
 
 	_, err = nebiusNodeGroupService.Update(ctx, &nebiusmk8s.UpdateNodeGroupRequest{
@@ -597,7 +597,7 @@ func (c *NebiusClient) ModifyNodeGroup(ctx context.Context, args v1.ModifyNodeGr
 		},
 	})
 	if err != nil {
-		return errors.WrapAndTrace(fmt.Errorf("failed to modify node group: %w", err))
+		return clouderrors.WrapAndTrace(fmt.Errorf("failed to modify node group: %w", err))
 	}
 
 	return nil
@@ -623,14 +623,14 @@ func (c *NebiusClient) DeleteNodeGroup(ctx context.Context, args v1.DeleteNodeGr
 		ID: args.ID,
 	})
 	if err != nil {
-		return errors.WrapAndTrace(fmt.Errorf("failed to get node group: %w", err))
+		return clouderrors.WrapAndTrace(fmt.Errorf("failed to get node group: %w", err))
 	}
 
 	_, err = nebiusNodeGroupService.Delete(ctx, &nebiusmk8s.DeleteNodeGroupRequest{
 		Id: string(nodeGroup.GetID()),
 	})
 	if err != nil {
-		return errors.WrapAndTrace(fmt.Errorf("failed to delete node group: %w", err))
+		return clouderrors.WrapAndTrace(fmt.Errorf("failed to delete node group: %w", err))
 	}
 
 	return nil
@@ -644,14 +644,14 @@ func (c *NebiusClient) DeleteCluster(ctx context.Context, args v1.DeleteClusterA
 		ID: args.ID,
 	})
 	if err != nil {
-		return errors.WrapAndTrace(fmt.Errorf("failed to get cluster: %w", err))
+		return clouderrors.WrapAndTrace(fmt.Errorf("failed to get cluster: %w", err))
 	}
 
 	_, err = nebiusClusterService.Delete(ctx, &nebiusmk8s.DeleteClusterRequest{
 		Id: string(cluster.GetID()),
 	})
 	if err != nil {
-		return errors.WrapAndTrace(fmt.Errorf("failed to delete cluster: %w", err))
+		return clouderrors.WrapAndTrace(fmt.Errorf("failed to delete cluster: %w", err))
 	}
 
 	return nil
@@ -661,13 +661,13 @@ func (c *NebiusClient) newK8sClient(ctx context.Context, cluster *v1.Cluster) (*
 	// Decode the cluster CA certificate
 	clusterCACertificate, err := base64.StdEncoding.DecodeString(cluster.GetClusterCACertificateBase64())
 	if err != nil {
-		return nil, errors.WrapAndTrace(fmt.Errorf("failed to decode cluster CA certificate: %w", err))
+		return nil, clouderrors.WrapAndTrace(fmt.Errorf("failed to decode cluster CA certificate: %w", err))
 	}
 
 	// Get a bearer token to authenticate to the cluster
 	bearerToken, err := c.sdk.BearerToken(ctx)
 	if err != nil {
-		return nil, errors.WrapAndTrace(fmt.Errorf("failed to get bearer token: %w", err))
+		return nil, clouderrors.WrapAndTrace(fmt.Errorf("failed to get bearer token: %w", err))
 	}
 
 	// Create a clientset to interact with the cluster using the bearer token and CA certificate
@@ -679,7 +679,7 @@ func (c *NebiusClient) newK8sClient(ctx context.Context, cluster *v1.Cluster) (*
 		},
 	})
 	if err != nil {
-		return nil, errors.WrapAndTrace(fmt.Errorf("failed to create clientset: %w", err))
+		return nil, clouderrors.WrapAndTrace(fmt.Errorf("failed to create clientset: %w", err))
 	}
 
 	return clientset, nil

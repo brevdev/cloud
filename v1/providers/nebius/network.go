@@ -11,7 +11,7 @@ import (
 	grpccodes "google.golang.org/grpc/codes"
 	grpcstatus "google.golang.org/grpc/status"
 
-	"github.com/brevdev/cloud/internal/errors"
+	"github.com/brevdev/cloud/internal/clouderrors"
 	v1 "github.com/brevdev/cloud/v1"
 )
 
@@ -25,18 +25,18 @@ func (c *NebiusClient) CreateVPC(ctx context.Context, args v1.CreateVPCArgs) (*v
 	// Fetch the target location
 	location, err := c.GetLocation(ctx)
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	err = validateCreateVPCArgs(args)
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	// Create the network
 	vpcID, err := createNetwork(ctx, nebiusNetworkService, nebiusPoolService, c.projectID, args)
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	// Create the subnets
@@ -44,7 +44,7 @@ func (c *NebiusClient) CreateVPC(ctx context.Context, args v1.CreateVPCArgs) (*v
 	for _, subnetArgs := range args.Subnets {
 		subnet, err := c.createSubnet(ctx, nebiusSubnetService, c.projectID, vpcID, subnetArgs)
 		if err != nil {
-			return nil, errors.WrapAndTrace(err)
+			return nil, clouderrors.WrapAndTrace(err)
 		}
 		subnets = append(subnets, subnet)
 	}
@@ -61,7 +61,7 @@ func (c *NebiusClient) CreateVPC(ctx context.Context, args v1.CreateVPCArgs) (*v
 		Tags:      args.Tags,
 	})
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 	return brevVPC, nil
 }
@@ -71,7 +71,7 @@ func validateCreateVPCArgs(args v1.CreateVPCArgs) error {
 	for _, subnet := range args.Subnets {
 		larger, err := cidrBlockLargerThanMask(subnet.CidrBlock, 24)
 		if err != nil {
-			return errors.WrapAndTrace(err)
+			return clouderrors.WrapAndTrace(err)
 		}
 		if !larger {
 			return errVPCSubnetCIDRBlockMustBeGreaterThan24
@@ -83,7 +83,7 @@ func validateCreateVPCArgs(args v1.CreateVPCArgs) error {
 func cidrBlockLargerThanMask(cidrBlock string, mask int) (bool, error) {
 	_, ipnet, err := net.ParseCIDR(cidrBlock)
 	if err != nil {
-		return false, errors.WrapAndTrace(err)
+		return false, clouderrors.WrapAndTrace(err)
 	}
 	ones, _ := ipnet.Mask.Size()
 	return ones < mask, nil
@@ -122,13 +122,13 @@ func createNetwork(ctx context.Context, nebiusNetworkService nebiusvpcv1.Network
 		},
 	})
 	if err != nil {
-		return "", errors.WrapAndTrace(err)
+		return "", clouderrors.WrapAndTrace(err)
 	}
 
 	// Here we must wait for the pool to be created, as otherwise we cannot proceed to create the network.
 	createPoolOperation, err = createPoolOperation.Wait(ctx)
 	if err != nil {
-		return "", errors.WrapAndTrace(err)
+		return "", clouderrors.WrapAndTrace(err)
 	}
 	poolID := createPoolOperation.ResourceID()
 
@@ -148,7 +148,7 @@ func createNetwork(ctx context.Context, nebiusNetworkService nebiusvpcv1.Network
 		},
 	})
 	if err != nil {
-		return "", errors.WrapAndTrace(err)
+		return "", clouderrors.WrapAndTrace(err)
 	}
 
 	return createNetworkOperation.ResourceID(), nil
@@ -173,7 +173,7 @@ func (c *NebiusClient) createSubnet(ctx context.Context, nebiusSubnetService neb
 	// Fetch the target location
 	location, err := c.GetLocation(ctx)
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	// Add the required labels
@@ -205,11 +205,11 @@ func (c *NebiusClient) createSubnet(ctx context.Context, nebiusSubnetService neb
 		},
 	})
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 	createSubnetOperation, err = createSubnetOperation.Wait(ctx)
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	brevSubnet, err := v1.NewSubnet(v1.SubnetSettings{
@@ -223,7 +223,7 @@ func (c *NebiusClient) createSubnet(ctx context.Context, nebiusSubnetService neb
 		Tags:      args.Tags,
 	})
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 	return brevSubnet, nil
 }
@@ -235,7 +235,7 @@ func (c *NebiusClient) GetVPC(ctx context.Context, args v1.GetVPCArgs) (*v1.VPC,
 	// Fetch the target location
 	location, err := c.GetLocation(ctx)
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	network, err := nebiusNetworkService.Get(ctx, &nebiusvpc.GetNetworkRequest{
@@ -245,14 +245,14 @@ func (c *NebiusClient) GetVPC(ctx context.Context, args v1.GetVPCArgs) (*v1.VPC,
 		if grpcstatus.Code(err) == grpccodes.NotFound {
 			return nil, v1.ErrResourceNotFound
 		}
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	nebiusSubnets, err := nebiusSubnetService.ListByNetwork(ctx, &nebiusvpc.ListSubnetsByNetworkRequest{
 		NetworkId: network.Metadata.Id,
 	})
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 
 	subnets := make([]*v1.Subnet, 0)
@@ -268,7 +268,7 @@ func (c *NebiusClient) GetVPC(ctx context.Context, args v1.GetVPCArgs) (*v1.VPC,
 			Tags:      v1.Tags(subnet.Metadata.Labels),
 		})
 		if err != nil {
-			return nil, errors.WrapAndTrace(err)
+			return nil, clouderrors.WrapAndTrace(err)
 		}
 		subnets = append(subnets, brevSubnet)
 	}
@@ -285,7 +285,7 @@ func (c *NebiusClient) GetVPC(ctx context.Context, args v1.GetVPCArgs) (*v1.VPC,
 		Tags:      v1.Tags(network.Metadata.Labels),
 	})
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, clouderrors.WrapAndTrace(err)
 	}
 	return brevVPC, nil
 }
@@ -312,7 +312,7 @@ func (c *NebiusClient) DeleteVPC(ctx context.Context, args v1.DeleteVPCArgs) err
 		Id: string(args.ID),
 	})
 	if err != nil {
-		return errors.WrapAndTrace(err)
+		return clouderrors.WrapAndTrace(err)
 	}
 
 	// Find the network's subnets
@@ -320,7 +320,7 @@ func (c *NebiusClient) DeleteVPC(ctx context.Context, args v1.DeleteVPCArgs) err
 		NetworkId: network.Metadata.Id,
 	})
 	if err != nil {
-		return errors.WrapAndTrace(err)
+		return clouderrors.WrapAndTrace(err)
 	}
 
 	// Delete the subnets
@@ -329,7 +329,7 @@ func (c *NebiusClient) DeleteVPC(ctx context.Context, args v1.DeleteVPCArgs) err
 			Id: subnet.Metadata.Id,
 		})
 		if err != nil {
-			return errors.WrapAndTrace(err)
+			return clouderrors.WrapAndTrace(err)
 		}
 	}
 
@@ -339,7 +339,7 @@ func (c *NebiusClient) DeleteVPC(ctx context.Context, args v1.DeleteVPCArgs) err
 	})
 	if err != nil {
 		if grpcstatus.Code(err) != grpccodes.NotFound {
-			return errors.WrapAndTrace(err)
+			return clouderrors.WrapAndTrace(err)
 		}
 		// Pool not found, continue
 	}
@@ -359,13 +359,13 @@ func (c *NebiusClient) DeleteVPC(ctx context.Context, args v1.DeleteVPCArgs) err
 			},
 		})
 		if err != nil {
-			return errors.WrapAndTrace(err)
+			return clouderrors.WrapAndTrace(err)
 		}
 
 		// Here we must wait for the network to be updated, as otherwise we cannot proceed to delete the pool.
 		_, err = updateNetworkOperation.Wait(ctx)
 		if err != nil {
-			return errors.WrapAndTrace(err)
+			return clouderrors.WrapAndTrace(err)
 		}
 
 		// Delete pool
@@ -373,13 +373,13 @@ func (c *NebiusClient) DeleteVPC(ctx context.Context, args v1.DeleteVPCArgs) err
 			Id: pool.Metadata.Id,
 		})
 		if err != nil {
-			return errors.WrapAndTrace(err)
+			return clouderrors.WrapAndTrace(err)
 		}
 
 		// Here we must wait for the pool to be deleted, as otherwise we cannot proceed to delete the network.
 		_, err = deletePoolOperation.Wait(ctx)
 		if err != nil {
-			return errors.WrapAndTrace(err)
+			return clouderrors.WrapAndTrace(err)
 		}
 	}
 
@@ -388,7 +388,7 @@ func (c *NebiusClient) DeleteVPC(ctx context.Context, args v1.DeleteVPCArgs) err
 		Id: network.Metadata.Id,
 	})
 	if err != nil {
-		return errors.WrapAndTrace(err)
+		return clouderrors.WrapAndTrace(err)
 	}
 
 	return nil

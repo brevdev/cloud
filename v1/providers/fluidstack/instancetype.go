@@ -111,5 +111,6 @@ func convertFluidStackInstanceTypeToV1InstanceType(location string, fsInstanceTy
 		Location:      location,
 		Provider:      CloudProviderID,
 		Cloud:         CloudProviderID,
+		TunneledSSH:   false,
 	}
 }

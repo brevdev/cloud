@@ -225,6 +225,7 @@ type Instance struct {
 	NotPrivileged                   bool
 	InstanceTypeID                  InstanceTypeID
 	AdditionalDisks                 []Disk
+	TunneledSSH                     bool
 
 	// As of 08/26/2024 only used for Launchpad cloud.
 	// Because there is port forwarding from a GPU node to Bastion node,
@@ -292,6 +293,7 @@ type CreateInstanceAttrs struct {
 	// is the Akash provider.
 	AdditionalEnvVars map[string]string
 	AdditionalDisks   []Disk
+	TunneledSSH       bool
 }
 
 type UpdateInstanceTagsArgs struct {
