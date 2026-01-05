@@ -17,7 +17,7 @@ func (c *SFCClient) GetLocations(ctx context.Context, _ v1.GetLocationsArgs) ([]
 	if err != nil {
 		return nil, err
 	}
-	var locations map[string]v1.Location
+	locations := make(map[string]v1.Location)
 	allowedZones := []string{"hayesvalley"}
 	if resp != nil {
 		for _, zone := range resp.Data {
@@ -33,7 +33,7 @@ func (c *SFCClient) GetLocations(ctx context.Context, _ v1.GetLocationsArgs) ([]
 				locations[zone.Name] = v1.Location{
 					Name:        zone.Name,
 					Description: fmt.Sprintf("sfc_%s_%s", zone.Name, string(zone.HardwareType)),
-					Available:   available}
+					Available:   false}
 			}
 		}
 	}
