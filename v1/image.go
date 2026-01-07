@@ -60,8 +60,13 @@ func ValidateInstanceImage(ctx context.Context, instance Instance, privateKey st
 		return err
 	}
 
-	fmt.Printf("Instance image validation passed for %s: architecture=%s, os=%s, home=%s, systemd=%s\n",
-		instance.CloudID, arch, osVersion, homeDir, systemdStatus)
+	sudoStatus, err := validateSudoAccess(ctx, sshClient)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Instance image validation passed for %s: architecture=%s, os=%s, home=%s, systemd=%s, sudo=%s\n",
+		instance.CloudID, arch, osVersion, homeDir, systemdStatus, sudoStatus)
 
 	return nil
 }
@@ -151,4 +156,16 @@ func validateSystemd(ctx context.Context, sshClient *ssh.Client) (string, error)
 	}
 
 	return "", fmt.Errorf("expected systemd to be running or degraded, got: %s", systemdStatus)
+}
+
+func validateSudoAccess(ctx context.Context, sshClient *ssh.Client) (string, error) {
+	// Test if sudo is available and can run without a password
+	// -n flag means non-interactive (no password prompt)
+	stdout, stderr, err := sshClient.RunCommand(ctx, "sudo -n true")
+	if err != nil {
+		return "", fmt.Errorf("failed to verify sudo access: %w, stdout: %s, stderr: %s", err, stdout, stderr)
+	}
+
+	// If the command succeeded, we have passwordless sudo access
+	return "available", nil
 }
