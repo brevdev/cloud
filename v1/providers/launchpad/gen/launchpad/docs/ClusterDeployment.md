@@ -7,7 +7,7 @@ Name | Type | Description | Notes
 **BastionOperatingSystem** | Pointer to **string** | Override bastion operating system provisioned and/or configured by Liftoff | [optional] 
 **CatalogId** | Pointer to **string** | Catalog ID of the experience provisioned to the cluster | [optional] 
 **CatalogIdAlias** | Pointer to **string** | Catalog ID alias of the experience provisioned to the cluster | [optional] 
-**Cluster** | Pointer to [**DeploymentCluster**](DeploymentCluster.md) |  | [optional] 
+**Cluster** | Pointer to [**ClusterPipelineCluster**](ClusterPipelineCluster.md) |  | [optional] 
 **CollectionBranch** | Pointer to **string** | Override the Ansible collection branch initialized within the pipeline | [optional] 
 **Created** | **time.Time** | Timestamp of when the object was created | [readonly] 
 **Experience** | Pointer to **string** | The experience being deployed for use | [optional] [readonly] 
@@ -166,20 +166,20 @@ HasCatalogIdAlias returns a boolean if a field has been set.
 
 ### GetCluster
 
-`func (o *ClusterDeployment) GetCluster() DeploymentCluster`
+`func (o *ClusterDeployment) GetCluster() ClusterPipelineCluster`
 
 GetCluster returns the Cluster field if non-nil, zero value otherwise.
 
 ### GetClusterOk
 
-`func (o *ClusterDeployment) GetClusterOk() (*DeploymentCluster, bool)`
+`func (o *ClusterDeployment) GetClusterOk() (*ClusterPipelineCluster, bool)`
 
 GetClusterOk returns a tuple with the Cluster field if it's non-nil, zero value otherwise
 and a boolean to check if the value has been set.
 
 ### SetCluster
 
-`func (o *ClusterDeployment) SetCluster(v DeploymentCluster)`
+`func (o *ClusterDeployment) SetCluster(v ClusterPipelineCluster)`
 
 SetCluster sets Cluster field to given value.
 

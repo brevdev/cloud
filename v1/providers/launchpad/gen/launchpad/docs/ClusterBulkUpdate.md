@@ -16,6 +16,7 @@ Name | Type | Description | Notes
 **GpuCount** | **int32** |  | [readonly] 
 **Id** | **string** |  | [readonly] 
 **Instances** | [**[]ClusterInstancesInner**](ClusterInstancesInner.md) |  | 
+**LastProvisioningStateChange** | **NullableTime** | Timestamp of the last time the cluster&#39;s provisioning_state changed | [readonly] 
 **LastUsed** | **NullableTime** | Timestamp of when the cluster was last in use | [readonly] 
 **Maintenance** | Pointer to **bool** | Is the cluster in maintenance mode? | [optional] 
 **MgmtIp** | Pointer to **string** | Management IP address | [optional] 
@@ -47,7 +48,7 @@ Name | Type | Description | Notes
 
 ### NewClusterBulkUpdate
 
-`func NewClusterBulkUpdate(available bool, created time.Time, deployment ClusterDeployment, gpus []ClusterGpusInner, gpuAlias string, gpuCount int32, id string, instances []ClusterInstancesInner, lastUsed NullableTime, modified time.Time, nodeCount int32, providerCapacity bool, publicAddress NullableString, requestId NullableString, tenantIds []string, count int32, ids []string, result string, ) *ClusterBulkUpdate`
+`func NewClusterBulkUpdate(available bool, created time.Time, deployment ClusterDeployment, gpus []ClusterGpusInner, gpuAlias string, gpuCount int32, id string, instances []ClusterInstancesInner, lastProvisioningStateChange NullableTime, lastUsed NullableTime, modified time.Time, nodeCount int32, providerCapacity bool, publicAddress NullableString, requestId NullableString, tenantIds []string, count int32, ids []string, result string, ) *ClusterBulkUpdate`
 
 NewClusterBulkUpdate instantiates a new ClusterBulkUpdate object
 This constructor will assign default values to properties that have it defined,
@@ -352,6 +353,36 @@ and a boolean to check if the value has been set.
 SetInstances sets Instances field to given value.
 
 
+### GetLastProvisioningStateChange
+
+`func (o *ClusterBulkUpdate) GetLastProvisioningStateChange() time.Time`
+
+GetLastProvisioningStateChange returns the LastProvisioningStateChange field if non-nil, zero value otherwise.
+
+### GetLastProvisioningStateChangeOk
+
+`func (o *ClusterBulkUpdate) GetLastProvisioningStateChangeOk() (*time.Time, bool)`
+
+GetLastProvisioningStateChangeOk returns a tuple with the LastProvisioningStateChange field if it's non-nil, zero value otherwise
+and a boolean to check if the value has been set.
+
+### SetLastProvisioningStateChange
+
+`func (o *ClusterBulkUpdate) SetLastProvisioningStateChange(v time.Time)`
+
+SetLastProvisioningStateChange sets LastProvisioningStateChange field to given value.
+
+
+### SetLastProvisioningStateChangeNil
+
+`func (o *ClusterBulkUpdate) SetLastProvisioningStateChangeNil(b bool)`
+
+ SetLastProvisioningStateChangeNil sets the value for LastProvisioningStateChange to be an explicit nil
+
+### UnsetLastProvisioningStateChange
+`func (o *ClusterBulkUpdate) UnsetLastProvisioningStateChange()`
+
+UnsetLastProvisioningStateChange ensures that no value is present for LastProvisioningStateChange, not even an explicit nil
 ### GetLastUsed
 
 `func (o *ClusterBulkUpdate) GetLastUsed() time.Time`

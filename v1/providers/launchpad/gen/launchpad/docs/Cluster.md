@@ -16,6 +16,7 @@ Name | Type | Description | Notes
 **GpuCount** | Pointer to **int32** |  | [optional] [readonly] 
 **Id** | **string** |  | [readonly] 
 **Instances** | [**[]ClusterInstancesInner**](ClusterInstancesInner.md) |  | 
+**LastProvisioningStateChange** | **NullableTime** | Timestamp of the last time the cluster&#39;s provisioning_state changed | [readonly] 
 **LastUsed** | **NullableTime** | Timestamp of when the cluster was last in use | [readonly] 
 **Maintenance** | Pointer to **bool** | Is the cluster in maintenance mode? | [optional] 
 **MgmtIp** | Pointer to **string** | Management IP address | [optional] 
@@ -44,7 +45,7 @@ Name | Type | Description | Notes
 
 ### NewCluster
 
-`func NewCluster(available bool, created time.Time, deployment ClusterDeployment, gpus []ClusterGpusInner, id string, instances []ClusterInstancesInner, lastUsed NullableTime, modified time.Time, providerCapacity bool, tenantIds []string, ) *Cluster`
+`func NewCluster(available bool, created time.Time, deployment ClusterDeployment, gpus []ClusterGpusInner, id string, instances []ClusterInstancesInner, lastProvisioningStateChange NullableTime, lastUsed NullableTime, modified time.Time, providerCapacity bool, tenantIds []string, ) *Cluster`
 
 NewCluster instantiates a new Cluster object
 This constructor will assign default values to properties that have it defined,
@@ -359,6 +360,36 @@ and a boolean to check if the value has been set.
 SetInstances sets Instances field to given value.
 
 
+### GetLastProvisioningStateChange
+
+`func (o *Cluster) GetLastProvisioningStateChange() time.Time`
+
+GetLastProvisioningStateChange returns the LastProvisioningStateChange field if non-nil, zero value otherwise.
+
+### GetLastProvisioningStateChangeOk
+
+`func (o *Cluster) GetLastProvisioningStateChangeOk() (*time.Time, bool)`
+
+GetLastProvisioningStateChangeOk returns a tuple with the LastProvisioningStateChange field if it's non-nil, zero value otherwise
+and a boolean to check if the value has been set.
+
+### SetLastProvisioningStateChange
+
+`func (o *Cluster) SetLastProvisioningStateChange(v time.Time)`
+
+SetLastProvisioningStateChange sets LastProvisioningStateChange field to given value.
+
+
+### SetLastProvisioningStateChangeNil
+
+`func (o *Cluster) SetLastProvisioningStateChangeNil(b bool)`
+
+ SetLastProvisioningStateChangeNil sets the value for LastProvisioningStateChange to be an explicit nil
+
+### UnsetLastProvisioningStateChange
+`func (o *Cluster) UnsetLastProvisioningStateChange()`
+
+UnsetLastProvisioningStateChange ensures that no value is present for LastProvisioningStateChange, not even an explicit nil
 ### GetLastUsed
 
 `func (o *Cluster) GetLastUsed() time.Time`
