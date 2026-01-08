@@ -281,7 +281,7 @@ func (c *NebiusClient) convertNebiusInstanceToV1(ctx context.Context, instance *
 	var instanceTypeID string
 	if instance.Metadata != nil && len(instance.Metadata.Labels) > 0 {
 		tags = instance.Metadata.Labels
-		refID = instance.Metadata.Labels["brev-user"]                 // Extract from labels if available
+		refID = instance.Metadata.Labels["brev-user"] // Extract from labels if available
 		cloudCredRefID = instance.Metadata.Labels["cloud-cred-ref-id"] // Extract creator's cloud credential ID
 		instanceTypeID = instance.Metadata.Labels["instance-type-id"] // Full instance type ID (dot format)
 	}
