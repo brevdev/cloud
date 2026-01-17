@@ -26,7 +26,7 @@ func TestValidationFunctions(t *testing.T) {
 
 	config := validation.ProviderConfig{
 		Credential: NewShadeformCredential("validation-test", apiKey),
-		StableIDs:  []v1.InstanceTypeID{"datacrunch_B200_helsinki-finland-5", "massedcompute_L40_desmoines-usa-1"},
+		StableIDs:  []v1.InstanceTypeID{"verda_B200_helsinki-finland-5", "massedcompute_L40_desmoines-usa-1"},
 	}
 
 	validation.RunValidationSuite(t, config)
