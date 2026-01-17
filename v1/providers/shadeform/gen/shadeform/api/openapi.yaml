@@ -1739,6 +1739,7 @@ components:
       - fpt
       - hydra
       - amaya
+      - verda
       example: hyperstack
       type: string
     Region:

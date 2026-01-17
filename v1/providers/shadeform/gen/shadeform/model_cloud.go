@@ -47,6 +47,7 @@ const (
 	FPT           Cloud = "fpt"
 	HYDRA         Cloud = "hydra"
 	AMAYA         Cloud = "amaya"
+	VERDA         Cloud = "verda"
 )
 
 // All allowed values of Cloud enum
@@ -77,6 +78,7 @@ var AllowedCloudEnumValues = []Cloud{
 	"fpt",
 	"hydra",
 	"amaya",
+	"verda",
 }
 
 func (v *Cloud) UnmarshalJSON(src []byte) error {
