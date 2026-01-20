@@ -21,7 +21,8 @@ var _ MappedNullable = &CreateRequest{}
 
 // CreateRequest struct for CreateRequest
 type CreateRequest struct {
-	Cloud Cloud `json:"cloud"`
+	// Specifies the underlying cloud provider. See this [explanation](/getting-started/concepts#cloud-cloud-provider) for more details.
+	Cloud string `json:"cloud"`
 	// Specifies the region.
 	Region string `json:"region"`
 	// The Shadeform standardized instance type. See this [explanation](/getting-started/concepts#shade-instance-type-and-cloud-instance-type) for more details.
@@ -55,7 +56,7 @@ type _CreateRequest CreateRequest
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewCreateRequest(cloud Cloud, region string, shadeInstanceType string, shadeCloud bool, name string) *CreateRequest {
+func NewCreateRequest(cloud string, region string, shadeInstanceType string, shadeCloud bool, name string) *CreateRequest {
 	this := CreateRequest{}
 	this.Cloud = cloud
 	this.Region = region
@@ -74,9 +75,9 @@ func NewCreateRequestWithDefaults() *CreateRequest {
 }
 
 // GetCloud returns the Cloud field value
-func (o *CreateRequest) GetCloud() Cloud {
+func (o *CreateRequest) GetCloud() string {
 	if o == nil {
-		var ret Cloud
+		var ret string
 		return ret
 	}
 
@@ -85,7 +86,7 @@ func (o *CreateRequest) GetCloud() Cloud {
 
 // GetCloudOk returns a tuple with the Cloud field value
 // and a boolean to check if the value has been set.
-func (o *CreateRequest) GetCloudOk() (*Cloud, bool) {
+func (o *CreateRequest) GetCloudOk() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -93,7 +94,7 @@ func (o *CreateRequest) GetCloudOk() (*Cloud, bool) {
 }
 
 // SetCloud sets field value
-func (o *CreateRequest) SetCloud(v Cloud) {
+func (o *CreateRequest) SetCloud(v string) {
 	o.Cloud = v
 }
 

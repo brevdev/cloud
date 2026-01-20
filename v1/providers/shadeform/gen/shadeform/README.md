@@ -112,7 +112,6 @@ Class | Method | HTTP request | Description
  - [AutoDelete](docs/AutoDelete.md)
  - [Availability](docs/Availability.md)
  - [BootTime](docs/BootTime.md)
- - [Cloud](docs/Cloud.md)
  - [CreateRequest](docs/CreateRequest.md)
  - [CreateResponse](docs/CreateResponse.md)
  - [CreateVolumeRequest](docs/CreateVolumeRequest.md)

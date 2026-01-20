@@ -154,12 +154,7 @@ func (c *ShadeformClient) isInstanceTypeAllowed(instanceType string) (bool, erro
 	}
 
 	// Convert to API Cloud Enum
-	cloudEnum, err := openapi.NewCloudFromValue(cloud)
-	if err != nil {
-		return false, errors.WrapAndTrace(err)
-	}
-
-	return c.config.isAllowed(*cloudEnum, shadeInstanceType), nil
+	return c.config.isAllowed(cloud, shadeInstanceType), nil
 }
 
 // getInstanceType - gets the Brev instance type from the shadeform cloud and shade instance type
@@ -207,7 +202,7 @@ func (c *ShadeformClient) getEstimatedDeployTime(shadeformInstanceType openapi.I
 
 // convertShadeformInstanceTypeToV1InstanceTypes - converts a shadeform returned instance type to a specific instance type and region of availability
 func (c *ShadeformClient) convertShadeformInstanceTypeToV1InstanceType(shadeformInstanceType openapi.InstanceType) ([]v1.InstanceType, error) {
-	instanceType := c.getInstanceType(string(shadeformInstanceType.Cloud), shadeformInstanceType.ShadeInstanceType)
+	instanceType := c.getInstanceType(shadeformInstanceType.Cloud, shadeformInstanceType.ShadeInstanceType)
 
 	instanceTypes := []v1.InstanceType{}
 
@@ -281,11 +276,11 @@ func shadeformGPUTypeToBrevGPUName(gpuType string) string {
 	return gpuType
 }
 
-func shadeformCloud(cloud openapi.Cloud) string {
+func shadeformCloud(cloud string) string {
 	// Shadeform will return the cloud as "excesssupply" if the instance type is retrieved
 	// from cloud partners and not a direct cloud provider. In this case, we should just return
 	// the Shadeform Cloud Provider ID.
-	if cloud == openapi.EXCESSSUPPLY {
+	if cloud == string(openapi.EXCESSSUPPLY) {
 		return CloudProviderID
 	}
 

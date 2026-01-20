@@ -4,7 +4,7 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**Cloud** | [**Cloud**](Cloud.md) |  | 
+**Cloud** | **string** | Specifies the underlying cloud provider. See this [explanation](/getting-started/concepts#cloud-cloud-provider) for more details. | 
 **ShadeInstanceType** | **string** | The Shadeform standardized instance type. See this [explanation](/getting-started/concepts#shade-instance-type-and-cloud-instance-type) for more details. | 
 **CloudInstanceType** | **string** | The instance type for the underlying cloud provider. See this [explanation](/getting-started/concepts#shade-instance-type-and-cloud-instance-type) for more details. | 
 **Configuration** | [**InstanceTypeConfiguration**](InstanceTypeConfiguration.md) |  | 
@@ -17,7 +17,7 @@ Name | Type | Description | Notes
 
 ### NewInstanceType
 
-`func NewInstanceType(cloud Cloud, shadeInstanceType string, cloudInstanceType string, configuration InstanceTypeConfiguration, hourlyPrice int32, deploymentType string, availability []Availability, ) *InstanceType`
+`func NewInstanceType(cloud string, shadeInstanceType string, cloudInstanceType string, configuration InstanceTypeConfiguration, hourlyPrice int32, deploymentType string, availability []Availability, ) *InstanceType`
 
 NewInstanceType instantiates a new InstanceType object
 This constructor will assign default values to properties that have it defined,
@@ -34,20 +34,20 @@ but it doesn't guarantee that properties required by API are set
 
 ### GetCloud
 
-`func (o *InstanceType) GetCloud() Cloud`
+`func (o *InstanceType) GetCloud() string`
 
 GetCloud returns the Cloud field if non-nil, zero value otherwise.
 
 ### GetCloudOk
 
-`func (o *InstanceType) GetCloudOk() (*Cloud, bool)`
+`func (o *InstanceType) GetCloudOk() (*string, bool)`
 
 GetCloudOk returns a tuple with the Cloud field if it's non-nil, zero value otherwise
 and a boolean to check if the value has been set.
 
 ### SetCloud
 
-`func (o *InstanceType) SetCloud(v Cloud)`
+`func (o *InstanceType) SetCloud(v string)`
 
 SetCloud sets Cloud field to given value.
 

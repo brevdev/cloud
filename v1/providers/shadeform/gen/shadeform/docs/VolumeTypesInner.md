@@ -4,7 +4,7 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**Cloud** | [**Cloud**](Cloud.md) |  | 
+**Cloud** | **string** | Specifies the underlying cloud provider. See this [explanation](/getting-started/concepts#cloud-cloud-provider) for more details. | 
 **Region** | **string** | Specifies the region. | 
 **SupportsMultiMount** | **bool** | Denotes whether the volume supports multiple instances mounting to it at the same time. | 
 **FixedSize** | **bool** | Denotes whether the volume is fixed in size or elastically scaling. | 
@@ -14,7 +14,7 @@ Name | Type | Description | Notes
 
 ### NewVolumeTypesInner
 
-`func NewVolumeTypesInner(cloud Cloud, region string, supportsMultiMount bool, fixedSize bool, pricePerGbPerHour string, ) *VolumeTypesInner`
+`func NewVolumeTypesInner(cloud string, region string, supportsMultiMount bool, fixedSize bool, pricePerGbPerHour string, ) *VolumeTypesInner`
 
 NewVolumeTypesInner instantiates a new VolumeTypesInner object
 This constructor will assign default values to properties that have it defined,
@@ -31,20 +31,20 @@ but it doesn't guarantee that properties required by API are set
 
 ### GetCloud
 
-`func (o *VolumeTypesInner) GetCloud() Cloud`
+`func (o *VolumeTypesInner) GetCloud() string`
 
 GetCloud returns the Cloud field if non-nil, zero value otherwise.
 
 ### GetCloudOk
 
-`func (o *VolumeTypesInner) GetCloudOk() (*Cloud, bool)`
+`func (o *VolumeTypesInner) GetCloudOk() (*string, bool)`
 
 GetCloudOk returns a tuple with the Cloud field if it's non-nil, zero value otherwise
 and a boolean to check if the value has been set.
 
 ### SetCloud
 
-`func (o *VolumeTypesInner) SetCloud(v Cloud)`
+`func (o *VolumeTypesInner) SetCloud(v string)`
 
 SetCloud sets Cloud field to given value.
 

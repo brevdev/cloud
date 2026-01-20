@@ -5,7 +5,7 @@
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **Id** | **string** | The ID of the storage volume. | 
-**Cloud** | [**Cloud**](Cloud.md) |  | 
+**Cloud** | **string** | Specifies the underlying cloud provider. See this [explanation](/getting-started/concepts#cloud-cloud-provider) for more details. | 
 **CloudAssignedId** | **string** | The unique identifier of the storage volume issued by the underlying cloud provider. | 
 **Region** | **string** | Specifies the region. | 
 **Name** | **string** | The name of the storage volume. | 
@@ -19,7 +19,7 @@ Name | Type | Description | Notes
 
 ### NewVolume
 
-`func NewVolume(id string, cloud Cloud, cloudAssignedId string, region string, name string, fixedSize bool, sizeInGb int32, costEstimate string, supportsMultiMount bool, mountedBy string, ) *Volume`
+`func NewVolume(id string, cloud string, cloudAssignedId string, region string, name string, fixedSize bool, sizeInGb int32, costEstimate string, supportsMultiMount bool, mountedBy string, ) *Volume`
 
 NewVolume instantiates a new Volume object
 This constructor will assign default values to properties that have it defined,
@@ -56,20 +56,20 @@ SetId sets Id field to given value.
 
 ### GetCloud
 
-`func (o *Volume) GetCloud() Cloud`
+`func (o *Volume) GetCloud() string`
 
 GetCloud returns the Cloud field if non-nil, zero value otherwise.
 
 ### GetCloudOk
 
-`func (o *Volume) GetCloudOk() (*Cloud, bool)`
+`func (o *Volume) GetCloudOk() (*string, bool)`
 
 GetCloudOk returns a tuple with the Cloud field if it's non-nil, zero value otherwise
 and a boolean to check if the value has been set.
 
 ### SetCloud
 
-`func (o *Volume) SetCloud(v Cloud)`
+`func (o *Volume) SetCloud(v string)`
 
 SetCloud sets Cloud field to given value.
 

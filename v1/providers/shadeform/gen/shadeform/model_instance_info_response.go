@@ -23,8 +23,9 @@ var _ MappedNullable = &InstanceInfoResponse{}
 // InstanceInfoResponse struct for InstanceInfoResponse
 type InstanceInfoResponse struct {
 	// The unique identifier for the instance. Used in the instances for the /instances/{id}/info and /instances/{id}/delete APIs.
-	Id    string `json:"id"`
-	Cloud Cloud  `json:"cloud"`
+	Id string `json:"id"`
+	// Specifies the underlying cloud provider. See this [explanation](/getting-started/concepts#cloud-cloud-provider) for more details.
+	Cloud string `json:"cloud"`
 	// Specifies the region.
 	Region string `json:"region"`
 	// The Shadeform standardized instance type. See this [explanation](/getting-started/concepts#shade-instance-type-and-cloud-instance-type) for more details.
@@ -81,7 +82,7 @@ type _InstanceInfoResponse InstanceInfoResponse
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewInstanceInfoResponse(id string, cloud Cloud, region string, shadeInstanceType string, cloudInstanceType string, cloudAssignedId string, shadeCloud bool, name string, configuration InstanceConfiguration, ip string, sshUser string, sshPort int32, status Status, costEstimate string, createdAt time.Time, deletedAt time.Time) *InstanceInfoResponse {
+func NewInstanceInfoResponse(id string, cloud string, region string, shadeInstanceType string, cloudInstanceType string, cloudAssignedId string, shadeCloud bool, name string, configuration InstanceConfiguration, ip string, sshUser string, sshPort int32, status Status, costEstimate string, createdAt time.Time, deletedAt time.Time) *InstanceInfoResponse {
 	this := InstanceInfoResponse{}
 	this.Id = id
 	this.Cloud = cloud
@@ -135,9 +136,9 @@ func (o *InstanceInfoResponse) SetId(v string) {
 }
 
 // GetCloud returns the Cloud field value
-func (o *InstanceInfoResponse) GetCloud() Cloud {
+func (o *InstanceInfoResponse) GetCloud() string {
 	if o == nil {
-		var ret Cloud
+		var ret string
 		return ret
 	}
 
@@ -146,7 +147,7 @@ func (o *InstanceInfoResponse) GetCloud() Cloud {
 
 // GetCloudOk returns a tuple with the Cloud field value
 // and a boolean to check if the value has been set.
-func (o *InstanceInfoResponse) GetCloudOk() (*Cloud, bool) {
+func (o *InstanceInfoResponse) GetCloudOk() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -154,7 +155,7 @@ func (o *InstanceInfoResponse) GetCloudOk() (*Cloud, bool) {
 }
 
 // SetCloud sets field value
-func (o *InstanceInfoResponse) SetCloud(v Cloud) {
+func (o *InstanceInfoResponse) SetCloud(v string) {
 	o.Cloud = v
 }
 

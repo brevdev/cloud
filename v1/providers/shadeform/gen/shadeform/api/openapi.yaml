@@ -598,7 +598,10 @@ components:
         shade_instance_type: A6000
       properties:
         cloud:
-          $ref: '#/components/schemas/Cloud'
+          description: "Specifies the underlying cloud provider. See this [explanation](/getting-started/concepts#cloud-cloud-provider)\
+            \ for more details."
+          example: hyperstack
+          type: string
         shade_instance_type:
           description: "The Shadeform standardized instance type. See this [explanation](/getting-started/concepts#shade-instance-type-and-cloud-instance-type)\
             \ for more details."
@@ -862,7 +865,10 @@ components:
           format: uuid
           type: string
         cloud:
-          $ref: '#/components/schemas/Cloud'
+          description: "Specifies the underlying cloud provider. See this [explanation](/getting-started/concepts#cloud-cloud-provider)\
+            \ for more details."
+          example: hyperstack
+          type: string
         region:
           description: Specifies the region.
           example: canada-1
@@ -1065,7 +1071,10 @@ components:
           format: uuid
           type: string
         cloud:
-          $ref: '#/components/schemas/Cloud'
+          description: "Specifies the underlying cloud provider. See this [explanation](/getting-started/concepts#cloud-cloud-provider)\
+            \ for more details."
+          example: hyperstack
+          type: string
         region:
           description: Specifies the region.
           example: canada-1
@@ -1412,7 +1421,10 @@ components:
         region: canada-1
       properties:
         cloud:
-          $ref: '#/components/schemas/Cloud'
+          description: "Specifies the underlying cloud provider. See this [explanation](/getting-started/concepts#cloud-cloud-provider)\
+            \ for more details."
+          example: hyperstack
+          type: string
         region:
           description: Specifies the region.
           example: canada-1
@@ -1712,34 +1724,6 @@ components:
     Cloud:
       description: "Specifies the underlying cloud provider. See this [explanation](/getting-started/concepts#cloud-cloud-provider)\
         \ for more details."
-      enum:
-      - lambdalabs
-      - paperspace
-      - vultr
-      - datacrunch
-      - latitude
-      - massedcompute
-      - imwt
-      - hyperstack
-      - nebius
-      - crusoe
-      - denvr
-      - digitalocean
-      - tcm
-      - hotaisle
-      - cudo
-      - scaleway
-      - evergreen
-      - excesssupply
-      - voltagepark
-      - boostrun
-      - ionstream
-      - whitefiber
-      - horizon
-      - fpt
-      - hydra
-      - amaya
-      - verda
       example: hyperstack
       type: string
     Region:
@@ -2069,7 +2053,10 @@ components:
         size_in_gb: 100
       properties:
         cloud:
-          $ref: '#/components/schemas/Cloud'
+          description: "Specifies the underlying cloud provider. See this [explanation](/getting-started/concepts#cloud-cloud-provider)\
+            \ for more details."
+          example: hyperstack
+          type: string
         region:
           description: Specifies the region.
           example: canada-1
@@ -2138,7 +2125,10 @@ components:
           example: 78a0dd5a-dbb1-4568-b55c-5e7e0a8b0c40
           type: string
         cloud:
-          $ref: '#/components/schemas/Cloud'
+          description: "Specifies the underlying cloud provider. See this [explanation](/getting-started/concepts#cloud-cloud-provider)\
+            \ for more details."
+          example: hyperstack
+          type: string
         cloud_assigned_id:
           description: The unique identifier of the storage volume issued by the underlying
             cloud provider.
@@ -2726,7 +2716,10 @@ components:
         region: canada-1
       properties:
         cloud:
-          $ref: '#/components/schemas/Cloud'
+          description: "Specifies the underlying cloud provider. See this [explanation](/getting-started/concepts#cloud-cloud-provider)\
+            \ for more details."
+          example: hyperstack
+          type: string
         region:
           description: Specifies the region.
           example: canada-1

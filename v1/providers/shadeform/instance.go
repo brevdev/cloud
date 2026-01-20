@@ -65,11 +65,6 @@ func (c *ShadeformClient) CreateInstance(ctx context.Context, attrs v1.CreateIns
 		return nil, errors.WrapAndTrace(err)
 	}
 
-	cloudEnum, err := openapi.NewCloudFromValue(cloud)
-	if err != nil {
-		return nil, errors.WrapAndTrace(err)
-	}
-
 	// Add refID tag
 	refIDTag, err := c.createTag(refIDTagName, attrs.RefID)
 	if err != nil {
@@ -98,7 +93,7 @@ func (c *ShadeformClient) CreateInstance(ctx context.Context, attrs v1.CreateIns
 	}
 
 	req := openapi.CreateRequest{
-		Cloud:             *cloudEnum,
+		Cloud:             cloud,
 		Region:            region,
 		ShadeInstanceType: shadeInstanceType,
 		Name:              c.getInstanceNameForShadeform(attrs.RefID, attrs.Name),

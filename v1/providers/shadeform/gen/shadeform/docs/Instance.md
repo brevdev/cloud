@@ -5,7 +5,7 @@
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **Id** | **string** | The unique identifier for the instance. Used in the instances for the /instances/{id}/info and /instances/{id}/delete APIs. | 
-**Cloud** | [**Cloud**](Cloud.md) |  | 
+**Cloud** | **string** | Specifies the underlying cloud provider. See this [explanation](/getting-started/concepts#cloud-cloud-provider) for more details. | 
 **Region** | **string** | Specifies the region. | 
 **ShadeInstanceType** | **string** | The Shadeform standardized instance type. See this [explanation](/getting-started/concepts#shade-instance-type-and-cloud-instance-type) for more details. | 
 **CloudInstanceType** | **string** | The instance type for the underlying cloud provider. See this [explanation](/getting-started/concepts#shade-instance-type-and-cloud-instance-type) for more details. | 
@@ -32,7 +32,7 @@ Name | Type | Description | Notes
 
 ### NewInstance
 
-`func NewInstance(id string, cloud Cloud, region string, shadeInstanceType string, cloudInstanceType string, cloudAssignedId string, shadeCloud bool, name string, configuration InstanceConfiguration, ip string, sshUser string, sshPort int32, status Status, costEstimate string, createdAt time.Time, deletedAt time.Time, ) *Instance`
+`func NewInstance(id string, cloud string, region string, shadeInstanceType string, cloudInstanceType string, cloudAssignedId string, shadeCloud bool, name string, configuration InstanceConfiguration, ip string, sshUser string, sshPort int32, status Status, costEstimate string, createdAt time.Time, deletedAt time.Time, ) *Instance`
 
 NewInstance instantiates a new Instance object
 This constructor will assign default values to properties that have it defined,
@@ -69,20 +69,20 @@ SetId sets Id field to given value.
 
 ### GetCloud
 
-`func (o *Instance) GetCloud() Cloud`
+`func (o *Instance) GetCloud() string`
 
 GetCloud returns the Cloud field if non-nil, zero value otherwise.
 
 ### GetCloudOk
 
-`func (o *Instance) GetCloudOk() (*Cloud, bool)`
+`func (o *Instance) GetCloudOk() (*string, bool)`
 
 GetCloudOk returns a tuple with the Cloud field if it's non-nil, zero value otherwise
 and a boolean to check if the value has been set.
 
 ### SetCloud
 
-`func (o *Instance) SetCloud(v Cloud)`
+`func (o *Instance) SetCloud(v string)`
 
 SetCloud sets Cloud field to given value.
 

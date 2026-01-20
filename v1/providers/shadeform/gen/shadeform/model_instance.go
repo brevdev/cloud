@@ -23,8 +23,9 @@ var _ MappedNullable = &Instance{}
 // Instance struct for Instance
 type Instance struct {
 	// The unique identifier for the instance. Used in the instances for the /instances/{id}/info and /instances/{id}/delete APIs.
-	Id    string `json:"id"`
-	Cloud Cloud  `json:"cloud"`
+	Id string `json:"id"`
+	// Specifies the underlying cloud provider. See this [explanation](/getting-started/concepts#cloud-cloud-provider) for more details.
+	Cloud string `json:"cloud"`
 	// Specifies the region.
 	Region string `json:"region"`
 	// The Shadeform standardized instance type. See this [explanation](/getting-started/concepts#shade-instance-type-and-cloud-instance-type) for more details.
@@ -72,7 +73,7 @@ type _Instance Instance
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewInstance(id string, cloud Cloud, region string, shadeInstanceType string, cloudInstanceType string, cloudAssignedId string, shadeCloud bool, name string, configuration InstanceConfiguration, ip string, sshUser string, sshPort int32, status Status, costEstimate string, createdAt time.Time, deletedAt time.Time) *Instance {
+func NewInstance(id string, cloud string, region string, shadeInstanceType string, cloudInstanceType string, cloudAssignedId string, shadeCloud bool, name string, configuration InstanceConfiguration, ip string, sshUser string, sshPort int32, status Status, costEstimate string, createdAt time.Time, deletedAt time.Time) *Instance {
 	this := Instance{}
 	this.Id = id
 	this.Cloud = cloud
@@ -126,9 +127,9 @@ func (o *Instance) SetId(v string) {
 }
 
 // GetCloud returns the Cloud field value
-func (o *Instance) GetCloud() Cloud {
+func (o *Instance) GetCloud() string {
 	if o == nil {
-		var ret Cloud
+		var ret string
 		return ret
 	}
 
@@ -137,7 +138,7 @@ func (o *Instance) GetCloud() Cloud {
 
 // GetCloudOk returns a tuple with the Cloud field value
 // and a boolean to check if the value has been set.
-func (o *Instance) GetCloudOk() (*Cloud, bool) {
+func (o *Instance) GetCloudOk() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -145,7 +146,7 @@ func (o *Instance) GetCloudOk() (*Cloud, bool) {
 }
 
 // SetCloud sets field value
-func (o *Instance) SetCloud(v Cloud) {
+func (o *Instance) SetCloud(v string) {
 	o.Cloud = v
 }
 

@@ -21,7 +21,8 @@ var _ MappedNullable = &VolumeTypesInner{}
 
 // VolumeTypesInner struct for VolumeTypesInner
 type VolumeTypesInner struct {
-	Cloud Cloud `json:"cloud"`
+	// Specifies the underlying cloud provider. See this [explanation](/getting-started/concepts#cloud-cloud-provider) for more details.
+	Cloud string `json:"cloud"`
 	// Specifies the region.
 	Region string `json:"region"`
 	// Denotes whether the volume supports multiple instances mounting to it at the same time.
@@ -39,7 +40,7 @@ type _VolumeTypesInner VolumeTypesInner
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewVolumeTypesInner(cloud Cloud, region string, supportsMultiMount bool, fixedSize bool, pricePerGbPerHour string) *VolumeTypesInner {
+func NewVolumeTypesInner(cloud string, region string, supportsMultiMount bool, fixedSize bool, pricePerGbPerHour string) *VolumeTypesInner {
 	this := VolumeTypesInner{}
 	this.Cloud = cloud
 	this.Region = region
@@ -58,9 +59,9 @@ func NewVolumeTypesInnerWithDefaults() *VolumeTypesInner {
 }
 
 // GetCloud returns the Cloud field value
-func (o *VolumeTypesInner) GetCloud() Cloud {
+func (o *VolumeTypesInner) GetCloud() string {
 	if o == nil {
-		var ret Cloud
+		var ret string
 		return ret
 	}
 
@@ -69,7 +70,7 @@ func (o *VolumeTypesInner) GetCloud() Cloud {
 
 // GetCloudOk returns a tuple with the Cloud field value
 // and a boolean to check if the value has been set.
-func (o *VolumeTypesInner) GetCloudOk() (*Cloud, bool) {
+func (o *VolumeTypesInner) GetCloudOk() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -77,7 +78,7 @@ func (o *VolumeTypesInner) GetCloudOk() (*Cloud, bool) {
 }
 
 // SetCloud sets field value
-func (o *VolumeTypesInner) SetCloud(v Cloud) {
+func (o *VolumeTypesInner) SetCloud(v string) {
 	o.Cloud = v
 }
 

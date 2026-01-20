@@ -112,7 +112,7 @@ import (
 )
 
 func main() {
-	createRequest := *openapiclient.NewCreateRequest(openapiclient.Cloud("lambdalabs"), "canada-1", "A6000", true, "cool-gpu-server") // CreateRequest |  (optional)
+	createRequest := *openapiclient.NewCreateRequest("hyperstack", "canada-1", "A6000", true, "cool-gpu-server") // CreateRequest |  (optional)
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
@@ -1322,7 +1322,7 @@ import (
 )
 
 func main() {
-	createVolumeRequest := *openapiclient.NewCreateVolumeRequest(openapiclient.Cloud("lambdalabs"), "canada-1", int32(100), "My storage volume") // CreateVolumeRequest |  (optional)
+	createVolumeRequest := *openapiclient.NewCreateVolumeRequest("hyperstack", "canada-1", int32(100), "My storage volume") // CreateVolumeRequest |  (optional)
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)

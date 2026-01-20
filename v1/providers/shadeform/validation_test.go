@@ -53,8 +53,8 @@ func TestInstanceTypeFilter(t *testing.T) {
 
 	client := NewShadeformClient("validation-test", apiKey)
 	client.WithConfiguration(Configuration{
-		AllowedInstanceTypes: map[openapi.Cloud]map[string]bool{
-			openapi.HYPERSTACK: {
+		AllowedInstanceTypes: map[string]map[string]bool{
+			string(openapi.HYPERSTACK): {
 				"A4000": true,
 			},
 		},

@@ -22,8 +22,9 @@ var _ MappedNullable = &Volume{}
 // Volume struct for Volume
 type Volume struct {
 	// The ID of the storage volume.
-	Id    string `json:"id"`
-	Cloud Cloud  `json:"cloud"`
+	Id string `json:"id"`
+	// Specifies the underlying cloud provider. See this [explanation](/getting-started/concepts#cloud-cloud-provider) for more details.
+	Cloud string `json:"cloud"`
 	// The unique identifier of the storage volume issued by the underlying cloud provider.
 	CloudAssignedId string `json:"cloud_assigned_id"`
 	// Specifies the region.
@@ -49,7 +50,7 @@ type _Volume Volume
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewVolume(id string, cloud Cloud, cloudAssignedId string, region string, name string, fixedSize bool, sizeInGb int32, costEstimate string, supportsMultiMount bool, mountedBy string) *Volume {
+func NewVolume(id string, cloud string, cloudAssignedId string, region string, name string, fixedSize bool, sizeInGb int32, costEstimate string, supportsMultiMount bool, mountedBy string) *Volume {
 	this := Volume{}
 	this.Id = id
 	this.Cloud = cloud
@@ -97,9 +98,9 @@ func (o *Volume) SetId(v string) {
 }
 
 // GetCloud returns the Cloud field value
-func (o *Volume) GetCloud() Cloud {
+func (o *Volume) GetCloud() string {
 	if o == nil {
-		var ret Cloud
+		var ret string
 		return ret
 	}
 
@@ -108,7 +109,7 @@ func (o *Volume) GetCloud() Cloud {
 
 // GetCloudOk returns a tuple with the Cloud field value
 // and a boolean to check if the value has been set.
-func (o *Volume) GetCloudOk() (*Cloud, bool) {
+func (o *Volume) GetCloudOk() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -116,7 +117,7 @@ func (o *Volume) GetCloudOk() (*Cloud, bool) {
 }
 
 // SetCloud sets field value
-func (o *Volume) SetCloud(v Cloud) {
+func (o *Volume) SetCloud(v string) {
 	o.Cloud = v
 }
 
