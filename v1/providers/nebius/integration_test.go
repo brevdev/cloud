@@ -341,7 +341,7 @@ func TestIntegration_InstanceLifecycle(t *testing.T) {
 	// Verify the instance we just created is in the list
 	var foundCreatedInstance bool
 	for _, inst := range instances {
-		if v1.CloudProviderInstanceID(inst.CloudID) == instanceCloudID {
+		if inst.CloudID == instanceCloudID {
 			foundCreatedInstance = true
 			t.Logf("✓ Found created instance %s in list", instanceCloudID)
 			break
