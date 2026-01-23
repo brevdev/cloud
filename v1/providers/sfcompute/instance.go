@@ -45,7 +45,7 @@ func (c *SFCClient) CreateInstance(ctx context.Context, attrs v1.CreateInstanceA
 	resp, err := c.client.Nodes.New(ctx, sfcnodes.NodeNewParams{
 		CreateNodesRequest: sfcnodes.CreateNodesRequestParam{
 			DesiredCount:        1,
-			MaxPricePerNodeHour: 1000,
+			MaxPricePerNodeHour: 1600,
 			Zone:                attrs.Location,
 			ImageID:             param.Opt[string]{Value: attrs.ImageID},                    //this needs to point to a valid image
 			CloudInitUserData:   param.Opt[string]{Value: sshKeyCloudInit(attrs.PublicKey)}, // encode ssh key to b64-wrapped cloud-init script
