@@ -707,7 +707,12 @@ func (c *NebiusClient) ListInstances(ctx context.Context, args v1.ListInstancesA
 				break
 			}
 
-			if response != nil && response.Items != nil {
+			// If the response is nil, we've reached the end of the list
+			if response == nil {
+				break
+			}
+
+			if len(response.Items) > 0 {
 				c.logger.Info(ctx, "found instances in project",
 					v1.LogField("projectID", projectID),
 					v1.LogField("region", projectToRegion[projectID]),
