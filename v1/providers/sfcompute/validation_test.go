@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/brevdev/cloud/internal/validation"
+	v1 "github.com/brevdev/cloud/v1"
 )
 
 func TestValidationFunctions(t *testing.T) {
@@ -13,6 +14,9 @@ func TestValidationFunctions(t *testing.T) {
 
 	config := validation.ProviderConfig{
 		Credential: NewSFCCredential("validation-test", apiKey),
+		StableIDs: []v1.InstanceTypeID{
+			"h100v_hayesvalley",
+		},
 	}
 
 	validation.RunValidationSuite(t, config)

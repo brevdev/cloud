@@ -3,9 +3,12 @@ package v1
 import (
 	"context"
 	"fmt"
-	"github.com/brevdev/cloud/internal/collections"
 	"slices"
+	"strconv"
 	"time"
+
+	"github.com/bojanz/currency"
+	"github.com/brevdev/cloud/internal/collections"
 
 	v1 "github.com/brevdev/cloud/v1"
 )
@@ -19,13 +22,18 @@ func (c *SFCClient) GetInstanceTypes(ctx context.Context, args v1.GetInstanceTyp
 	if err != nil {
 		return nil, err
 	}
+
 	types := make([]v1.InstanceType, 0)
 	for _, zone := range resp.Data {
+		if len(args.Locations) > 0 && !args.Locations.IsAllowed(zone.Name) {
+			continue
+		}
 		var available = false
 		if len(zone.AvailableCapacity) > 0 && zone.DeliveryType == "VM" {
 			available = true
 		}
 
+		price, _ := currency.NewAmount(strconv.Itoa(2), "USD")
 		types = append(types, v1.InstanceType{
 			ID:                  v1.InstanceTypeID(c.getInstanceTypeID(zone.Name)),
 			IsAvailable:         available,
@@ -34,6 +42,7 @@ func (c *SFCClient) GetInstanceTypes(ctx context.Context, args v1.GetInstanceTyp
 			Stoppable:           false,
 			Rebootable:          false,
 			IsContainer:         false,
+			BasePrice:           &price,
 			EstimatedDeployTime: collections.Ptr(time.Duration(15 * time.Minute)),
 			SupportedGPUs: []v1.GPU{{
 				Count:        8,
@@ -45,6 +54,17 @@ func (c *SFCClient) GetInstanceTypes(ctx context.Context, args v1.GetInstanceTyp
 		})
 
 	}
+
+	if len(args.InstanceTypes) > 0 {
+		filteredTypes := make([]v1.InstanceType, 0)
+		for _, t := range types {
+			if slices.Contains(args.InstanceTypes, t.Type) {
+				filteredTypes = append(filteredTypes, t)
+			}
+		}
+		return filteredTypes, nil
+	}
+
 	return types, nil
 }
 
