@@ -693,22 +693,38 @@ func (c *NebiusClient) ListInstances(ctx context.Context, args v1.ListInstancesA
 	// Collect instances from all projects
 	allNebiusInstances := make([]*compute.Instance, 0)
 	for projectID := range projectToRegion {
-		response, err := c.sdk.Services().Compute().V1().Instance().List(ctx, &compute.ListInstancesRequest{
-			ParentId: projectID,
-		})
-		if err != nil {
-			c.logger.Error(ctx, fmt.Errorf("failed to list instances in project %s: %w", projectID, err),
-				v1.LogField("projectID", projectID))
-			// Continue to next project instead of failing completely
-			continue
-		}
+		var pageToken string
+		for {
+			response, err := c.sdk.Services().Compute().V1().Instance().List(ctx, &compute.ListInstancesRequest{
+				ParentId:  projectID,
+				PageSize:  100,
+				PageToken: pageToken,
+			})
+			if err != nil {
+				c.logger.Error(ctx, fmt.Errorf("failed to list instances in project %s: %w", projectID, err),
+					v1.LogField("projectID", projectID))
+				// Continue to next project instead of failing completely
+				break
+			}
 
-		if response != nil && response.Items != nil {
-			c.logger.Info(ctx, "found instances in project",
-				v1.LogField("projectID", projectID),
-				v1.LogField("region", projectToRegion[projectID]),
-				v1.LogField("count", len(response.Items)))
-			allNebiusInstances = append(allNebiusInstances, response.Items...)
+			// If the response is nil, we've reached the end of the list
+			if response == nil {
+				break
+			}
+
+			if len(response.Items) > 0 {
+				c.logger.Info(ctx, "found instances in project",
+					v1.LogField("projectID", projectID),
+					v1.LogField("region", projectToRegion[projectID]),
+					v1.LogField("count", len(response.Items)),
+					v1.LogField("page", pageToken))
+				allNebiusInstances = append(allNebiusInstances, response.Items...)
+			}
+
+			pageToken = response.GetNextPageToken()
+			if pageToken == "" {
+				break
+			}
 		}
 	}
 

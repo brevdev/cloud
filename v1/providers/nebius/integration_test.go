@@ -332,16 +332,22 @@ func TestIntegration_InstanceLifecycle(t *testing.T) {
 		t.Log("WARNING: No public IP available, skipping SSH connectivity test")
 	}
 
-	// Step 3: List instances (currently not implemented)
+	// Step 3: List instances and verify the created instance is present
 	t.Log("Listing instances...")
 	instances, err := client.ListInstances(ctx, v1.ListInstancesArgs{})
-	// This is expected to fail with current implementation
-	if err != nil {
-		t.Logf("ListInstances failed as expected: %v", err)
-		assert.Contains(t, err.Error(), "implementation pending")
-	} else {
-		t.Logf("Found %d instances", len(instances))
+	require.NoError(t, err, "ListInstances should succeed")
+	t.Logf("Found %d instances", len(instances))
+
+	// Verify the instance we just created is in the list
+	var foundCreatedInstance bool
+	for _, inst := range instances {
+		if inst.CloudID == instanceCloudID {
+			foundCreatedInstance = true
+			t.Logf("✓ Found created instance %s in list", instanceCloudID)
+			break
+		}
 	}
+	assert.True(t, foundCreatedInstance, "Created instance should be found in ListInstances result")
 
 	// Step 4: Stop instance
 	t.Logf("Stopping instance: %s", instanceCloudID)
