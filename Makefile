@@ -27,7 +27,7 @@ GOINSTALL=$(GOCMD) install
 GOSEC=gosec
 
 # Third party tools
-ARTIFACT_GOLINT=github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8
+ARTIFACT_GOLINT=github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.6.0
 ARTIFACT_GOSEC=github.com/securego/gosec/v2/cmd/gosec@v2.22.8
 ARTIFACT_GOFUMPT=mvdan.cc/gofumpt@v0.9.2
 
