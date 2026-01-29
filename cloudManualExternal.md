@@ -315,29 +315,6 @@ Brev tracks instances through these states:
 | `terminated` | Instance terminated |
 | `failed` | Provisioning failed |
 
-### The Provisioning Flow
-
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ BREV CONTROL PLANE                                    │ YOUR CLOUD         │
-├───────────────────────────────────────────────────────┼────────────────────┤
-│ 1. Receives provision request                         │                    │
-│ 2. Calls your Create Instance API                     │                    │
-│    (with SSH public key)                              │───────────────────▶│
-│                                                       │ 3. Creates VM      │
-│                                                       │    Installs SSH key│
-│                                                       │    Returns ID      │
-│                                                       │◀───────────────────│
-│ 4. Polls your Get Instance API until "running"        │◀──────────────────▶│
-│ 5. Gets public IP from your API                       │                    │
-│ 6. SSHs to VM, configures environment                 │                    │
-│ 7. Instance ready                                     │                    │
-└───────────────────────────────────────────────────────┴────────────────────┘
-```
-
-**Your responsibility:** Create VM, install SSH key, return ID/status, respond to polling.
-**Brev's responsibility:** Orchestration, SSH key generation, VM configuration.
-
 ### What Your Create API Should Return
 
 | Field | Required | Description |
