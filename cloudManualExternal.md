@@ -8,18 +8,17 @@
 
 1. [Integration Overview](#1-integration-overview)
 2. [How Brev Discovers Your Inventory](#2-how-brev-discovers-your-inventory)
-3. [Instance Types: Your SKU Catalog](#3-instance-types-your-sku-catalog)
-4. [Location and Availability Model](#4-location-and-availability-model)
+3. [Instance Types: Your Compute Catalog](#3-instance-types-your-compute-catalog)
+4. [Location Model](#4-location-model)
 5. [GPU Normalization](#5-gpu-normalization)
 6. [Credential and Authentication Model](#6-credential-and-authentication-model)
-7. [Provisioning Lifecycle](#7-provisioning-lifecycle)
-8. [Network Requirements](#8-network-requirements)
-9. [SSH and Control Plane Access](#9-ssh-and-control-plane-access)
-10. [Firewall and Security Groups](#10-firewall-and-security-groups)
-11. [Instance Metadata and Tags](#11-instance-metadata-and-tags)
-12. [Error Handling and Status Reporting](#12-error-handling-and-status-reporting)
-13. [Pricing and Billing](#13-pricing-and-billing)
-14. [Common Questions](#14-common-questions)
+7. [Instance Lifecycle Operations](#7-instance-lifecycle-operations)
+8. [SSH Connectivity](#8-ssh-connectivity)
+9. [Firewall and Security Groups](#9-firewall-and-security-groups)
+10. [Instance Metadata and Tags](#10-instance-metadata-and-tags)
+11. [Error Handling and Status Reporting](#11-error-handling-and-status-reporting)
+12. [Pricing and Billing](#12-pricing-and-billing)
+13. [Common Questions](#13-common-questions)
 
 ---
 
@@ -37,58 +36,87 @@ When you integrate with Brev, you're allowing Brev's control plane to:
 
 | Requirement | Purpose |
 |-------------|---------|
-| **Instance Type Listing API** | Discover your available SKUs |
+| **Instance Type Listing API** | Discover your available instance types |
 | **Instance Lifecycle APIs** | Create, get, start, stop, terminate |
 | **API Credentials for Brev** | Authenticate Brev's calls to your API |
 | **SSH Key Injection** | Accept SSH public key at VM creation |
-| **SSH Access on Port 22** | Control plane communication to VMs |
+| **SSH Access** | Control plane communication to VMs |
 
 ### Integration Architecture
 
 ### System Architecture Diagram
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                              Brev Control Plane                                 │
-│  ┌───────────────────────────────────────────────────────────────────────────┐  │
-│  │                        Syncer Layer                                       │  │
-│  │  ┌─────────────────────┐    ┌─────────────────────────────┐               │  │
-│  │  │   InstanceSyncer    │    │   InstanceTypeSyncer        │               │  │
-│  │  │ (Real-time state)   │    │ (Catalog sync every 1-5min) │               │  │
-│  │  └──────────┬──────────┘    └──────────────┬──────────────┘               │  │
-│  └─────────────┼──────────────────────────────┼──────────────────────────────┘  │
-│                │                              │                                 │
-└────────────────┼──────────────────────────────┼─────────────────────────────────┘
-                 │                              │
-                 ▼                              ▼
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                           CLOUD SDK (v1) - This Repo                            │   
-│  ┌────────────────────────────────────────────────────────────────────────────┐ |
-│  │              Provider Implementations                                      │ │
-│  │  ┌─────────┐ ┌───────────┐ ┌─────────▼───┐ ┌───────────┐ ┌──────────────┐  │ │
-│  │  │   A   │ │ │    B      │ │         C   │ │     D     │ │       E      │  │ │ 
-│  │  │ Provider│ │  Provider │ │   Provider  │ │  Provider │ │   Provider   │  │ │
-│  │  └────┬────┘ └─────┬─────┘ └──────┬──────┘ └─────┬─────┘ └──────┬───────┘  │ │
-│  └───────┼────────────┼──────────────┼──────────────┼───────────────┼─────────┘ │
-└──────────┼────────────┼──────────────┼──────────────┼───────────────┼───────────┘
-           │            │              │              │               │
-           ▼            ▼              ▼              ▼               ▼
-┌──────────────────────────────────────────────────────────────────────────────────┐
-│                          CLOUD PROVIDER APIs                                     │
-│                                                                                  │
-└──────────────────────────────────────────────────────────────────────────────────┘
-
----
+┌────────────────────────────────────────────────────────────────────────────────────┐
+│                              Brev Control Plane (dev-plane)                        │
+│                                                                                    │
+│  ┌──────────────────────────────────┐    ┌──────────────────────────────────────┐  │
+│  │         Syncer Layer             │    │     Instance Service Layer           │  │
+│  │    (Continuous Reconciliation)   │    │       (User-Triggered Actions)       │  │
+│  │                                  │    │                                      │  │
+│  │  ┌────────────────────────────┐  │    │  ┌────────────────────────────────┐  │  │
+│  │  │  InstanceTypeSyncer        │  │    │  │  Instance Lifecycle            │  │  │
+│  │  │  ─────────────────────     │  │    │  │  ─────────────────────         │  │  │
+│  │  │  Calls:                    │  │    │  │  Calls:                        │  │  │
+│  │  │  • GetInstanceTypes()      │  │    │  │  • CreateInstance()            │  │  │
+│  │  │  • GetLocations()          │  │    │  │  • TerminateInstance()         │  │  │
+│  │  │  • GetInstanceTypePollTime │  │    │  │  • StopInstance()              │  │  │
+│  │  │                            │  │    │  │  • StartInstance()             │  │  │
+│  │  │  Interval: 1-5 min         │  │    │  │                                │  │  │
+│  │  └────────────┬───────────────┘  │    │  └──────────────┬─────────────────┘  │  │
+│  │               │                  │    │                 │                    │  │
+│  │  ┌────────────┴───────────────┐  │    │  ┌──────────────┴─────────────────┐  │  │
+│  │  │  InstanceSyncer            │  │    │  │  Instance State & Queries      │  │  │
+│  │  │  ─────────────────────     │  │    │  │  ─────────────────────         │  │  │
+│  │  │  Calls:                    │  │    │  │  Calls:                        │  │  │
+│  │  │  • ListInstances()         │  │    │  │  • GetInstance()               │  │  │
+│  │  │                            │  │    │  │  • ListInstances()             │  │  │
+│  │  │  Interval: 5 sec           │  │    │  │  • AddFirewallRulesToInstance  │  │  │
+│  │  └────────────┬───────────────┘  │    │  │  • ResizeInstanceVolume()      │  │  │
+│  │               │                  │    │  │  • UpdateInstanceTags()        │  │  │
+│  └───────────────┼──────────────────┘    │  └──────────────┬─────────────────┘  │  │
+│                  │                       └─────────────────┼────────────────────┘  │
+│                  │                                         │                       │
+└──────────────────┼─────────────────────────────────────────┼───────────────────────┘
+                   │                                         │
+                   │       ┌─────────────────────────────────┘
+                   │       │
+                   ▼       ▼
+┌────────────────────────────────────────────────────────────────────────────────────┐
+│                           CLOUD SDK (v1) - This Repo                               │
+│                                                                                    │
+│  ┌──────────────────────────────────────────────────────────────────────────────┐  │
+│  │                         CloudClient Interface                                │  │
+│  │  (Composed of: CloudCredential, CloudBase, CloudQuota, CloudStopStart,       │  │
+│  │   CloudReboot, CloudResizeVolume, CloudModifyFirewall, CloudInstanceTags...) │  │
+│  └──────────────────────────────────────────────────────────────────────────────┘  │
+│                                                                                    │
+│  ┌──────────────────────────────────────────────────────────────────────────────┐  │
+│  │                        Provider Implementations                              │  │
+│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐            │  │
+│  │  │ Lambda   │ │ Fluidstk │ │ Shadefrm │ │  Nebius  │ │  Your    │            │  │
+│  │  │ Labs     │ │          │ │          │ │          │ │ Provider │   • • •    │  │
+│  │  └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘            │  │
+│  └───────┼────────────┼────────────┼────────────┼────────────┼──────────────────┘  │
+│          │            │            │            │            │                     │
+└──────────┼────────────┼────────────┼────────────┼────────────┼─────────────────────┘
+           │            │            │            │            │
+           ▼            ▼            ▼            ▼            ▼
+┌────────────────────────────────────────────────────────────────────────────────────┐
+│                            CLOUD PROVIDER APIs                                     │
+│                                                                                    │
+│  Each provider's native REST/gRPC API for instance management                      │
+└────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ## 2. How Brev Discovers Your Inventory
 
 ### The Instance Type Syncer
 
-Brev runs a **continuous synchronization process** that periodically queries your API to understand what compute is available. This isn't a one-time import—it's an ongoing reconciliation.
+Brev runs a **continuous synchronization process** that periodically queries your API to understand what compute is available.
 
 **Sync Behavior:**
-- Polls your instance type listing API at regular intervals (typically every 1-5 minutes)
+- Polls your instance type listing API at a configurable interval you define via `GetInstanceTypePollTime()` (default: 1 minute; existing implementations use 1-5 minutes depending on provider needs)
 - Compares current catalog to previous state
 - Updates availability, pricing, and specs as they change
 - Marks types as unavailable when removed from your API
@@ -96,122 +124,321 @@ Brev runs a **continuous synchronization process** that periodically queries you
 
 ### What We Query
 
-We need an API endpoint that returns your available instance types. For each type, we extract:
+We need an API endpoint that returns your available instance types. For each type, we map your data to the `v1.InstanceType` struct (defined in `cloud/v1/instancetype.go`):
 
-| Field | What We Need | Example |
-|-------|--------------|---------|
-| **Type identifier** | Your internal name for this SKU | `gpu_1x_a100_sxm4` |
-| **GPU model** | What GPU is in this instance | `A100 SXM4 80GB` |
-| **GPU count** | How many GPUs | `8` |
-| **CPU cores** | vCPU count | `128` |
-| **Memory** | RAM in GB | `1024` |
-| **Storage** | Disk in GB | `2000` |
-| **Regions/Availability** | Where this type can launch | `us-west-1, us-east-2` |
-| **Pricing** | Cost per hour (USD cents) | `3200` (= $32.00/hr) |
+**Core Instance Type Fields:**
 
-### API Patterns We Support
+| Struct Field | Type | Description | Example |
+|--------------|------|-------------|---------|
+| `Type` | `string` | Your internal type name | `"gpu_1x_a100_80gb_sxm4"` |
+| `Location` | `string` | Region identifier | `"us-west-1"` |
+| `VCPU` | `int32` | vCPU count | `128` |
+| `MemoryBytes` | `Bytes` | RAM (use `v1.NewBytes()`) | `v1.NewBytes(1024, v1.Gibibyte)` |
+| `BasePrice` | `*currency.Amount` | Hourly price in USD | `currency.NewAmountFromInt64(3200, "USD")` (= $32.00/hr) |
+| `IsAvailable` | `bool` | Currently launchable | `true` |
 
-**Pattern A: Locational API (like AWS, GCP)**
-Your API returns different availability per region. We query each region separately or you provide region-specific results.
+**GPU Details (`SupportedGPUs []GPU`):**
 
+| Struct Field | Type | Description | Example |
+|--------------|------|-------------|---------|
+| `Count` | `int32` | Number of GPUs | `8` |
+| `Name` | `string` | GPU model name | `"A100"` |
+| `MemoryBytes` | `Bytes` | VRAM per GPU | `v1.NewBytes(80, v1.Gibibyte)` |
+| `NetworkDetails` | `string` | Interconnect type | `"SXM4"`, `"PCIe"` |
+| `Manufacturer` | `Manufacturer` | GPU vendor | `v1.ManufacturerNVIDIA` |
+
+**Storage Details (`SupportedStorage []Storage`):**
+
+| Struct Field | Type | Description | Example |
+|--------------|------|-------------|---------|
+| `SizeBytes` | `Bytes` | Disk size | `v1.NewBytes(2000, v1.Gibibyte)` |
+| `Type` | `string` | Storage type | `"ssd"`, `"nvme"` |
+| `PricePerGBHr` | `*currency.Amount` | Additional storage cost | `nil` (if included in base price) |
+
+**Example: Converting Provider Data to `v1.InstanceType`**
+
+From Lambda Labs implementation (`cloud/v1/providers/lambdalabs/instancetype.go`):
+
+```go
+it := v1.InstanceType{
+    Location:      location,
+    Type:          instType.Name,                                           // "gpu_1x_a100_80gb_sxm4"
+    SupportedGPUs: []v1.GPU{{
+        Count:       8,
+        Name:        "A100",
+        MemoryBytes: v1.NewBytes(80, v1.Gibibyte),
+        NetworkDetails: "SXM4",
+        Manufacturer: v1.ManufacturerNVIDIA,
+    }},
+    SupportedStorage: []v1.Storage{{
+        Type:      "ssd",
+        SizeBytes: v1.NewBytes(instType.Specs.StorageGib, v1.Gibibyte),
+    }},
+    VCPU:        instType.Specs.Vcpus,
+    MemoryBytes: v1.NewBytes(instType.Specs.MemoryGib, v1.Gibibyte),
+    BasePrice:   &amount,
+    IsAvailable: isAvailable,
+    Provider:    CloudProviderID,
+    Cloud:       CloudProviderID,
+}
+it.ID = v1.MakeGenericInstanceTypeID(it)  // Generate ID using helper (or set your own)
 ```
-GET /regions/us-west-1/instance-types → returns types available in us-west-1
-GET /regions/us-east-2/instance-types → returns types available in us-east-2
+
+### API Type Declaration
+
+When implementing the Cloud SDK, you declare how Brev's control plane should query your integration via `GetAPIType()`:
+
+| API Type | Meaning | Control Plane Behavior |
+|----------|---------|------------------------|
+| `APITypeGlobal` | Your `GetInstanceTypes()` returns all regions in one call | Brev calls once with `locations = ["all"]` |
+| `APITypeLocational` | Your `GetInstanceTypes()` is region-scoped | Brev iterates over `GetLocations()` results |
+
+**You handle the mapping internally.** The SDK doesn't call your API directly—your implementation does. Whether your cloud's native API is regional, global, or something else entirely, you write the conversion logic in `GetInstanceTypes()`.
+
+**Example: Global API (Lambda Labs)**
+Lambda Labs' API returns all instance types with regional availability embedded. The SDK implementation fetches once and expands to per-region `v1.InstanceType` entries:
+
+```go
+// Simplified from cloud/v1/providers/lambdalabs/instancetype.go
+func (c *LambdaLabsClient) GetInstanceTypes(ctx context.Context, args v1.GetInstanceTypeArgs) ([]v1.InstanceType, error) {
+    resp, _ := c.client.InstanceTypes(ctx)  // Single API call returns all types
+    
+    // Expand each type to all its available regions
+    for _, instType := range resp.Data {
+        for _, region := range locations {
+            isAvailable := slices.Contains(instType.RegionsWithCapacityAvailable, region.Name)
+            instanceTypes = append(instanceTypes, convertToV1(region.Name, instType, isAvailable))
+        }
+    }
+    return instanceTypes, nil
+}
 ```
 
-**Pattern B: Global API (like Lambda Labs)**
-Your API returns all types with their regional availability embedded.
+**Example: Locational API (Nebius)**
+Nebius requires per-region quota checks. The SDK implementation iterates regions internally:
 
-```
-GET /instance-types → returns all types with "available_regions": ["us-west-1", "us-east-2"]
+```go
+// Simplified from cloud/v1/providers/nebius/instancetype.go
+func (c *NebiusClient) GetInstanceTypes(ctx context.Context, args v1.GetInstanceTypeArgs) ([]v1.InstanceType, error) {
+    platforms, _ := c.sdk.Compute().Platform().List(ctx, c.projectID)
+    
+    for _, location := range locations {
+        // Check quota per-region
+        isAvailable := c.checkQuotaAvailability(platform, location.Name, quotaMap)
+        instanceTypes = append(instanceTypes, convertToV1(location.Name, platform, isAvailable))
+    }
+    return instanceTypes, nil
+}
 ```
 
-Both patterns work. We adapt our sync logic to your API design.
+**Key point:** You decide how to call your cloud's API. Brev only cares that `GetInstanceTypes()` returns properly formatted `v1.InstanceType` entries with accurate `Location` and `IsAvailable` fields.
 
 ---
 
-## 3. Instance Types: Your SKU Catalog
+## 3. Instance Types: Your Compute Catalog
 
 ### What Is an Instance Type to Brev?
 
-Brev treats compute as **inventory**. Each instance type is a **SKU** (Stock Keeping Unit) in your catalog. Users browse your SKUs filtered by GPU, region, price, and availability.
+Brev treats compute as **inventory**. Each instance type represents a distinct compute configuration in your catalog. Users browse your instance types filtered by GPU, region, price, and availability.
 
 ### The Canonical Instance Type Model
 
-When we ingest your instance types, we normalize them to this structure:
+When we ingest your instance types, we normalize them to the `v1.InstanceType` struct. Here are the key fields (see `cloud/v1/instancetype.go` for the complete definition):
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `ID` | string | Brev's composite identifier (see below) |
-| `Cloud` | string | Your cloud identifier (e.g., `"lambdalabs"`, `"crusoe"`) |
-| `Type` | string | Your native type name |
-| `Location` | string | Primary region identifier |
-| `SubLocation` | string | Availability zone (or `"noSub"` if N/A) |
-| `AvailableAzs` | []string | All zones where this type is available |
-| `GPU` | string | Normalized GPU model name |
-| `GPUCount` | int | Number of GPUs |
-| `CPUCores` | int | vCPU count |
-| `MemoryMB` | int | RAM in megabytes |
-| `StorageMB` | int | Disk in megabytes |
-| `PriceHr` | int | Price in cents per hour |
-| `IsAvailable` | bool | Currently launchable |
+| `ID` | `InstanceTypeID` | Stable, unique identifier (you define the format—see below) |
+| `Cloud` | `string` | Your cloud identifier (e.g., `"lambdalabs"`, `"crusoe"`) |
+| `Provider` | `string` | Provider identifier (often same as `Cloud`) |
+| `Type` | `string` | Your native type name |
+| `Location` | `string` | Primary region identifier |
+| `SubLocation` | `string` | Availability zone (optional; helper uses `"noSub"` if empty) |
+| `AvailableAzs` | `[]string` | All zones where this type is available |
+| `SupportedGPUs` | `[]GPU` | GPU details (see `GPU` struct below) |
+| `VCPU` | `int32` | vCPU count |
+| `MemoryBytes` | `Bytes` | RAM (use `v1.NewBytes()` helper) |
+| `SupportedStorage` | `[]Storage` | Storage options (see `Storage` struct) |
+| `BasePrice` | `*currency.Amount` | Hourly price in USD |
+| `IsAvailable` | `bool` | Currently launchable |
+| `Stoppable` | `bool` | Can instances be stopped/resumed |
+| `Rebootable` | `bool` | Can instances be rebooted |
 
-### The Instance Type ID Format
+**The `GPU` struct** (`cloud/v1/instancetype.go`):
 
-Brev generates a unique ID for each instance type using this pattern:
+| Field | Type | Description |
+|-------|------|-------------|
+| `Count` | `int32` | Number of GPUs |
+| `Name` | `string` | GPU model name (e.g., `"A100"`, `"H100"`) |
+| `Type` | `string` | Full GPU type (e.g., `"A100.SXM4"`) |
+| `MemoryBytes` | `Bytes` | VRAM per GPU |
+| `MemoryDetails` | `string` | Memory type: `"HBM"`, `"GDDR"`, etc. |
+| `NetworkDetails` | `string` | Interconnect: `"PCIe"`, `"SXM4"`, `"SXM5"` |
+| `Manufacturer` | `Manufacturer` | `ManufacturerNVIDIA`, `ManufacturerIntel`, etc. |
+
+**The `Storage` struct** (`cloud/v1/storage.go`):
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `Count` | `int32` | Number of disks |
+| `SizeBytes` | `Bytes` | Disk size |
+| `Type` | `string` | Storage type (e.g., `"ssd"`, `"nvme"`) |
+| `PricePerGBHr` | `*currency.Amount` | Additional storage cost (if applicable) |
+| `IsEphemeral` | `bool` | Lost on stop/terminate |
+
+### Instance Type ID
+
+The `ID` field must be a **stable, unique identifier** for each instance type across all regions. You control the format.
+
+**Requirements:**
+- **Stable**: The same instance type must return the same ID on every sync
+- **Unique**: No two instance types can share an ID
+- **Deterministic**: IDs must not change between API calls
+
+**Option 1: Use the Helper Function**
+
+The SDK provides `MakeGenericInstanceTypeID()` which generates IDs using this pattern:
 
 ```
 {location}-{subLocation}-{type}
 ```
 
-**Examples:**
-- `us-west-1-us-west-1a-gpu_1x_a100` (locational cloud with AZs)
-- `us-east-noSub-1x_a100_80gb_sxm4` (global cloud, no sublocation concept)
-- `eu-central-1-noSub-h100_8x` (locational region, but you don't expose AZs)
+If your instance type has no sublocation, the helper uses `"noSub"` as a placeholder.
 
-**Why This Matters:**
-This ID is how Brev tracks inventory. When provisioning, this ID connects the request to the correct SKU in your catalog.
-
-### The "noSub" Convention
-
-If your cloud doesn't have sub-locations (availability zones), we use the literal string `"noSub"` as a placeholder. This keeps the ID format consistent across all providers.
-
----
-
-## 4. Location and Availability Model
-
-### Location Hierarchy
-
-Brev uses a two-tier location model:
-
-```
-Location (Region)
-└── SubLocation (Availability Zone)
+```go
+// Set all fields first, then call the helper at the END
+it := v1.InstanceType{
+    Location: "us-west-1",
+    Type:     "gpu_1x_a100",
+    // ... other fields
+}
+it.ID = v1.MakeGenericInstanceTypeID(it)  // Result: "us-west-1-noSub-gpu_1x_a100"
 ```
 
-**Examples:**
+**Option 2: Define Your Own Format**
 
-| Your Term | Brev Location | Brev SubLocation |
-|-----------|---------------|------------------|
-| AWS `us-west-2a` | `us-west-2` | `us-west-2a` |
-| GCP `us-central1-a` | `us-central1` | `us-central1-a` |
-| Lambda Labs `us-tx-1` | `us-tx-1` | `noSub` |
-| Your DC `phoenix-dc1` | `phoenix-dc1` | `noSub` |
+If you prefer a different ID format, set `ID` directly:
 
-### How Availability Is Tracked
+```go
+// Shadeform uses: {cloud}_{instanceType}_{region}
+it := v1.InstanceType{
+    ID:       v1.InstanceTypeID("massedcompute_L40_desmoines-usa-1"),
+    Location: "desmoines-usa-1",
+    Type:     "massedcompute_L40",
+    // ... other fields
+}
+```
 
-For each instance type, we track:
+**Why Stability Matters:**
 
-1. **AvailableAzs**: List of all sub-locations where this type exists
-2. **IsAvailable**: Boolean indicating if it's currently launchable
+Brev uses this ID to track inventory and match provisioning requests. If your IDs change between syncs, Brev loses the ability to correlate instance types correctly.
 
-**Availability Meaning:**
+### CRITICAL: ID Consistency Between InstanceType and Instance
+
+> **Warning**: This is the most common cause of integration failures. Instance types may sync successfully but instances fail to provision or appear "orphaned."
+
+When Brev provisions an instance, it looks up the corresponding instance type using the instance's `InstanceTypeID`. **These IDs must match exactly.**
+
+**A Common Problem:**
+
+The SDK has two helper functions that generate IDs differently:
+
+| Function | Used For | SubLocation Source |
+|----------|----------|-------------------|
+| `MakeGenericInstanceTypeID()` | InstanceType structs | `AvailableAzs[0]` (first AZ) |
+| `MakeGenericInstanceTypeIDFromInstance()` | Instance structs | `SubLocation` field |
+
+If `AvailableAzs[0]` and `SubLocation` don't match, the IDs diverge and lookup fails.
+
+**The Mistakes:**
+
+```go
+// WRONG - Manually setting InstanceTypeID
+inst := &v1.Instance{
+    InstanceType:   "gpu-h100-8x",
+    InstanceTypeID: v1.InstanceTypeID("gpu-h100-8x"),  // BUG: Missing location!
+}
+
+// WRONG - Inconsistent SubLocation vs AvailableAzs
+instanceType := v1.InstanceType{
+    Location:     "us-east-1",
+    SubLocation:  "us-east-1a",      // Set to "us-east-1a"
+    AvailableAzs: []string{"us-east-1b"},  // But AZs has "us-east-1b"!
+}
+```
+
+**The Fix:**
+
+1. **For InstanceType**: Set all fields first, then call `MakeGenericInstanceTypeID()` at the END
+2. **For Instance**: Set all fields first, then call `MakeGenericInstanceTypeIDFromInstance()` at the END
+3. **Ensure consistency**: If you set both `SubLocation` and `AvailableAzs`, make sure `SubLocation == AvailableAzs[0]`
+
+```go
+// CORRECT - InstanceType
+it := v1.InstanceType{
+    Location:     "us-east-1",
+    AvailableAzs: []string{"us-east-1a"},
+    Type:         "gpu-h100-8x",
+    // ... other fields
+}
+it.ID = v1.MakeGenericInstanceTypeID(it)  // LAST
+
+// CORRECT - Instance
+inst := &v1.Instance{
+    Location:     "us-east-1",
+    SubLocation:  "us-east-1a",  // Matches the AZ
+    InstanceType: "gpu-h100-8x",
+    // ... other fields
+}
+inst.InstanceTypeID = v1.MakeGenericInstanceTypeIDFromInstance(*inst)  // LAST
+```
+
+**Symptoms of ID Mismatch:**
+- Instance types sync successfully but don't appear in the Brev catalog
+- `CreateInstance` succeeds but subsequent operations fail
+- "instance type not found" errors during provisioning
+- Instances appear "orphaned" (no associated instance type)
+
+
+## 4. Location Model
+
+### The Location Hierarchy
+
+Brev uses a three-level location model to represent where compute resources exist:
+
+| Level | Field | Description | Example |
+|-------|-------|-------------|---------|
+| **Region** | `Location` | Primary geographic region | `"us-west-1"`, `"europe-west4"` |
+| **Availability Zone** | `SubLocation` | Specific zone within a region | `"us-west-1a"`, `"europe-west4-b"` |
+| **Available Zones** | `AvailableAzs` | All zones where this type can launch | `["us-west-1a", "us-west-1b"]` |
+
+> **Note:** The distinction between these fields can be confusing. `Location` is the region, `SubLocation` is a specific zone (used for instances), and `AvailableAzs` lists all zones where an instance type is available (used for instance types).
+
+### The Location Struct
+
+When implementing `GetLocations()`, you return a list of `Location` structs (defined in `cloud/v1/location.go`):
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `Name` | `string` | Region identifier (acts as the ID) |
+| `Description` | `string` | Human-readable name |
+| `Available` | `bool` | Whether the region is currently operational |
+| `Endpoint` | `string` | API endpoint for this region (if applicable) |
+| `Priority` | `int` | Preference order for region selection |
+| `Country` | `string` | ISO 3166-1 alpha-3 country code |
+
+### Availability on Instance Types
+
+Availability is tracked **per instance type** using two fields on the `InstanceType` struct:
+
+| Field | Type | Meaning |
+|-------|------|---------|
+| `IsAvailable` | `bool` | Whether this type can currently be launched |
+| `AvailableAzs` | `[]string` | Which availability zones have capacity |
+
+**Interpreting Availability:**
 - `IsAvailable: true` + `AvailableAzs: ["us-west-1a", "us-west-1b"]` = Can launch in either AZ
 - `IsAvailable: false` = Type exists but is currently out of stock or disabled
-
-### Region Normalization
-
-We typically use your region identifiers as-is. If you have unique region names (`phoenix-main`, `denver-gpu-cluster`), those become the Location value.
+- Empty `AvailableAzs` with `IsAvailable: true` = Region-level availability only (no AZ granularity)
 
 ---
 
@@ -219,37 +446,70 @@ We typically use your region identifiers as-is. If you have unique region names 
 
 ### Why GPU Normalization Matters
 
-Users search for GPUs by model. They want "H100" not "NVIDIA H100 80GB HBM3 SXM5 Accelerator". We normalize your GPU descriptions to standard names.
+Users search for GPUs by model. They want "H100" not "NVIDIA H100 80GB HBM3 SXM5 Accelerator". Your provider implementation must normalize GPU data into the SDK's structured `GPU` type.
 
-### The GPU Taxonomy
+### The GPU Struct
 
-Brev normalizes GPUs to these canonical identifiers:
+The Cloud SDK represents GPUs with these fields:
 
-| Your Description | Brev GPU |
-|------------------|----------|
-| `NVIDIA H100 80GB HBM3` | `H100_SXM5` or `H100_PCIE` |
-| `NVIDIA A100 SXM4 80GB` | `A100_SXM4_80GB` |
-| `NVIDIA A100 PCIe 40GB` | `A100_PCIE_40GB` |
-| `NVIDIA A10` | `A10` |
-| `NVIDIA L40S` | `L40S` |
-| `AMD MI300X` | `MI300X` |
+```go
+type GPU struct {
+    Name           string           // Base model: "H100", "A100", "L40S"
+    Count          int32            // Number of GPUs
+    Memory         units.Base2Bytes // VRAM per GPU (deprecated, use MemoryBytes)
+    MemoryBytes    Bytes            // VRAM per GPU in structured format
+    MemoryDetails  string           // Memory type: "HBM2", "HBM3", "HBM2e", "GDDR"
+    NetworkDetails string           // Form factor: "PCIe", "SXM", "SXM4", "SXM5"
+    Manufacturer   Manufacturer     // "NVIDIA", "AMD", "Intel"
+    Type           string           // Optional: original type identifier
+}
+```
 
-### What We Parse
+### Implementer Responsibility
 
-From your GPU field/description, we extract:
-- **Model family**: H100, A100, L40S, etc.
-- **Form factor**: SXM vs PCIe (affects interconnect and performance)
-- **Memory size**: 40GB vs 80GB variants
-- **Generation**: SXM4 vs SXM5
+**You are responsible for normalizing GPU data.** Brev does not automatically parse GPU descriptions. Your `GetInstanceTypes` must populate the `GPU` struct.
 
-### Providing Clean GPU Data
+| Field | Example | Notes |
+|-------|---------|-------|
+| `Name` | `"H100"`, `"A100"` | Base model, uppercase |
+| `Count` | `8` | GPUs per instance |
+| `MemoryBytes` | `v1.NewBytes(80, v1.Gibibyte)` | VRAM per GPU |
+| `NetworkDetails` | `"SXM4"`, `"PCIe"` | Form factor |
+| `Manufacturer` | `"NVIDIA"` |
 
-The cleaner your GPU data, the better the user experience. Ideally provide:
-- `gpu_model`: `"H100"` or `"A100"`
-- `gpu_memory_gb`: `80`
-- `gpu_variant`: `"SXM5"` or `"PCIe"`
+### Provider Examples
 
-If you only provide a description string, we'll parse it, but structured data is preferred.
+**Lambda Labs** (`cloud/v1/providers/lambdalabs/instancetype.go:parseGPUFromDescription`)
+
+Parses `"8x A100 (40 GB SXM4)"` using regex:
+
+```go
+gpu.Count = int32(count)           // from (\d+)x
+gpu.Name = nameStr                 // from x (.*?) \(
+gpu.MemoryBytes = v1.NewBytes(v1.BytesValue(memoryGiB), v1.Gibibyte)
+gpu.NetworkDetails = networkDetails // remainder after "GB"
+gpu.Manufacturer = "NVIDIA"
+```
+
+**Launchpad** (`cloud/v1/providers/launchpad/instancetype.go:launchpadGpusToGpus`)
+
+Maps structured API fields:
+
+```go
+gpus[i] = v1.GPU{
+    Name:           strings.ToUpper(gp.Family),
+    Count:          gp.Count,
+    MemoryBytes:    v1.NewBytes(v1.BytesValue(gp.MemoryGb), v1.Gigabyte),
+    NetworkDetails: string(gp.InterconnectionType),
+    Manufacturer:   v1.GetManufacturer(gp.Manufacturer),
+}
+```
+
+### Key Points
+
+- `Name`: base model only (`"H100"` not `"NVIDIA H100 80GB"`)
+- `NetworkDetails`: `"SXM"`, `"SXM4"`, `"SXM5"`, or `"PCIe"`
+- `Manufacturer`: always set to `"NVIDIA"`
 
 ---
 
@@ -263,9 +523,33 @@ Brev stores credentials for your cloud provider and uses them to make API calls.
 
 | Requirement | Details |
 |-------------|---------|
-| **API Credentials** | API key, token, or service account for Brev to use |
+| **API Credentials** | A JSON-serializable Go struct containing your authentication fields (API key, token, service account, etc.) |
 | **Authentication Endpoint** | How Brev authenticates (API key header, OAuth, etc.) |
-| **Required Permissions** | List instance types, create/get/start/stop/terminate instances |
+
+### Credential Storage Model
+
+Credentials are stored in Brev's control plane database as **raw JSON** (`json.RawMessage`). This means your credential struct must be JSON-serializable with proper struct tags.
+
+**How it works:**
+1. **You define** a credential struct with JSON tags for each field
+2. **Brev stores** the struct as raw JSON bytes in the database (encrypted at rest)
+3. **Brev deserializes** the JSON back into your struct type when making API calls
+
+**Example credential struct:**
+
+```go
+type MyProviderCredential struct {
+    RefID  string            // Set by Brev (the cloud_cred ID)
+    APIKey string `json:"api_key"`
+    Region string `json:"region,omitempty"`  // Optional fields use omitempty
+}
+```
+
+**Key requirements:**
+- All fields you need serialized must have `json:"field_name"` tags
+- The `RefID` field is set by Brev after storage (it's the database record ID)
+- Use `json:"...,omitempty"` for optional fields
+- The struct must implement the `CloudCredential` interface
 
 ### Credential Exchange Process
 
@@ -275,301 +559,486 @@ Brev stores credentials for your cloud provider and uses them to make API calls.
 
 ### Credential Types
 
-Providers define their own credential struct with whatever fields they need. Examples from existing providers:
+Providers define their own credential struct with whatever fields they need. The struct fields use JSON tags that determine the field names in the stored JSON.
 
-| Provider | Credential Fields |
-|----------|-------------------|
-| **Lambda Labs** | `APIKey` |
-| **Shadeform** | `APIKey` |
-| **FluidStack** | `APIKey` |
-| **AWS** | `AccessKeyID`, `SecretAccessKey` |
-| **Nebius** | `ServiceAccountKey` (JSON), `TenantID` |
-| **Launchpad** | `APIToken`, `APIURL` |
+| Provider | Struct Fields | JSON Fields |
+|----------|---------------|-------------|
+| **Lambda Labs** | `APIKey string` | `api_key` |
+| **Shadeform** | `APIKey string` | `api_key` |
+| **FluidStack** | `APIKey string` | `api_key` |
+| **AWS** | `AccessKeyID`, `SecretAccessKey` | `access_key_id`, `secret_access_key` |
+| **Nebius** | `ServiceAccountKey`, `TenantID` | `service_account_key`, `tenant_id` |
+| **Launchpad** | `APIToken`, `APIURL` | `api_token`, `api_url` |
 
-Your credential struct just needs to implement the `CloudCredential` interface.
+**Complete credential struct example (from Launchpad):**
+
+```go
+type LaunchpadCredential struct {
+    RefID    string            // Not serialized - set by Brev after storage
+    APIToken string `json:"api_token"`
+    APIURL   string `json:"api_url"`
+}
+
+var _ v1.CloudCredential = &LaunchpadCredential{}  // Compile-time interface check
+
+func (c *LaunchpadCredential) Validate() error {
+    return validation.ValidateStruct(c,
+        validation.Field(&c.APIToken, validation.Required),
+        validation.Field(&c.APIURL, validation.Required),
+    )
+}
+```
+
+Your credential struct must implement the `CloudCredential` interface, which requires these methods:
+
+```go
+type CloudCredential interface {
+    MakeClient(ctx context.Context, location string) (CloudClient, error)
+    GetTenantID() (string, error)
+    GetReferenceID() string
+    GetAPIType() APIType
+    GetCapabilities(ctx context.Context) (Capabilities, error)
+    GetCloudProviderID() CloudProviderID
+}
+```
 
 ### SSH Keys (Separate from API Credentials)
 
-For each VM launch, Brev provides an SSH public key in the create request. **You need to:**
-1. Accept an SSH public key parameter in your create instance API
-2. Install that key in the VM's default user `~/.ssh/authorized_keys`
-3. Ensure SSHD is running on port 22
+SSH keys are passed at instance creation time via the `PublicKey` field in `CreateInstanceAttrs`.
 
-Brev generates and manages these SSH keys—you just need to accept and install them.
+Your implementation must:
+1. Accept this public key in your create instance API
+2. Install it in the VM's default user `~/.ssh/authorized_keys` before the instance becomes accessible
+
+Brev generates a unique SSH key pair for each instance. The control plane retains the private key and uses it to connect after creation.
 
 ---
 
-## 7. Provisioning Lifecycle
+## 7. Instance Lifecycle Operations
 
-### Instance States
+This section describes each lifecycle operation, its requirements, and expected behavior. Not all operations are required—providers declare their capabilities via `GetCapabilities()`.
 
-Brev tracks instances through these states:
+### Lifecycle States
+
+The SDK defines these states in `LifecycleStatus` (from `cloud/v1/instance.go`):
 
 | State | Meaning |
 |-------|---------|
-| `pending` | Create request sent, waiting for VM |
-| `running` | Instance is up and accessible |
-| `stopping` | Stop request sent |
-| `stopped` | Instance stopped but not terminated |
-| `terminating` | Terminate request sent |
-| `terminated` | Instance terminated |
-| `failed` | Provisioning failed |
+| `pending` | Create initiated, VM provisioning |
+| `running` | Instance is up with a public IP |
+| `stopping` | Stop requested, shutting down |
+| `stopped` | Powered off, storage preserved |
+| `suspending` | Suspend requested |
+| `suspended` | Hibernated state |
+| `terminating` | Terminate requested |
+| `terminated` | Instance destroyed |
+| `failed` | Provisioning or operation failed |
 
-### What Your Create API Should Return
+### Create Instance (Required)
+
+**Interface:** `CloudCreateTerminateInstance.CreateInstance(ctx, CreateInstanceAttrs) (*Instance, error)`
+
+**Contract:**
+- On success: Return an `*Instance` with a valid `CloudID`. The instance must exist in your system.
+- On error: Return an error **and ensure no instance was created**. Brev will not attempt cleanup on errors.
+
+**Key input fields from `CreateInstanceAttrs`:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `RefID` | `string` | Yes | Brev's reference ID; use for idempotency |
+| `InstanceType` | `string` | Yes | Your instance type name |
+| `Location` | `string` | Yes | Region to launch in |
+| `SubLocation` | `string` | No | Specific availability zone |
+| `PublicKey` | `string` | Yes | SSH public key (OpenSSH format) |
+| `Name` | `string` | No | Display name for the instance |
+| `ImageID` | `string` | No | OS image; use your default if empty |
+| `DiskSize` | `units.Base2Bytes` | No | Boot disk size |
+| `FirewallRules` | `FirewallRules` | No | Ports to open (SSH port is always required) |
+| `Tags` | `Tags` | No | Key-value metadata |
+| `UserDataBase64` | `string` | No | Cloud-init or startup script |
+
+**Key output fields on `Instance`:**
+
+| Field | When Required | Description |
+|-------|---------------|-------------|
+| `CloudID` | Always | Your unique instance identifier |
+| `Status.LifecycleStatus` | Always | Current state (`pending` or `running`) |
+| `Location` | Always | Region where launched |
+| `InstanceType` | Always | Instance type that was provisioned |
+| `PublicIP` | When running | Public IPv4 for SSH access |
+| `SSHUser` | Always | Username for SSH (e.g., `ubuntu`, `root`) |
+| `SSHPort` | Always | SSH port (typically `22`) |
+| `RefID` | Always | Echo back the input `RefID` |
+
+**Example flow (from Lambda Labs implementation):**
+
+```go
+// 1. Register the SSH key with your API
+keyPairResp, err := c.addSSHKey(ctx, openapi.AddSSHKeyRequest{
+    Name:      attrs.RefID,
+    PublicKey: &attrs.PublicKey,
+})
+
+// 2. Launch the instance with the key
+resp, err := c.launchInstance(ctx, openapi.LaunchInstanceRequest{
+    RegionName:       attrs.Location,
+    InstanceTypeName: attrs.InstanceType,
+    SshKeyNames:      []string{keyPairName},
+})
+
+// 3. Return instance details
+return c.GetInstance(ctx, v1.CloudProviderInstanceID(resp.Data.InstanceIds[0]))
+```
+
+### Terminate Instance (Required)
+
+**Interface:** `CloudCreateTerminateInstance.TerminateInstance(ctx, instanceID) error`
+
+**Contract:**
+- Initiate instance termination. Storage may or may not be preserved (provider-dependent).
+- Return `nil` on success, even if the instance is already terminated.
+- The instance should eventually reach `terminated` state.
+
+**Idempotency:** Should succeed if called multiple times on the same instance.
+
+### Stop Instance (Optional)
+
+**Capability:** `CapabilityStopStartInstance`
+
+**Interface:** `CloudStopStartInstance.StopInstance(ctx, instanceID) error`
+
+**Contract:**
+- Power off the instance while preserving storage.
+- Return `nil` once the stop operation is initiated.
+- Instance should transition: `running` → `stopping` → `stopped`
+
+**When to implement:** Only if your platform supports instances that can stop and perserve storae. Lambda Labs does not support this, but Nebius does.
+
+### Start Instance (Optional)
+
+**Capability:** `CapabilityStopStartInstance`
+
+**Interface:** `CloudStopStartInstance.StartInstance(ctx, instanceID) error`
+
+**Contract:**
+- Power on a previously stopped instance.
+- Return `nil` once the start operation is initiated.
+- Instance should transition: `stopped` → `pending` → `running`
+
+**Note:** If you implement `StopInstance`, you must also implement `StartInstance`.
+
+
+### Get Instance (Required)
+
+**Interface:** `CloudInstanceReader.GetInstance(ctx, instanceID) (*Instance, error)`
+
+**Contract:**
+- Return current state of the instance.
+- Return `ErrResourceNotFound` if the instance doesn't exist.
+
+### List Instances (Required)
+
+**Interface:** `CloudInstanceReader.ListInstances(ctx, ListInstancesArgs) ([]Instance, error)`
+
+**Contract:**
+- Return all instances matching the filter criteria.
+- Used by the Instance Syncer to reconcile state (called every ~5 seconds).
+
+### Capability Declaration
+
+Your credential's `GetCapabilities()` must return the capabilities you support:
+
+```go
+func (c *MyCredential) GetCapabilities(ctx context.Context) (v1.Capabilities, error) {
+    return v1.Capabilities{
+        v1.CapabilityCreateInstance,           // Required
+        v1.CapabilityTerminateInstance,        // Required
+        v1.CapabilityCreateTerminateInstance,  // Required (composite)
+        // Optional:
+        v1.CapabilityStopStartInstance,        // If you support stop/start
+        v1.CapabilityRebootInstance,           // If you support reboot
+        v1.CapabilityTags,                     // If you support instance tags
+        v1.CapabilityModifyFirewall,           // If you support dynamic firewall rules
+        v1.CapabilityResizeInstanceVolume,     // If you support volume resizing
+    }, nil
+}
+```
+
+Brev checks capabilities before calling optional methods. If you don't declare a capability, Brev won't attempt that operation.
+
+---
+
+## 8. SSH Connectivity
+
+### Core Requirement
+
+Brev's control plane must be able to connect to your instances via SSH using the provided keys. This is the **only hard requirement** for network connectivity.
+
+After your VM is running, Brev connects via SSH to:
+
+1. **Configure the environment**: Install Brev agent, set up development tools
+2. **Enable connections**: Set up tunnels and connection paths for users
+3. **Manage instance**: Execute commands, transfer files, health checks
+
+### What You Provide at Launch
+
+When provisioning, we pass:
+- **SSH public key**: Key to install in `authorized_keys` (via `CreateInstanceAttrs.PublicKey`)
+- **Firewall rules**: Ports to open (see Section 9)
+
+### Instance Requirements
+
+Your instances must return these fields so Brev can connect:
 
 | Field | Required | Description |
 |-------|----------|-------------|
-| `instance_id` | Yes | Your unique identifier |
-| `status` | Yes | Current state |
-| `public_ip` | When running | IPv4 address for SSH |
-| `region` | Yes | Where it launched |
-| `instance_type` | Yes | What SKU was provisioned |
+| `SSHUser` | Yes | Username for SSH (e.g., `ubuntu`, `root`, `ec2-user`) |
+| `SSHPort` | Yes | SSH port (commonly `22`, but can be any port) |
+| `PublicIP` | Yes | Publicly routable address for SSH connection |
 
-### Polling vs Webhooks
-
-Most integrations use **polling**—Brev periodically calls your Get Instance API until status is `running`. If you support webhooks for state changes, that can reduce API load.
-
----
-
-## 8. Network Requirements
-
-### Critical Requirement: Public IP with SSH Access
-
-Every instance **must** have a publicly routable IP address with port 22 (SSH) accessible. This is how Brev's control plane communicates with the instance.
-
-### Network Configuration at Launch
-
-When provisioning, we pass:
-- **SSH public key**: Key to install in `authorized_keys`
-- **Firewall rules**: Ports to open (see Section 10)
-
-### IP Assignment
-
-| Scenario | Requirement |
-|----------|-------------|
-| **Ideal** | Public IPv4 assigned automatically at launch |
-| **Acceptable** | Public IP available via API after instance starts |
-| **Not Supported** | NAT-only instances with no public ingress |
-
-### IPv6
-
-IPv6-only instances are not currently supported. We require IPv4 for SSH connectivity.
-
----
-
-## 9. SSH and Control Plane Access
-
-### Why SSH Is Critical
-
-SSH (port 22) is Brev's **control channel**. After your VM is running, Brev connects via SSH to:
-
-1. **Configure the environment**: Install Brev agent, set up development tools
-2. **Enable connections**: Set up connection paths for users
-3. **Manage instance**: Execute commands, transfer files
-
-### What You Must Support
-
-| Requirement | Details |
-|-------------|---------|
-| **Accept SSH key in create request** | Your API must accept an SSH public key parameter |
-| **Install key in VM** | Key goes in default user's `~/.ssh/authorized_keys` |
-| **SSHD running on port 22** | Standard SSH daemon, default config is fine |
-| **Port 22 reachable** | Public IP with port 22 open |
+**Note:** While `PublicIP` is the required field, public routing via DNS also works in practice. The key requirement is that Brev can reach your instance over SSH.
 
 ### SSH User
 
-We typically connect as:
-- `root` (if permitted)
-- `ubuntu` (common on Ubuntu images)
-- Whatever default user your images provide
+Brev connects as the default user your image provides:
 
-Let us know your default SSH user during integration setup.
+| Image | Default User |
+|-------|--------------|
+| Ubuntu | `ubuntu` |
+| Debian | `admin` or `debian` |
+| Amazon Linux | `ec2-user` |
+| Custom | Whatever you configure |
 
----
+### Runtime Requirements
 
-## 10. Firewall and Security Groups
-
-### Brev's Firewall Model
-
-Brev uses a provider-agnostic firewall model that maps to your security group / firewall implementation:
-
-**Ingress Rules** (inbound traffic):
-```
-Port(s)     Protocol    Source
-22          TCP         0.0.0.0/0    # SSH - REQUIRED
-443         TCP         0.0.0.0/0    # HTTPS (optional)
-8080        TCP         0.0.0.0/0    # User app (optional)
-```
-
-**Egress Rules** (outbound traffic):
-```
-Port(s)     Protocol    Destination
-*           *           0.0.0.0/0    # Allow all outbound
-```
-
-### Minimum Required Ports
-
-| Port | Protocol | Direction | Purpose |
-|------|----------|-----------|---------|
-| **22** | TCP | Inbound | SSH (mandatory) |
-
-All other ports are configurable based on workload needs.
-
-### Mapping to Your System
-
-Your firewall / security group implementation should:
-1. Accept our firewall rules in the create request (or apply defaults)
-2. Ensure port 22 is open for Brev's control plane
-3. Allow additional ports to be specified for applications
+| Requirement | Details |
+|-------------|---------|
+| **SSHD running** | On the port specified by `Instance.SSHPort` |
+| **Port publicly reachable** | No NAT or firewall blocking inbound SSH |
+| **Key installed** | The public key from `CreateInstanceAttrs.PublicKey` in `authorized_keys` |
 
 ---
 
-## 11. Instance Metadata and Tags
+## 9. Firewall and Security Groups
 
-### Tags We Set
+**Can you dynamically expose ports at instance creation?** Yes, if you support user-data or have a native firewall API.
 
-Brev may set tags/labels on instances for identification:
+**Can you modify firewall rules after creation without SSH/reboot?** Only if you have a native API. Most GPU clouds don't.
 
-| Tag | Value | Purpose |
-|-----|-------|---------|
-| `brev-instance-id` | Brev's internal ID | Cross-reference |
-| `Name` | User-specified | Display name |
 
-### Tag Requirements
+### SDK Structures
 
-Your API should support:
-- Setting tags at instance creation
-- Updating tags on running instances
-- Querying instances by tag (helpful but not required)
+```go
+type FirewallRules struct {
+    IngressRules []FirewallRule
+    EgressRules  []FirewallRule
+}
 
-If you don't support tags, we track the mapping on our side.
+type FirewallRule struct {
+    FromPort int32
+    ToPort   int32
+    IPRanges []string // CIDR notation
+}
+```
+
+Passed via `CreateInstanceAttrs.FirewallRules`.
+
+### If You Have a Native API
+
+Use it. Implement `CloudModifyFirewall` for post-creation changes:
+
+```go
+type CloudModifyFirewall interface {
+    AddFirewallRulesToInstance(ctx context.Context, args AddFirewallRulesToInstanceArgs) error
+    RevokeSecurityGroupRules(ctx context.Context, args RevokeSecurityGroupRuleArgs) error
+}
+```
+
+Add `CapabilityModifyFirewall` to your capabilities.
+
+### If You Only Have User-Data
+
+Inject UFW commands at boot. See `cloud/v1/providers/shadeform/ufw.go`.
+
+```go
+// Core pattern
+commands := []string{
+    "ufw --force reset",
+    "ufw default deny incoming",
+    "ufw default allow outgoing",
+    "ufw allow 22/tcp",
+}
+for _, rule := range firewallRules.IngressRules {
+    for _, cidr := range rule.IPRanges {
+        commands = append(commands, fmt.Sprintf("ufw allow in from %s to any port %d", cidr, rule.FromPort))
+    }
+}
+commands = append(commands, "ufw --force enable")
+
+// Base64 encode and pass as user-data
+script := strings.Join(commands, "\n")
+encoded := base64.StdEncoding.EncodeToString([]byte(script))
+```
+
+**Do not** implement `CloudModifyFirewall`. Return `ErrNotImplemented`.
+
+### If You Only Have IP Allowlists
+
+See `cloud/v1/providers/launchpad/instance_create.go`. You can only restrict by source IP, not port. Extract `/32`s from the rules and pass to your API:
+
+```go
+ips := []string{}
+for _, rule := range firewallRules.IngressRules {
+    for _, cidr := range rule.IPRanges {
+        _, ipNet, _ := net.ParseCIDR(cidr)
+        ones, bits := ipNet.Mask.Size()
+        if ones == bits { // /32 only
+            ips = append(ips, ipNet.IP.String())
+        }
+    }
+}
+```
 
 ---
 
-## 12. Error Handling and Status Reporting
+## 10. Instance Metadata and Tags
+
+Brev uses tags to track and correlate instances. Your API must support setting tags at creation and reading them back.
+
+### Required Tags
+
+| Tag | Purpose |
+|-----|---------|
+| `RefID` | Instance correlation and idempotency |
+| `CloudCredRefID` | Identifies which credential created the instance |
+
+### Optional Tags
+
+| Tag | Purpose |
+|-----|---------|
+| `Name` | Display name (implementer-dependent) |
+
+Additional custom tags may also be passed through.
+
+---
+
+## 11. Error Handling and Status Reporting
 
 ### Error Categories
 
-| Category | Examples | How to Report |
-|----------|----------|---------------|
-| **Out of Stock** | No capacity in region | Return specific error code |
-| **Quota Exceeded** | Hit account limit | Return quota error |
-| **Invalid Request** | Bad instance type | Return validation error |
-| **Auth Failed** | Bad API key | Return 401/403 |
-| **Internal Error** | Your system issue | Return 500 with details |
+Your provider implementation should translate API errors into the standard error constants defined in [`v1/errors.go`](v1/errors.go):
 
-### Preferred Error Format
+| Category | Examples | Return This Error Constant |
+|----------|----------|---------------------------|
+| **Out of Stock** | No capacity in region | `v1.ErrInsufficientResources` |
+| **Quota Exceeded** | Hit account limit | `v1.ErrOutOfQuota` |
+| **Resource Not Found** | Instance/image doesn't exist | `v1.ErrResourceNotFound`, `v1.ErrInstanceNotFound`, `v1.ErrImageNotFound` |
+| **Service Unavailable** | API temporarily down | `v1.ErrServiceUnavailable` |
+| **Auth Failed** | Bad API key | Return HTTP 401/403 error |
+| **Internal Error** | Your system issue | Return error with HTTP 500 details |
 
-We prefer errors that include:
-- **Error code**: Machine-readable identifier
-- **Message**: Human-readable description
-- **Region** (if relevant): Where the failure occurred
+**Reference:** See [`v1/errors.go`](v1/errors.go) for the full list of error constants:
+
+```go
+var (
+	ErrInsufficientResources = errors.New("zone has insufficient resources to fulfill the request, InsufficientCapacity")
+	ErrOutOfQuota            = errors.New("out of quota in the region fulfill the request, InsufficientQuota")
+	ErrImageNotFound         = errors.New("image not found")
+	ErrDuplicateFirewallRule = errors.New("duplicate firewall rule")
+	ErrInstanceNotFound      = errors.New("instance not found")
+	ErrResourceNotFound      = errors.New("resource not found")
+	ErrServiceUnavailable    = errors.New("api is temporarily unavailable")
+)
+```
 
 ### Out of Stock Handling
 
-"Out of stock" is common with GPUs. Ideal handling:
-1. Your API returns a clear "no capacity" error
-2. We mark that type as temporarily unavailable in that region
-3. The syncer will re-check availability on the next poll
+"Out of stock" is common with GPUs. Your implementation should return `v1.ErrInsufficientResources`:
+
+1. Your API returns your specific "no capacity" error
+2. Your provider translates this to `v1.ErrInsufficientResources`
+3. Brev marks that type as temporarily unavailable in that region
+4. The syncer will re-check availability on the next poll
+
+**Example from Shadeform provider** ([`v1/providers/shadeform/instance.go`](v1/providers/shadeform/instance.go)):
+
+```go
+if shadeformErrorResponse.ErrorCode == outOfStockErrorCode {
+    return v1.ErrInsufficientResources
+}
+```
+
+**Example from Lambda Labs provider** ([`v1/providers/lambdalabs/errors.go`](v1/providers/lambdalabs/errors.go)):
+
+```go
+if strings.Contains(e.Error(), "Not enough capacity") || strings.Contains(e.Error(), "insufficient-capacity") {
+    return v1.ErrInsufficientResources
+}
+```
 
 ---
 
-## 13. Pricing and Billing
+## 12. Pricing and Billing
 
 ### How Pricing Works
 
-Brev displays your prices. We need:
+Brev displays your prices via `InstanceType.BasePrice` (see [`v1/instancetype.go`](v1/instancetype.go)).
 
-| Field | Format | Example |
-|-------|--------|---------|
-| **Hourly price** | Cents (integer) | `3200` = $32.00/hr |
-| **Currency** | USD assumed | - |
+| Field | Type | Notes |
+|-------|------|-------|
+| **BasePrice** | `*currency.Amount` | From [`github.com/bojanz/currency`](https://pkg.go.dev/github.com/bojanz/currency#Amount) |
+| **Currency** | Up to implementer | Most providers use `"USD"` |
 
 ### Billing
 
 Billing arrangements are handled separately during the integration partnership setup.
 
-### Price Sync
-
-Prices sync along with instance types. When you update pricing in your system, we pick it up in the next sync cycle.
 
 ---
 
-## 14. Common Questions
-
-### "What credentials do you need from us?"
-
-We need API credentials that allow Brev to:
-- List your available instance types
-- Create, get, start, stop, and terminate instances
-- Optionally: update tags, modify firewall rules
-
-This is typically an API key or service account.
+## 13. Common Questions
 
 ### "Do you need access to our admin console?"
 
-No. We only need API access. All operations go through your public API.
+No. We only need programmatic API access. All operations go through your public API—see Section 6 for credential details.
 
 ### "What images/OS should our VMs run?"
 
-We work best with:
-- **Ubuntu 22.04 or 24.04** (preferred)
-- **CUDA pre-installed** (for GPU instances)
-- **Python 3.10+** available
-- **SSHD running** on port 22
+| Requirement | Details |
+|-------------|---------|
+| **OS** | Ubuntu 22.04 (preferred) or 24.04 |
 
-Custom images can work, but Ubuntu with CUDA is the smoothest path.
-
-### "How do you handle the SSH keys?"
-
-For each VM:
-1. Brev generates an SSH key pair
-2. Brev passes the public key in the create request
-3. You install it in the VM's `authorized_keys`
-4. Brev connects using the private key
-
-You don't manage these keys—just accept them at VM creation.
+Custom images work if they meet these requirements. The SDK validates image compatibility via `ValidateInstanceImage()`.
 
 ### "What if we don't have public IPs?"
 
-Public IP with SSH access is required for the standard integration. Alternatives:
-- **VPN/Private connectivity**: Custom integration needed
-- **Bastion host**: Brev can SSH through a jump box
-- **Cloudflare tunnel**: Instance calls out, no inbound needed
+Public IP with SSH access is required for standard integration. Bastion/jump host routing is supported (see `InternalPortMappings` in the `Instance` struct). Other alternatives (VPN, Cloudflare tunnels) require custom integration work.
 
-These require additional integration work.
+### "How do you track GPU interconnect (NVLink, SXM, PCIe)?"
 
-### "How do you handle multi-GPU interconnect (NVLink, etc.)?"
+We track interconnect type via the `GPU.NetworkDetails` field. Your implementation should populate this with values like `"PCIe"`, `"SXM"`, `"SXM4"`, or `"SXM5"`. If you have multiple variants (e.g., PCIe vs SXM versions of the same GPU), surface them as separate instance types.
 
-We track GPU configuration but don't currently differentiate NVLink vs PCIe interconnect in the UI. If you have multiple variants (NVLink cluster vs standalone), surface them as different instance types.
-
-### "What about bare metal vs VMs?"
-
-Both work. From Brev's perspective, if it has an IP and SSH access, it's an instance. Bare metal instances are provisioned the same way.
-
-### "How do we test the integration?"
-
-Typical integration process:
-1. **Staging environment**: Brev tests against your sandbox/dev API
-2. **Test credentials**: You provide test account with limited quota
-3. **Validation**: We verify create, get, stop, start, terminate
-4. **Production**: Enable in Brev's catalog
 
 ### "What SLA/uptime do you expect from our API?"
 
-Your API should be:
-- **Available**: 99%+ uptime for instance operations
-- **Responsive**: <5 second response times typical
-- **Consistent**: Idempotent operations where possible
+| Requirement | Target |
+|-------------|--------|
+| **Availability** | 99%+ uptime |
+| **Response time** | < 5 seconds typical |
+| **Idempotency** | Supported where possible |
 
-Sync polling is resilient to brief outages—we retry and recover.
+The Instance Syncer is resilient to brief outages—it retries and recovers automatically.
 
 ### "What does Brev do on the VMs after launch?"
 
-After Brev creates a VM via your API:
-1. Brev SSHs into the VM using the key we provided at creation
-2. Brev installs a lightweight agent and configures the environment
-3. Brev sets up connection paths
+After `CreateInstance` returns successfully:
+
+1. **SSH connection**: Brev waits for SSH to become available (up to 10 minutes via `ValidateInstanceSSHAccessible`)
+2. **Key bootstrapping**: Brev adds admin keys to `authorized_keys` via SSH
+3. **Agent setup**: Brev installs a lightweight agent for tunnel management and environment configuration
+
+You don't need to do anything special—just ensure the SSH public key from `CreateInstanceAttrs.PublicKey` is installed before the instance becomes accessible.
 
 ---
 
@@ -594,13 +1063,13 @@ Contact the Brev team to start the integration process.
 |------|------------|
 | **Cloud Provider (You)** | Your company, providing GPU compute infrastructure |
 | **Brev Control Plane** | Brev's system that syncs inventory and provisions instances |
-| **Instance Type** | A SKU representing a compute configuration (CPU, GPU, RAM, etc.) |
+| **Instance Type** | A compute configuration (CPU, GPU, RAM, storage, etc.) |
 | **Location** | Primary region identifier (e.g., `us-west-2`) |
 | **SubLocation** | Availability zone within a region (e.g., `us-west-2a`) |
-| **noSub** | Placeholder when your cloud doesn't have availability zones |
+| **noSub** | Placeholder used by `MakeGenericInstanceTypeID()` when no availability zone exists |
 | **Syncer** | Brev's continuous process that polls your API for inventory |
 | **Cloud SDK** | Brev's internal layer that adapts to different cloud provider APIs |
-| **InstanceTypeID** | Brev's composite identifier: `{location}-{subLocation}-{type}` |
+| **InstanceTypeID** | Stable, unique identifier for an instance type (format defined by implementer) |
 | **SSH Key Injection** | Your API accepting Brev's SSH public key at VM creation |
 
 ---
