@@ -758,7 +758,7 @@ func (c *MyCredential) GetCapabilities(ctx context.Context) (v1.Capabilities, er
         // Optional:
         v1.CapabilityStopStartInstance,        // If you support stop/start
         v1.CapabilityRebootInstance,           // If you support reboot
-        v1.CapabilityTags,                     // If you support instance tags
+        v1.CapabilityTags,                     // If your API supports instance tags/labels (see Section 10)
         v1.CapabilityModifyFirewall,           // If you support dynamic firewall rules
         v1.CapabilityResizeInstanceVolume,     // If you support volume resizing
     }, nil
@@ -766,6 +766,8 @@ func (c *MyCredential) GetCapabilities(ctx context.Context) (v1.Capabilities, er
 ```
 
 Brev checks capabilities before calling optional methods. If you don't declare a capability, Brev won't attempt that operation.
+
+> **Note on `CapabilityTags`:** This capability is optional, but `RefID` and `CloudCredRefID` data is **required** regardless. If your API doesn't support tags, you must use an alternative mechanism to store and retrieve this data. See [Section 10: Instance Metadata and Tags](#10-instance-metadata-and-tags) for details and examples.
 
 ---
 
@@ -904,22 +906,77 @@ for _, rule := range firewallRules.IngressRules {
 
 ## 10. Instance Metadata and Tags
 
-Brev uses tags to track and correlate instances. Your API must support setting tags at creation and reading them back.
+Brev uses metadata to track and correlate instances. The control plane requires certain data to be persisted with instances and retrievable later.
 
-### Required Tags
+### Required Instance Data
 
-| Tag | Purpose |
-|-----|---------|
-| `RefID` | Instance correlation and idempotency |
-| `CloudCredRefID` | Identifies which credential created the instance |
+These values **MUST** be stored with the instance and returned in `GetInstance`/`ListInstances`:
 
-### Optional Tags
+| Field | Purpose |
+|-------|---------|
+| `RefID` | Instance correlation and idempotency (passed in `CreateInstanceAttrs.RefID`) |
+| `CloudCredRefID` | Identifies which credential created the instance (from `GetReferenceID()`) |
 
-| Tag | Purpose |
-|-----|---------|
-| `Name` | Display name (implementer-dependent) |
+### The `CapabilityTags` Capability
 
-Additional custom tags may also be passed through.
+If your cloud provider's API supports instance tagging/labeling, declare `v1.CapabilityTags` in your capabilities:
+
+```go
+func (c *MyCredential) GetCapabilities(ctx context.Context) (v1.Capabilities, error) {
+    return v1.Capabilities{
+        v1.CapabilityCreateInstance,
+        v1.CapabilityTerminateInstance,
+        v1.CapabilityTags,  // Declare this if your API supports tags/labels
+    }, nil
+}
+```
+
+**When `CapabilityTags` is declared:**
+- Store `RefID`, `CloudCredRefID`, and any additional tags via `CreateInstanceAttrs.Tags`
+- The control plane will call `UpdateInstanceTags()` to add metadata after creation
+- `ListInstances()` should support filtering via `TagFilters` for efficient queries
+
+**Example (Shadeform with tags):**
+```go
+// At creation - store RefID and CloudCredRefID as tags
+refIDTag := fmt.Sprintf("refID=%s", attrs.RefID)
+cloudCredRefIDTag := fmt.Sprintf("cloudCredRefID=%s", c.GetReferenceID())
+tags := []string{refIDTag, cloudCredRefIDTag}
+
+// When reading back - extract from tags
+refID := tags["refID"]
+cloudCredRefID := tags["cloudCredRefID"]
+```
+
+### Alternative: When Tags Are NOT Supported
+
+If your API doesn't support tags, you **still must** persist and return `RefID` and `CloudCredRefID`. Use creative alternatives:
+
+**Example (Lambda Labs without tags):**
+```go
+// At creation - encode CloudCredRefID in instance name
+name := fmt.Sprintf("%s--%s", c.GetReferenceID(), time.Now().UTC().Format(timeFormat))
+// Use RefID as the SSH key pair name
+keyPairName := attrs.RefID
+
+// When reading back - extract from name and SSH key
+nameParts := strings.Split(instance.Name, "--")
+cloudCredRefID := nameParts[0]
+refID := instance.SshKeyNames[0]
+```
+
+### Recommendation: Use Tags If Possible
+
+**Tags are the recommended and easiest integration path.** They provide:
+- Clean separation of metadata from instance properties
+- Efficient server-side filtering via `TagFilters`
+- Full billing/usage tracking capabilities
+- Straightforward implementation
+
+If your cloud API supports any form of instance tagging, labels, or metadata—**use it**.
+
+
+> **Before implementing a custom solution**, please reach out to the Brev team. We can help design an approach that works reliably with the control plane and avoid edge cases that could cause instance correlation issues.
 
 ---
 
