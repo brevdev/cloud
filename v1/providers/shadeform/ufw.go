@@ -14,10 +14,35 @@ const (
 	ufwDefaultAllowPort22   = "ufw allow 22/tcp"
 	ufwDefaultAllowPort2222 = "ufw allow 2222/tcp"
 	ufwForceEnable          = "ufw --force enable"
+
+	//
+	ipTablesAllowDockerUserInpboundLoopback = "iptables -I DOCKER-USER -i lo -j ACCEPT"
+	ipTablesAllowDockerUserOutbound         = "iptables -I DOCKER-USER -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT"
+	ipTablesDropDockerUserInbound           = "iptables -A DOCKER-USER -j DROP"
 )
 
 func (c *ShadeformClient) GenerateFirewallScript(firewallRules v1.FirewallRules) (string, error) {
-	commands := []string{ufwForceReset, ufwDefaultDropIncoming, ufwDefaultAllowOutgoing, ufwDefaultAllowPort22, ufwDefaultAllowPort2222}
+	var commands []string
+	commands = append(commands, c.getUFWCommands(firewallRules)...)
+	commands = append(commands, c.getIPTablesCommands()...)
+
+	script := ""
+	for _, command := range commands {
+		script += fmt.Sprintf("%v\n", command)
+	}
+
+	encoded := base64.StdEncoding.EncodeToString([]byte(script))
+	return encoded, nil
+}
+
+func (c *ShadeformClient) getUFWCommands(firewallRules v1.FirewallRules) []string {
+	commands := []string{
+		ufwForceReset,
+		ufwDefaultDropIncoming,
+		ufwDefaultAllowOutgoing,
+		ufwDefaultAllowPort22,
+		ufwDefaultAllowPort2222,
+	}
 
 	for _, firewallRule := range firewallRules.IngressRules {
 		commands = append(commands, c.convertIngressFirewallRuleToUfwCommand(firewallRule)...)
@@ -30,13 +55,16 @@ func (c *ShadeformClient) GenerateFirewallScript(firewallRules v1.FirewallRules)
 	// Add the enable command
 	commands = append(commands, ufwForceEnable)
 
-	script := ""
-	for _, command := range commands {
-		script += fmt.Sprintf("%v\n", command)
-	}
+	return commands
+}
 
-	encoded := base64.StdEncoding.EncodeToString([]byte(script))
-	return encoded, nil
+func (c *ShadeformClient) getIPTablesCommands() []string {
+	commands := []string{
+		ipTablesAllowDockerUserInpboundLoopback,
+		ipTablesAllowDockerUserOutbound,
+		ipTablesDropDockerUserInbound,
+	}
+	return commands
 }
 
 func (c *ShadeformClient) convertIngressFirewallRuleToUfwCommand(firewallRule v1.FirewallRule) []string {

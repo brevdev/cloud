@@ -11,19 +11,18 @@ package openapi
 
 import (
 	"context"
+	"testing"
+
 	openapiclient "github.com/brevdev/cloud/v1/providers/launchpad/gen/launchpad"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func Test_openapi_CatalogExperiencesAPIService(t *testing.T) {
-
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
 
 	t.Run("Test CatalogExperiencesAPIService V1CatalogExperiencesBulkCreate", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		resp, httpRes, err := apiClient.CatalogExperiencesAPI.V1CatalogExperiencesBulkCreate(context.Background()).Execute()
@@ -31,11 +30,9 @@ func Test_openapi_CatalogExperiencesAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test CatalogExperiencesAPIService V1CatalogExperiencesBulkPartialUpdate", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		resp, httpRes, err := apiClient.CatalogExperiencesAPI.V1CatalogExperiencesBulkPartialUpdate(context.Background()).Execute()
@@ -43,11 +40,9 @@ func Test_openapi_CatalogExperiencesAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test CatalogExperiencesAPIService V1CatalogExperiencesCreate", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		resp, httpRes, err := apiClient.CatalogExperiencesAPI.V1CatalogExperiencesCreate(context.Background()).Execute()
@@ -55,11 +50,9 @@ func Test_openapi_CatalogExperiencesAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test CatalogExperiencesAPIService V1CatalogExperiencesDestroy", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		var id string
@@ -68,11 +61,9 @@ func Test_openapi_CatalogExperiencesAPIService(t *testing.T) {
 
 		require.Nil(t, err)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test CatalogExperiencesAPIService V1CatalogExperiencesHistoryList", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		var id string
@@ -82,11 +73,9 @@ func Test_openapi_CatalogExperiencesAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test CatalogExperiencesAPIService V1CatalogExperiencesList", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		resp, httpRes, err := apiClient.CatalogExperiencesAPI.V1CatalogExperiencesList(context.Background()).Execute()
@@ -94,11 +83,9 @@ func Test_openapi_CatalogExperiencesAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test CatalogExperiencesAPIService V1CatalogExperiencesNotesCreate", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		var experienceId string
@@ -108,11 +95,9 @@ func Test_openapi_CatalogExperiencesAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test CatalogExperiencesAPIService V1CatalogExperiencesNotesDestroy", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		var experienceId string
@@ -122,11 +107,9 @@ func Test_openapi_CatalogExperiencesAPIService(t *testing.T) {
 
 		require.Nil(t, err)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test CatalogExperiencesAPIService V1CatalogExperiencesNotesList", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		var experienceId string
@@ -136,11 +119,9 @@ func Test_openapi_CatalogExperiencesAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test CatalogExperiencesAPIService V1CatalogExperiencesNotesPartialUpdate", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		var experienceId string
@@ -151,11 +132,9 @@ func Test_openapi_CatalogExperiencesAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test CatalogExperiencesAPIService V1CatalogExperiencesNotesRetrieve", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		var experienceId string
@@ -166,11 +145,9 @@ func Test_openapi_CatalogExperiencesAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test CatalogExperiencesAPIService V1CatalogExperiencesNotesUpdate", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		var experienceId string
@@ -181,11 +158,9 @@ func Test_openapi_CatalogExperiencesAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test CatalogExperiencesAPIService V1CatalogExperiencesPartialUpdate", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		var id string
@@ -195,11 +170,9 @@ func Test_openapi_CatalogExperiencesAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test CatalogExperiencesAPIService V1CatalogExperiencesRetrieve", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		var id string
@@ -209,22 +182,18 @@ func Test_openapi_CatalogExperiencesAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test CatalogExperiencesAPIService V1CatalogExperiencesStatsRetrieve", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		httpRes, err := apiClient.CatalogExperiencesAPI.V1CatalogExperiencesStatsRetrieve(context.Background()).Execute()
 
 		require.Nil(t, err)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test CatalogExperiencesAPIService V1CatalogExperiencesUpdate", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		var id string
@@ -234,7 +203,5 @@ func Test_openapi_CatalogExperiencesAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
-
 }
