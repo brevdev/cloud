@@ -24,7 +24,7 @@ const (
 func (c *ShadeformClient) GenerateFirewallScript(firewallRules v1.FirewallRules) (string, error) {
 	var commands []string
 	commands = append(commands, c.getUFWCommands(firewallRules)...)
-	commands = append(commands, c.getIpTablesCommands()...)
+	commands = append(commands, c.getIPTablesCommands()...)
 
 	script := ""
 	for _, command := range commands {
@@ -58,7 +58,7 @@ func (c *ShadeformClient) getUFWCommands(firewallRules v1.FirewallRules) []strin
 	return commands
 }
 
-func (c *ShadeformClient) getIpTablesCommands() []string {
+func (c *ShadeformClient) getIPTablesCommands() []string {
 	commands := []string{
 		ipTablesAllowDockerUserInpboundLoopback,
 		ipTablesAllowDockerUserOutbound,
