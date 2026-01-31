@@ -248,8 +248,6 @@ func RunNetworkValidation(t *testing.T, config ProviderConfig, opts NetworkValid
 type FirewallValidationOpts struct {
 	// TestPort is the port to test firewall blocking on (should NOT be in allowed ingress)
 	TestPort int
-	// TestDockerFirewall enables docker firewall validation (requires Docker on instance)
-	TestDockerFirewall bool
 }
 
 func RunFirewallValidation(t *testing.T, config ProviderConfig, opts FirewallValidationOpts) {
@@ -319,13 +317,10 @@ func RunFirewallValidation(t *testing.T, config ProviderConfig, opts FirewallVal
 		require.NoError(t, err, "ValidateFirewallBlocksPort should pass - port should be blocked")
 	})
 
-	// Test that Docker container on 0.0.0.0 is blocked (if enabled)
-	if opts.TestDockerFirewall {
-		t.Run("ValidateDockerFirewallBlocksPort", func(t *testing.T) {
-			err := v1.ValidateDockerFirewallBlocksPort(ctx, client, instance, ssh.GetTestPrivateKey(), testPort)
-			require.NoError(t, err, "ValidateDockerFirewallBlocksPort should pass - docker port should be blocked")
-		})
-	}
+	t.Run("ValidateDockerFirewallBlocksPort", func(t *testing.T) {
+		err := v1.ValidateDockerFirewallBlocksPort(ctx, client, instance, ssh.GetTestPrivateKey(), testPort)
+		require.NoError(t, err, "ValidateDockerFirewallBlocksPort should pass - docker port should be blocked")
+	})
 
 	// Test that SSH port is accessible (sanity check)
 	t.Run("ValidateSSHPortAccessible", func(t *testing.T) {
