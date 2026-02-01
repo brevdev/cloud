@@ -1796,8 +1796,8 @@ func generateUFWCommands(firewallRules v1.FirewallRules) []string {
 func generateIPTablesCommands() []string {
 	commands := []string{
 		"iptables -F DOCKER-USER",
-		"iptables -A DOCKER-USER -i lo -j ACCEPT",
 		"iptables -A DOCKER-USER -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT",
+		"iptables -A DOCKER-USER -i lo -j ACCEPT",
 		"iptables -A DOCKER-USER -j DROP",
 		"iptables -A DOCKER-USER -j RETURN", // Expected by Docker
 	}

@@ -16,8 +16,8 @@ const (
 	ufwForceEnable          = "ufw --force enable"
 
 	ipTablesResetDockerUserChain            = "iptables -F DOCKER-USER"
-	ipTablesAllowDockerUserInpboundLoopback = "iptables -A DOCKER-USER -i lo -j ACCEPT"
 	ipTablesAllowDockerUserOutbound         = "iptables -A DOCKER-USER -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT"
+	ipTablesAllowDockerUserInpboundLoopback = "iptables -A DOCKER-USER -i lo -j ACCEPT"
 	ipTablesDropDockerUserInbound           = "iptables -A DOCKER-USER -j DROP"
 	ipTablesReturnDockerUser                = "iptables -A DOCKER-USER -j RETURN"
 )
@@ -62,8 +62,8 @@ func (c *ShadeformClient) getUFWCommands(firewallRules v1.FirewallRules) []strin
 func (c *ShadeformClient) getIPTablesCommands() []string {
 	commands := []string{
 		ipTablesResetDockerUserChain,
-		ipTablesAllowDockerUserInpboundLoopback,
 		ipTablesAllowDockerUserOutbound,
+		ipTablesAllowDockerUserInpboundLoopback,
 		ipTablesDropDockerUserInbound,
 		ipTablesReturnDockerUser, // Expected by Docker
 	}
