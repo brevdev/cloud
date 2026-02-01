@@ -15,7 +15,6 @@ const (
 	ufwDefaultAllowPort2222 = "ufw allow 2222/tcp"
 	ufwForceEnable          = "ufw --force enable"
 
-	//
 	ipTablesAllowDockerUserInpboundLoopback = "iptables -I DOCKER-USER -i lo -j ACCEPT"
 	ipTablesAllowDockerUserOutbound         = "iptables -I DOCKER-USER -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT"
 	ipTablesDropDockerUserInbound           = "iptables -A DOCKER-USER -j DROP"

@@ -1744,14 +1744,19 @@ func generateCloudInitUserData(publicKey string, firewallRules v1.FirewallRules)
 `, publicKey)
 	}
 
+	var commands []string
 	// Generate UFW firewall commands (similar to Shadeform's approach)
 	// UFW (Uncomplicated Firewall) is available on Ubuntu/Debian instances
-	ufwCommands := generateUFWCommands(firewallRules)
+	commands = append(commands, generateUFWCommands(firewallRules)...)
 
-	if len(ufwCommands) > 0 {
+	// Generate IPTables firewall commands to ensure docker ports are not made immediately
+	// accessible from the internet by default.
+	commands = append(commands, generateIPTablesCommands()...)
+
+	if len(commands) > 0 {
 		// Use runcmd to execute firewall setup commands
 		script += "\nruncmd:\n"
-		for _, cmd := range ufwCommands {
+		for _, cmd := range commands {
 			script += fmt.Sprintf("  - %s\n", cmd)
 		}
 	}
@@ -1783,6 +1788,17 @@ func generateUFWCommands(firewallRules v1.FirewallRules) []string {
 	// Enable the firewall
 	commands = append(commands, "ufw --force enable")
 
+	return commands
+}
+
+// generateIPTablesCommands generates IPTables firewall commands to ensure docker ports are not made immediately
+// accessible from the internet by default.
+func generateIPTablesCommands() []string {
+	commands := []string{
+		"iptables -I DOCKER-USER -i lo -j ACCEPT",
+		"iptables -I DOCKER-USER -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT",
+		"iptables -A DOCKER-USER -j DROP",
+	}
 	return commands
 }
 
