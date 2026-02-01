@@ -119,6 +119,16 @@ func RunInstanceLifecycleValidation(t *testing.T, config ProviderConfig) {
 			require.NoError(t, err, "ValidateInstanceImage should pass")
 		})
 
+		t.Run("ValidateFirewallBlocksPort", func(t *testing.T) {
+			err := v1.ValidateFirewallBlocksPort(ctx, client, instance, ssh.GetTestPrivateKey(), v1.DefaultFirewallTestPort)
+			require.NoError(t, err, "ValidateFirewallBlocksPort should pass - non-allowed port should be blocked")
+		})
+
+		t.Run("ValidateDockerFirewallBlocksPort", func(t *testing.T) {
+			err := v1.ValidateDockerFirewallBlocksPort(ctx, client, instance, ssh.GetTestPrivateKey(), v1.DefaultFirewallTestPort)
+			require.NoError(t, err, "ValidateDockerFirewallBlocksPort should pass - docker port should be blocked by iptables")
+		})
+
 		if capabilities.IsCapable(v1.CapabilityStopStartInstance) && instance.Stoppable {
 			t.Run("ValidateStopStartInstance", func(t *testing.T) {
 				err := v1.ValidateStopStartInstance(ctx, client, instance)
@@ -232,6 +242,96 @@ func RunNetworkValidation(t *testing.T, config ProviderConfig, opts NetworkValid
 		})
 		require.ErrorIs(t, err, v1.ErrResourceNotFound)
 		deletionSucceeded = true
+	})
+}
+
+type FirewallValidationOpts struct {
+	// TestPort is the port to test firewall blocking on (should NOT be in allowed ingress)
+	TestPort int
+}
+
+func RunFirewallValidation(t *testing.T, config ProviderConfig, opts FirewallValidationOpts) {
+	if testing.Short() {
+		t.Skip("Skipping validation tests in short mode")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Minute)
+	defer cancel()
+
+	client, err := config.Credential.MakeClient(ctx, config.Location)
+	if err != nil {
+		t.Fatalf("Failed to create client for %s: %v", config.Credential.GetCloudProviderID(), err)
+	}
+
+	types, err := client.GetInstanceTypes(ctx, v1.GetInstanceTypeArgs{
+		ArchitectureFilter: &v1.ArchitectureFilter{
+			IncludeArchitectures: []v1.Architecture{v1.ArchitectureX86_64},
+		},
+	})
+	require.NoError(t, err)
+	require.NotEmpty(t, types, "Should have instance types")
+
+	// Find an available instance type
+	attrs := v1.CreateInstanceAttrs{}
+	selectedType := v1.InstanceType{}
+	for _, typ := range types {
+		if typ.IsAvailable {
+			attrs.InstanceType = typ.Type
+			attrs.Location = typ.Location
+			attrs.PublicKey = ssh.GetTestPublicKey()
+			selectedType = typ
+			break
+		}
+	}
+	require.NotEmpty(t, attrs.InstanceType, "Should find available instance type")
+
+	// Create instance for firewall testing
+	instance, err := v1.ValidateCreateInstance(ctx, client, attrs, selectedType)
+	require.NoError(t, err, "ValidateCreateInstance should pass")
+	require.NotNil(t, instance)
+
+	defer func() {
+		if instance != nil {
+			_ = client.TerminateInstance(ctx, instance.CloudID)
+		}
+	}()
+
+	// Wait for instance to be running and SSH accessible
+	t.Run("ValidateSSHAccessible", func(t *testing.T) {
+		err := v1.ValidateInstanceSSHAccessible(ctx, client, instance, ssh.GetTestPrivateKey())
+		require.NoError(t, err, "ValidateSSHAccessible should pass")
+	})
+
+	// Refresh instance data
+	instance, err = client.GetInstance(ctx, instance.CloudID)
+	require.NoError(t, err)
+
+	testPort := opts.TestPort
+	if testPort == 0 {
+		testPort = v1.DefaultFirewallTestPort
+	}
+
+	// Test that regular server on 0.0.0.0 is blocked
+	t.Run("ValidateFirewallBlocksPort", func(t *testing.T) {
+		err := v1.ValidateFirewallBlocksPort(ctx, client, instance, ssh.GetTestPrivateKey(), testPort)
+		require.NoError(t, err, "ValidateFirewallBlocksPort should pass - port should be blocked")
+	})
+
+	t.Run("ValidateDockerFirewallBlocksPort", func(t *testing.T) {
+		err := v1.ValidateDockerFirewallBlocksPort(ctx, client, instance, ssh.GetTestPrivateKey(), testPort)
+		require.NoError(t, err, "ValidateDockerFirewallBlocksPort should pass - docker port should be blocked")
+	})
+
+	// Test that SSH port is accessible (sanity check)
+	t.Run("ValidateSSHPortAccessible", func(t *testing.T) {
+		err := v1.ValidateFirewallAllowsPort(ctx, client, instance, ssh.GetTestPrivateKey(), instance.SSHPort)
+		require.NoError(t, err, "ValidateFirewallAllowsPort should pass for SSH port")
+	})
+
+	// Terminate instance
+	t.Run("ValidateTerminateInstance", func(t *testing.T) {
+		err := v1.ValidateTerminateInstance(ctx, client, instance)
+		require.NoError(t, err, "ValidateTerminateInstance should pass")
 	})
 }
 
