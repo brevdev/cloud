@@ -133,6 +133,7 @@ func (c *NebiusClient) CreateInstance(ctx context.Context, attrs v1.CreateInstan
 	createReq.Metadata.Labels["created-by"] = "brev-cloud-sdk"
 	createReq.Metadata.Labels["brev-user"] = attrs.RefID
 	createReq.Metadata.Labels["environment-id"] = attrs.RefID
+	createReq.Metadata.Labels["cloud-cred-ref-id"] = c.refID // Store creator's cloud credential ID for authorization
 	// Track associated resources for cleanup
 	createReq.Metadata.Labels["network-id"] = networkID
 	createReq.Metadata.Labels["subnet-id"] = subnetID
@@ -276,11 +277,23 @@ func (c *NebiusClient) convertNebiusInstanceToV1(ctx context.Context, instance *
 	// Extract labels from metadata
 	var tags map[string]string
 	var refID string
+	var cloudCredRefID string
 	var instanceTypeID string
 	if instance.Metadata != nil && len(instance.Metadata.Labels) > 0 {
 		tags = instance.Metadata.Labels
-		refID = instance.Metadata.Labels["brev-user"]                 // Extract from labels if available
-		instanceTypeID = instance.Metadata.Labels["instance-type-id"] // Full instance type ID (dot format)
+		refID = instance.Metadata.Labels["brev-user"]                  // Extract from labels if available
+		cloudCredRefID = instance.Metadata.Labels["cloud-cred-ref-id"] // Extract creator's cloud credential ID
+		instanceTypeID = instance.Metadata.Labels["instance-type-id"]  // Full instance type ID (dot format)
+	}
+
+	// Backward compatibility: if cloudCredRefID is not in labels (instances created before this fix),
+	// fall back to using the current client's refID. This maintains existing behavior for old instances
+	// but is less secure - those instances won't have proper authorization checks.
+	if cloudCredRefID == "" {
+		cloudCredRefID = c.refID
+		c.logger.Warn(ctx, "instance missing cloud-cred-ref-id label, using current client refID.",
+			v1.LogField("instanceID", instance.Metadata.Id),
+			v1.LogField("instanceName", instance.Metadata.Name))
 	}
 
 	// If instance type ID is not in labels (older instances), reconstruct it from platform + preset
@@ -336,7 +349,7 @@ func (c *NebiusClient) convertNebiusInstanceToV1(ctx context.Context, instance *
 
 	inst := &v1.Instance{
 		RefID:          refID,
-		CloudCredRefID: c.refID,
+		CloudCredRefID: cloudCredRefID, // Use creator's cloud credential ID from labels, not current client's ID
 		Name:           instance.Metadata.Name,
 		CloudID:        instanceID,
 		Location:       location,
