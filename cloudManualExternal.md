@@ -398,6 +398,37 @@ inst.InstanceTypeID = v1.MakeGenericInstanceTypeIDFromInstance(*inst)  // LAST
 - "instance type not found" errors during provisioning
 - Instances appear "orphaned" (no associated instance type)
 
+### Validating Your Instance Type IDs
+
+The SDK provides validation functions to catch ID generation issues early. **Run these in your test suite:**
+
+**1. `ValidateStableInstanceTypeIDs`** - Ensures your instance type IDs are stable and unique:
+```go
+// In your validation tests
+err := v1.ValidateStableInstanceTypeIDs(ctx, client, stableIDs)
+require.NoError(t, err, "ValidateStableInstanceTypeIDs should pass")
+```
+
+This validates:
+- Each instance type ID is unique (no duplicates)
+- Your designated stable IDs exist in the current instance types
+- All instance types have required properties (base price, storage pricing)
+
+**2. `ValidateCreateInstance`** - Validates that instance and instance type IDs match:
+```go
+// In your validation tests
+instance, err := v1.ValidateCreateInstance(ctx, client, attrs, selectedType)
+require.NoError(t, err, "ValidateCreateInstance should pass")
+```
+
+This validates (among other things):
+- `instance.InstanceTypeID == selectedType.ID` — **catches ID generation mismatches**
+- `instance.RefID` matches the provided RefID
+- Location and instance type fields are consistent
+
+> **Why this matters:** If `MakeGenericInstanceTypeID()` and `MakeGenericInstanceTypeIDFromInstance()` produce different IDs for the same logical type, the control plane cannot correlate instances with their types. `ValidateCreateInstance` catches this.
+
+See [`internal/validation/suite.go`](internal/validation/suite.go) for the full validation test suite you can use as a reference.
 
 ## 4. Location Model
 
@@ -443,10 +474,6 @@ Availability is tracked **per instance type** using two fields on the `InstanceT
 ---
 
 ## 5. GPU Normalization
-
-### Why GPU Normalization Matters
-
-Users search for GPUs by model. They want "H100" not "NVIDIA H100 80GB HBM3 SXM5 Accelerator". Your provider implementation must normalize GPU data into the SDK's structured `GPU` type.
 
 ### The GPU Struct
 
@@ -610,7 +637,7 @@ Your implementation must:
 1. Accept this public key in your create instance API
 2. Install it in the VM's default user `~/.ssh/authorized_keys` before the instance becomes accessible
 
-Brev generates a unique SSH key pair for each instance. The control plane retains the private key and uses it to connect after creation.
+Brev manages SSH keys per user. The public key provided in `CreateInstanceAttrs.PublicKey` belongs to the user, and the control plane retains the corresponding private key to connect after creation.
 
 ---
 
@@ -713,7 +740,7 @@ return c.GetInstance(ctx, v1.CloudProviderInstanceID(resp.Data.InstanceIds[0]))
 - Return `nil` once the stop operation is initiated.
 - Instance should transition: `running` → `stopping` → `stopped`
 
-**When to implement:** Only if your platform supports instances that can stop and perserve storae. Lambda Labs does not support this, but Nebius does.
+**When to implement:** Only if your platform supports instances that can stop and preserve storage. Lambda Labs does not support this, but Nebius does.
 
 ### Start Instance (Optional)
 
@@ -727,6 +754,54 @@ return c.GetInstance(ctx, v1.CloudProviderInstanceID(resp.Data.InstanceIds[0]))
 - Instance should transition: `stopped` → `pending` → `running`
 
 **Note:** If you implement `StopInstance`, you must also implement `StartInstance`.
+
+### Stop/Start: Three Levels of Control
+
+Stop/start support is controlled at three levels:
+
+| Level | What to Set | Purpose |
+|-------|-------------|---------|
+| **Provider Capability** | `CapabilityStopStartInstance` in `GetCapabilities()` | Indicates your API supports stop/start operations |
+| **Instance Type** | `InstanceType.Stoppable = true/false` | Indicates whether this instance type can be stopped (e.g., spot instances typically cannot) |
+| **Instance** | `Instance.Stoppable = true/false` | Indicates whether this specific instance can be stopped |
+
+**Example - Nebius (supports stop/start):**
+```go
+// In GetCapabilities()
+v1.CapabilityStopStartInstance,  // API supports it
+
+// In GetInstanceTypes() - instance type level
+instanceType := v1.InstanceType{
+    Stoppable: true,  // This type supports stop/start
+    // ...
+}
+
+// In GetInstance()/CreateInstance() - instance level
+instance := v1.Instance{
+    Stoppable: true,  // This instance can be stopped
+    // ...
+}
+```
+
+**Example - Lambda Labs (no stop/start support):**
+```go
+// In GetCapabilities()
+// CapabilityStopStartInstance NOT included
+
+// In GetInstanceTypes()
+instanceType := v1.InstanceType{
+    Stoppable: false,  // Cannot be stopped
+    // ...
+}
+
+// In GetInstance()/CreateInstance()
+instance := v1.Instance{
+    Stoppable: false,  // Cannot be stopped
+    // ...
+}
+```
+
+The control plane checks all three levels before allowing a stop/start operation. If any level indicates `false`, the operation won't be attempted.
 
 
 ### Get Instance (Required)
