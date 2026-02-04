@@ -322,6 +322,16 @@ func RunFirewallValidation(t *testing.T, config ProviderConfig, opts FirewallVal
 		require.NoError(t, err, "ValidateDockerFirewallBlocksPort should pass - docker port should be blocked")
 	})
 
+	t.Run("ValidateDockerFirewallAllowsEgress", func(t *testing.T) {
+		err := v1.ValidateDockerFirewallAllowsEgress(ctx, client, instance, ssh.GetTestPrivateKey(), testPort)
+		require.NoError(t, err, "ValidateDockerFirewallAllowsEgress should pass - egress should be allowed")
+	})
+
+	t.Run("ValidateDockerFirewallAllowsContainerToContainerCommunication", func(t *testing.T) {
+		err := v1.ValidateDockerFirewallAllowsContainerToContainerCommunication(ctx, client, instance, ssh.GetTestPrivateKey(), testPort)
+		require.NoError(t, err, "ValidateDockerFirewallAllowsContainerToContainerCommunication should pass - container to container communication should be allowed")
+	})
+
 	// Test that SSH port is accessible (sanity check)
 	t.Run("ValidateSSHPortAccessible", func(t *testing.T) {
 		err := v1.ValidateFirewallAllowsPort(ctx, client, instance, ssh.GetTestPrivateKey(), instance.SSHPort)

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/brevdev/cloud/internal/ssh"
@@ -138,6 +139,101 @@ func ValidateDockerFirewallBlocksPort(ctx context.Context, client CloudInstanceR
 		return err
 	}
 
+	return nil
+}
+
+func ValidateDockerFirewallAllowsEgress(ctx context.Context, client CloudInstanceReader, instance *Instance, privateKey string, port int) error {
+	var err error
+	instance, err = WaitForInstanceLifecycleStatus(ctx, client, instance, LifecycleStatusRunning, PendingToRunningTimeout)
+	if err != nil {
+		return fmt.Errorf("failed to wait for instance running: %w", err)
+	}
+
+	publicIP := instance.PublicIP
+	if publicIP == "" {
+		return fmt.Errorf("public IP is not available for instance %s", instance.CloudID)
+	}
+
+	sshClient, err := ssh.ConnectToHost(ctx, ssh.ConnectionConfig{
+		User:     instance.SSHUser,
+		HostPort: fmt.Sprintf("%s:%d", publicIP, instance.SSHPort),
+		PrivKey:  privateKey,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to SSH into instance: %w", err)
+	}
+	defer func() { _ = sshClient.Close() }()
+
+	dockerCmd, err := setupDockerCommand(ctx, sshClient, instance.CloudID)
+	if err != nil {
+		return err
+	}
+	// Start a Docker container to ping Google's DNS server
+	startDockerCmd := fmt.Sprintf(
+		"%s run --rm alpine ping -c 3 8.8.8.8",
+		dockerCmd,
+	)
+	stdout, stderr, err := sshClient.RunCommand(ctx, startDockerCmd)
+	if err != nil {
+		return fmt.Errorf("failed to start docker container: %w, stderr: %s", err, stderr)
+	}
+	if !strings.Contains(stdout, "3 packets transmitted, 3 packets received") {
+		return fmt.Errorf("expected successful ping, got: %s", stdout)
+	}
+
+	return nil
+}
+
+func ValidateDockerFirewallAllowsContainerToContainerCommunication(ctx context.Context, client CloudInstanceReader, instance *Instance, privateKey string, port int) error {
+	var err error
+	instance, err = WaitForInstanceLifecycleStatus(ctx, client, instance, LifecycleStatusRunning, PendingToRunningTimeout)
+	if err != nil {
+		return fmt.Errorf("failed to wait for instance running: %w", err)
+	}
+
+	publicIP := instance.PublicIP
+	if publicIP == "" {
+		return fmt.Errorf("public IP is not available for instance %s", instance.CloudID)
+	}
+
+	sshClient, err := ssh.ConnectToHost(ctx, ssh.ConnectionConfig{
+		User:     instance.SSHUser,
+		HostPort: fmt.Sprintf("%s:%d", publicIP, instance.SSHPort),
+		PrivKey:  privateKey,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to SSH into instance: %w", err)
+	}
+	defer func() { _ = sshClient.Close() }()
+
+	dockerCmd, err := setupDockerCommand(ctx, sshClient, instance.CloudID)
+	if err != nil {
+		return err
+	}
+	// Start a Docker container in the background
+	containerName := fmt.Sprintf("firewall-test-container-to-container")
+	startDockerCmd := fmt.Sprintf(
+		"%s run -d --name %s nginx:alpine",
+		dockerCmd, containerName,
+	)
+	_, stderr, err := sshClient.RunCommand(ctx, startDockerCmd)
+	if err != nil {
+		return fmt.Errorf("failed to start docker container: %w, stderr: %s", err, stderr)
+	}
+
+	// Start a second Docker container to connect to the first container
+	startDockerCmd = fmt.Sprintf(
+		"%s run --rm alpine wget -q -O- http://%s",
+		dockerCmd, containerName,
+	)
+	stdout, stderr, err := sshClient.RunCommand(ctx, startDockerCmd)
+	if err != nil {
+		return fmt.Errorf("failed to start docker container: %w, stderr: %s", err, stderr)
+	}
+
+	if !strings.Contains(stdout, "Welcome to nginx") {
+		return fmt.Errorf("expected successful wget, got: %s", stdout)
+	}
 	return nil
 }
 
