@@ -16,7 +16,6 @@ func TestValidationFunctions(t *testing.T) {
 		Credential: NewSFCCredential("validation-test", apiKey),
 		StableIDs: []v1.InstanceTypeID{
 			"h100v_hayesvalley",
-			"h100v_excelsior",
 			"h100v_yerba",
 		},
 	}
