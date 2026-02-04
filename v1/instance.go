@@ -11,6 +11,7 @@ import (
 type CloudInstanceReader interface {
 	GetInstance(ctx context.Context, id CloudProviderInstanceID) (*Instance, error)
 	ListInstances(ctx context.Context, args ListInstancesArgs) ([]Instance, error)
+	GetInstancePollTime() time.Duration
 }
 
 type CloudCreateTerminateInstance interface {
