@@ -15,11 +15,26 @@ const (
 	ufwDefaultAllowPort2222 = "ufw allow 2222/tcp"
 	ufwForceEnable          = "ufw --force enable"
 
-	ipTablesResetDockerUserChain            = "iptables -F DOCKER-USER"
-	ipTablesAllowDockerUserOutbound         = "iptables -A DOCKER-USER -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT"
+	// Clear DOCKER-USER policy.
+	ipTablesResetDockerUserChain = "iptables -F DOCKER-USER"
+
+	// Allow return traffic.
+	ipTablesAllowDockerUserOutbound = "iptables -A DOCKER-USER -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT"
+
+	// Allow containers to initiate outbound traffic (default bridge + user-defined bridges).
+	ipTablesAllowDockerUserOutboundInit0 = "iptables -A DOCKER-USER -i docker0 ! -o docker0 -j ACCEPT"
+	ipTablesAllowDockerUserOutboundInit1 = "iptables -A DOCKER-USER -i br+     ! -o br+     -j ACCEPT"
+
+	// Allow container-to-container on the same bridge.
+	ipTablesAllowDockerUserDockerToDocker0 = "iptables -A DOCKER-USER -i docker0 -o docker0 -j ACCEPT"
+	ipTablesAllowDockerUserDockerToDocker1 = "iptables -A DOCKER-USER -i br+     -o br+     -j ACCEPT"
+
+	// Allow inbound traffic on the loopback interface.
 	ipTablesAllowDockerUserInpboundLoopback = "iptables -A DOCKER-USER -i lo -j ACCEPT"
-	ipTablesDropDockerUserInbound           = "iptables -A DOCKER-USER -j DROP"
-	ipTablesReturnDockerUser                = "iptables -A DOCKER-USER -j RETURN"
+
+	// Drop everything else.
+	ipTablesDropDockerUserInbound = "iptables -A DOCKER-USER -j DROP"
+	ipTablesReturnDockerUser      = "iptables -A DOCKER-USER -j RETURN"
 )
 
 func (c *ShadeformClient) GenerateFirewallScript(firewallRules v1.FirewallRules) (string, error) {
@@ -63,6 +78,10 @@ func (c *ShadeformClient) getIPTablesCommands() []string {
 	commands := []string{
 		ipTablesResetDockerUserChain,
 		ipTablesAllowDockerUserOutbound,
+		ipTablesAllowDockerUserOutboundInit0,
+		ipTablesAllowDockerUserOutboundInit1,
+		ipTablesAllowDockerUserDockerToDocker0,
+		ipTablesAllowDockerUserDockerToDocker1,
 		ipTablesAllowDockerUserInpboundLoopback,
 		ipTablesDropDockerUserInbound,
 		ipTablesReturnDockerUser, // Expected by Docker
