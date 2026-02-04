@@ -43,6 +43,11 @@ func (c notImplCloudClient) GetInstanceTypePollTime() time.Duration {
 	return pollTime
 }
 
+func (c notImplCloudClient) GetInstancePollTime() time.Duration {
+	pollTime := 5 * time.Second
+	return pollTime
+}
+
 func (c notImplCloudClient) CreateInstance(_ context.Context, _ CreateInstanceAttrs) (*Instance, error) {
 	return nil, ErrNotImplemented
 }

@@ -78,6 +78,10 @@ func (m *mockCloudInstanceReader) ListInstances(_ context.Context, _ ListInstanc
 	return nil, nil
 }
 
+func (m *mockCloudInstanceReader) GetInstancePollTime() time.Duration {
+	return 5 * time.Second
+}
+
 // setStatusSequence sets up a sequence of statuses that will be returned for an instance
 func (m *mockCloudInstanceReader) setStatusSequence(instanceID CloudProviderInstanceID, sequence []LifecycleStatus) {
 	m.statusSequence[instanceID] = sequence
