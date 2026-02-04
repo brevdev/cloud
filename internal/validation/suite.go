@@ -129,6 +129,16 @@ func RunInstanceLifecycleValidation(t *testing.T, config ProviderConfig) {
 			require.NoError(t, err, "ValidateDockerFirewallBlocksPort should pass - docker port should be blocked by iptables")
 		})
 
+		t.Run("ValidateDockerFirewallAllowsEgress", func(t *testing.T) {
+			err := v1.ValidateDockerFirewallAllowsEgress(ctx, client, instance, ssh.GetTestPrivateKey())
+			require.NoError(t, err, "ValidateDockerFirewallAllowsEgress should pass - egress should be allowed")
+		})
+
+		t.Run("ValidateDockerFirewallAllowsContainerToContainerCommunication", func(t *testing.T) {
+			err := v1.ValidateDockerFirewallAllowsContainerToContainerCommunication(ctx, client, instance, ssh.GetTestPrivateKey())
+			require.NoError(t, err, "ValidateDockerFirewallAllowsContainerToContainerCommunication should pass - container to container communication should be allowed")
+		})
+
 		if capabilities.IsCapable(v1.CapabilityStopStartInstance) && instance.Stoppable {
 			t.Run("ValidateStopStartInstance", func(t *testing.T) {
 				err := v1.ValidateStopStartInstance(ctx, client, instance)
@@ -323,12 +333,12 @@ func RunFirewallValidation(t *testing.T, config ProviderConfig, opts FirewallVal
 	})
 
 	t.Run("ValidateDockerFirewallAllowsEgress", func(t *testing.T) {
-		err := v1.ValidateDockerFirewallAllowsEgress(ctx, client, instance, ssh.GetTestPrivateKey(), testPort)
+		err := v1.ValidateDockerFirewallAllowsEgress(ctx, client, instance, ssh.GetTestPrivateKey())
 		require.NoError(t, err, "ValidateDockerFirewallAllowsEgress should pass - egress should be allowed")
 	})
 
 	t.Run("ValidateDockerFirewallAllowsContainerToContainerCommunication", func(t *testing.T) {
-		err := v1.ValidateDockerFirewallAllowsContainerToContainerCommunication(ctx, client, instance, ssh.GetTestPrivateKey(), testPort)
+		err := v1.ValidateDockerFirewallAllowsContainerToContainerCommunication(ctx, client, instance, ssh.GetTestPrivateKey())
 		require.NoError(t, err, "ValidateDockerFirewallAllowsContainerToContainerCommunication should pass - container to container communication should be allowed")
 	})
 

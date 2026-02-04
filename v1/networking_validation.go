@@ -142,7 +142,7 @@ func ValidateDockerFirewallBlocksPort(ctx context.Context, client CloudInstanceR
 	return nil
 }
 
-func ValidateDockerFirewallAllowsEgress(ctx context.Context, client CloudInstanceReader, instance *Instance, privateKey string, port int) error {
+func ValidateDockerFirewallAllowsEgress(ctx context.Context, client CloudInstanceReader, instance *Instance, privateKey string) error {
 	var err error
 	instance, err = WaitForInstanceLifecycleStatus(ctx, client, instance, LifecycleStatusRunning, PendingToRunningTimeout)
 	if err != nil {
@@ -184,7 +184,7 @@ func ValidateDockerFirewallAllowsEgress(ctx context.Context, client CloudInstanc
 	return nil
 }
 
-func ValidateDockerFirewallAllowsContainerToContainerCommunication(ctx context.Context, client CloudInstanceReader, instance *Instance, privateKey string, port int) error {
+func ValidateDockerFirewallAllowsContainerToContainerCommunication(ctx context.Context, client CloudInstanceReader, instance *Instance, privateKey string) error {
 	var err error
 	instance, err = WaitForInstanceLifecycleStatus(ctx, client, instance, LifecycleStatusRunning, PendingToRunningTimeout)
 	if err != nil {
