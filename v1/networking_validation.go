@@ -223,7 +223,7 @@ func ValidateDockerFirewallAllowsContainerToContainerCommunication(ctx context.C
 	}
 
 	// Start a Docker container in the background
-	containerName := fmt.Sprintf("firewall-test-container-to-container")
+	containerName := "firewall-test-container-to-container"
 	startDockerCmd := fmt.Sprintf(
 		"%s run -d --name %s --network %s nginx:alpine",
 		dockerCmd, containerName, networkName,
