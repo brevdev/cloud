@@ -210,21 +210,33 @@ func ValidateDockerFirewallAllowsContainerToContainerCommunication(ctx context.C
 	if err != nil {
 		return err
 	}
+
+	// Create a docker network
+	networkName := "firewall-test-network"
+	createNetworkCmd := fmt.Sprintf(
+		"%s network create %s",
+		dockerCmd, networkName,
+	)
+	_, stderr, err := sshClient.RunCommand(ctx, createNetworkCmd)
+	if err != nil {
+		return fmt.Errorf("failed to create docker network: %w, stderr: %s", err, stderr)
+	}
+
 	// Start a Docker container in the background
 	containerName := fmt.Sprintf("firewall-test-container-to-container")
 	startDockerCmd := fmt.Sprintf(
-		"%s run -d --name %s nginx:alpine",
-		dockerCmd, containerName,
+		"%s run -d --name %s --network %s nginx:alpine",
+		dockerCmd, containerName, networkName,
 	)
-	_, stderr, err := sshClient.RunCommand(ctx, startDockerCmd)
+	_, stderr, err = sshClient.RunCommand(ctx, startDockerCmd)
 	if err != nil {
 		return fmt.Errorf("failed to start docker container: %w, stderr: %s", err, stderr)
 	}
 
 	// Start a second Docker container to connect to the first container
 	startDockerCmd = fmt.Sprintf(
-		"%s run --rm alpine wget -q -O- http://%s",
-		dockerCmd, containerName,
+		"%s run --network %s --rm alpine wget -q -O- http://%s",
+		dockerCmd, networkName, containerName,
 	)
 	stdout, stderr, err := sshClient.RunCommand(ctx, startDockerCmd)
 	if err != nil {
