@@ -78,10 +78,10 @@ func (c *ShadeformClient) getIPTablesCommands() []string {
 	commands := []string{
 		ipTablesResetDockerUserChain,
 		ipTablesAllowDockerUserOutbound,
-		// ipTablesAllowDockerUserOutboundInit0,
-		// ipTablesAllowDockerUserOutboundInit1,
-		// ipTablesAllowDockerUserDockerToDocker0,
-		// ipTablesAllowDockerUserDockerToDocker1,
+		ipTablesAllowDockerUserOutboundInit0,
+		ipTablesAllowDockerUserOutboundInit1,
+		ipTablesAllowDockerUserDockerToDocker0,
+		ipTablesAllowDockerUserDockerToDocker1,
 		ipTablesAllowDockerUserInpboundLoopback,
 		ipTablesDropDockerUserInbound,
 		ipTablesReturnDockerUser, // Expected by Docker
