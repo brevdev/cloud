@@ -186,7 +186,7 @@ func ValidateDockerFirewallAllowsEgress(ctx context.Context, client CloudInstanc
 	)
 	stdout, stderr, err := sshClient.RunCommand(ctx, cmd)
 	if err != nil {
-		return fmt.Errorf("failed to start docker container: %w, stderr: %s", err, stderr)
+		return fmt.Errorf("failed to connect to Google's DNS server: %w, stderr: %s", err, stderr)
 	}
 	if !strings.Contains(stdout, "3 packets transmitted, 3 packets received") {
 		return fmt.Errorf("expected successful ping, got: %s", stdout)
@@ -271,7 +271,7 @@ func ValidateDockerFirewallAllowsContainerToContainerCommunication(ctx context.C
 	)
 	stdout, stderr, err := sshClient.RunCommand(ctx, cmd)
 	if err != nil {
-		return fmt.Errorf("failed to start docker container: %w, stderr: %s", err, stderr)
+		return fmt.Errorf("failed to connect to nginx container: %w, stderr: %s", err, stderr)
 	}
 
 	if !strings.Contains(stdout, "Welcome to nginx") {
