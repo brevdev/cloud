@@ -9,6 +9,7 @@ import (
 )
 
 func TestValidationFunctions(t *testing.T) {
+	t.Parallel()
 	checkSkip(t)
 	apiKey := getAPIKey()
 
@@ -21,6 +22,19 @@ func TestValidationFunctions(t *testing.T) {
 	}
 
 	validation.RunValidationSuite(t, config)
+}
+
+func TestInstanceLifecycleValidation(t *testing.T) {
+	t.Parallel()
+	checkSkip(t)
+	apiKey := getAPIKey()
+
+	config := validation.ProviderConfig{
+		Credential: NewSFCCredential("validation-test", apiKey),
+		Location:   "eu-north1",
+	}
+
+	validation.RunInstanceLifecycleValidation(t, config)
 }
 
 func checkSkip(t *testing.T) {
