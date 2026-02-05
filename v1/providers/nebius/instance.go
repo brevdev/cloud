@@ -1764,7 +1764,7 @@ func generateCloudInitUserData(publicKey string, firewallRules v1.FirewallRules)
 
 	// Generate IPTables firewall commands to ensure docker ports are not made immediately
 	// accessible from the internet by default.
-	commands = append(commands, generateIPTablesCommands()...)
+	commands = append(commands, generateIPTablesCommands(firewallRules)...)
 
 	if len(commands) > 0 {
 		// Use runcmd to execute firewall setup commands
@@ -1806,8 +1806,14 @@ func generateUFWCommands(firewallRules v1.FirewallRules) []string {
 
 // generateIPTablesCommands generates IPTables firewall commands to ensure docker ports are not made immediately
 // accessible from the internet by default.
-func generateIPTablesCommands() []string {
+func generateIPTablesCommands(firewallRules v1.FirewallRules) []string {
 	commands := []string{
+		// Wait for Docker to be ready and DOCKER-USER chain to exist (max 5 minutes)
+		`echo "Waiting for Docker and DOCKER-USER chain..."`,
+		`for i in $(seq 1 150); do iptables -L DOCKER-USER -n >/dev/null 2>&1 && break || sleep 2; done`,
+		`iptables -L DOCKER-USER -n >/dev/null 2>&1 || { echo "ERROR: DOCKER-USER chain not found after 5 minutes"; exit 1; }`,
+		`echo "Docker is ready, applying firewall rules..."`,
+
 		"iptables -F DOCKER-USER",
 		"iptables -A DOCKER-USER -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT",
 		"iptables -A DOCKER-USER -i docker0 ! -o docker0 -j ACCEPT",
@@ -1815,10 +1821,48 @@ func generateIPTablesCommands() []string {
 		"iptables -A DOCKER-USER -i docker0 -o docker0 -j ACCEPT",
 		"iptables -A DOCKER-USER -i br+     -o br+     -j ACCEPT",
 		"iptables -A DOCKER-USER -i lo -j ACCEPT",
-		"iptables -A DOCKER-USER -j DROP",
-		"iptables -A DOCKER-USER -j RETURN", // Expected by Docker
 	}
+
+	// Add ACCEPT rules for user-specified ingress ports BEFORE the DROP rule
+	// This allows users to explicitly open ports for Docker containers
+	for _, rule := range firewallRules.IngressRules {
+		commands = append(commands, convertIngressRuleToIPTables(rule)...)
+	}
+
+	// Drop everything else and return
+	commands = append(commands, "iptables -A DOCKER-USER -j DROP")
+	commands = append(commands, "iptables -A DOCKER-USER -j RETURN") // Expected by Docker
+
 	return commands
+}
+
+// convertIngressRuleToIPTables converts an ingress firewall rule to iptables command(s) for DOCKER-USER chain.
+// This is necessary because UFW rules only affect the INPUT chain (host traffic),
+// not the FORWARD chain (container traffic).
+func convertIngressRuleToIPTables(rule v1.FirewallRule) []string {
+	cmds := []string{}
+
+	// Generate port specification for iptables
+	var portSpec string
+	if rule.FromPort == rule.ToPort {
+		portSpec = fmt.Sprintf("--dport %d", rule.FromPort)
+	} else {
+		portSpec = fmt.Sprintf("--dport %d:%d", rule.FromPort, rule.ToPort)
+	}
+
+	if len(rule.IPRanges) == 0 {
+		// Allow from any source
+		cmds = append(cmds, fmt.Sprintf("iptables -A DOCKER-USER -p tcp %s -j ACCEPT", portSpec))
+		cmds = append(cmds, fmt.Sprintf("iptables -A DOCKER-USER -p udp %s -j ACCEPT", portSpec))
+	} else {
+		// Allow from specific IP ranges only
+		for _, ipRange := range rule.IPRanges {
+			cmds = append(cmds, fmt.Sprintf("iptables -A DOCKER-USER -p tcp -s %s %s -j ACCEPT", ipRange, portSpec))
+			cmds = append(cmds, fmt.Sprintf("iptables -A DOCKER-USER -p udp -s %s %s -j ACCEPT", ipRange, portSpec))
+		}
+	}
+
+	return cmds
 }
 
 // convertIngressRuleToUFW converts an ingress firewall rule to UFW command(s)

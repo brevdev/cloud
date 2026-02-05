@@ -40,9 +40,9 @@ const (
 func (c *ShadeformClient) GenerateFirewallScript(firewallRules v1.FirewallRules) (string, error) {
 	var commands []string
 	commands = append(commands, c.getUFWCommands(firewallRules)...)
-	commands = append(commands, c.getIPTablesCommands()...)
+	commands = append(commands, c.getIPTablesCommands(firewallRules)...)
 
-	script := ""
+	script := "#!/bin/bash\nset -e\n"
 	for _, command := range commands {
 		script += fmt.Sprintf("%v\n", command)
 	}
@@ -74,8 +74,14 @@ func (c *ShadeformClient) getUFWCommands(firewallRules v1.FirewallRules) []strin
 	return commands
 }
 
-func (c *ShadeformClient) getIPTablesCommands() []string {
+func (c *ShadeformClient) getIPTablesCommands(firewallRules v1.FirewallRules) []string {
 	commands := []string{
+		// Wait for Docker to be ready and DOCKER-USER chain to exist (max 5 minutes)
+		`echo "Waiting for Docker and DOCKER-USER chain..."`,
+		`for i in $(seq 1 150); do iptables -L DOCKER-USER -n >/dev/null 2>&1 && break || sleep 2; done`,
+		`iptables -L DOCKER-USER -n >/dev/null 2>&1 || { echo "ERROR: DOCKER-USER chain not found after 5 minutes"; exit 1; }`,
+		`echo "Docker is ready, applying firewall rules..."`,
+
 		ipTablesResetDockerUserChain,
 		ipTablesAllowDockerUserOutbound,
 		ipTablesAllowDockerUserOutboundInit0,
@@ -83,9 +89,18 @@ func (c *ShadeformClient) getIPTablesCommands() []string {
 		ipTablesAllowDockerUserDockerToDocker0,
 		ipTablesAllowDockerUserDockerToDocker1,
 		ipTablesAllowDockerUserInpboundLoopback,
-		ipTablesDropDockerUserInbound,
-		ipTablesReturnDockerUser, // Expected by Docker
 	}
+
+	// Add ACCEPT rules for user-specified ingress ports BEFORE the DROP rule
+	// This allows users to explicitly open ports for Docker containers
+	for _, rule := range firewallRules.IngressRules {
+		commands = append(commands, c.convertIngressFirewallRuleToIPTablesCommand(rule)...)
+	}
+
+	// Drop everything else and return
+	commands = append(commands, ipTablesDropDockerUserInbound)
+	commands = append(commands, ipTablesReturnDockerUser) // Expected by Docker
+
 	return commands
 }
 
@@ -136,5 +151,35 @@ func (c *ShadeformClient) convertEgressFirewallRuleToUfwCommand(firewallRule v1.
 			cmds = append(cmds, fmt.Sprintf("ufw allow out to %s %s", ipRange, portSpec))
 		}
 	}
+	return cmds
+}
+
+// convertIngressFirewallRuleToIPTablesCommand generates iptables rules for DOCKER-USER chain
+// to allow inbound traffic to Docker containers on specified ports.
+// This is necessary because UFW rules only affect the INPUT chain (host traffic),
+// not the FORWARD chain (container traffic).
+func (c *ShadeformClient) convertIngressFirewallRuleToIPTablesCommand(firewallRule v1.FirewallRule) []string {
+	cmds := []string{}
+
+	// Generate port specification for iptables
+	var portSpec string
+	if firewallRule.FromPort == firewallRule.ToPort {
+		portSpec = fmt.Sprintf("--dport %d", firewallRule.FromPort)
+	} else {
+		portSpec = fmt.Sprintf("--dport %d:%d", firewallRule.FromPort, firewallRule.ToPort)
+	}
+
+	if len(firewallRule.IPRanges) == 0 {
+		// Allow from any source
+		cmds = append(cmds, fmt.Sprintf("iptables -A DOCKER-USER -p tcp %s -j ACCEPT", portSpec))
+		cmds = append(cmds, fmt.Sprintf("iptables -A DOCKER-USER -p udp %s -j ACCEPT", portSpec))
+	} else {
+		// Allow from specific IP ranges only
+		for _, ipRange := range firewallRule.IPRanges {
+			cmds = append(cmds, fmt.Sprintf("iptables -A DOCKER-USER -p tcp -s %s %s -j ACCEPT", ipRange, portSpec))
+			cmds = append(cmds, fmt.Sprintf("iptables -A DOCKER-USER -p udp -s %s %s -j ACCEPT", ipRange, portSpec))
+		}
+	}
+
 	return cmds
 }
