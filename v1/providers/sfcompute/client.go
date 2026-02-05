@@ -42,10 +42,6 @@ func (c *SFCCredential) GetTenantID() (string, error) {
 	return "", nil
 }
 
-func (c *SFCCredential) MakeClient(ctx context.Context, location string) (v1.CloudClient, error) {
-	return NewSFCClient(c.RefID, c.APIKey).MakeClient(ctx, location)
-}
-
 type SFCClient struct {
 	v1.NotImplCloudClient
 	refID    string
@@ -65,19 +61,24 @@ func WithLogger(logger v1.Logger) SFCClientOption {
 	}
 }
 
-func NewSFCClient(refID string, apiKey string, opts ...SFCClientOption) *SFCClient {
+func (c *SFCCredential) MakeClientWithOptions(ctx context.Context, location string, opts ...SFCClientOption) (v1.CloudClient, error) {
 	sfcClient := &SFCClient{
-		refID:  refID,
-		apiKey: apiKey,
-		client: sfcnodes.NewClient(option.WithBearerToken(apiKey)),
-		logger: &v1.NoopLogger{},
+		refID:    c.RefID,
+		apiKey:   c.APIKey,
+		client:   sfcnodes.NewClient(option.WithBearerToken(c.APIKey)),
+		location: location,
+		logger:   &v1.NoopLogger{},
 	}
 
 	for _, opt := range opts {
 		opt(sfcClient)
 	}
 
-	return sfcClient
+	return sfcClient, nil
+}
+
+func (c *SFCCredential) MakeClient(ctx context.Context, location string) (v1.CloudClient, error) {
+	return c.MakeClientWithOptions(ctx, location)
 }
 
 func (c *SFCClient) GetAPIType() v1.APIType {
