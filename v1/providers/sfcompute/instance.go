@@ -17,36 +17,8 @@ import (
 const (
 	maxPricePerNodeHour = 1600
 	defaultPort         = 2222
+	defaultSSHUsername  = "root"
 )
-
-// define function to convert string to b64
-func toBase64(s string) string {
-	return base64.StdEncoding.EncodeToString([]byte(s))
-}
-
-// define function to add ssh key to cloud init
-func sshKeyCloudInit(sshKey string) string {
-	return toBase64(fmt.Sprintf("#cloud-config\nssh_authorized_keys:\n  - %s", sshKey))
-}
-
-func mapSFCStatus(s string) v1.LifecycleStatus {
-	switch strings.ToLower(s) {
-	case "pending", "nodefailure", "unspecified", "awaitingcapacity", "unknown", "failed":
-		return v1.LifecycleStatusPending
-	case "running":
-		return v1.LifecycleStatusRunning
-	// case "stopping":
-	// return v1.LifecycleStatusStopping
-	case "stopped":
-		return v1.LifecycleStatusStopped
-	case "terminating", "released":
-		return v1.LifecycleStatusTerminating
-	case "destroyed", "deleted":
-		return v1.LifecycleStatusTerminated
-	default:
-		return v1.LifecycleStatusPending
-	}
-}
 
 func (c *SFCClient) CreateInstance(ctx context.Context, attrs v1.CreateInstanceAttrs) (*v1.Instance, error) {
 	// Get the zone for the location (do not include unavailable zones)
@@ -83,6 +55,11 @@ func (c *SFCClient) CreateInstance(ctx context.Context, attrs v1.CreateInstanceA
 	}
 
 	return instance, nil
+}
+
+func sshKeyCloudInit(sshKey string) string {
+	script := fmt.Sprintf("#cloud-config\nssh_authorized_keys:\n  - %s", sshKey)
+	return base64.StdEncoding.EncodeToString([]byte(script))
 }
 
 func (c *SFCClient) GetInstance(ctx context.Context, id v1.CloudProviderInstanceID) (*v1.Instance, error) {
@@ -257,7 +234,7 @@ func (c *SFCClient) sfcNodeInfoFromNode(ctx context.Context, node *sfcnodes.Node
 		id:          node.ID,
 		name:        node.Name,
 		createdAt:   time.Unix(node.CreatedAt, 0),
-		status:      mapSFCStatus(fmt.Sprint(node.Status)),
+		status:      sfcStatusToLifecycleStatus(fmt.Sprint(node.Status)),
 		gpuType:     string(node.GPUType),
 		sshUsername: sshUsername,
 		sshHostname: sshHostname,
@@ -287,12 +264,29 @@ func (c *SFCClient) sfcNodeInfoFromNodeListResponseData(ctx context.Context, nod
 		id:          node.ID,
 		name:        node.Name,
 		createdAt:   time.Unix(node.CreatedAt, 0),
-		status:      mapSFCStatus(fmt.Sprint(node.Status)),
+		status:      sfcStatusToLifecycleStatus(fmt.Sprint(node.Status)),
 		gpuType:     string(node.GPUType),
 		sshUsername: sshUsername,
 		sshHostname: sshHostname,
 		zone:        zone,
 	}, nil
+}
+
+func sfcStatusToLifecycleStatus(status string) v1.LifecycleStatus {
+	switch strings.ToLower(status) {
+	case "pending", "nodefailure", "unspecified", "awaitingcapacity", "unknown", "failed":
+		return v1.LifecycleStatusPending
+	case "running":
+		return v1.LifecycleStatusRunning
+	case "stopped":
+		return v1.LifecycleStatusStopped
+	case "terminating", "released":
+		return v1.LifecycleStatusTerminating
+	case "destroyed", "deleted":
+		return v1.LifecycleStatusTerminated
+	default:
+		return v1.LifecycleStatusPending
+	}
 }
 
 func (c *SFCClient) getSSHDetailsFromVM(ctx context.Context, vmID string, vmStatus string) (string, string, error) {
@@ -310,7 +304,7 @@ func (c *SFCClient) getSSHDetailsFromVM(ctx context.Context, vmID string, vmStat
 		return "", "", errors.WrapAndTrace(err)
 	}
 
-	sshUsername = "ubuntu" // TODO: ??
+	sshUsername = defaultSSHUsername
 	sshHostname = sshResponse.SSHHostname
 
 	return sshUsername, sshHostname, nil
