@@ -4,100 +4,183 @@ import (
 	"context"
 	"fmt"
 	"slices"
-	"strconv"
+	"strings"
 	"time"
 
 	"github.com/bojanz/currency"
+	sfcnodes "github.com/sfcompute/nodes-go"
 
 	v1 "github.com/brevdev/cloud/v1"
 )
 
-func (c *SFCClient) getInstanceTypeID(region string) string {
-	return fmt.Sprintf("h100v_%v", region)
+const (
+	gpuTypeH100 = "h100"
+	gpuTypeH200 = "h200"
+
+	deliveryTypeVM         = "VM"
+	interconnectInfiniband = "infiniband"
+)
+
+var (
+	allowedZones = []string{"hayesvalley", "yerba"}
+
+	gpuToVRAM = map[string]v1.Bytes{
+		gpuTypeH100: v1.NewBytes(80, v1.Gigabyte),
+		gpuTypeH200: v1.NewBytes(141, v1.Gigabyte),
+	}
+	gpuToFormFactor = map[string]string{
+		gpuTypeH100: "sxm5",
+		gpuTypeH200: "sxm5",
+	}
+	gpuToArchitecture = map[string]v1.Architecture{
+		gpuTypeH100: v1.ArchitectureX86_64,
+		gpuTypeH200: v1.ArchitectureX86_64,
+	}
+
+	defaultGPUCountPerNode  = int32(8)
+	defaultGPUManufacturer  = "nvidia"
+	defaultRAMPerNode       = v1.NewBytes(960, v1.Gigabyte)
+	defaultStoragePerNode   = v1.NewBytes(1500, v1.Gigabyte)
+	defaultProvisioningTime = 5 * time.Minute
+	defaultPricePerGPU      = makeDefaultInstanceTypePrice("2.00", "USD")
+)
+
+func makeDefaultInstanceTypePrice(amount string, currencyCode string) currency.Amount {
+	instanceTypePrice, err := currency.NewAmount(amount, currencyCode)
+	if err != nil {
+		panic(err)
+	}
+	return instanceTypePrice
 }
 
 func (c *SFCClient) GetInstanceTypes(ctx context.Context, args v1.GetInstanceTypeArgs) ([]v1.InstanceType, error) {
-	resp, err := c.client.Zones.List(ctx)
+	// Fetch all available zones
+	includeUnavailable := false
+	zones, err := c.getZones(ctx, includeUnavailable)
 	if err != nil {
 		return nil, err
 	}
 
-	types := make([]v1.InstanceType, 0)
-	for _, zone := range resp.Data {
-		if len(args.Locations) > 0 && !args.Locations.IsAllowed(zone.Name) {
+	instanceTypes := make([]v1.InstanceType, 0, len(zones))
+	for _, zone := range zones {
+		gpuType := strings.ToLower(string(zone.HardwareType))
+
+		if !gpuTypeIsAllowed(gpuType) {
 			continue
 		}
-		available := false
-		if len(zone.AvailableCapacity) > 0 && zone.DeliveryType == "VM" {
-			available = true
+
+		instanceType := getInstanceTypeForZone(zone)
+
+		if v1.IsSelectedByArgs(instanceType, args) {
+			instanceTypes = append(instanceTypes, instanceType)
 		}
-
-		price, _ := currency.NewAmount(strconv.Itoa(2), "USD")
-		estimatedDeployTime := 15 * time.Minute
-
-		types = append(types, v1.InstanceType{
-			ID:                  v1.InstanceTypeID(c.getInstanceTypeID(zone.Name)),
-			IsAvailable:         available,
-			Type:                "h100v",
-			Location:            zone.Name,
-			Stoppable:           false,
-			Rebootable:          false,
-			IsContainer:         false,
-			BasePrice:           &price,
-			EstimatedDeployTime: &estimatedDeployTime,
-			SupportedGPUs: []v1.GPU{{
-				Count:        8,
-				Type:         "h100v",
-				Manufacturer: "nvidia",
-				Name:         "h100v",
-				MemoryBytes:  v1.NewBytes(80, v1.Gibibyte),
-			}},
-		})
 	}
 
-	if len(args.InstanceTypes) > 0 {
-		filteredTypes := make([]v1.InstanceType, 0)
-		for _, t := range types {
-			if slices.Contains(args.InstanceTypes, t.Type) {
-				filteredTypes = append(filteredTypes, t)
-			}
-		}
-		return filteredTypes, nil
-	}
-
-	return types, nil
+	return instanceTypes, nil
 }
 
-func (c *SFCClient) GetLocations(ctx context.Context, _ v1.GetLocationsArgs) ([]v1.Location, error) {
+func getInstanceTypeForZone(zone sfcnodes.ZoneListResponseData) v1.InstanceType {
+	gpuType := strings.ToLower(string(zone.HardwareType))
+
+	instanceType := v1.InstanceType{
+		IsAvailable:         true,
+		Type:                makeInstanceTypeName(zone),
+		MemoryBytes:         defaultRAMPerNode,
+		Location:            zoneToLocation(zone).Name,
+		Stoppable:           false,
+		Rebootable:          false,
+		IsContainer:         false,
+		Provider:            CloudProviderID,
+		BasePrice:           &defaultPricePerGPU,
+		EstimatedDeployTime: &defaultProvisioningTime,
+		SupportedGPUs: []v1.GPU{{
+			Count:          defaultGPUCountPerNode,
+			Type:           gpuType,
+			Manufacturer:   v1.GetManufacturer(defaultGPUManufacturer),
+			Name:           gpuType,
+			MemoryBytes:    gpuToVRAM[gpuType],
+			NetworkDetails: gpuToFormFactor[gpuType],
+		}},
+		SupportedStorage: []v1.Storage{{
+			Type:      "ssd",
+			Count:     1,
+			SizeBytes: defaultStoragePerNode,
+		}},
+		SupportedArchitectures: []v1.Architecture{gpuToArchitecture[gpuType]},
+	}
+
+	instanceType.ID = v1.MakeGenericInstanceTypeID(instanceType)
+
+	return instanceType
+}
+
+func gpuTypeIsAllowed(gpuType string) bool {
+	return gpuType == gpuTypeH100 || gpuType == gpuTypeH200
+}
+
+func makeInstanceTypeName(zone sfcnodes.ZoneListResponseData) string {
+	interconnect := ""
+	if strings.ToLower(zone.InterconnectType) == interconnectInfiniband {
+		interconnect = ".ib"
+	}
+	return fmt.Sprintf("%s%s", strings.ToLower(string(zone.HardwareType)), interconnect)
+}
+
+func (c *SFCClient) GetLocations(ctx context.Context, args v1.GetLocationsArgs) ([]v1.Location, error) {
+	zones, err := c.getZones(ctx, args.IncludeUnavailable)
+	if err != nil {
+		return nil, err
+	}
+
+	locations := make([]v1.Location, 0, len(zones))
+	for _, zone := range zones {
+		location := zoneToLocation(zone)
+		locations = append(locations, location)
+	}
+
+	return locations, nil
+}
+
+func (c *SFCClient) getZones(ctx context.Context, includeUnavailable bool) ([]sfcnodes.ZoneListResponseData, error) {
+	// Fetch the zones from the API
 	resp, err := c.client.Zones.List(ctx)
 	if err != nil {
 		return nil, err
 	}
-	locations := make(map[string]v1.Location)
-	allowedZones := []string{"hayesvalley", "yerba"}
-	if resp != nil {
-		for _, zone := range resp.Data {
-			available := false
-			if len(zone.AvailableCapacity) > 0 && zone.DeliveryType == "VM" && slices.Contains(allowedZones, zone.Name) {
-				available = true
-				locations[zone.Name] = v1.Location{
-					Name:        zone.Name,
-					Description: fmt.Sprintf("sfc_%s_%s", zone.Name, string(zone.HardwareType)),
-					Available:   available,
-				}
-			} else {
-				available = false
-				locations[zone.Name] = v1.Location{
-					Name:        zone.Name,
-					Description: fmt.Sprintf("sfc_%s_%s", zone.Name, string(zone.HardwareType)),
-					Available:   false,
-				}
-			}
+
+	// If there are no zones, return an empty list
+	if resp == nil || len(resp.Data) == 0 {
+		return []sfcnodes.ZoneListResponseData{}, nil
+	}
+
+	zones := make([]sfcnodes.ZoneListResponseData, 0, len(resp.Data))
+	for _, zone := range resp.Data {
+		// If the zone is not allowed, skip it
+		if !slices.Contains(allowedZones, strings.ToLower(zone.Name)) {
+			continue
 		}
+
+		// If the there is no available capacity, and skip it
+		if len(zone.AvailableCapacity) == 0 && !includeUnavailable {
+			continue
+		}
+
+		// If the delivery type is not VM, skip it
+		if zone.DeliveryType != deliveryTypeVM {
+			continue
+		}
+
+		// Add the zone to the list
+		zones = append(zones, zone)
 	}
-	availableLocations := []v1.Location{}
-	for _, location := range locations {
-		availableLocations = append(availableLocations, location)
+
+	return zones, nil
+}
+
+func zoneToLocation(zone sfcnodes.ZoneListResponseData) v1.Location {
+	return v1.Location{
+		Name:        zone.Name,
+		Description: fmt.Sprintf("sfc_%s_%s", zone.Name, string(zone.HardwareType)),
+		Available:   true,
 	}
-	return availableLocations, nil
 }

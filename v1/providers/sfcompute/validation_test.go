@@ -16,8 +16,8 @@ func TestValidationFunctions(t *testing.T) {
 	config := validation.ProviderConfig{
 		Credential: NewSFCCredential("validation-test", apiKey),
 		StableIDs: []v1.InstanceTypeID{
-			"h100v_hayesvalley",
-			"h100v_yerba",
+			"hayesvalley-noSub-h100",
+			"yerba-noSub-h100",
 		},
 	}
 
@@ -31,7 +31,7 @@ func TestInstanceLifecycleValidation(t *testing.T) {
 
 	config := validation.ProviderConfig{
 		Credential: NewSFCCredential("validation-test", apiKey),
-		Location:   "eu-north1",
+		Location:   "yerba",
 	}
 
 	validation.RunInstanceLifecycleValidation(t, config)

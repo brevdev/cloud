@@ -4,12 +4,19 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
+	"github.com/brevdev/cloud/internal/errors"
 	v1 "github.com/brevdev/cloud/v1"
 	sfcnodes "github.com/sfcompute/nodes-go"
 	"github.com/sfcompute/nodes-go/packages/param"
+)
+
+const (
+	maxPricePerNodeHour = 1600
+	defaultPort         = 2222
 )
 
 // define function to convert string to b64
@@ -42,104 +49,283 @@ func mapSFCStatus(s string) v1.LifecycleStatus {
 }
 
 func (c *SFCClient) CreateInstance(ctx context.Context, attrs v1.CreateInstanceAttrs) (*v1.Instance, error) {
+	// Get the zone for the location (do not include unavailable zones)
+	zone, err := c.getZone(ctx, attrs.Location, false)
+	if err != nil {
+		return nil, errors.WrapAndTrace(err)
+	}
+
+	// Create a name for the node
+	name := brevDataToSFCName(attrs.RefID, attrs.Name)
+
+	// Create the node
 	resp, err := c.client.Nodes.New(ctx, sfcnodes.NodeNewParams{
 		CreateNodesRequest: sfcnodes.CreateNodesRequestParam{
 			DesiredCount:        1,
-			MaxPricePerNodeHour: 1600,
-			Zone:                attrs.Location,
-			ImageID:             param.Opt[string]{Value: attrs.ImageID},                    // this needs to point to a valid image
+			MaxPricePerNodeHour: maxPricePerNodeHour,
+			Zone:                zone.Name,
+			Names:               []string{name},
 			CloudInitUserData:   param.Opt[string]{Value: sshKeyCloudInit(attrs.PublicKey)}, // encode ssh key to b64-wrapped cloud-init script
 		},
 	})
 	if err != nil {
-		return nil, err
+		return nil, errors.WrapAndTrace(err)
 	}
-
 	if len(resp.Data) == 0 {
-		return nil, fmt.Errorf("no nodes returned")
+		return nil, errors.WrapAndTrace(fmt.Errorf("no nodes returned"))
 	}
 	node := resp.Data[0]
 
-	inst := &v1.Instance{
-		Name:           attrs.Name,
-		RefID:          attrs.RefID,
-		CloudCredRefID: c.refID,
-		CloudID:        v1.CloudProviderInstanceID(node.ID), // SFC ID
-		ImageID:        attrs.ImageID,
-		InstanceType:   attrs.InstanceType,
-		Location:       attrs.Location,
-		CreatedAt:      time.Now(),
-		Status:         v1.Status{LifecycleStatus: mapSFCStatus(fmt.Sprint(node.Status))}, // map SDK status to our lifecycle
-		InstanceTypeID: v1.InstanceTypeID(node.GPUType),
-		SSHPort:        2222, // we use 2222/tcp for all of our SSH ports
+	// Get the instance
+	instance, err := c.GetInstance(ctx, v1.CloudProviderInstanceID(node.ID))
+	if err != nil {
+		return nil, errors.WrapAndTrace(err)
 	}
 
-	return inst, nil
+	return instance, nil
 }
 
 func (c *SFCClient) GetInstance(ctx context.Context, id v1.CloudProviderInstanceID) (*v1.Instance, error) {
+	// Get the node from the API
 	node, err := c.client.Nodes.Get(ctx, string(id))
 	if err != nil {
-		panic(err.Error())
-	}
-	var vmID string
-	if len(node.VMs.Data) > 0 {
-		vmID = node.VMs.Data[0].ID
-		fmt.Println(vmID)
+		return nil, errors.WrapAndTrace(err)
 	}
 
-	ssh, err := c.client.VMs.SSH(ctx, sfcnodes.VMSSHParams{VMID: vmID})
+	// Get the zone for the location (include unavailable zones, in case the zone is not available but the node is still running)
+	zone, err := c.getZone(ctx, node.Zone, true)
 	if err != nil {
-		panic(err.Error())
+		return nil, errors.WrapAndTrace(err)
 	}
 
-	inst := &v1.Instance{
-		Name:           node.Name,
-		RefID:          c.refID,
-		CloudCredRefID: c.refID,
-		CloudID:        v1.CloudProviderInstanceID(node.ID), // SFC ID
-		PublicIP:       ssh.SSHHostname,
-		CreatedAt:      time.Unix(node.CreatedAt, 0),
-		Status:         v1.Status{LifecycleStatus: mapSFCStatus(fmt.Sprint(node.Status))}, // map SDK status to our lifecycle
-		InstanceTypeID: v1.InstanceTypeID(node.GPUType),
+	nodeInfo, err := c.sfcNodeInfoFromNode(ctx, node, zone)
+	if err != nil {
+		return nil, errors.WrapAndTrace(err)
 	}
-	return inst, nil
+
+	instance, err := c.sfcNodeToBrevInstance(*nodeInfo)
+	if err != nil {
+		return nil, errors.WrapAndTrace(err)
+	}
+	return instance, nil
 }
 
-func (c *SFCClient) ListInstances(ctx context.Context, _ v1.ListInstancesArgs) ([]v1.Instance, error) {
+func (c *SFCClient) getZone(ctx context.Context, location string, includeUnavailable bool) (*sfcnodes.ZoneListResponseData, error) {
+	// Fetch the zones to ensure the location is valid
+	zones, err := c.getZones(ctx, includeUnavailable)
+	if err != nil {
+		return nil, errors.WrapAndTrace(err)
+	}
+	if len(zones) == 0 {
+		return nil, errors.WrapAndTrace(fmt.Errorf("no zones available"))
+	}
+
+	// Find the zone that matches the location
+	var zone *sfcnodes.ZoneListResponseData
+	for _, z := range zones {
+		if z.Name == location {
+			zone = &z
+			break
+		}
+	}
+	if zone == nil {
+		return nil, errors.WrapAndTrace(fmt.Errorf("zone not found in location %s", location))
+	}
+
+	return zone, nil
+}
+
+func (c *SFCClient) ListInstances(ctx context.Context, args v1.ListInstancesArgs) ([]v1.Instance, error) {
 	resp, err := c.client.Nodes.List(ctx, sfcnodes.NodeListParams{})
 	if err != nil {
 		return nil, err
 	}
 
+	zoneCache := make(map[string]*sfcnodes.ZoneListResponseData)
+
 	var instances []v1.Instance
 	for _, node := range resp.Data {
-		inst, err := c.GetInstance(ctx, v1.CloudProviderInstanceID(node.ID))
-		if err != nil {
-			return nil, err
+		// Get the zone for the node, checking the cache first
+		zone, ok := zoneCache[node.Zone]
+		if !ok {
+			z, err := c.getZone(ctx, node.Zone, true)
+			if err != nil {
+				return nil, errors.WrapAndTrace(err)
+			}
+			zoneCache[node.Zone] = z
+			zone = z
 		}
-		if inst != nil {
-			instances = append(instances, *inst)
-		}
-	}
 
-	// TODO: filter by args
+		// Filter by locations
+		if args.Locations != nil && !args.Locations.IsAllowed(zone.Name) {
+			continue
+		}
+
+		// Filter by instance IDs
+		if args.InstanceIDs != nil && !slices.Contains(args.InstanceIDs, v1.CloudProviderInstanceID(node.ID)) {
+			continue
+		}
+
+		nodeInfo, err := c.sfcNodeInfoFromNodeListResponseData(ctx, &node, zone)
+		if err != nil {
+			return nil, errors.WrapAndTrace(err)
+		}
+
+		inst, err := c.sfcNodeToBrevInstance(*nodeInfo)
+		if err != nil {
+			return nil, errors.WrapAndTrace(err)
+		}
+		instances = append(instances, *inst)
+	}
 
 	return instances, nil
 }
 
 func (c *SFCClient) TerminateInstance(ctx context.Context, id v1.CloudProviderInstanceID) error {
-	// release the node first
-	_, errRelease := c.client.Nodes.Release(ctx, string(id))
-	if errRelease != nil {
-		panic(errRelease.Error())
-	}
-	// then delete the node
-	errDelete := c.client.Nodes.Delete(ctx, string(id))
-	if errDelete != nil {
-		panic(errDelete.Error())
+	_, err := c.client.Nodes.Release(ctx, string(id))
+	if err != nil {
+		return errors.WrapAndTrace(err)
 	}
 	return nil
+}
+
+type sfcNodeInfo struct {
+	id          string
+	name        string
+	createdAt   time.Time
+	status      v1.LifecycleStatus
+	gpuType     string
+	sshUsername string
+	sshHostname string
+	zone        *sfcnodes.ZoneListResponseData
+}
+
+func (c *SFCClient) sfcNodeToBrevInstance(node sfcNodeInfo) (*v1.Instance, error) {
+	// Get the refID and name from the node name
+	refID, name, err := sfcNameToBrevData(node.name)
+	if err != nil {
+		return nil, errors.WrapAndTrace(err)
+	}
+
+	// Get the instance type for the zone
+	instanceType := getInstanceTypeForZone(*node.zone)
+
+	// Create the instance
+	inst := &v1.Instance{
+		Name:          name,
+		CloudID:       v1.CloudProviderInstanceID(node.id),
+		RefID:         refID,
+		PublicDNS:     node.sshHostname,
+		PublicIP:      node.sshHostname,
+		SSHUser:       node.sshUsername,
+		SSHPort:       defaultPort,
+		CreatedAt:     node.createdAt,
+		DiskSizeBytes: instanceType.SupportedStorage[0].SizeBytes, // TODO: this should be pulled from the node iteself
+		Status: v1.Status{
+			LifecycleStatus: node.status,
+		},
+		InstanceTypeID: instanceType.ID,
+		InstanceType:   instanceType.Type,
+		Location:       node.zone.Name,
+		Spot:           false,
+		Stoppable:      false,
+		Rebootable:     false,
+		CloudCredRefID: c.refID, // TODO: this should be pulled from the node iteself
+	}
+	return inst, nil
+}
+
+func (c *SFCClient) sfcNodeInfoFromNode(ctx context.Context, node *sfcnodes.Node, zone *sfcnodes.ZoneListResponseData) (*sfcNodeInfo, error) {
+	var sshUsername string
+	var sshHostname string
+
+	if len(node.VMs.Data) == 1 {
+		username, hostname, err := c.getSSHDetailsFromVM(ctx, node.VMs.Data[0].ID, node.VMs.Data[0].Status)
+		if err != nil {
+			return nil, errors.WrapAndTrace(err)
+		}
+		sshUsername = username
+		sshHostname = hostname
+	} else if len(node.VMs.Data) <= 0 {
+		sshUsername = ""
+		sshHostname = ""
+	} else {
+		return nil, errors.WrapAndTrace(fmt.Errorf("multiple VMs found for node %s", node.ID))
+	}
+
+	return &sfcNodeInfo{
+		id:          node.ID,
+		name:        node.Name,
+		createdAt:   time.Unix(node.CreatedAt, 0),
+		status:      mapSFCStatus(fmt.Sprint(node.Status)),
+		gpuType:     string(node.GPUType),
+		sshUsername: sshUsername,
+		sshHostname: sshHostname,
+		zone:        zone,
+	}, nil
+}
+
+func (c *SFCClient) sfcNodeInfoFromNodeListResponseData(ctx context.Context, node *sfcnodes.ListResponseNodeData, zone *sfcnodes.ZoneListResponseData) (*sfcNodeInfo, error) {
+	var sshUsername string
+	var sshHostname string
+
+	if len(node.VMs.Data) == 1 {
+		username, hostname, err := c.getSSHDetailsFromVM(ctx, node.VMs.Data[0].ID, node.VMs.Data[0].Status)
+		if err != nil {
+			return nil, errors.WrapAndTrace(err)
+		}
+		sshUsername = username
+		sshHostname = hostname
+	} else if len(node.VMs.Data) == 0 {
+		sshUsername = ""
+		sshHostname = ""
+	} else {
+		return nil, errors.WrapAndTrace(fmt.Errorf("multiple VMs found for node %s", node.ID))
+	}
+
+	return &sfcNodeInfo{
+		id:          node.ID,
+		name:        node.Name,
+		createdAt:   time.Unix(node.CreatedAt, 0),
+		status:      mapSFCStatus(fmt.Sprint(node.Status)),
+		gpuType:     string(node.GPUType),
+		sshUsername: sshUsername,
+		sshHostname: sshHostname,
+		zone:        zone,
+	}, nil
+}
+
+func (c *SFCClient) getSSHDetailsFromVM(ctx context.Context, vmID string, vmStatus string) (string, string, error) {
+	var sshUsername string
+	var sshHostname string
+
+	// If the VM is not running, set the SSH username and hostname to empty strings
+	if strings.ToLower(vmStatus) != "running" {
+		return "", "", nil
+	}
+
+	// If the VM is running, get the SSH username and hostname
+	sshResponse, err := c.client.VMs.SSH(ctx, sfcnodes.VMSSHParams{VMID: vmID})
+	if err != nil {
+		return "", "", errors.WrapAndTrace(err)
+	}
+
+	sshUsername = "ubuntu" // TODO: ??
+	sshHostname = sshResponse.SSHHostname
+
+	return sshUsername, sshHostname, nil
+}
+
+func brevDataToSFCName(refID string, name string) string {
+	return fmt.Sprintf("%s_%s", refID, name)
+}
+
+func sfcNameToBrevData(name string) (string, string, error) {
+	parts := strings.Split(name, "_")
+	if len(parts) != 2 {
+		return "", "", errors.WrapAndTrace(fmt.Errorf("invalid node name %s", name))
+	}
+	return parts[0], parts[1], nil
 }
 
 // Optional if supported:

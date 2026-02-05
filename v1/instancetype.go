@@ -439,3 +439,35 @@ func ValidateStableInstanceTypeIDs(ctx context.Context, client CloudInstanceType
 
 	return nil
 }
+
+func IsSelectedByArgs(instanceType InstanceType, args GetInstanceTypeArgs) bool {
+	if args.Locations != nil {
+		if !args.Locations.IsAllowed(instanceType.Location) {
+			return false
+		}
+	}
+
+	if args.GPUManufactererFilter != nil {
+		for _, supportedGPU := range instanceType.SupportedGPUs {
+			if !args.GPUManufactererFilter.IsAllowed(supportedGPU.Manufacturer) {
+				return false
+			}
+		}
+	}
+
+	if args.CloudFilter != nil {
+		if !args.CloudFilter.IsAllowed(instanceType.Cloud) {
+			return false
+		}
+	}
+
+	if args.ArchitectureFilter != nil {
+		for _, architecture := range instanceType.SupportedArchitectures {
+			if !args.ArchitectureFilter.IsAllowed(architecture) {
+				return false
+			}
+		}
+	}
+
+	return true
+}

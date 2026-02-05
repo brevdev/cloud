@@ -9,6 +9,8 @@ import (
 	sfcnodes "github.com/sfcompute/nodes-go"
 )
 
+const CloudProviderID = "sfcompute"
+
 type SFCCredential struct {
 	RefID  string
 	APIKey string `json:"api_key"`
@@ -16,18 +18,23 @@ type SFCCredential struct {
 
 var _ v1.CloudCredential = &SFCCredential{}
 
-func NewSFCCredential(refID string, apiKey string /* auth fields */) *SFCCredential {
+func NewSFCCredential(refID string, apiKey string) *SFCCredential {
 	return &SFCCredential{
 		RefID:  refID,
 		APIKey: apiKey,
-		// ...
 	}
 }
 
-func (c *SFCCredential) GetReferenceID() string { return c.RefID }
-func (c *SFCCredential) GetAPIType() v1.APIType { return v1.APITypeLocational /* or v1.APITypeGlobal */ }
+func (c *SFCCredential) GetReferenceID() string {
+	return c.RefID
+}
+
+func (c *SFCCredential) GetAPIType() v1.APIType {
+	return v1.APITypeGlobal
+}
+
 func (c *SFCCredential) GetCloudProviderID() v1.CloudProviderID {
-	return "sfcompute" // e.g., "lambdalabs"
+	return CloudProviderID
 }
 
 func (c *SFCCredential) GetTenantID() (string, error) {
@@ -36,37 +43,59 @@ func (c *SFCCredential) GetTenantID() (string, error) {
 }
 
 func (c *SFCCredential) MakeClient(ctx context.Context, location string) (v1.CloudClient, error) {
-	// Create a client configured for a given location if locational API
-	return NewSFCClient(c.RefID, c.APIKey /* auth fields */).MakeClient(ctx, location)
+	return NewSFCClient(c.RefID, c.APIKey).MakeClient(ctx, location)
 }
-
-// ---------------- Client ----------------
 
 type SFCClient struct {
 	v1.NotImplCloudClient
 	refID    string
 	location string
 	apiKey   string
-	client   sfcnodes.Client // Add this field
-	// add http/sdk client fields, base URLs, etc.
+	client   sfcnodes.Client
+	logger   v1.Logger
 }
 
 var _ v1.CloudClient = &SFCClient{}
 
-func NewSFCClient(refID string, apiKey string /* auth fields */) *SFCClient {
-	return &SFCClient{
-		refID:  refID,
-		apiKey: apiKey,
-		client: sfcnodes.NewClient(
-			option.WithBearerToken(apiKey)),
-		// init http/sdk clients here
+type SFCClientOption func(c *SFCClient)
+
+func WithLogger(logger v1.Logger) SFCClientOption {
+	return func(c *SFCClient) {
+		c.logger = logger
 	}
 }
 
-func (c *SFCClient) GetAPIType() v1.APIType                 { return v1.APITypeGlobal /* or Global */ }
-func (c *SFCClient) GetCloudProviderID() v1.CloudProviderID { return "sfcompute" }
-func (c *SFCClient) GetReferenceID() string                 { return c.refID }
-func (c *SFCClient) GetTenantID() (string, error)           { return "", nil }
+func NewSFCClient(refID string, apiKey string, opts ...SFCClientOption) *SFCClient {
+	sfcClient := &SFCClient{
+		refID:  refID,
+		apiKey: apiKey,
+		client: sfcnodes.NewClient(option.WithBearerToken(apiKey)),
+		logger: &v1.NoopLogger{},
+	}
+
+	for _, opt := range opts {
+		opt(sfcClient)
+	}
+
+	return sfcClient
+}
+
+func (c *SFCClient) GetAPIType() v1.APIType {
+	return v1.APITypeGlobal
+}
+
+func (c *SFCClient) GetCloudProviderID() v1.CloudProviderID {
+	return CloudProviderID
+}
+
+func (c *SFCClient) GetReferenceID() string {
+	return c.refID
+}
+
+func (c *SFCClient) GetTenantID() (string, error) {
+	// sfc does not have a tenant system, return empty string
+	return "", nil
+}
 
 func (c *SFCClient) MakeClient(_ context.Context, location string) (v1.CloudClient, error) {
 	c.location = location
