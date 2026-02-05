@@ -17,7 +17,7 @@ import (
 const (
 	maxPricePerNodeHour = 1600
 	defaultPort         = 2222
-	defaultSSHUsername  = "root"
+	defaultSSHUsername  = "ubuntu"
 )
 
 func (c *SFCClient) CreateInstance(ctx context.Context, attrs v1.CreateInstanceAttrs) (*v1.Instance, error) {
@@ -37,7 +37,7 @@ func (c *SFCClient) CreateInstance(ctx context.Context, attrs v1.CreateInstanceA
 			MaxPricePerNodeHour: maxPricePerNodeHour,
 			Zone:                zone.Name,
 			Names:               []string{name},
-			CloudInitUserData:   param.Opt[string]{Value: sshKeyCloudInit(attrs.PublicKey)}, // encode ssh key to b64-wrapped cloud-init script
+			CloudInitUserData:   param.Opt[string]{Value: sshKeyCloudInit(attrs.PublicKey)},
 		},
 	})
 	if err != nil {
@@ -197,7 +197,7 @@ func (c *SFCClient) sfcNodeToBrevInstance(node sfcNodeInfo) (*v1.Instance, error
 		SSHUser:       node.sshUsername,
 		SSHPort:       defaultPort,
 		CreatedAt:     node.createdAt,
-		DiskSizeBytes: instanceType.SupportedStorage[0].SizeBytes, // TODO: this should be pulled from the node iteself
+		DiskSizeBytes: instanceType.SupportedStorage[0].SizeBytes, // TODO: this should be pulled from the node itself
 		Status: v1.Status{
 			LifecycleStatus: node.status,
 		},
@@ -207,7 +207,7 @@ func (c *SFCClient) sfcNodeToBrevInstance(node sfcNodeInfo) (*v1.Instance, error
 		Spot:           false,
 		Stoppable:      false,
 		Rebootable:     false,
-		CloudCredRefID: c.refID, // TODO: this should be pulled from the node iteself
+		CloudCredRefID: c.refID, // TODO: this should be pulled from the node itself
 	}
 	return inst, nil
 }
@@ -216,37 +216,7 @@ func (c *SFCClient) sfcNodeInfoFromNode(ctx context.Context, node *sfcnodes.Node
 	var sshUsername string
 	var sshHostname string
 
-	if len(node.VMs.Data) == 1 {
-		username, hostname, err := c.getSSHDetailsFromVM(ctx, node.VMs.Data[0].ID, node.VMs.Data[0].Status)
-		if err != nil {
-			return nil, errors.WrapAndTrace(err)
-		}
-		sshUsername = username
-		sshHostname = hostname
-	} else if len(node.VMs.Data) <= 0 {
-		sshUsername = ""
-		sshHostname = ""
-	} else {
-		return nil, errors.WrapAndTrace(fmt.Errorf("multiple VMs found for node %s", node.ID))
-	}
-
-	return &sfcNodeInfo{
-		id:          node.ID,
-		name:        node.Name,
-		createdAt:   time.Unix(node.CreatedAt, 0),
-		status:      sfcStatusToLifecycleStatus(fmt.Sprint(node.Status)),
-		gpuType:     string(node.GPUType),
-		sshUsername: sshUsername,
-		sshHostname: sshHostname,
-		zone:        zone,
-	}, nil
-}
-
-func (c *SFCClient) sfcNodeInfoFromNodeListResponseData(ctx context.Context, node *sfcnodes.ListResponseNodeData, zone *sfcnodes.ZoneListResponseData) (*sfcNodeInfo, error) {
-	var sshUsername string
-	var sshHostname string
-
-	if len(node.VMs.Data) == 1 {
+	if len(node.VMs.Data) == 1 { //nolint:gocritic // ok
 		username, hostname, err := c.getSSHDetailsFromVM(ctx, node.VMs.Data[0].ID, node.VMs.Data[0].Status)
 		if err != nil {
 			return nil, errors.WrapAndTrace(err)
@@ -270,6 +240,55 @@ func (c *SFCClient) sfcNodeInfoFromNodeListResponseData(ctx context.Context, nod
 		sshHostname: sshHostname,
 		zone:        zone,
 	}, nil
+}
+
+func (c *SFCClient) sfcNodeInfoFromNodeListResponseData(ctx context.Context, node *sfcnodes.ListResponseNodeData, zone *sfcnodes.ZoneListResponseData) (*sfcNodeInfo, error) {
+	sfcNode := sfcListResponseNodeDataToNode(node)
+	return c.sfcNodeInfoFromNode(ctx, sfcNode, zone)
+}
+
+// Convert the sfcnodes.ListResponseNodeData into a node *sfcnodes.Node -- these are fundamentally the same object, but they
+// lack a common interface. One type is returned from a single "get" call, the other is the type of each object returned by
+// a "list" call. This conversion function allows the rest of our business logic to treat these as the same type.
+func sfcListResponseNodeDataToNode(node *sfcnodes.ListResponseNodeData) *sfcnodes.Node {
+	vms := make([]sfcnodes.NodeVMsData, len(node.VMs.Data))
+	for i, vm := range node.VMs.Data {
+		vms[i] = sfcnodes.NodeVMsData{ //nolint:staticcheck // ok
+			ID:        vm.ID,
+			CreatedAt: vm.CreatedAt,
+			EndAt:     vm.EndAt,
+			Object:    vm.Object,
+			StartAt:   vm.StartAt,
+			Status:    vm.Status,
+			UpdatedAt: vm.UpdatedAt,
+			ImageID:   vm.ImageID,
+			JSON:      vm.JSON,
+		}
+	}
+
+	return &sfcnodes.Node{
+		ID:                  node.ID,
+		GPUType:             node.GPUType,
+		Name:                node.Name,
+		NodeType:            node.NodeType,
+		Object:              node.Object,
+		Owner:               node.Owner,
+		Status:              node.Status,
+		CreatedAt:           node.CreatedAt,
+		DeletedAt:           node.DeletedAt,
+		EndAt:               node.EndAt,
+		MaxPricePerNodeHour: node.MaxPricePerNodeHour,
+		ProcurementID:       node.ProcurementID,
+		StartAt:             node.StartAt,
+		UpdatedAt:           node.UpdatedAt,
+		Zone:                node.Zone,
+		JSON:                node.JSON,
+		VMs: sfcnodes.NodeVMs{
+			Data:   vms,
+			Object: node.VMs.Object,
+			JSON:   node.VMs.JSON,
+		},
+	}
 }
 
 func sfcStatusToLifecycleStatus(status string) v1.LifecycleStatus {
