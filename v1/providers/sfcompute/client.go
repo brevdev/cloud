@@ -11,7 +11,7 @@ import (
 
 type SFCCredential struct {
 	RefID  string
-	apiKey string `json:"api_key"`
+	APIKey string `json:"api_key"`
 }
 
 var _ v1.CloudCredential = &SFCCredential{}
@@ -19,7 +19,7 @@ var _ v1.CloudCredential = &SFCCredential{}
 func NewSFCCredential(refID string, apiKey string /* auth fields */) *SFCCredential {
 	return &SFCCredential{
 		RefID:  refID,
-		apiKey: apiKey,
+		APIKey: apiKey,
 		// ...
 	}
 }
@@ -29,6 +29,7 @@ func (c *SFCCredential) GetAPIType() v1.APIType { return v1.APITypeLocational /*
 func (c *SFCCredential) GetCloudProviderID() v1.CloudProviderID {
 	return "sfcompute" // e.g., "lambdalabs"
 }
+
 func (c *SFCCredential) GetTenantID() (string, error) {
 	// sfc does not have a tenant system, return empty string
 	return "", nil
@@ -36,7 +37,7 @@ func (c *SFCCredential) GetTenantID() (string, error) {
 
 func (c *SFCCredential) MakeClient(ctx context.Context, location string) (v1.CloudClient, error) {
 	// Create a client configured for a given location if locational API
-	return NewSFCClient(c.RefID, c.apiKey /* auth fields */).MakeClient(ctx, location)
+	return NewSFCClient(c.RefID, c.APIKey /* auth fields */).MakeClient(ctx, location)
 }
 
 // ---------------- Client ----------------

@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/bojanz/currency"
-	"github.com/brevdev/cloud/internal/collections"
 
 	v1 "github.com/brevdev/cloud/v1"
 )
@@ -28,12 +27,14 @@ func (c *SFCClient) GetInstanceTypes(ctx context.Context, args v1.GetInstanceTyp
 		if len(args.Locations) > 0 && !args.Locations.IsAllowed(zone.Name) {
 			continue
 		}
-		var available = false
+		available := false
 		if len(zone.AvailableCapacity) > 0 && zone.DeliveryType == "VM" {
 			available = true
 		}
 
 		price, _ := currency.NewAmount(strconv.Itoa(2), "USD")
+		estimatedDeployTime := 15 * time.Minute
+
 		types = append(types, v1.InstanceType{
 			ID:                  v1.InstanceTypeID(c.getInstanceTypeID(zone.Name)),
 			IsAvailable:         available,
@@ -43,7 +44,7 @@ func (c *SFCClient) GetInstanceTypes(ctx context.Context, args v1.GetInstanceTyp
 			Rebootable:          false,
 			IsContainer:         false,
 			BasePrice:           &price,
-			EstimatedDeployTime: collections.Ptr(time.Duration(15 * time.Minute)),
+			EstimatedDeployTime: &estimatedDeployTime,
 			SupportedGPUs: []v1.GPU{{
 				Count:        8,
 				Type:         "h100v",
@@ -52,7 +53,6 @@ func (c *SFCClient) GetInstanceTypes(ctx context.Context, args v1.GetInstanceTyp
 				MemoryBytes:  v1.NewBytes(80, v1.Gibibyte),
 			}},
 		})
-
 	}
 
 	if len(args.InstanceTypes) > 0 {
@@ -77,19 +77,21 @@ func (c *SFCClient) GetLocations(ctx context.Context, _ v1.GetLocationsArgs) ([]
 	allowedZones := []string{"hayesvalley", "yerba"}
 	if resp != nil {
 		for _, zone := range resp.Data {
-			var available = false
-			if len(zone.AvailableCapacity) > 0 && zone.DeliveryType == "VM" && slices.Contains(allowedZones, zone.Name) == true {
+			available := false
+			if len(zone.AvailableCapacity) > 0 && zone.DeliveryType == "VM" && slices.Contains(allowedZones, zone.Name) {
 				available = true
 				locations[zone.Name] = v1.Location{
 					Name:        zone.Name,
 					Description: fmt.Sprintf("sfc_%s_%s", zone.Name, string(zone.HardwareType)),
-					Available:   available}
+					Available:   available,
+				}
 			} else {
 				available = false
 				locations[zone.Name] = v1.Location{
 					Name:        zone.Name,
 					Description: fmt.Sprintf("sfc_%s_%s", zone.Name, string(zone.HardwareType)),
-					Available:   false}
+					Available:   false,
+				}
 			}
 		}
 	}

@@ -29,7 +29,7 @@ func mapSFCStatus(s string) v1.LifecycleStatus {
 	case "running":
 		return v1.LifecycleStatusRunning
 	// case "stopping":
-	//return v1.LifecycleStatusStopping
+	// return v1.LifecycleStatusStopping
 	case "stopped":
 		return v1.LifecycleStatusStopped
 	case "terminating", "released":
@@ -47,7 +47,7 @@ func (c *SFCClient) CreateInstance(ctx context.Context, attrs v1.CreateInstanceA
 			DesiredCount:        1,
 			MaxPricePerNodeHour: 1600,
 			Zone:                attrs.Location,
-			ImageID:             param.Opt[string]{Value: attrs.ImageID},                    //this needs to point to a valid image
+			ImageID:             param.Opt[string]{Value: attrs.ImageID},                    // this needs to point to a valid image
 			CloudInitUserData:   param.Opt[string]{Value: sshKeyCloudInit(attrs.PublicKey)}, // encode ssh key to b64-wrapped cloud-init script
 		},
 	})
@@ -106,7 +106,7 @@ func (c *SFCClient) GetInstance(ctx context.Context, id v1.CloudProviderInstance
 	return inst, nil
 }
 
-func (c *SFCClient) ListInstances(ctx context.Context, args v1.ListInstancesArgs) ([]v1.Instance, error) {
+func (c *SFCClient) ListInstances(ctx context.Context, _ v1.ListInstancesArgs) ([]v1.Instance, error) {
 	resp, err := c.client.Nodes.List(ctx, sfcnodes.NodeListParams{})
 	if err != nil {
 		return nil, err
@@ -122,6 +122,9 @@ func (c *SFCClient) ListInstances(ctx context.Context, args v1.ListInstancesArgs
 			instances = append(instances, *inst)
 		}
 	}
+
+	// TODO: filter by args
+
 	return instances, nil
 }
 
@@ -140,20 +143,23 @@ func (c *SFCClient) TerminateInstance(ctx context.Context, id v1.CloudProviderIn
 }
 
 // Optional if supported:
-func (c *SFCClient) RebootInstance(ctx context.Context, id v1.CloudProviderInstanceID) error {
-	return fmt.Errorf("not implemented")
+func (c *SFCClient) RebootInstance(_ context.Context, _ v1.CloudProviderInstanceID) error {
+	return v1.ErrNotImplemented
 }
-func (c *SFCClient) StopInstance(ctx context.Context, id v1.CloudProviderInstanceID) error {
-	return fmt.Errorf("not implemented")
+
+func (c *SFCClient) StopInstance(_ context.Context, _ v1.CloudProviderInstanceID) error {
+	return v1.ErrNotImplemented
 }
-func (c *SFCClient) StartInstance(ctx context.Context, id v1.CloudProviderInstanceID) error {
-	return fmt.Errorf("not implemented")
+
+func (c *SFCClient) StartInstance(_ context.Context, _ v1.CloudProviderInstanceID) error {
+	return v1.ErrNotImplemented
 }
 
 // Merge strategies (pass-through is acceptable baseline).
 func (c *SFCClient) MergeInstanceForUpdate(_ v1.Instance, newInst v1.Instance) v1.Instance {
 	return newInst
 }
+
 func (c *SFCClient) MergeInstanceTypeForUpdate(_ v1.InstanceType, newIt v1.InstanceType) v1.InstanceType {
 	return newIt
 }
