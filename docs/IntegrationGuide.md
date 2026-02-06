@@ -1,14 +1,10 @@
 # How to Add a Cloud Provider
 
-This guide explains how to add a new cloud provider to the Brev Cloud SDK (v1). The Lambda Labs provider is the best working, well-tested example—use it as your canonical reference.
+Practical guide to implementing a new cloud provider in the Brev Cloud SDK (v1). The Lambda Labs provider is the best working, well-tested example—use it as your canonical reference.
 
-Goals:
-- Implement a provider-specific CloudCredential (factory) and CloudClient (implementation) that satisfy pkg/v1 interfaces.
-- Accurately declare Capabilities based on the provider’s API surface.
-- Implement at least instance lifecycle and instance types, adhering to security requirements.
-- Add validation tests and (optionally) a GitHub Actions workflow to run them with real credentials.
+For deeper context on the SDK’s design, interfaces, and provider expectations, see the [Cloud Manual](CloudManual.md).
 
-Helpful background:
+Background:
 - Architecture overview: ../docs/ARCHITECTURE.md
 - Security requirements: ../docs/SECURITY.md
 - Validation testing framework: ../docs/VALIDATION_TESTING.md

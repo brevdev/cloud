@@ -17,7 +17,7 @@
 9. [Firewall and Security Groups](#9-firewall-and-security-groups)
 10. [Instance Metadata and Tags](#10-instance-metadata-and-tags)
 11. [Error Handling and Status Reporting](#11-error-handling-and-status-reporting)
-12. [Pricing and Billing](#12-pricing-and-billing)
+12. [Billing and Pricing](#12-billing-and-pricing)
 13. [Common Questions](#13-common-questions)
 
 ---
@@ -936,27 +936,91 @@ Add `CapabilityModifyFirewall` to your capabilities.
 
 ### If You Only Have User-Data
 
-Inject UFW commands at boot. See `cloud/v1/providers/shadeform/ufw.go`.
+Inject UFW + iptables commands at boot. Reference implementation: `cloud/v1/providers/shadeform/firewall.go`.
+
+**UFW Commands** - Host-level firewall:
 
 ```go
-// Core pattern
+// Core UFW pattern
 commands := []string{
-    "ufw --force reset",
-    "ufw default deny incoming",
-    "ufw default allow outgoing",
-    "ufw allow 22/tcp",
+    "ufw --force reset",          // Reset to clean state
+    "ufw default deny incoming",  // Default deny incoming
+    "ufw default allow outgoing", // Default allow outgoing
+    "ufw allow 22/tcp",           // Always allow SSH
+    "ufw allow 2222/tcp",         // Allow alternate SSH port
 }
+
+// Add ingress rules
 for _, rule := range firewallRules.IngressRules {
-    for _, cidr := range rule.IPRanges {
-        commands = append(commands, fmt.Sprintf("ufw allow in from %s to any port %d", cidr, rule.FromPort))
+    if rule.FromPort == rule.ToPort {
+        // Single port
+        if len(rule.IPRanges) == 0 {
+            commands = append(commands, fmt.Sprintf("ufw allow in from any to any port %d", rule.FromPort))
+        } else {
+            for _, cidr := range rule.IPRanges {
+                commands = append(commands, fmt.Sprintf("ufw allow in from %s to any port %d", cidr, rule.FromPort))
+            }
+        }
+    } else {
+        // Port ranges require separate tcp/udp rules
+        for _, proto := range []string{"tcp", "udp"} {
+            portSpec := fmt.Sprintf("port %d:%d proto %s", rule.FromPort, rule.ToPort, proto)
+            if len(rule.IPRanges) == 0 {
+                commands = append(commands, fmt.Sprintf("ufw allow in from any to any %s", portSpec))
+            } else {
+                for _, cidr := range rule.IPRanges {
+                    commands = append(commands, fmt.Sprintf("ufw allow in from %s to any %s", cidr, portSpec))
+                }
+            }
+        }
     }
 }
-commands = append(commands, "ufw --force enable")
 
-// Base64 encode and pass as user-data
-script := strings.Join(commands, "\n")
+// Add egress rules (same pattern as ingress but with "ufw allow out to")
+// ...
+
+commands = append(commands, "ufw --force enable")
+```
+
+**IPTables Commands** - Block Docker from bypassing UFW:
+
+Docker manipulates iptables directly, bypassing UFW. The `DOCKER-USER` chain is the official hook point for custom rules that Docker respects.
+
+```go
+// Required iptables commands to secure Docker containers
+iptablesCommands := []string{
+    "iptables -F DOCKER-USER",                                              // Reset chain
+    "iptables -A DOCKER-USER -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT", // Allow responses
+    "iptables -A DOCKER-USER -i lo -j ACCEPT",                              // Allow loopback
+    "iptables -A DOCKER-USER -j DROP",                                      // Drop all other inbound
+    "iptables -A DOCKER-USER -j RETURN",                                    // Required by Docker
+}
+```
+
+Without these iptables rules, a Docker container listening on `0.0.0.0:PORT` would be accessible from the internet even if UFW blocks that port.
+
+**Full script generation:**
+
+```go
+// Combine UFW + iptables commands
+allCommands := append(ufwCommands, iptablesCommands...)
+
+script := ""
+for _, cmd := range allCommands {
+    script += fmt.Sprintf("%v\n", cmd)
+}
+
 encoded := base64.StdEncoding.EncodeToString([]byte(script))
 ```
+
+**Validation Tests:**
+
+The SDK validates firewall behavior with two tests in `cloud/internal/validation/suite.go`:
+
+- `ValidateFirewallBlocksPort` - Verifies UFW blocks non-allowed ports (tests port 9999 by default)
+- `ValidateDockerFirewallBlocksPort` - Verifies iptables DOCKER-USER chain blocks Docker container ports
+
+These run as part of `RunInstanceLifecycleValidation` and `RunFirewallValidation`. See `cloud/v1/networking_validation.go` for the test implementations.
 
 **Do not** implement `CloudModifyFirewall`. Return `ErrNotImplemented`.
 
@@ -1111,7 +1175,11 @@ if strings.Contains(e.Error(), "Not enough capacity") || strings.Contains(e.Erro
 
 ---
 
-## 12. Pricing and Billing
+## 12. Billing and Pricing
+
+### Billing
+
+Billing arrangements are handled separately during the integration partnership setup. In most cases, this simply means Brev creates an account on your cloud platform with a credit card on file. **There is no special billing integration or reconcillation process required**.
 
 ### How Pricing Works
 
@@ -1121,10 +1189,6 @@ Brev displays your prices via `InstanceType.BasePrice` (see [`v1/instancetype.go
 |-------|------|-------|
 | **BasePrice** | `*currency.Amount` | From [`github.com/bojanz/currency`](https://pkg.go.dev/github.com/bojanz/currency#Amount) |
 | **Currency** | Up to implementer | Most providers use `"USD"` |
-
-### Billing
-
-Billing arrangements are handled separately during the integration partnership setup.
 
 
 ---
@@ -1178,31 +1242,13 @@ You don't need to do anything special—just ensure the SSH public key from `Cre
 
 To begin integration:
 
-1. **Share your API documentation**: Instance types, lifecycle, auth
-2. **Provide API credentials**: For Brev to access your API
-3. **Technical call**: We'll align on specifics
-4. **Implementation**: We build the adapter in our Cloud SDK
-5. **Testing**: Validate end-to-end flow
-6. **Launch**: Enable in Brev's catalog
+1. **Follow the Integration Guide and copy the template** — Start with the [Integration Guide](IntegrationGuide.md), which walks through the v1 interfaces, directory layout, and a copy/paste scaffold. Use the Lambda Labs provider as your canonical reference.
+2. **Implement your Cloud provider** — Build out instance lifecycle, instance types, capabilities, and security conformance under `internal/{provider}/v1/`. Embed `NotImplCloudClient` for any unsupported operations.
+3. **Run the local Validation Tests** — Wire up `validation_test.go` using real credentials and run `make test-validation` locally. This exercises instance create/get/list/terminate, instance types, and capability checks against your live API.
+4. **Provide Brev with a test account** — Brev needs a console account and API credentials to run validation independently. Exact requirements can vary by provider.
+5. **Brev validates end-to-end flow** — We run the full validation suite plus our internal end-to-end tests against your provider, confirm catalog readiness, and enable it in Brev.
 
-Contact the Brev team to start the integration process.
-
----
-
-## Glossary
-
-| Term | Definition |
-|------|------------|
-| **Cloud Provider (You)** | Your company, providing GPU compute infrastructure |
-| **Brev Control Plane** | Brev's system that syncs inventory and provisions instances |
-| **Instance Type** | A compute configuration (CPU, GPU, RAM, storage, etc.) |
-| **Location** | Primary region identifier (e.g., `us-west-2`) |
-| **SubLocation** | Availability zone within a region (e.g., `us-west-2a`) |
-| **noSub** | Placeholder used by `MakeGenericInstanceTypeID()` when no availability zone exists |
-| **Syncer** | Brev's continuous process that polls your API for inventory |
-| **Cloud SDK** | Brev's internal layer that adapts to different cloud provider APIs |
-| **InstanceTypeID** | Stable, unique identifier for an instance type (format defined by implementer) |
-| **SSH Key Injection** | Your API accepting Brev's SSH public key at VM creation |
+See the [Integration Guide](IntegrationGuide.md) for detailed implementation instructions, and reach out to the Brev team with any questions.
 
 ---
 
