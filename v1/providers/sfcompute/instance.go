@@ -63,6 +63,11 @@ func sshKeyCloudInit(sshKey string) string {
 }
 
 func (c *SFCClient) GetInstance(ctx context.Context, id v1.CloudProviderInstanceID) (*v1.Instance, error) {
+	c.logger.Debug(ctx, "sfc: GetInstance start",
+		v1.LogField("instanceID", id),
+		v1.LogField("location", c.location),
+	)
+
 	// Get the node from the API
 	node, err := c.client.Nodes.Get(ctx, string(id))
 	if err != nil {
@@ -84,6 +89,12 @@ func (c *SFCClient) GetInstance(ctx context.Context, id v1.CloudProviderInstance
 	if err != nil {
 		return nil, errors.WrapAndTrace(err)
 	}
+
+	c.logger.Debug(ctx, "sfc: GetInstance end",
+		v1.LogField("instanceID", id),
+		v1.LogField("instance", instance),
+	)
+
 	return instance, nil
 }
 
@@ -113,10 +124,19 @@ func (c *SFCClient) getZone(ctx context.Context, location string, includeUnavail
 }
 
 func (c *SFCClient) ListInstances(ctx context.Context, args v1.ListInstancesArgs) ([]v1.Instance, error) {
+	c.logger.Debug(ctx, "sfc: ListInstances start",
+		v1.LogField("location", c.location),
+		v1.LogField("args", fmt.Sprintf("%+v", args)),
+	)
+
 	resp, err := c.client.Nodes.List(ctx, sfcnodes.NodeListParams{})
 	if err != nil {
-		return nil, err
+		return nil, errors.WrapAndTrace(err)
 	}
+
+	c.logger.Debug(ctx, "sfc: ListInstances nodes list",
+		v1.LogField("node count", len(resp.Data)),
+	)
 
 	zoneCache := make(map[string]*sfcnodes.ZoneListResponseData)
 
@@ -135,11 +155,19 @@ func (c *SFCClient) ListInstances(ctx context.Context, args v1.ListInstancesArgs
 
 		// Filter by locations
 		if args.Locations != nil && !args.Locations.IsAllowed(zone.Name) {
+			c.logger.Debug(ctx, "sfc: ListInstances node filtered out by location",
+				v1.LogField("nodeID", node.ID),
+				v1.LogField("location", zone.Name),
+			)
 			continue
 		}
 
 		// Filter by instance IDs
 		if args.InstanceIDs != nil && !slices.Contains(args.InstanceIDs, v1.CloudProviderInstanceID(node.ID)) {
+			c.logger.Debug(ctx, "sfc: ListInstances node filtered out by instance ID",
+				v1.LogField("nodeID", node.ID),
+				v1.LogField("instanceID", v1.CloudProviderInstanceID(node.ID)),
+			)
 			continue
 		}
 
@@ -155,14 +183,27 @@ func (c *SFCClient) ListInstances(ctx context.Context, args v1.ListInstancesArgs
 		instances = append(instances, *inst)
 	}
 
+	c.logger.Debug(ctx, "sfc: ListInstances end",
+		v1.LogField("instance count", len(instances)),
+	)
+
 	return instances, nil
 }
 
 func (c *SFCClient) TerminateInstance(ctx context.Context, id v1.CloudProviderInstanceID) error {
+	c.logger.Debug(ctx, "sfc: TerminateInstance start",
+		v1.LogField("instanceID", id),
+	)
+
 	_, err := c.client.Nodes.Release(ctx, string(id))
 	if err != nil {
 		return errors.WrapAndTrace(err)
 	}
+
+	c.logger.Debug(ctx, "sfc: TerminateInstance end",
+		v1.LogField("instanceID", id),
+	)
+
 	return nil
 }
 

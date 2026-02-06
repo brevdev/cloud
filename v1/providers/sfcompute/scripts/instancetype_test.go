@@ -143,7 +143,12 @@ func TestListInstances(t *testing.T) {
 		t.Fatalf("failed to make client: %v", err)
 	}
 
-	instances, err := client.ListInstances(context.Background(), v1.ListInstancesArgs{})
+	instances, err := client.ListInstances(context.Background(), v1.ListInstancesArgs{
+		TagFilters: map[string][]string{
+			"dev-plane-managedBy": {"dev-plane"},
+		},
+		Locations: v1.All,
+	})
 	if err != nil {
 		t.Fatalf("failed to list instances: %v", err)
 	}

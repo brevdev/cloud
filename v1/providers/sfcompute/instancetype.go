@@ -55,6 +55,11 @@ func makeDefaultInstanceTypePrice(amount string, currencyCode string) currency.A
 }
 
 func (c *SFCClient) GetInstanceTypes(ctx context.Context, args v1.GetInstanceTypeArgs) ([]v1.InstanceType, error) {
+	c.logger.Debug(ctx, "sfc: GetInstanceTypes start",
+		v1.LogField("location", c.location),
+		v1.LogField("args", fmt.Sprintf("%+v", args)),
+	)
+
 	// Fetch all available zones
 	includeUnavailable := false
 	zones, err := c.getZones(ctx, includeUnavailable)
@@ -62,11 +67,18 @@ func (c *SFCClient) GetInstanceTypes(ctx context.Context, args v1.GetInstanceTyp
 		return nil, err
 	}
 
+	c.logger.Debug(ctx, "sfc: GetInstanceTypes zones list",
+		v1.LogField("zone count", len(zones)),
+	)
+
 	instanceTypes := make([]v1.InstanceType, 0, len(zones))
 	for _, zone := range zones {
 		gpuType := strings.ToLower(string(zone.HardwareType))
 
 		if !gpuTypeIsAllowed(gpuType) {
+			c.logger.Debug(ctx, "sfc: GetInstanceTypes gpu type not allowed",
+				v1.LogField("gpuType", gpuType),
+			)
 			continue
 		}
 
@@ -75,10 +87,19 @@ func (c *SFCClient) GetInstanceTypes(ctx context.Context, args v1.GetInstanceTyp
 			return nil, err
 		}
 
-		if v1.IsSelectedByArgs(*instanceType, args) {
-			instanceTypes = append(instanceTypes, *instanceType)
+		if !v1.IsSelectedByArgs(*instanceType, args) {
+			c.logger.Debug(ctx, "sfc: GetInstanceTypes instance type not selected by args",
+				v1.LogField("instanceType", instanceType.Type),
+			)
+			continue
 		}
+
+		instanceTypes = append(instanceTypes, *instanceType)
 	}
+
+	c.logger.Debug(ctx, "sfc: GetInstanceTypes end",
+		v1.LogField("instanceType count", len(instanceTypes)),
+	)
 
 	return instanceTypes, nil
 }
