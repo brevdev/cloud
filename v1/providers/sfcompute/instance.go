@@ -339,9 +339,9 @@ func sfcStatusToLifecycleStatus(status string) v1.LifecycleStatus {
 		return v1.LifecycleStatusRunning
 	case "stopped":
 		return v1.LifecycleStatusStopped
-	case "terminating", "released":
+	case "terminating":
 		return v1.LifecycleStatusTerminating
-	case "destroyed", "deleted":
+	case "released", "destroyed", "deleted":
 		return v1.LifecycleStatusTerminated
 	default:
 		return v1.LifecycleStatusPending
