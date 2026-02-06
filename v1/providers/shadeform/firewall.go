@@ -14,10 +14,51 @@ const (
 	ufwDefaultAllowPort22   = "ufw allow 22/tcp"
 	ufwDefaultAllowPort2222 = "ufw allow 2222/tcp"
 	ufwForceEnable          = "ufw --force enable"
+
+	// Clear DOCKER-USER policy.
+	ipTablesResetDockerUserChain = "iptables -F DOCKER-USER"
+
+	// Allow return traffic.
+	ipTablesAllowDockerUserOutbound = "iptables -A DOCKER-USER -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT"
+
+	// Allow containers to initiate outbound traffic (default bridge + user-defined bridges).
+	ipTablesAllowDockerUserOutboundInit0 = "iptables -A DOCKER-USER -i docker0 ! -o docker0 -j ACCEPT"
+	ipTablesAllowDockerUserOutboundInit1 = "iptables -A DOCKER-USER -i br+     ! -o br+     -j ACCEPT"
+
+	// Allow container-to-container on the same bridge.
+	ipTablesAllowDockerUserDockerToDocker0 = "iptables -A DOCKER-USER -i docker0 -o docker0 -j ACCEPT"
+	ipTablesAllowDockerUserDockerToDocker1 = "iptables -A DOCKER-USER -i br+     -o br+     -j ACCEPT"
+
+	// Allow inbound traffic on the loopback interface.
+	ipTablesAllowDockerUserInpboundLoopback = "iptables -A DOCKER-USER -i lo -j ACCEPT"
+
+	// Drop everything else.
+	ipTablesDropDockerUserInbound = "iptables -A DOCKER-USER -j DROP"
+	ipTablesReturnDockerUser      = "iptables -A DOCKER-USER -j RETURN"
 )
 
 func (c *ShadeformClient) GenerateFirewallScript(firewallRules v1.FirewallRules) (string, error) {
-	commands := []string{ufwForceReset, ufwDefaultDropIncoming, ufwDefaultAllowOutgoing, ufwDefaultAllowPort22, ufwDefaultAllowPort2222}
+	var commands []string
+	commands = append(commands, c.getUFWCommands(firewallRules)...)
+	commands = append(commands, c.getIPTablesCommands()...)
+
+	script := ""
+	for _, command := range commands {
+		script += fmt.Sprintf("%v\n", command)
+	}
+
+	encoded := base64.StdEncoding.EncodeToString([]byte(script))
+	return encoded, nil
+}
+
+func (c *ShadeformClient) getUFWCommands(firewallRules v1.FirewallRules) []string {
+	commands := []string{
+		ufwForceReset,
+		ufwDefaultDropIncoming,
+		ufwDefaultAllowOutgoing,
+		ufwDefaultAllowPort22,
+		ufwDefaultAllowPort2222,
+	}
 
 	for _, firewallRule := range firewallRules.IngressRules {
 		commands = append(commands, c.convertIngressFirewallRuleToUfwCommand(firewallRule)...)
@@ -30,13 +71,22 @@ func (c *ShadeformClient) GenerateFirewallScript(firewallRules v1.FirewallRules)
 	// Add the enable command
 	commands = append(commands, ufwForceEnable)
 
-	script := ""
-	for _, command := range commands {
-		script += fmt.Sprintf("%v\n", command)
-	}
+	return commands
+}
 
-	encoded := base64.StdEncoding.EncodeToString([]byte(script))
-	return encoded, nil
+func (c *ShadeformClient) getIPTablesCommands() []string {
+	commands := []string{
+		ipTablesResetDockerUserChain,
+		ipTablesAllowDockerUserOutbound,
+		ipTablesAllowDockerUserOutboundInit0,
+		ipTablesAllowDockerUserOutboundInit1,
+		ipTablesAllowDockerUserDockerToDocker0,
+		ipTablesAllowDockerUserDockerToDocker1,
+		ipTablesAllowDockerUserInpboundLoopback,
+		ipTablesDropDockerUserInbound,
+		ipTablesReturnDockerUser, // Expected by Docker
+	}
+	return commands
 }
 
 func (c *ShadeformClient) convertIngressFirewallRuleToUfwCommand(firewallRule v1.FirewallRule) []string {
