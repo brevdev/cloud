@@ -20,31 +20,11 @@ const (
 
 	deliveryTypeVM         = "VM"
 	interconnectInfiniband = "infiniband"
+	formFactorSXM5         = "sxm5"
+	diskTypeSSD            = "ssd"
 )
 
-var (
-	allowedZones = []string{"hayesvalley", "yerba"}
-
-	gpuToVRAM = map[string]v1.Bytes{
-		gpuTypeH100: v1.NewBytes(80, v1.Gigabyte),
-		gpuTypeH200: v1.NewBytes(141, v1.Gigabyte),
-	}
-	gpuToFormFactor = map[string]string{
-		gpuTypeH100: "sxm5",
-		gpuTypeH200: "sxm5",
-	}
-	gpuToArchitecture = map[string]v1.Architecture{
-		gpuTypeH100: v1.ArchitectureX86_64,
-		gpuTypeH200: v1.ArchitectureX86_64,
-	}
-
-	defaultGPUCountPerNode  = int32(8)
-	defaultGPUManufacturer  = "nvidia"
-	defaultRAMPerNode       = v1.NewBytes(960, v1.Gigabyte)
-	defaultStoragePerNode   = v1.NewBytes(1500, v1.Gigabyte)
-	defaultProvisioningTime = 5 * time.Minute
-	defaultPricePerGPU      = makeDefaultInstanceTypePrice("2.00", "USD")
-)
+var allowedZones = []string{"hayesvalley", "yerba"}
 
 func makeDefaultInstanceTypePrice(amount string, currencyCode string) currency.Amount {
 	instanceTypePrice, err := currency.NewAmount(amount, currencyCode)
@@ -107,19 +87,24 @@ func (c *SFCClient) GetInstanceTypes(ctx context.Context, args v1.GetInstanceTyp
 func getInstanceTypeForZone(zone sfcnodes.ZoneListResponseData) (*v1.InstanceType, error) {
 	gpuType := strings.ToLower(string(zone.HardwareType))
 
-	ramInt64, err := defaultRAMPerNode.ByteCountInUnitInt64(v1.Gibibyte)
+	gpuMetadata, err := getInstanceTypeMetadata(gpuType)
+	if err != nil {
+		return nil, err
+	}
+
+	ramInt64, err := gpuMetadata.memoryBytes.ByteCountInUnitInt64(v1.Gibibyte)
 	if err != nil {
 		return nil, err
 	}
 	ram := units.Base2Bytes(ramInt64 * int64(units.Gibibyte))
 
-	memoryInt64, err := gpuToVRAM[gpuType].ByteCountInUnitInt64(v1.Gibibyte)
+	memoryInt64, err := gpuMetadata.gpuVRAM.ByteCountInUnitInt64(v1.Gibibyte)
 	if err != nil {
 		return nil, err
 	}
 	memory := units.Base2Bytes(memoryInt64 * int64(units.Gibibyte))
 
-	diskSizeInt64, err := defaultStoragePerNode.ByteCountInUnitInt64(v1.Gibibyte)
+	diskSizeInt64, err := gpuMetadata.diskBytes.ByteCountInUnitInt64(v1.Gibibyte)
 	if err != nil {
 		return nil, err
 	}
@@ -129,30 +114,30 @@ func getInstanceTypeForZone(zone sfcnodes.ZoneListResponseData) (*v1.InstanceTyp
 		IsAvailable:         true,
 		Type:                makeInstanceTypeName(zone),
 		Memory:              ram,
-		MemoryBytes:         defaultRAMPerNode,
+		MemoryBytes:         gpuMetadata.memoryBytes,
 		Location:            zoneToLocation(zone).Name,
 		Stoppable:           false,
 		Rebootable:          false,
 		IsContainer:         false,
 		Provider:            CloudProviderID,
-		BasePrice:           &defaultPricePerGPU,
-		EstimatedDeployTime: &defaultProvisioningTime,
+		BasePrice:           &gpuMetadata.pricePerGPU,
+		EstimatedDeployTime: &gpuMetadata.provisioningTime,
 		SupportedGPUs: []v1.GPU{{
-			Count:          defaultGPUCountPerNode,
+			Count:          gpuMetadata.gpuCount,
 			Type:           strings.ToUpper(gpuType),
-			Manufacturer:   v1.GetManufacturer(defaultGPUManufacturer),
+			Manufacturer:   gpuMetadata.gpuManufacturer,
 			Name:           strings.ToUpper(gpuType),
 			Memory:         memory,
-			MemoryBytes:    gpuToVRAM[gpuType],
-			NetworkDetails: gpuToFormFactor[gpuType],
+			MemoryBytes:    gpuMetadata.gpuVRAM,
+			NetworkDetails: gpuMetadata.formFactor,
 		}},
 		SupportedStorage: []v1.Storage{{
-			Type:      "ssd",
+			Type:      diskTypeSSD,
 			Count:     1,
 			Size:      diskSize,
-			SizeBytes: defaultStoragePerNode,
+			SizeBytes: gpuMetadata.diskBytes,
 		}},
-		SupportedArchitectures: []v1.Architecture{gpuToArchitecture[gpuType]},
+		SupportedArchitectures: []v1.Architecture{gpuMetadata.architecture},
 	}
 
 	instanceType.ID = v1.MakeGenericInstanceTypeID(instanceType)
@@ -229,4 +214,56 @@ func zoneToLocation(zone sfcnodes.ZoneListResponseData) v1.Location {
 		Description: fmt.Sprintf("sfc_%s_%s", zone.Name, string(zone.HardwareType)),
 		Available:   true,
 	}
+}
+
+// sfcInstanceTypeMetadata is a struct that contains the metadata for a given instance type.
+// These values are not currently provided by the SFCompute API, so we need to hardcode them.
+type sfcInstanceTypeMetadata struct {
+	gpuType          string
+	formFactor       string
+	architecture     v1.Architecture
+	memoryBytes      v1.Bytes
+	diskBytes        v1.Bytes
+	gpuCount         int32
+	gpuManufacturer  v1.Manufacturer
+	gpuVRAM          v1.Bytes
+	provisioningTime time.Duration
+	pricePerGPU      currency.Amount
+}
+
+func getInstanceTypeMetadata(gpuType string) (*sfcInstanceTypeMetadata, error) {
+	switch gpuType {
+	case gpuTypeH100:
+		return &h100InstanceTypeMetadata, nil
+	case gpuTypeH200:
+		return &h200InstanceTypeMetadata, nil
+	default:
+		return nil, fmt.Errorf("invalid GPU type: %s", gpuType)
+	}
+}
+
+var h100InstanceTypeMetadata = sfcInstanceTypeMetadata{
+	gpuType:          gpuTypeH100,
+	formFactor:       formFactorSXM5,
+	architecture:     v1.ArchitectureX86_64,
+	memoryBytes:      v1.NewBytes(960, v1.Gigabyte),
+	diskBytes:        v1.NewBytes(1500, v1.Gigabyte),
+	gpuCount:         8,
+	gpuManufacturer:  v1.ManufacturerNVIDIA,
+	gpuVRAM:          v1.NewBytes(80, v1.Gigabyte),
+	provisioningTime: 5 * time.Minute,
+	pricePerGPU:      makeDefaultInstanceTypePrice("2.00", "USD"),
+}
+
+var h200InstanceTypeMetadata = sfcInstanceTypeMetadata{
+	gpuType:          gpuTypeH200,
+	formFactor:       formFactorSXM5,
+	architecture:     v1.ArchitectureX86_64,
+	memoryBytes:      v1.NewBytes(960, v1.Gigabyte),
+	diskBytes:        v1.NewBytes(1500, v1.Gigabyte),
+	gpuCount:         8,
+	gpuManufacturer:  v1.ManufacturerNVIDIA,
+	gpuVRAM:          v1.NewBytes(141, v1.Gigabyte),
+	provisioningTime: 5 * time.Minute,
+	pricePerGPU:      makeDefaultInstanceTypePrice("2.00", "USD"),
 }
