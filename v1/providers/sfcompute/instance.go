@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/alecthomas/units"
 	"github.com/brevdev/cloud/internal/errors"
 	v1 "github.com/brevdev/cloud/v1"
 	sfcnodes "github.com/sfcompute/nodes-go"
@@ -231,6 +232,12 @@ func (c *SFCClient) sfcNodeToBrevInstance(node sfcNodeInfo) (*v1.Instance, error
 		return nil, errors.WrapAndTrace(err)
 	}
 
+	diskSizeInt64, err := instanceType.SupportedStorage[0].SizeBytes.ByteCountInUnitInt64(v1.Gibibyte)
+	if err != nil {
+		return nil, err
+	}
+	diskSize := units.Base2Bytes(diskSizeInt64 * int64(units.Gibibyte))
+
 	// Create the instance
 	inst := &v1.Instance{
 		Name:          name,
@@ -241,6 +248,7 @@ func (c *SFCClient) sfcNodeToBrevInstance(node sfcNodeInfo) (*v1.Instance, error
 		SSHUser:       node.sshUsername,
 		SSHPort:       defaultPort,
 		CreatedAt:     node.createdAt,
+		DiskSize:      diskSize,
 		DiskSizeBytes: instanceType.SupportedStorage[0].SizeBytes, // TODO: this should be pulled from the node itself
 		Status: v1.Status{
 			LifecycleStatus: node.status,
