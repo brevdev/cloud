@@ -120,8 +120,8 @@ func getInstanceTypeForZone(zone sfcnodes.ZoneListResponseData) (*v1.InstanceTyp
 		Rebootable:          false,
 		IsContainer:         false,
 		Provider:            CloudProviderID,
-		BasePrice:           &gpuMetadata.pricePerGPU,
-		EstimatedDeployTime: &gpuMetadata.provisioningTime,
+		BasePrice:           &gpuMetadata.price,
+		EstimatedDeployTime: &gpuMetadata.estimatedDeployTime,
 		SupportedGPUs: []v1.GPU{{
 			Count:          gpuMetadata.gpuCount,
 			Type:           strings.ToUpper(gpuType),
@@ -219,16 +219,16 @@ func zoneToLocation(zone sfcnodes.ZoneListResponseData) v1.Location {
 // sfcInstanceTypeMetadata is a struct that contains the metadata for a given instance type.
 // These values are not currently provided by the SFCompute API, so we need to hardcode them.
 type sfcInstanceTypeMetadata struct {
-	gpuType          string
-	formFactor       string
-	architecture     v1.Architecture
-	memoryBytes      v1.Bytes
-	diskBytes        v1.Bytes
-	gpuCount         int32
-	gpuManufacturer  v1.Manufacturer
-	gpuVRAM          v1.Bytes
-	provisioningTime time.Duration
-	pricePerGPU      currency.Amount
+	gpuType             string
+	formFactor          string
+	architecture        v1.Architecture
+	memoryBytes         v1.Bytes
+	diskBytes           v1.Bytes
+	gpuCount            int32
+	gpuManufacturer     v1.Manufacturer
+	gpuVRAM             v1.Bytes
+	estimatedDeployTime time.Duration
+	price               currency.Amount
 }
 
 func getInstanceTypeMetadata(gpuType string) (*sfcInstanceTypeMetadata, error) {
@@ -243,27 +243,27 @@ func getInstanceTypeMetadata(gpuType string) (*sfcInstanceTypeMetadata, error) {
 }
 
 var h100InstanceTypeMetadata = sfcInstanceTypeMetadata{
-	gpuType:          gpuTypeH100,
-	formFactor:       formFactorSXM5,
-	architecture:     v1.ArchitectureX86_64,
-	memoryBytes:      v1.NewBytes(960, v1.Gigabyte),
-	diskBytes:        v1.NewBytes(1500, v1.Gigabyte),
-	gpuCount:         8,
-	gpuManufacturer:  v1.ManufacturerNVIDIA,
-	gpuVRAM:          v1.NewBytes(80, v1.Gigabyte),
-	provisioningTime: 5 * time.Minute,
-	pricePerGPU:      makeDefaultInstanceTypePrice("2.00", "USD"),
+	gpuType:             gpuTypeH100,
+	formFactor:          formFactorSXM5,
+	architecture:        v1.ArchitectureX86_64,
+	memoryBytes:         v1.NewBytes(960, v1.Gigabyte),
+	diskBytes:           v1.NewBytes(1500, v1.Gigabyte),
+	gpuCount:            8,
+	gpuManufacturer:     v1.ManufacturerNVIDIA,
+	gpuVRAM:             v1.NewBytes(80, v1.Gigabyte),
+	estimatedDeployTime: 14 * time.Minute,
+	price:               makeDefaultInstanceTypePrice("16.00", "USD"),
 }
 
 var h200InstanceTypeMetadata = sfcInstanceTypeMetadata{
-	gpuType:          gpuTypeH200,
-	formFactor:       formFactorSXM5,
-	architecture:     v1.ArchitectureX86_64,
-	memoryBytes:      v1.NewBytes(960, v1.Gigabyte),
-	diskBytes:        v1.NewBytes(1500, v1.Gigabyte),
-	gpuCount:         8,
-	gpuManufacturer:  v1.ManufacturerNVIDIA,
-	gpuVRAM:          v1.NewBytes(141, v1.Gigabyte),
-	provisioningTime: 5 * time.Minute,
-	pricePerGPU:      makeDefaultInstanceTypePrice("2.00", "USD"),
+	gpuType:             gpuTypeH200,
+	formFactor:          formFactorSXM5,
+	architecture:        v1.ArchitectureX86_64,
+	memoryBytes:         v1.NewBytes(960, v1.Gigabyte),
+	diskBytes:           v1.NewBytes(1500, v1.Gigabyte),
+	gpuCount:            8,
+	gpuManufacturer:     v1.ManufacturerNVIDIA,
+	gpuVRAM:             v1.NewBytes(141, v1.Gigabyte),
+	estimatedDeployTime: 14 * time.Minute,
+	price:               makeDefaultInstanceTypePrice("24.00", "USD"),
 }
