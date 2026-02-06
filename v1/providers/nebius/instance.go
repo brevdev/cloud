@@ -1748,7 +1748,10 @@ func (c *NebiusClient) cleanupOrphanedBootDisks(ctx context.Context, testID stri
 // This is inspired by Shadeform's LaunchConfiguration approach but uses cloud-init instead of base64 scripts
 func generateCloudInitUserData(publicKey string, firewallRules v1.FirewallRules) string {
 	// Start with cloud-init header
-	script := "#cloud-config\n"
+	script := `#cloud-config
+packages:
+  - ufw
+`
 
 	// Add SSH key configuration if provided
 	if publicKey != "" {
