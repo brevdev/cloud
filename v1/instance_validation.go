@@ -58,19 +58,47 @@ func ValidateCreateInstance(ctx context.Context, client CloudCreateTerminateInst
 }
 
 func ValidateListCreatedInstance(ctx context.Context, client CloudCreateTerminateInstance, i *Instance) error {
+	// List instances by location and search for the instance by CloudID
 	ins, err := client.ListInstances(ctx, ListInstancesArgs{
 		Locations: []string{i.Location},
 	})
 	if err != nil {
 		return err
 	}
-	var validationErr error
 	if len(ins) == 0 {
-		validationErr = errors.Join(validationErr, fmt.Errorf("no instances found"))
+		return fmt.Errorf("no instances found")
 	}
 	foundInstance := collections.Find(ins, func(inst Instance) bool {
 		return inst.CloudID == i.CloudID
 	})
+	err = validateInstance(i, foundInstance)
+	if err != nil {
+		return err
+	}
+
+	// List instances by instance ID and search for the instance by CloudID
+	ins, err = client.ListInstances(ctx, ListInstancesArgs{
+		InstanceIDs: []CloudProviderInstanceID{i.CloudID},
+	})
+	if err != nil {
+		return err
+	}
+	if len(ins) == 0 {
+		return fmt.Errorf("instance not found: %s", i.CloudID)
+	}
+
+	foundInstance = collections.Find(ins, func(inst Instance) bool {
+		return inst.CloudID == i.CloudID
+	})
+	err = validateInstance(i, foundInstance)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func validateInstance(i *Instance, foundInstance *Instance) error {
+	var validationErr error
 	if foundInstance == nil {
 		validationErr = errors.Join(validationErr, fmt.Errorf("instance not found: %s", i.CloudID))
 		return validationErr

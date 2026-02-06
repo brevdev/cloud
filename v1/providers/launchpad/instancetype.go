@@ -44,7 +44,7 @@ func (c *LaunchpadClient) GetInstanceTypes(ctx context.Context, args v1.GetInsta
 			}
 
 			// Collect the instance type if it is selected by the args
-			if isSelectedByArgs(*instanceType, args) {
+			if v1.IsSelectedByArgs(*instanceType, args) {
 				instanceTypes = append(instanceTypes, *instanceType)
 			} else {
 				continue
@@ -53,40 +53,6 @@ func (c *LaunchpadClient) GetInstanceTypes(ctx context.Context, args v1.GetInsta
 	}
 
 	return instanceTypes, nil
-}
-
-func isSelectedByArgs(instanceType v1.InstanceType, args v1.GetInstanceTypeArgs) bool {
-	if args.Locations != nil {
-		for _, location := range instanceType.Location {
-			if !args.Locations.IsAllowed(string(location)) {
-				return false
-			}
-		}
-	}
-
-	if args.GPUManufactererFilter != nil {
-		for _, supportedGPU := range instanceType.SupportedGPUs {
-			if !args.GPUManufactererFilter.IsAllowed(supportedGPU.Manufacturer) {
-				return false
-			}
-		}
-	}
-
-	if args.CloudFilter != nil {
-		if !args.CloudFilter.IsAllowed(instanceType.Cloud) {
-			return false
-		}
-	}
-
-	if args.ArchitectureFilter != nil {
-		for _, architecture := range instanceType.SupportedArchitectures {
-			if !args.ArchitectureFilter.IsAllowed(architecture) {
-				return false
-			}
-		}
-	}
-
-	return true
 }
 
 func (c *LaunchpadClient) paginateInstanceTypes(ctx context.Context, pageSize int32) ([]openapi.InstanceType, error) {
