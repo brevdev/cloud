@@ -341,7 +341,7 @@ func sfcListResponseNodeDataToNode(node *sfcnodes.ListResponseNodeData) *sfcnode
 
 func sfcStatusToLifecycleStatus(status string) v1.LifecycleStatus {
 	switch strings.ToLower(status) {
-	case "pending", "nodefailure", "unspecified", "awaitingcapacity", "unknown", "failed":
+	case "pending", "unspecified", "awaitingcapacity", "unknown":
 		return v1.LifecycleStatusPending
 	case "running":
 		return v1.LifecycleStatusRunning
@@ -351,6 +351,8 @@ func sfcStatusToLifecycleStatus(status string) v1.LifecycleStatus {
 		return v1.LifecycleStatusTerminating
 	case "released", "destroyed", "deleted":
 		return v1.LifecycleStatusTerminated
+	case "nodefailure", "failed":
+		return v1.LifecycleStatusFailed
 	default:
 		return v1.LifecycleStatusPending
 	}
