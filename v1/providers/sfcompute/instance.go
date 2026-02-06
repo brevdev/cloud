@@ -368,7 +368,7 @@ func brevDataToSFCName(refID string, name string) string {
 }
 
 func sfcNameToBrevData(name string) (string, string, error) {
-	parts := strings.SplitAfterN(name, "_", 2)
+	parts := strings.SplitN(name, "_", 2)
 	if len(parts) != 2 {
 		return "", "", errors.WrapAndTrace(fmt.Errorf("invalid node name %s", name))
 	}
