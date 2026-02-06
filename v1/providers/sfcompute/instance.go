@@ -163,7 +163,7 @@ func (c *SFCClient) ListInstances(ctx context.Context, args v1.ListInstancesArgs
 		}
 
 		// Filter by instance IDs
-		if args.InstanceIDs != nil && !slices.Contains(args.InstanceIDs, v1.CloudProviderInstanceID(node.ID)) {
+		if len(args.InstanceIDs) > 0 && !slices.Contains(args.InstanceIDs, v1.CloudProviderInstanceID(node.ID)) {
 			c.logger.Debug(ctx, "sfc: ListInstances node filtered out by instance ID",
 				v1.LogField("nodeID", node.ID),
 				v1.LogField("instanceID", v1.CloudProviderInstanceID(node.ID)),
