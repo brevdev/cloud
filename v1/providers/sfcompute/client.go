@@ -61,7 +61,7 @@ func WithLogger(logger v1.Logger) SFCClientOption {
 	}
 }
 
-func (c *SFCCredential) MakeClientWithOptions(ctx context.Context, location string, opts ...SFCClientOption) (v1.CloudClient, error) {
+func (c *SFCCredential) MakeClientWithOptions(_ context.Context, location string, opts ...SFCClientOption) (v1.CloudClient, error) {
 	sfcClient := &SFCClient{
 		refID:    c.RefID,
 		apiKey:   c.APIKey,

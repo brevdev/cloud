@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/alecthomas/units"
 	"github.com/bojanz/currency"
 	sfcnodes "github.com/sfcompute/nodes-go"
 
@@ -69,22 +70,44 @@ func (c *SFCClient) GetInstanceTypes(ctx context.Context, args v1.GetInstanceTyp
 			continue
 		}
 
-		instanceType := getInstanceTypeForZone(zone)
+		instanceType, err := getInstanceTypeForZone(zone)
+		if err != nil {
+			return nil, err
+		}
 
-		if v1.IsSelectedByArgs(instanceType, args) {
-			instanceTypes = append(instanceTypes, instanceType)
+		if v1.IsSelectedByArgs(*instanceType, args) {
+			instanceTypes = append(instanceTypes, *instanceType)
 		}
 	}
 
 	return instanceTypes, nil
 }
 
-func getInstanceTypeForZone(zone sfcnodes.ZoneListResponseData) v1.InstanceType {
+func getInstanceTypeForZone(zone sfcnodes.ZoneListResponseData) (*v1.InstanceType, error) {
 	gpuType := strings.ToLower(string(zone.HardwareType))
+
+	ramInt64, err := defaultRAMPerNode.ByteCountInUnitInt64(v1.Gibibyte)
+	if err != nil {
+		return nil, err
+	}
+	ram := units.Base2Bytes(ramInt64 * int64(units.Gibibyte))
+
+	memoryInt64, err := gpuToVRAM[gpuType].ByteCountInUnitInt64(v1.Gibibyte)
+	if err != nil {
+		return nil, err
+	}
+	memory := units.Base2Bytes(memoryInt64 * int64(units.Gibibyte))
+
+	diskSizeInt64, err := defaultStoragePerNode.ByteCountInUnitInt64(v1.Gibibyte)
+	if err != nil {
+		return nil, err
+	}
+	diskSize := units.Base2Bytes(diskSizeInt64 * int64(units.Gibibyte))
 
 	instanceType := v1.InstanceType{
 		IsAvailable:         true,
 		Type:                makeInstanceTypeName(zone),
+		Memory:              ram,
 		MemoryBytes:         defaultRAMPerNode,
 		Location:            zoneToLocation(zone).Name,
 		Stoppable:           false,
@@ -95,15 +118,17 @@ func getInstanceTypeForZone(zone sfcnodes.ZoneListResponseData) v1.InstanceType 
 		EstimatedDeployTime: &defaultProvisioningTime,
 		SupportedGPUs: []v1.GPU{{
 			Count:          defaultGPUCountPerNode,
-			Type:           gpuType,
+			Type:           strings.ToUpper(gpuType),
 			Manufacturer:   v1.GetManufacturer(defaultGPUManufacturer),
-			Name:           gpuType,
+			Name:           strings.ToUpper(gpuType),
+			Memory:         memory,
 			MemoryBytes:    gpuToVRAM[gpuType],
 			NetworkDetails: gpuToFormFactor[gpuType],
 		}},
 		SupportedStorage: []v1.Storage{{
 			Type:      "ssd",
 			Count:     1,
+			Size:      diskSize,
 			SizeBytes: defaultStoragePerNode,
 		}},
 		SupportedArchitectures: []v1.Architecture{gpuToArchitecture[gpuType]},
@@ -111,7 +136,7 @@ func getInstanceTypeForZone(zone sfcnodes.ZoneListResponseData) v1.InstanceType 
 
 	instanceType.ID = v1.MakeGenericInstanceTypeID(instanceType)
 
-	return instanceType
+	return &instanceType, nil
 }
 
 func gpuTypeIsAllowed(gpuType string) bool {

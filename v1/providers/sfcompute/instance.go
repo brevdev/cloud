@@ -185,7 +185,10 @@ func (c *SFCClient) sfcNodeToBrevInstance(node sfcNodeInfo) (*v1.Instance, error
 	}
 
 	// Get the instance type for the zone
-	instanceType := getInstanceTypeForZone(*node.zone)
+	instanceType, err := getInstanceTypeForZone(*node.zone)
+	if err != nil {
+		return nil, errors.WrapAndTrace(err)
+	}
 
 	// Create the instance
 	inst := &v1.Instance{
@@ -213,18 +216,14 @@ func (c *SFCClient) sfcNodeToBrevInstance(node sfcNodeInfo) (*v1.Instance, error
 }
 
 func (c *SFCClient) sfcNodeInfoFromNode(ctx context.Context, node *sfcnodes.Node, zone *sfcnodes.ZoneListResponseData) (*sfcNodeInfo, error) {
-	var sshUsername string
 	var sshHostname string
-
 	if len(node.VMs.Data) == 1 { //nolint:gocritic // ok
-		username, hostname, err := c.getSSHDetailsFromVM(ctx, node.VMs.Data[0].ID, node.VMs.Data[0].Status)
+		hostname, err := c.getSSHHostnameFromVM(ctx, node.VMs.Data[0].ID, node.VMs.Data[0].Status)
 		if err != nil {
 			return nil, errors.WrapAndTrace(err)
 		}
-		sshUsername = username
 		sshHostname = hostname
 	} else if len(node.VMs.Data) == 0 {
-		sshUsername = ""
 		sshHostname = ""
 	} else {
 		return nil, errors.WrapAndTrace(fmt.Errorf("multiple VMs found for node %s", node.ID))
@@ -236,7 +235,7 @@ func (c *SFCClient) sfcNodeInfoFromNode(ctx context.Context, node *sfcnodes.Node
 		createdAt:   time.Unix(node.CreatedAt, 0),
 		status:      sfcStatusToLifecycleStatus(fmt.Sprint(node.Status)),
 		gpuType:     string(node.GPUType),
-		sshUsername: sshUsername,
+		sshUsername: defaultSSHUsername,
 		sshHostname: sshHostname,
 		zone:        zone,
 	}, nil
@@ -308,25 +307,19 @@ func sfcStatusToLifecycleStatus(status string) v1.LifecycleStatus {
 	}
 }
 
-func (c *SFCClient) getSSHDetailsFromVM(ctx context.Context, vmID string, vmStatus string) (string, string, error) {
-	var sshUsername string
-	var sshHostname string
-
+func (c *SFCClient) getSSHHostnameFromVM(ctx context.Context, vmID string, vmStatus string) (string, error) {
 	// If the VM is not running, set the SSH username and hostname to empty strings
 	if strings.ToLower(vmStatus) != "running" {
-		return "", "", nil
+		return "", nil
 	}
 
 	// If the VM is running, get the SSH username and hostname
 	sshResponse, err := c.client.VMs.SSH(ctx, sfcnodes.VMSSHParams{VMID: vmID})
 	if err != nil {
-		return "", "", errors.WrapAndTrace(err)
+		return "", errors.WrapAndTrace(err)
 	}
 
-	sshUsername = defaultSSHUsername
-	sshHostname = sshResponse.SSHHostname
-
-	return sshUsername, sshHostname, nil
+	return sshResponse.SSHHostname, nil
 }
 
 func brevDataToSFCName(refID string, name string) string {
@@ -334,7 +327,7 @@ func brevDataToSFCName(refID string, name string) string {
 }
 
 func sfcNameToBrevData(name string) (string, string, error) {
-	parts := strings.Split(name, "_")
+	parts := strings.SplitAfterN(name, "_", 2)
 	if len(parts) != 2 {
 		return "", "", errors.WrapAndTrace(fmt.Errorf("invalid node name %s", name))
 	}
