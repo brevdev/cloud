@@ -1,68 +1,35 @@
-# Cloud SDK (v1)
+# Brev Cloud SDK
 
-An early-stage, vendor-agnostic Go SDK for managing **clusterable, GPU-accelerated compute** across cloud providers.
+Vendor-agnostic Go SDK for integrating cloud providers into Brev's GPU compute platform.
 
----
+Cloud providers implement a standard set of interfaces — instance lifecycle, instance types, networking, storage — and Brev handles orchestration, inventory sync, and end-user experience.
 
-## Project Goals
+## Who This Is For
 
-- Define a clean, minimal interface for cloud compute primitives:
-  - `Instance`
-  - `Storage`
-  - `FirewallRule`
-  - `InstanceType`
-  - `Location`
+- **Cloud providers** integrating GPU compute into Brev
+- **NVIDIA Cloud Partners (NCPs)** offering Brev-compatible infrastructure
+- **Compute brokers and marketplaces** aggregating multi-cloud GPU capacity
 
-- Enable **clusterable GPU workloads** across multiple providers, with shared semantics and L3 network guarantees. (WIP)
+## Get Started
 
----
+Three resources to go from zero to a working provider integration:
 
-## Security
+1. **[Cloud Manual](docs/CloudManual.md)** — Complete reference for the SDK's interfaces, types, capabilities, billing, and provider expectations.
+2. **[Architecture](docs/ARCHITECTURE.md)** — How the Cloud SDK connects to Brev's control plane: inventory sync, provisioning flow, and credential management.
+3. **[Integration Guide](docs/IntegrationGuide.md)** — Practical walkthrough to implement a new provider, with copy/paste scaffolding and validation tests.
 
-All cloud integrations must follow our [Security Requirements](SECURITY.md), which define:
+## Additional Documentation
 
-- **Network Security**: Default "deny all inbound, allow all outbound" model
-- **Cluster Security**: Internal instance communication with external isolation
-- **Data Protection**: Encryption requirements for data at rest and in transit
-- **Implementation Guidelines**: Security checklists for cloud provider integrations
-
-See [SECURITY.md](docs/SECURITY.md) for complete security specifications and implementation requirements.
-
----
+- [Security Requirements](docs/SECURITY.md) — Network model, SSH access, firewall rules, and encryption expectations.
+- [Validation Testing](docs/VALIDATION_TESTING.md) — Shared test suite for verifying provider implementations against real APIs.
+- [V1 Design Notes](v1/V1_DESIGN_NOTES.md) — Design decisions, known quirks, and AWS-inspired patterns in the v1 API.
 
 ## Status
 
 - Version: `v1` — internal interface, open-sourced
-- Current scope: core types + interfaces + tests
 - Cloud provider implementations are internal-only for now
-- `v2` will be shaped by feedback and contributions from the community
+- `v2` will be shaped by feedback and real-world integration experience
 
-## Platform Support
+## Contributing
 
-- **Operating System**: Currently supports Ubuntu 22 only
-- **Architecture**: Designed for GPU-accelerated compute workloads
-- **Access Method**: Requires SSH server and SSH key-based authentication
-- **System Requirements**: Requires systemd to be running and accessible
-
----
-
-## Who This Is For
-
-- **NVIDIA Cloud Partners (NCPs)** looking to offer Brev-compatible GPU compute
-- **Infra teams** building cluster-aware systems or abstractions on raw compute
-- **Cloud providers** interested in contributing to a shared interface for accelerated compute
-- **Compute brokers & marketplaces (aggregators)** offering multi-cloud compute
-
-## Documentation
-
-- **[V1 Design Notes](pkg/v1/V1_DESIGN_NOTES.md)**: Design decisions, known quirks, and AWS-inspired patterns in the v1 API
-- **[Architecture Overview](docs/ARCHITECTURE.md)**: How the Cloud SDK fits into Brev's overall architecture
-- **[Security Requirements](docs/SECURITY.md)**: Security specifications and implementation requirements
-- **[How to Add a Provider](docs/how-to-add-a-provider.md)**: Step-by-step guide to implement a new cloud provider using the Lambda Labs example
-
----
-
-## Get Involved
-
-This is a foundation — we're opening it early to **learn with the community** and shape a clean, composable `v2`. If you're building GPU compute infrastructure or tooling, we'd love your input.
-
+We welcome and encourage contributions. If you're building GPU compute infrastructure or working on a provider integration, open an issue or submit a PR — we want to build this with the community.
