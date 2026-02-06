@@ -40,6 +40,9 @@ func ValidateInstanceImage(ctx context.Context, instance Instance, privateKey st
 		}
 	}()
 
+	// If cloud-init is present, wait until it has finished (e.g. UFW/runcmd done).
+	_, _, _ = sshClient.RunCommand(ctx, "cloud-init status --wait 2>/dev/null || true")
+
 	arch, err := validateArchitecture(ctx, sshClient)
 	if err != nil {
 		return err
