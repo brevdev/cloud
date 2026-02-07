@@ -1245,7 +1245,7 @@ To begin integration:
 1. **Follow the Integration Guide and copy the template** — Start with the [Integration Guide](IntegrationGuide.md), which walks through the v1 interfaces, directory layout, and a copy/paste scaffold. Use the Lambda Labs provider as your canonical reference.
 2. **Implement your Cloud provider** — Build out instance lifecycle, instance types, capabilities, and security conformance under `internal/{provider}/v1/`. Embed `NotImplCloudClient` for any unsupported operations.
 3. **Run the local Validation Tests** — Wire up `validation_test.go` using real credentials and run `make test-validation` locally. This exercises instance create/get/list/terminate, instance types, and capability checks against your live API.
-4. **Provide Brev with a test account** — Brev needs a console account and API credentials to run validation independently. Exact requirements can vary by provider.
+4. **Provide Brev with a test account** — Give Brev access to run validation independently. This typically means a console account or provided API credentials, but exact requirements vary by provider.
 5. **Brev validates end-to-end flow** — We run the full validation suite plus our internal end-to-end tests against your provider, confirm catalog readiness, and enable it in Brev.
 
 See the [Integration Guide](IntegrationGuide.md) for detailed implementation instructions, and reach out to the Brev team with any questions.
