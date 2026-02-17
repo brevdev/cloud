@@ -74,7 +74,7 @@ func (c *SFCClient) GetLocations(ctx context.Context, _ v1.GetLocationsArgs) ([]
 		return nil, err
 	}
 	locations := make(map[string]v1.Location)
-	allowedZones := []string{"hayesvalley", "yerba"}
+	allowedZones := []string{"hayesvalley", "yerba", "richmond"}
 	if resp != nil {
 		for _, zone := range resp.Data {
 			var available = false
