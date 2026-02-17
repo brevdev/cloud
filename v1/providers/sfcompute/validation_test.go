@@ -18,6 +18,7 @@ func TestValidationFunctions(t *testing.T) {
 		StableIDs: []v1.InstanceTypeID{
 			"hayesvalley-noSub-h100",
 			"yerba-noSub-h100",
+			"richmond-noSub-h100",
 		},
 	}
 
