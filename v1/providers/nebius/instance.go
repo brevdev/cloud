@@ -143,17 +143,18 @@ func (c *NebiusClient) CreateInstance(ctx context.Context, attrs v1.CreateInstan
 
 	operation, err := c.sdk.Services().Compute().V1().Instance().Create(ctx, createReq)
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, errors.WrapAndTrace(handleErrToCloudErr(err))
 	}
 
 	// Wait for the operation to complete and get the actual instance ID
 	finalOp, err := operation.Wait(ctx)
 	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+		return nil, errors.WrapAndTrace(handleErrToCloudErr(err))
 	}
 
 	if !finalOp.Successful() {
-		return nil, fmt.Errorf("instance creation failed: %v", finalOp.Status())
+        statusErr := fmt.Errorf("instance creation failed: %v", finalOp.Status())
+        return nil, handleErrToCloudErr(statusErr)
 	}
 
 	// Get the actual instance ID from the completed operation
