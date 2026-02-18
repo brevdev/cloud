@@ -183,8 +183,7 @@ func (c *SFCClient) getZones(ctx context.Context, includeUnavailable bool) ([]sf
 
 	zones := make([]sfcnodes.ZoneListResponseData, 0, len(resp.Data))
 	for _, zone := range resp.Data {
-
-		// If the there is no available capacity, and skip it
+		// If the there is no available capacity, skip it
 		if len(zone.AvailableCapacity) == 0 && !includeUnavailable {
 			continue
 		}
