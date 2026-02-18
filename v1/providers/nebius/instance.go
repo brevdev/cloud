@@ -153,8 +153,8 @@ func (c *NebiusClient) CreateInstance(ctx context.Context, attrs v1.CreateInstan
 	}
 
 	if !finalOp.Successful() {
-        statusErr := fmt.Errorf("instance creation failed: %v", finalOp.Status())
-        return nil, handleErrToCloudErr(statusErr)
+		statusErr := fmt.Errorf("instance creation failed: %v", finalOp.Status())
+		return nil, handleErrToCloudErr(statusErr)
 	}
 
 	// Get the actual instance ID from the completed operation

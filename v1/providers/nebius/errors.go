@@ -32,19 +32,18 @@ func isNotFoundError(err error) bool {
 }
 
 func handleErrToCloudErr(e error) error {
-    if e == nil {
-        return nil
-    }
+	if e == nil {
+		return nil
+	}
 
-    // Check for gRPC ResourceExhausted status code
-    if grpcStatus, ok := status.FromError(e); ok {
-        if grpcStatus.Code() == codes.ResourceExhausted {
-            return v1.ErrOutOfQuota
-        }
-    }
-    return e
+	// Check for gRPC ResourceExhausted status code
+	if grpcStatus, ok := status.FromError(e); ok {
+		if grpcStatus.Code() == codes.ResourceExhausted {
+			return v1.ErrOutOfQuota
+		}
+	}
+	return e
 }
-
 
 // isAlreadyExistsError checks if an error is an "already exists" error
 //
