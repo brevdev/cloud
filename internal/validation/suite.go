@@ -139,6 +139,16 @@ func RunInstanceLifecycleValidation(t *testing.T, config ProviderConfig) {
 			require.NoError(t, err, "ValidateDockerFirewallAllowsContainerToContainerCommunication should pass - container to container communication should be allowed")
 		})
 
+		t.Run("ValidateMicroK8sFirewallAllowsEgress", func(t *testing.T) {
+			err := v1.ValidateMicroK8sFirewallAllowsEgress(ctx, client, instance, ssh.GetTestPrivateKey())
+			require.NoError(t, err, "ValidateMicroK8sFirewallAllowsEgress should pass - microk8s pod egress should be allowed")
+		})
+
+		t.Run("ValidateMicroK8sFirewallAllowsPodToPodCommunication", func(t *testing.T) {
+			err := v1.ValidateMicroK8sFirewallAllowsPodToPodCommunication(ctx, client, instance, ssh.GetTestPrivateKey())
+			require.NoError(t, err, "ValidateMicroK8sFirewallAllowsPodToPodCommunication should pass - microk8s pod to pod communication should be allowed")
+		})
+
 		if capabilities.IsCapable(v1.CapabilityStopStartInstance) && instance.Stoppable {
 			t.Run("ValidateStopStartInstance", func(t *testing.T) {
 				err := v1.ValidateStopStartInstance(ctx, client, instance)
@@ -340,6 +350,16 @@ func RunFirewallValidation(t *testing.T, config ProviderConfig, opts FirewallVal
 	t.Run("ValidateDockerFirewallAllowsContainerToContainerCommunication", func(t *testing.T) {
 		err := v1.ValidateDockerFirewallAllowsContainerToContainerCommunication(ctx, client, instance, ssh.GetTestPrivateKey())
 		require.NoError(t, err, "ValidateDockerFirewallAllowsContainerToContainerCommunication should pass - container to container communication should be allowed")
+	})
+
+	t.Run("ValidateMicroK8sFirewallAllowsEgress", func(t *testing.T) {
+		err := v1.ValidateMicroK8sFirewallAllowsEgress(ctx, client, instance, ssh.GetTestPrivateKey())
+		require.NoError(t, err, "ValidateMicroK8sFirewallAllowsEgress should pass - microk8s pod egress should be allowed")
+	})
+
+	t.Run("ValidateMicroK8sFirewallAllowsPodToPodCommunication", func(t *testing.T) {
+		err := v1.ValidateMicroK8sFirewallAllowsPodToPodCommunication(ctx, client, instance, ssh.GetTestPrivateKey())
+		require.NoError(t, err, "ValidateMicroK8sFirewallAllowsPodToPodCommunication should pass - microk8s pod to pod communication should be allowed")
 	})
 
 	// Test that SSH port is accessible (sanity check)

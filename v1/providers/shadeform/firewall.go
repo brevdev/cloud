@@ -24,10 +24,16 @@ const (
 	// Allow containers to initiate outbound traffic (default bridge + user-defined bridges).
 	ipTablesAllowDockerUserOutboundInit0 = "iptables -A DOCKER-USER -i docker0 ! -o docker0 -j ACCEPT"
 	ipTablesAllowDockerUserOutboundInit1 = "iptables -A DOCKER-USER -i br+     ! -o br+     -j ACCEPT"
+	ipTablesAllowDockerUserOutboundInit2 = "iptables -A DOCKER-USER -i cni+    ! -o cni+    -j ACCEPT"
+	ipTablesAllowDockerUserOutboundInit3 = "iptables -A DOCKER-USER -i cali+   ! -o cali+   -j ACCEPT"
 
 	// Allow container-to-container on the same bridge.
 	ipTablesAllowDockerUserDockerToDocker0 = "iptables -A DOCKER-USER -i docker0 -o docker0 -j ACCEPT"
 	ipTablesAllowDockerUserDockerToDocker1 = "iptables -A DOCKER-USER -i br+     -o br+     -j ACCEPT"
+	ipTablesAllowDockerUserDockerToDocker2 = "iptables -A DOCKER-USER -i cni+    -o cni+    -j ACCEPT"
+	ipTablesAllowDockerUserDockerToDocker3 = "iptables -A DOCKER-USER -i cali+   -o cali+   -j ACCEPT"
+	ipTablesAllowDockerUserFlannel         = "iptables -A DOCKER-USER -i flannel+ -j ACCEPT"
+	ipTablesAllowDockerUserCalicoVXLAN     = "iptables -A DOCKER-USER -i vxlan.calico -j ACCEPT"
 
 	// Allow inbound traffic on the loopback interface.
 	ipTablesAllowDockerUserInpboundLoopback = "iptables -A DOCKER-USER -i lo -j ACCEPT"
@@ -80,8 +86,14 @@ func (c *ShadeformClient) getIPTablesCommands() []string {
 		ipTablesAllowDockerUserOutbound,
 		ipTablesAllowDockerUserOutboundInit0,
 		ipTablesAllowDockerUserOutboundInit1,
+		ipTablesAllowDockerUserOutboundInit2,
+		ipTablesAllowDockerUserOutboundInit3,
 		ipTablesAllowDockerUserDockerToDocker0,
 		ipTablesAllowDockerUserDockerToDocker1,
+		ipTablesAllowDockerUserDockerToDocker2,
+		ipTablesAllowDockerUserDockerToDocker3,
+		ipTablesAllowDockerUserFlannel,
+		ipTablesAllowDockerUserCalicoVXLAN,
 		ipTablesAllowDockerUserInpboundLoopback,
 		ipTablesDropDockerUserInbound,
 		ipTablesReturnDockerUser, // Expected by Docker
