@@ -370,38 +370,62 @@ func ValidateMicroK8sFirewallAllowsPodToPodCommunication(ctx context.Context, cl
 		return err
 	}
 
-	// Ensure prior run artifacts do not interfere.
+	cleanupMicroK8sPodToPodArtifacts(ctx, sshClient, microK8sCmd)
+	defer cleanupMicroK8sPodToPodArtifacts(ctx, sshClient, microK8sCmd)
+
+	if err := createMicroK8sNginxPod(ctx, sshClient, microK8sCmd); err != nil {
+		return err
+	}
+	if err := waitForMicroK8sNginxReady(ctx, sshClient, microK8sCmd); err != nil {
+		return err
+	}
+	if err := exposeMicroK8sNginxService(ctx, sshClient, microK8sCmd); err != nil {
+		return err
+	}
+	return runMicroK8sPodToPodTest(ctx, sshClient, microK8sCmd)
+}
+
+func cleanupMicroK8sPodToPodArtifacts(ctx context.Context, sshClient *ssh.Client, microK8sCmd string) {
 	_, _, _ = sshClient.RunCommand(ctx, fmt.Sprintf("%s kubectl delete pod mk8s-nginx mk8s-c2c-test --ignore-not-found=true", microK8sCmd))
 	_, _, _ = sshClient.RunCommand(ctx, fmt.Sprintf("%s kubectl delete service mk8s-nginx-svc --ignore-not-found=true", microK8sCmd))
+}
 
+func createMicroK8sNginxPod(ctx context.Context, sshClient *ssh.Client, microK8sCmd string) error {
 	cmd := fmt.Sprintf("%s kubectl run mk8s-nginx --image=nginx:alpine --restart=Never --port=80", microK8sCmd)
 	_, stderr, err := sshClient.RunCommand(ctx, cmd)
 	if err != nil {
 		return fmt.Errorf("failed to create microk8s nginx pod: %w, stderr: %s", err, stderr)
 	}
 
-	defer func() {
-		_, _, _ = sshClient.RunCommand(ctx, fmt.Sprintf("%s kubectl delete pod mk8s-nginx mk8s-c2c-test --ignore-not-found=true", microK8sCmd))
-		_, _, _ = sshClient.RunCommand(ctx, fmt.Sprintf("%s kubectl delete service mk8s-nginx-svc --ignore-not-found=true", microK8sCmd))
-	}()
+	return nil
+}
 
-	cmd = fmt.Sprintf("%s kubectl wait --for=condition=Ready pod/mk8s-nginx --timeout=180s", microK8sCmd)
-	_, stderr, err = sshClient.RunCommand(ctx, cmd)
+func waitForMicroK8sNginxReady(ctx context.Context, sshClient *ssh.Client, microK8sCmd string) error {
+	cmd := fmt.Sprintf("%s kubectl wait --for=condition=Ready pod/mk8s-nginx --timeout=180s", microK8sCmd)
+	_, stderr, err := sshClient.RunCommand(ctx, cmd)
 	if err != nil {
 		return fmt.Errorf("microk8s nginx pod did not become ready: %w, stderr: %s", err, stderr)
 	}
 
-	cmd = fmt.Sprintf("%s kubectl expose pod mk8s-nginx --name=mk8s-nginx-svc --port=80 --target-port=80", microK8sCmd)
-	_, stderr, err = sshClient.RunCommand(ctx, cmd)
+	return nil
+}
+
+func exposeMicroK8sNginxService(ctx context.Context, sshClient *ssh.Client, microK8sCmd string) error {
+	cmd := fmt.Sprintf("%s kubectl expose pod mk8s-nginx --name=mk8s-nginx-svc --port=80 --target-port=80", microK8sCmd)
+	_, stderr, err := sshClient.RunCommand(ctx, cmd)
 	if err != nil {
 		return fmt.Errorf("failed to create microk8s nginx service: %w, stderr: %s", err, stderr)
 	}
 
-	cmd = fmt.Sprintf(
+	return nil
+}
+
+func runMicroK8sPodToPodTest(ctx context.Context, sshClient *ssh.Client, microK8sCmd string) error {
+	cmd := fmt.Sprintf(
 		"%s kubectl run mk8s-c2c-test --image=alpine:3.20 --restart=Never --command -- sh -c 'wget -q -O- http://mk8s-nginx-svc'",
 		microK8sCmd,
 	)
-	_, stderr, err = sshClient.RunCommand(ctx, cmd)
+	_, stderr, err := sshClient.RunCommand(ctx, cmd)
 	if err != nil {
 		return fmt.Errorf("failed to create microk8s pod-to-pod test pod: %w, stderr: %s", err, stderr)
 	}

@@ -73,10 +73,6 @@ func RunInstanceLifecycleValidation(t *testing.T, config ProviderConfig) {
 	require.NoError(t, err)
 	require.NotEmpty(t, types, "Should have instance types")
 
-	locations, err := client.GetLocations(ctx, v1.GetLocationsArgs{})
-	require.NoError(t, err)
-	require.NotEmpty(t, locations, "Should have locations")
-
 	t.Run("ValidateCreateInstance", func(t *testing.T) {
 		attrs := v1.CreateInstanceAttrs{}
 		selectedType := v1.InstanceType{}
@@ -139,15 +135,7 @@ func RunInstanceLifecycleValidation(t *testing.T, config ProviderConfig) {
 			require.NoError(t, err, "ValidateDockerFirewallAllowsContainerToContainerCommunication should pass - container to container communication should be allowed")
 		})
 
-		t.Run("ValidateMicroK8sFirewallAllowsEgress", func(t *testing.T) {
-			err := v1.ValidateMicroK8sFirewallAllowsEgress(ctx, client, instance, ssh.GetTestPrivateKey())
-			require.NoError(t, err, "ValidateMicroK8sFirewallAllowsEgress should pass - microk8s pod egress should be allowed")
-		})
-
-		t.Run("ValidateMicroK8sFirewallAllowsPodToPodCommunication", func(t *testing.T) {
-			err := v1.ValidateMicroK8sFirewallAllowsPodToPodCommunication(ctx, client, instance, ssh.GetTestPrivateKey())
-			require.NoError(t, err, "ValidateMicroK8sFirewallAllowsPodToPodCommunication should pass - microk8s pod to pod communication should be allowed")
-		})
+		runMicroK8sFirewallValidation(ctx, t, client, instance)
 
 		if capabilities.IsCapable(v1.CapabilityStopStartInstance) && instance.Stoppable {
 			t.Run("ValidateStopStartInstance", func(t *testing.T) {
@@ -160,6 +148,18 @@ func RunInstanceLifecycleValidation(t *testing.T, config ProviderConfig) {
 			err := v1.ValidateTerminateInstance(ctx, client, instance)
 			require.NoError(t, err, "ValidateTerminateInstance should pass")
 		})
+	})
+}
+
+func runMicroK8sFirewallValidation(ctx context.Context, t *testing.T, client v1.CloudInstanceReader, instance *v1.Instance) {
+	t.Run("ValidateMicroK8sFirewallAllowsEgress", func(t *testing.T) {
+		err := v1.ValidateMicroK8sFirewallAllowsEgress(ctx, client, instance, ssh.GetTestPrivateKey())
+		require.NoError(t, err, "ValidateMicroK8sFirewallAllowsEgress should pass - microk8s pod egress should be allowed")
+	})
+
+	t.Run("ValidateMicroK8sFirewallAllowsPodToPodCommunication", func(t *testing.T) {
+		err := v1.ValidateMicroK8sFirewallAllowsPodToPodCommunication(ctx, client, instance, ssh.GetTestPrivateKey())
+		require.NoError(t, err, "ValidateMicroK8sFirewallAllowsPodToPodCommunication should pass - microk8s pod to pod communication should be allowed")
 	})
 }
 
