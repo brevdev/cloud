@@ -143,7 +143,7 @@ func RunInstanceLifecycleValidation(t *testing.T, config ProviderConfig) {
 			err := v1.ValidateMicroK8sFirewallAllowsEgress(ctx, client, instance, ssh.GetTestPrivateKey())
 			require.NoError(t, err, "ValidateMicroK8sFirewallAllowsEgress should pass - microk8s pod egress should be allowed")
 		})
-	
+
 		t.Run("ValidateMicroK8sFirewallAllowsPodToPodCommunication", func(t *testing.T) {
 			err := v1.ValidateMicroK8sFirewallAllowsPodToPodCommunication(ctx, client, instance, ssh.GetTestPrivateKey())
 			require.NoError(t, err, "ValidateMicroK8sFirewallAllowsPodToPodCommunication should pass - microk8s pod to pod communication should be allowed")
