@@ -491,22 +491,9 @@ func setupMicroK8sCommand(ctx context.Context, sshClient *ssh.Client, instanceID
 	_, _, err := sshClient.RunCommand(ctx, checkCmd)
 	if err != nil {
 		fmt.Printf("MicroK8s not found or not ready, attempting to install on instance %s\n", instanceID)
-
-		const maxInstallAttempts = 3
-		var installErr error
-		var stderr string
-		for attempt := 1; attempt <= maxInstallAttempts; attempt++ {
-			_, stderr, installErr = sshClient.RunCommand(ctx, "sudo snap install microk8s --classic")
-			if installErr == nil {
-				break
-			}
-			fmt.Printf("microk8s snap install attempt %d/%d failed: %v\n", attempt, maxInstallAttempts, installErr)
-			if attempt < maxInstallAttempts {
-				time.Sleep(time.Duration(attempt*10) * time.Second)
-			}
-		}
+		_, stderr, installErr := sshClient.RunCommand(ctx, "sudo snap install microk8s --classic")
 		if installErr != nil {
-			return "", fmt.Errorf("microk8s not available and failed to install after %d attempts: %w, stderr: %s", maxInstallAttempts, installErr, stderr)
+			return "", fmt.Errorf("microk8s not available and failed to install: %w, stderr: %s", installErr, stderr)
 		}
 		_, stderr, readyErr := sshClient.RunCommand(ctx, checkCmd)
 		if readyErr != nil {
