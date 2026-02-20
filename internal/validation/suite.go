@@ -50,7 +50,7 @@ func RunValidationSuite(t *testing.T, config ProviderConfig) {
 	})
 }
 
-func runFirewallSubtests(t *testing.T, ctx context.Context, client v1.CloudInstanceReader, instance *v1.Instance, privateKey string, testPort int) {
+func runFirewallSubtests(ctx context.Context, t *testing.T, client v1.CloudInstanceReader, instance *v1.Instance, privateKey string, testPort int) {
 	t.Helper()
 
 	t.Run("ValidateFirewallBlocksPort", func(t *testing.T) {
@@ -153,7 +153,7 @@ func RunInstanceLifecycleValidation(t *testing.T, config ProviderConfig) {
 			require.NoError(t, err, "ValidateInstanceImage should pass")
 		})
 
-		runFirewallSubtests(t, ctx, client, instance, ssh.GetTestPrivateKey(), v1.DefaultFirewallTestPort)
+		runFirewallSubtests(ctx, t, client, instance, ssh.GetTestPrivateKey(), v1.DefaultFirewallTestPort)
 
 		if capabilities.IsCapable(v1.CapabilityStopStartInstance) && instance.Stoppable {
 			t.Run("ValidateStopStartInstance", func(t *testing.T) {
@@ -337,7 +337,7 @@ func RunFirewallValidation(t *testing.T, config ProviderConfig, opts FirewallVal
 		testPort = v1.DefaultFirewallTestPort
 	}
 
-	runFirewallSubtests(t, ctx, client, instance, ssh.GetTestPrivateKey(), testPort)
+	runFirewallSubtests(ctx, t, client, instance, ssh.GetTestPrivateKey(), testPort)
 
 	// Test that SSH port is accessible (sanity check)
 	t.Run("ValidateSSHPortAccessible", func(t *testing.T) {
