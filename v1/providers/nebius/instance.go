@@ -1821,8 +1821,6 @@ func generateIPTablesCommands() []string {
 		"iptables -A DOCKER-USER -i br+     -o br+     -j ACCEPT",
 		// "iptables -A DOCKER-USER -i cni+    -o cni+    -j ACCEPT",
 		// "iptables -A DOCKER-USER -i cali+   -o cali+   -j ACCEPT",
-		// "iptables -A DOCKER-USER -i flannel+ -j ACCEPT",
-		// "iptables -A DOCKER-USER -i vxlan.calico -j ACCEPT",
 		"iptables -A DOCKER-USER -i lo -j ACCEPT",
 		"iptables -A DOCKER-USER -j DROP",
 		"iptables -A DOCKER-USER -j RETURN", // Expected by Docker

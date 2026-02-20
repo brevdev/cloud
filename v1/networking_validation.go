@@ -417,13 +417,27 @@ func exposeMicroK8sNginxService(ctx context.Context, sshClient *ssh.Client, micr
 		return fmt.Errorf("failed to create microk8s nginx service: %w, stderr: %s", err, stderr)
 	}
 
+	// Wait for the service to have endpoints before the test pod tries to connect.
+	// This avoids the race where DNS resolves but the service has no backing endpoints yet.
+	epCmd := fmt.Sprintf(
+		"%s kubectl wait --for=jsonpath='{.subsets[0].addresses[0].ip}' endpoints/mk8s-nginx-svc --timeout=60s",
+		microK8sCmd,
+	)
+	_, stderr, err = sshClient.RunCommand(ctx, epCmd)
+	if err != nil {
+		return fmt.Errorf("service endpoints did not become ready: %w, stderr: %s", err, stderr)
+	}
+
 	return nil
 }
 
 func runMicroK8sPodToPodTest(ctx context.Context, sshClient *ssh.Client, microK8sCmd string) error {
+	// Retry wget up to 10 times with 3-second sleeps so transient DNS propagation
+	// delays don't cause an immediate hard failure.
+	wgetScript := `for i in $(seq 1 10); do wget -q -O- http://mk8s-nginx-svc && exit 0; sleep 3; done; exit 1`
 	cmd := fmt.Sprintf(
-		"%s kubectl run mk8s-c2c-test --image=alpine:3.20 --restart=Never --command -- sh -c 'wget -q -O- http://mk8s-nginx-svc'",
-		microK8sCmd,
+		"%s kubectl run mk8s-c2c-test --image=alpine:3.20 --restart=Never --command -- sh -c '%s'",
+		microK8sCmd, wgetScript,
 	)
 	_, stderr, err := sshClient.RunCommand(ctx, cmd)
 	if err != nil {
@@ -477,9 +491,22 @@ func setupMicroK8sCommand(ctx context.Context, sshClient *ssh.Client, instanceID
 	_, _, err := sshClient.RunCommand(ctx, checkCmd)
 	if err != nil {
 		fmt.Printf("MicroK8s not found or not ready, attempting to install on instance %s\n", instanceID)
-		_, stderr, installErr := sshClient.RunCommand(ctx, "sudo snap install microk8s --classic")
+
+		const maxInstallAttempts = 3
+		var installErr error
+		var stderr string
+		for attempt := 1; attempt <= maxInstallAttempts; attempt++ {
+			_, stderr, installErr = sshClient.RunCommand(ctx, "sudo snap install microk8s --classic")
+			if installErr == nil {
+				break
+			}
+			fmt.Printf("microk8s snap install attempt %d/%d failed: %v\n", attempt, maxInstallAttempts, installErr)
+			if attempt < maxInstallAttempts {
+				time.Sleep(time.Duration(attempt*10) * time.Second)
+			}
+		}
 		if installErr != nil {
-			return "", fmt.Errorf("microk8s not available and failed to install: %w, stderr: %s", installErr, stderr)
+			return "", fmt.Errorf("microk8s not available and failed to install after %d attempts: %w, stderr: %s", maxInstallAttempts, installErr, stderr)
 		}
 		_, stderr, readyErr := sshClient.RunCommand(ctx, checkCmd)
 		if readyErr != nil {
@@ -490,6 +517,14 @@ func setupMicroK8sCommand(ctx context.Context, sshClient *ssh.Client, instanceID
 	_, stderr, err := sshClient.RunCommand(ctx, "sudo microk8s enable dns")
 	if err != nil && !strings.Contains(stderr, "Nothing to do for dns") && !strings.Contains(stderr, "is already enabled") {
 		return "", fmt.Errorf("failed to enable microk8s dns addon: %w, stderr: %s", err, stderr)
+	}
+
+	// Wait for CoreDNS pods to be ready before returning. Without this,
+	// subsequent kubectl commands that rely on DNS resolution may fail.
+	dnsWaitCmd := "sudo microk8s kubectl wait --for=condition=Ready pod -l k8s-app=kube-dns -n kube-system --timeout=120s"
+	_, stderr, err = sshClient.RunCommand(ctx, dnsWaitCmd)
+	if err != nil {
+		return "", fmt.Errorf("CoreDNS pods did not become ready: %w, stderr: %s", err, stderr)
 	}
 
 	return "sudo microk8s", nil
