@@ -3,6 +3,7 @@ package v1
 import (
 	"fmt"
 
+	v1 "github.com/brevdev/cloud/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -28,6 +29,20 @@ func isNotFoundError(err error) bool {
 		return status.Code() == codes.NotFound
 	}
 	return false
+}
+
+func handleErrToCloudErr(e error) error {
+	if e == nil {
+		return nil
+	}
+
+	// Check for gRPC ResourceExhausted status code
+	if grpcStatus, ok := status.FromError(e); ok {
+		if grpcStatus.Code() == codes.ResourceExhausted {
+			return v1.ErrOutOfQuota
+		}
+	}
+	return e
 }
 
 // isAlreadyExistsError checks if an error is an "already exists" error
