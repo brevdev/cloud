@@ -280,6 +280,190 @@ func ValidateDockerFirewallAllowsContainerToContainerCommunication(ctx context.C
 	return nil
 }
 
+func ValidateMicroK8sFirewallAllowsEgress(ctx context.Context, client CloudInstanceReader, instance *Instance, privateKey string) error {
+	var err error
+	instance, err = WaitForInstanceLifecycleStatus(ctx, client, instance, LifecycleStatusRunning, PendingToRunningTimeout)
+	if err != nil {
+		return fmt.Errorf("failed to wait for instance running: %w", err)
+	}
+
+	publicIP := instance.PublicIP
+	if publicIP == "" {
+		return fmt.Errorf("public IP is not available for instance %s", instance.CloudID)
+	}
+
+	sshClient, err := ssh.ConnectToHost(ctx, ssh.ConnectionConfig{
+		User:     instance.SSHUser,
+		HostPort: fmt.Sprintf("%s:%d", publicIP, instance.SSHPort),
+		PrivKey:  privateKey,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to SSH into instance: %w", err)
+	}
+	defer func() { _ = sshClient.Close() }()
+
+	microK8sCmd, err := setupMicroK8sCommand(ctx, sshClient, instance.CloudID)
+	if err != nil {
+		return err
+	}
+
+	// Ensure prior run artifacts do not interfere.
+	_, _, _ = sshClient.RunCommand(ctx, fmt.Sprintf("%s kubectl delete pod mk8s-egress-test --ignore-not-found=true", microK8sCmd))
+
+	cmd := fmt.Sprintf(
+		"%s kubectl run mk8s-egress-test --image=alpine:3.20 --restart=Never --command -- sh -c 'ping -c 3 8.8.8.8'",
+		microK8sCmd,
+	)
+	_, stderr, err := sshClient.RunCommand(ctx, cmd)
+	if err != nil {
+		return fmt.Errorf("failed to create microk8s egress test pod: %w, stderr: %s", err, stderr)
+	}
+
+	defer func() {
+		_, _, _ = sshClient.RunCommand(ctx, fmt.Sprintf("%s kubectl delete pod mk8s-egress-test --ignore-not-found=true", microK8sCmd))
+	}()
+
+	cmd = fmt.Sprintf("%s kubectl wait --for=jsonpath='{.status.phase}'=Succeeded pod/mk8s-egress-test --timeout=180s", microK8sCmd)
+	_, stderr, err = sshClient.RunCommand(ctx, cmd)
+	if err != nil {
+		logsCmd := fmt.Sprintf("%s kubectl logs mk8s-egress-test 2>/dev/null || true", microK8sCmd)
+		logs, _, _ := sshClient.RunCommand(ctx, logsCmd)
+		return fmt.Errorf("microk8s egress test pod did not succeed: %w, stderr: %s, logs: %s", err, stderr, logs)
+	}
+
+	cmd = fmt.Sprintf("%s kubectl logs mk8s-egress-test", microK8sCmd)
+	stdout, stderr, err := sshClient.RunCommand(ctx, cmd)
+	if err != nil {
+		return fmt.Errorf("failed to get microk8s egress test pod logs: %w, stderr: %s", err, stderr)
+	}
+	if !strings.Contains(stdout, "3 packets transmitted, 3 packets received") {
+		return fmt.Errorf("expected successful pod egress ping, got logs: %s", stdout)
+	}
+
+	return nil
+}
+
+func ValidateMicroK8sFirewallAllowsPodToPodCommunication(ctx context.Context, client CloudInstanceReader, instance *Instance, privateKey string) error {
+	var err error
+	instance, err = WaitForInstanceLifecycleStatus(ctx, client, instance, LifecycleStatusRunning, PendingToRunningTimeout)
+	if err != nil {
+		return fmt.Errorf("failed to wait for instance running: %w", err)
+	}
+
+	publicIP := instance.PublicIP
+	if publicIP == "" {
+		return fmt.Errorf("public IP is not available for instance %s", instance.CloudID)
+	}
+
+	sshClient, err := ssh.ConnectToHost(ctx, ssh.ConnectionConfig{
+		User:     instance.SSHUser,
+		HostPort: fmt.Sprintf("%s:%d", publicIP, instance.SSHPort),
+		PrivKey:  privateKey,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to SSH into instance: %w", err)
+	}
+	defer func() { _ = sshClient.Close() }()
+
+	microK8sCmd, err := setupMicroK8sCommand(ctx, sshClient, instance.CloudID)
+	if err != nil {
+		return err
+	}
+
+	cleanupMicroK8sPodToPodArtifacts(ctx, sshClient, microK8sCmd)
+	defer cleanupMicroK8sPodToPodArtifacts(ctx, sshClient, microK8sCmd)
+
+	if err := createMicroK8sNginxPod(ctx, sshClient, microK8sCmd); err != nil {
+		return err
+	}
+	if err := waitForMicroK8sNginxReady(ctx, sshClient, microK8sCmd); err != nil {
+		return err
+	}
+	if err := exposeMicroK8sNginxService(ctx, sshClient, microK8sCmd); err != nil {
+		return err
+	}
+	return runMicroK8sPodToPodTest(ctx, sshClient, microK8sCmd)
+}
+
+func cleanupMicroK8sPodToPodArtifacts(ctx context.Context, sshClient *ssh.Client, microK8sCmd string) {
+	_, _, _ = sshClient.RunCommand(ctx, fmt.Sprintf("%s kubectl delete pod mk8s-nginx mk8s-c2c-test --ignore-not-found=true", microK8sCmd))
+	_, _, _ = sshClient.RunCommand(ctx, fmt.Sprintf("%s kubectl delete service mk8s-nginx-svc --ignore-not-found=true", microK8sCmd))
+}
+
+func createMicroK8sNginxPod(ctx context.Context, sshClient *ssh.Client, microK8sCmd string) error {
+	cmd := fmt.Sprintf("%s kubectl run mk8s-nginx --image=nginx:alpine --restart=Never --port=80", microK8sCmd)
+	_, stderr, err := sshClient.RunCommand(ctx, cmd)
+	if err != nil {
+		return fmt.Errorf("failed to create microk8s nginx pod: %w, stderr: %s", err, stderr)
+	}
+
+	return nil
+}
+
+func waitForMicroK8sNginxReady(ctx context.Context, sshClient *ssh.Client, microK8sCmd string) error {
+	cmd := fmt.Sprintf("%s kubectl wait --for=condition=Ready pod/mk8s-nginx --timeout=180s", microK8sCmd)
+	_, stderr, err := sshClient.RunCommand(ctx, cmd)
+	if err != nil {
+		return fmt.Errorf("microk8s nginx pod did not become ready: %w, stderr: %s", err, stderr)
+	}
+
+	return nil
+}
+
+func exposeMicroK8sNginxService(ctx context.Context, sshClient *ssh.Client, microK8sCmd string) error {
+	cmd := fmt.Sprintf("%s kubectl expose pod mk8s-nginx --name=mk8s-nginx-svc --port=80 --target-port=80", microK8sCmd)
+	_, stderr, err := sshClient.RunCommand(ctx, cmd)
+	if err != nil {
+		return fmt.Errorf("failed to create microk8s nginx service: %w, stderr: %s", err, stderr)
+	}
+
+	// Wait for the service to have endpoints before the test pod tries to connect.
+	// This avoids the race where DNS resolves but the service has no backing endpoints yet.
+	epCmd := fmt.Sprintf(
+		"%s kubectl wait --for=jsonpath='{.subsets[0].addresses[0].ip}' endpoints/mk8s-nginx-svc --timeout=60s",
+		microK8sCmd,
+	)
+	_, stderr, err = sshClient.RunCommand(ctx, epCmd)
+	if err != nil {
+		return fmt.Errorf("service endpoints did not become ready: %w, stderr: %s", err, stderr)
+	}
+
+	return nil
+}
+
+func runMicroK8sPodToPodTest(ctx context.Context, sshClient *ssh.Client, microK8sCmd string) error {
+	// Retry wget up to 10 times with 3-second sleeps so transient DNS propagation
+	// delays don't cause an immediate hard failure.
+	wgetScript := `for i in $(seq 1 10); do wget -q -O- http://mk8s-nginx-svc && exit 0; sleep 3; done; exit 1`
+	cmd := fmt.Sprintf(
+		"%s kubectl run mk8s-c2c-test --image=alpine:3.20 --restart=Never --command -- sh -c '%s'",
+		microK8sCmd, wgetScript,
+	)
+	_, stderr, err := sshClient.RunCommand(ctx, cmd)
+	if err != nil {
+		return fmt.Errorf("failed to create microk8s pod-to-pod test pod: %w, stderr: %s", err, stderr)
+	}
+
+	cmd = fmt.Sprintf("%s kubectl wait --for=jsonpath='{.status.phase}'=Succeeded pod/mk8s-c2c-test --timeout=180s", microK8sCmd)
+	_, stderr, err = sshClient.RunCommand(ctx, cmd)
+	if err != nil {
+		logsCmd := fmt.Sprintf("%s kubectl logs mk8s-c2c-test 2>/dev/null || true", microK8sCmd)
+		logs, _, _ := sshClient.RunCommand(ctx, logsCmd)
+		return fmt.Errorf("microk8s pod-to-pod test pod did not succeed: %w, stderr: %s, logs: %s", err, stderr, logs)
+	}
+
+	cmd = fmt.Sprintf("%s kubectl logs mk8s-c2c-test", microK8sCmd)
+	stdout, stderr, err := sshClient.RunCommand(ctx, cmd)
+	if err != nil {
+		return fmt.Errorf("failed to get microk8s pod-to-pod test pod logs: %w, stderr: %s", err, stderr)
+	}
+	if !strings.Contains(stdout, "Welcome to nginx") {
+		return fmt.Errorf("expected successful pod-to-pod communication, got logs: %s", stdout)
+	}
+
+	return nil
+}
+
 // setupDockerCommand ensures Docker is available and returns the command to use (always with sudo)
 func setupDockerCommand(ctx context.Context, sshClient *ssh.Client, instanceID CloudProviderInstanceID) (string, error) {
 	// Check if Docker is available
@@ -299,6 +483,38 @@ func setupDockerCommand(ctx context.Context, sshClient *ssh.Client, instanceID C
 		return "", fmt.Errorf("docker not accessible with sudo: %w", err)
 	}
 	return "sudo docker", nil
+}
+
+// setupMicroK8sCommand ensures MicroK8s is available and returns the command to use (always with sudo).
+func setupMicroK8sCommand(ctx context.Context, sshClient *ssh.Client, instanceID CloudProviderInstanceID) (string, error) {
+	checkCmd := "sudo microk8s status --wait-ready --timeout 120"
+	_, _, err := sshClient.RunCommand(ctx, checkCmd)
+	if err != nil {
+		fmt.Printf("MicroK8s not found or not ready, attempting to install on instance %s\n", instanceID)
+		_, stderr, installErr := sshClient.RunCommand(ctx, "sudo snap install microk8s --classic")
+		if installErr != nil {
+			return "", fmt.Errorf("microk8s not available and failed to install: %w, stderr: %s", installErr, stderr)
+		}
+		_, stderr, readyErr := sshClient.RunCommand(ctx, checkCmd)
+		if readyErr != nil {
+			return "", fmt.Errorf("microk8s installed but not ready: %w, stderr: %s", readyErr, stderr)
+		}
+	}
+
+	_, stderr, err := sshClient.RunCommand(ctx, "sudo microk8s enable dns")
+	if err != nil && !strings.Contains(stderr, "Nothing to do for dns") && !strings.Contains(stderr, "is already enabled") {
+		return "", fmt.Errorf("failed to enable microk8s dns addon: %w, stderr: %s", err, stderr)
+	}
+
+	// Wait for CoreDNS pods to be ready before returning. Without this,
+	// subsequent kubectl commands that rely on DNS resolution may fail.
+	dnsWaitCmd := "sudo microk8s kubectl wait --for=condition=Ready pod -l k8s-app=kube-dns -n kube-system --timeout=120s"
+	_, stderr, err = sshClient.RunCommand(ctx, dnsWaitCmd)
+	if err != nil {
+		return "", fmt.Errorf("CoreDNS pods did not become ready: %w, stderr: %s", err, stderr)
+	}
+
+	return "sudo microk8s", nil
 }
 
 // waitForDockerService waits for a Docker container's service to be ready and responding

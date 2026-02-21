@@ -1815,8 +1815,12 @@ func generateIPTablesCommands() []string {
 		"iptables -A DOCKER-USER -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT",
 		"iptables -A DOCKER-USER -i docker0 ! -o docker0 -j ACCEPT",
 		"iptables -A DOCKER-USER -i br+     ! -o br+     -j ACCEPT",
+		"iptables -A DOCKER-USER -i cni+    ! -o cni+    -j ACCEPT", // TODO: add these back in when we have a way to test it
+		"iptables -A DOCKER-USER -i cali+   ! -o cali+   -j ACCEPT",
 		"iptables -A DOCKER-USER -i docker0 -o docker0 -j ACCEPT",
 		"iptables -A DOCKER-USER -i br+     -o br+     -j ACCEPT",
+		"iptables -A DOCKER-USER -i cni+    -o cni+    -j ACCEPT",
+		"iptables -A DOCKER-USER -i cali+   -o cali+   -j ACCEPT",
 		"iptables -A DOCKER-USER -i lo -j ACCEPT",
 		"iptables -A DOCKER-USER -j DROP",
 		"iptables -A DOCKER-USER -j RETURN", // Expected by Docker

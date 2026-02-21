@@ -50,6 +50,40 @@ func RunValidationSuite(t *testing.T, config ProviderConfig) {
 	})
 }
 
+func runFirewallSubtests(ctx context.Context, t *testing.T, client v1.CloudInstanceReader, instance *v1.Instance, privateKey string, testPort int) {
+	t.Helper()
+
+	t.Run("ValidateFirewallBlocksPort", func(t *testing.T) {
+		err := v1.ValidateFirewallBlocksPort(ctx, client, instance, privateKey, testPort)
+		require.NoError(t, err, "ValidateFirewallBlocksPort should pass - port should be blocked")
+	})
+
+	t.Run("ValidateDockerFirewallBlocksPort", func(t *testing.T) {
+		err := v1.ValidateDockerFirewallBlocksPort(ctx, client, instance, privateKey, testPort)
+		require.NoError(t, err, "ValidateDockerFirewallBlocksPort should pass - docker port should be blocked")
+	})
+
+	t.Run("ValidateDockerFirewallAllowsEgress", func(t *testing.T) {
+		err := v1.ValidateDockerFirewallAllowsEgress(ctx, client, instance, privateKey)
+		require.NoError(t, err, "ValidateDockerFirewallAllowsEgress should pass - egress should be allowed")
+	})
+
+	t.Run("ValidateDockerFirewallAllowsContainerToContainerCommunication", func(t *testing.T) {
+		err := v1.ValidateDockerFirewallAllowsContainerToContainerCommunication(ctx, client, instance, privateKey)
+		require.NoError(t, err, "ValidateDockerFirewallAllowsContainerToContainerCommunication should pass - container to container communication should be allowed")
+	})
+
+	t.Run("ValidateMicroK8sFirewallAllowsEgress", func(t *testing.T) {
+		err := v1.ValidateMicroK8sFirewallAllowsEgress(ctx, client, instance, privateKey)
+		require.NoError(t, err, "ValidateMicroK8sFirewallAllowsEgress should pass - microk8s pod egress should be allowed")
+	})
+
+	t.Run("ValidateMicroK8sFirewallAllowsPodToPodCommunication", func(t *testing.T) {
+		err := v1.ValidateMicroK8sFirewallAllowsPodToPodCommunication(ctx, client, instance, privateKey)
+		require.NoError(t, err, "ValidateMicroK8sFirewallAllowsPodToPodCommunication should pass - microk8s pod to pod communication should be allowed")
+	})
+}
+
 func RunInstanceLifecycleValidation(t *testing.T, config ProviderConfig) {
 	if testing.Short() {
 		t.Skip("Skipping validation tests in short mode")
@@ -119,25 +153,7 @@ func RunInstanceLifecycleValidation(t *testing.T, config ProviderConfig) {
 			require.NoError(t, err, "ValidateInstanceImage should pass")
 		})
 
-		t.Run("ValidateFirewallBlocksPort", func(t *testing.T) {
-			err := v1.ValidateFirewallBlocksPort(ctx, client, instance, ssh.GetTestPrivateKey(), v1.DefaultFirewallTestPort)
-			require.NoError(t, err, "ValidateFirewallBlocksPort should pass - non-allowed port should be blocked")
-		})
-
-		t.Run("ValidateDockerFirewallBlocksPort", func(t *testing.T) {
-			err := v1.ValidateDockerFirewallBlocksPort(ctx, client, instance, ssh.GetTestPrivateKey(), v1.DefaultFirewallTestPort)
-			require.NoError(t, err, "ValidateDockerFirewallBlocksPort should pass - docker port should be blocked by iptables")
-		})
-
-		t.Run("ValidateDockerFirewallAllowsEgress", func(t *testing.T) {
-			err := v1.ValidateDockerFirewallAllowsEgress(ctx, client, instance, ssh.GetTestPrivateKey())
-			require.NoError(t, err, "ValidateDockerFirewallAllowsEgress should pass - egress should be allowed")
-		})
-
-		t.Run("ValidateDockerFirewallAllowsContainerToContainerCommunication", func(t *testing.T) {
-			err := v1.ValidateDockerFirewallAllowsContainerToContainerCommunication(ctx, client, instance, ssh.GetTestPrivateKey())
-			require.NoError(t, err, "ValidateDockerFirewallAllowsContainerToContainerCommunication should pass - container to container communication should be allowed")
-		})
+		runFirewallSubtests(ctx, t, client, instance, ssh.GetTestPrivateKey(), v1.DefaultFirewallTestPort)
 
 		if capabilities.IsCapable(v1.CapabilityStopStartInstance) && instance.Stoppable {
 			t.Run("ValidateStopStartInstance", func(t *testing.T) {
@@ -321,26 +337,7 @@ func RunFirewallValidation(t *testing.T, config ProviderConfig, opts FirewallVal
 		testPort = v1.DefaultFirewallTestPort
 	}
 
-	// Test that regular server on 0.0.0.0 is blocked
-	t.Run("ValidateFirewallBlocksPort", func(t *testing.T) {
-		err := v1.ValidateFirewallBlocksPort(ctx, client, instance, ssh.GetTestPrivateKey(), testPort)
-		require.NoError(t, err, "ValidateFirewallBlocksPort should pass - port should be blocked")
-	})
-
-	t.Run("ValidateDockerFirewallBlocksPort", func(t *testing.T) {
-		err := v1.ValidateDockerFirewallBlocksPort(ctx, client, instance, ssh.GetTestPrivateKey(), testPort)
-		require.NoError(t, err, "ValidateDockerFirewallBlocksPort should pass - docker port should be blocked")
-	})
-
-	t.Run("ValidateDockerFirewallAllowsEgress", func(t *testing.T) {
-		err := v1.ValidateDockerFirewallAllowsEgress(ctx, client, instance, ssh.GetTestPrivateKey())
-		require.NoError(t, err, "ValidateDockerFirewallAllowsEgress should pass - egress should be allowed")
-	})
-
-	t.Run("ValidateDockerFirewallAllowsContainerToContainerCommunication", func(t *testing.T) {
-		err := v1.ValidateDockerFirewallAllowsContainerToContainerCommunication(ctx, client, instance, ssh.GetTestPrivateKey())
-		require.NoError(t, err, "ValidateDockerFirewallAllowsContainerToContainerCommunication should pass - container to container communication should be allowed")
-	})
+	runFirewallSubtests(ctx, t, client, instance, ssh.GetTestPrivateKey(), testPort)
 
 	// Test that SSH port is accessible (sanity check)
 	t.Run("ValidateSSHPortAccessible", func(t *testing.T) {
