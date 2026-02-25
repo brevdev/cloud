@@ -337,8 +337,8 @@ func ValidateLocationalInstanceTypes(ctx context.Context, client CloudInstanceTy
 	}
 
 	// Validate that locational results are a subset of all-location results
-	if len(locationalTypes) >= len(allLocationTypes) {
-		return fmt.Errorf("locational instance types (%d) should be fewer than all-location types (%d)",
+	if len(locationalTypes) > len(allLocationTypes) {
+		return fmt.Errorf("locational instance types (%d) should not exceed all-location types (%d)",
 			len(locationalTypes), len(allLocationTypes))
 	}
 
