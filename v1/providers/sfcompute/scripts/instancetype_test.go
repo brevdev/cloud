@@ -62,7 +62,7 @@ func TestCreateInstance(t *testing.T) {
 		RefID:        id,
 		PublicKey:    ssh.GetTestPublicKey(),
 		InstanceType: "h100",
-		Location:     "hayesvalley",
+		Location:     "richmond",
 	})
 	if err != nil {
 		t.Fatalf("failed to create instance: %v", err)
