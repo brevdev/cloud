@@ -491,6 +491,17 @@ func setupMicroK8sCommand(ctx context.Context, sshClient *ssh.Client, instanceID
 	_, _, err := sshClient.RunCommand(ctx, checkCmd)
 	if err != nil {
 		fmt.Printf("MicroK8s not found or not ready, attempting to install on instance %s\n", instanceID)
+
+		// Ensure snap is available, install snapd if not
+		_, _, snapErr := sshClient.RunCommand(ctx, "snap --version")
+		if snapErr != nil {
+			fmt.Printf("snap not found, installing snapd on instance %s\n", instanceID)
+			_, stderr, installErr := sshClient.RunCommand(ctx, "sudo apt-get update && sudo apt-get install -y snapd")
+			if installErr != nil {
+				return "", fmt.Errorf("failed to install snapd: %w, stderr: %s", installErr, stderr)
+			}
+		}
+
 		_, stderr, installErr := sshClient.RunCommand(ctx, "sudo snap install microk8s --classic")
 		if installErr != nil {
 			return "", fmt.Errorf("microk8s not available and failed to install: %w, stderr: %s", installErr, stderr)

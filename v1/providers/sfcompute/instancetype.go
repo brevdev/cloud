@@ -3,7 +3,6 @@ package v1
 import (
 	"context"
 	"fmt"
-	"slices"
 	"strings"
 	"time"
 
@@ -23,8 +22,6 @@ const (
 	formFactorSXM5         = "sxm5"
 	diskTypeSSD            = "ssd"
 )
-
-var allowedZones = []string{"hayesvalley", "yerba"}
 
 func makeDefaultInstanceTypePrice(amount string, currencyCode string) currency.Amount {
 	instanceTypePrice, err := currency.NewAmount(amount, currencyCode)
@@ -186,12 +183,7 @@ func (c *SFCClient) getZones(ctx context.Context, includeUnavailable bool) ([]sf
 
 	zones := make([]sfcnodes.ZoneListResponseData, 0, len(resp.Data))
 	for _, zone := range resp.Data {
-		// If the zone is not allowed, skip it
-		if !slices.Contains(allowedZones, strings.ToLower(zone.Name)) {
-			continue
-		}
-
-		// If the there is no available capacity, and skip it
+		// If the there is no available capacity, skip it
 		if len(zone.AvailableCapacity) == 0 && !includeUnavailable {
 			continue
 		}
