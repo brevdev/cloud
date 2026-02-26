@@ -174,12 +174,22 @@ func (c *SFCClient) ListInstances(ctx context.Context, args v1.ListInstancesArgs
 
 		nodeInfo, err := c.sfcNodeInfoFromNodeListResponseData(ctx, &node, zone)
 		if err != nil {
-			return nil, errors.WrapAndTrace(err)
+			c.logger.Error(ctx, "sfc: ListInstances skipping node due to error",
+				v1.LogField("nodeID", node.ID),
+				v1.LogField("nodeName", node.Name),
+				v1.LogField("error", err.Error()),
+			)
+			continue
 		}
 
 		inst, err := c.sfcNodeToBrevInstance(*nodeInfo)
 		if err != nil {
-			return nil, errors.WrapAndTrace(err)
+			c.logger.Error(ctx, "sfc: ListInstances skipping node due to conversion error",
+				v1.LogField("nodeID", node.ID),
+				v1.LogField("nodeName", node.Name),
+				v1.LogField("error", err.Error()),
+			)
+			continue
 		}
 		instances = append(instances, *inst)
 	}
@@ -265,6 +275,46 @@ func (c *SFCClient) sfcNodeToBrevInstance(node sfcNodeInfo) (*v1.Instance, error
 }
 
 func (c *SFCClient) sfcNodeInfoFromNode(ctx context.Context, node *sfcnodes.Node, zone *sfcnodes.ZoneListResponseData) (*sfcNodeInfo, error) {
+	nodeStatus := sfcStatusToLifecycleStatus(fmt.Sprint(node.Status))
+
+	// Check node-level status first before inspecting individual VMs.
+	// A node in a terminal state (e.g. "released") may still have VMs reporting as "Running"
+	// because SFC keeps the VM alive until the end of its allotted time window. The node status
+	// is the source of truth — if the node is released/destroyed/deleted, the instance is
+	// terminated; if the node is failed, the instance is failed. VM status should not be
+	// consulted in either case.
+	// Additionally, terminal nodes can accumulate multiple VM records (previous + current),
+	// which would otherwise cause a "multiple VMs found" error and break ListInstances entirely.
+	if isTerminalNodeStatus(fmt.Sprint(node.Status)) {
+		//Audit log for failed nodes
+		if nodeStatus == v1.LifecycleStatusFailed {
+			for _, vm := range node.VMs.Data {
+				if strings.ToLower(vm.Status) == "running" {
+					c.logger.Warn(ctx, "sfc: node is failed but VM is still running",
+						v1.LogField("node_id", node.ID),
+						v1.LogField("node_status", fmt.Sprint(node.Status)),
+						v1.LogField("vm_id", vm.ID),
+						v1.LogField("vm_status", vm.Status),
+					)
+				}
+			}
+		}
+		return &sfcNodeInfo{
+			id:          node.ID,
+			name:        node.Name,
+			createdAt:   time.Unix(node.CreatedAt, 0),
+			status:      nodeStatus,
+			gpuType:     string(node.GPUType),
+			sshUsername: defaultSSHUsername,
+			sshHostname: "",
+			zone:        zone,
+		}, nil
+	}
+
+	// For non-terminal nodes, resolve SSH hostname from the VM.
+	// Nodes can accumulate multiple VM records (e.g. awaitingcapacity nodes with previous
+	// destroyed VMs). Find the first running VM to get SSH info from; if none are running,
+	// leave hostname empty.
 	var sshHostname string
 	if len(node.VMs.Data) == 1 { //nolint:gocritic // ok
 		hostname, err := c.getSSHHostnameFromVM(ctx, node.VMs.Data[0].ID, node.VMs.Data[0].Status)
@@ -275,14 +325,24 @@ func (c *SFCClient) sfcNodeInfoFromNode(ctx context.Context, node *sfcnodes.Node
 	} else if len(node.VMs.Data) == 0 {
 		sshHostname = ""
 	} else {
-		return nil, errors.WrapAndTrace(fmt.Errorf("multiple VMs found for node %s", node.ID))
+		// Multiple VMs — find the first running one for SSH info.
+		for _, vm := range node.VMs.Data {
+			if strings.ToLower(vm.Status) == "running" {
+				hostname, err := c.getSSHHostnameFromVM(ctx, vm.ID, vm.Status)
+				if err != nil {
+					return nil, errors.WrapAndTrace(err)
+				}
+				sshHostname = hostname
+				break
+			}
+		}
 	}
 
 	return &sfcNodeInfo{
 		id:          node.ID,
 		name:        node.Name,
 		createdAt:   time.Unix(node.CreatedAt, 0),
-		status:      sfcStatusToLifecycleStatus(fmt.Sprint(node.Status)),
+		status:      nodeStatus,
 		gpuType:     string(node.GPUType),
 		sshUsername: defaultSSHUsername,
 		sshHostname: sshHostname,
@@ -339,6 +399,23 @@ func sfcListResponseNodeDataToNode(node *sfcnodes.ListResponseNodeData) *sfcnode
 	}
 }
 
+// sfcStatusToLifecycleStatus maps SFC node-level statuses to Brev lifecycle statuses.
+//
+// SFC node statuses (from the nodes-go SDK):
+//   - "pending"          → node is being provisioned
+//   - "awaitingcapacity" → node is waiting for capacity (auto-reserved nodes)
+//   - "running"          → node is active with a VM provisioned
+//   - "released"         → node was released via Nodes.Release(). This is a TERMINAL state.
+//     VMs may still report "Running" underneath until their allotted time ends,
+//     but the node lease is over. "released" means terminated, NOT terminating.
+//   - "terminated"       → node has been terminated
+//   - "deleted"          → node has been deleted
+//   - "destroyed"        → node has been destroyed
+//   - "failed"           → node provisioning or operation failed
+//   - "unknown"          → unknown status
+//
+// Note: SFC does NOT have a transitional "releasing" or "terminating" status.
+// The Release API transitions a node directly from "running" to "released".
 func sfcStatusToLifecycleStatus(status string) v1.LifecycleStatus {
 	switch strings.ToLower(status) {
 	case "pending", "unspecified", "awaitingcapacity", "unknown":
@@ -356,6 +433,14 @@ func sfcStatusToLifecycleStatus(status string) v1.LifecycleStatus {
 	default:
 		return v1.LifecycleStatusPending
 	}
+}
+
+// isTerminalNodeStatus returns true if the SFC node status is a terminal state where
+// the node is no longer active. When a node is terminal, its VM statuses should not be
+// inspected — they may be stale (e.g. VM still "Running" after the node was released).
+func isTerminalNodeStatus(status string) bool {
+	lifecycleStatus := sfcStatusToLifecycleStatus(status)
+	return lifecycleStatus == v1.LifecycleStatusTerminated || lifecycleStatus == v1.LifecycleStatusFailed
 }
 
 func (c *SFCClient) getSSHHostnameFromVM(ctx context.Context, vmID string, vmStatus string) (string, error) {
