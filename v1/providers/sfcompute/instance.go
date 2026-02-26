@@ -311,31 +311,9 @@ func (c *SFCClient) sfcNodeInfoFromNode(ctx context.Context, node *sfcnodes.Node
 		}, nil
 	}
 
-	// For non-terminal nodes, resolve SSH hostname from the VM.
-	// Nodes can accumulate multiple VM records (e.g. awaitingcapacity nodes with previous
-	// destroyed VMs). Find the first running VM to get SSH info from; if none are running,
-	// leave hostname empty.
-	var sshHostname string
-	if len(node.VMs.Data) == 1 { //nolint:gocritic // ok
-		hostname, err := c.getSSHHostnameFromVM(ctx, node.VMs.Data[0].ID, node.VMs.Data[0].Status)
-		if err != nil {
-			return nil, errors.WrapAndTrace(err)
-		}
-		sshHostname = hostname
-	} else if len(node.VMs.Data) == 0 {
-		sshHostname = ""
-	} else {
-		// Multiple VMs — find the first running one for SSH info.
-		for _, vm := range node.VMs.Data {
-			if strings.ToLower(vm.Status) == vmStatusRunning {
-				hostname, err := c.getSSHHostnameFromVM(ctx, vm.ID, vm.Status)
-				if err != nil {
-					return nil, errors.WrapAndTrace(err)
-				}
-				sshHostname = hostname
-				break
-			}
-		}
+	sshHostname, err := c.sshHostnameFromVMs(ctx, node.VMs.Data)
+	if err != nil {
+		return nil, errors.WrapAndTrace(err)
 	}
 
 	return &sfcNodeInfo{
@@ -441,6 +419,18 @@ func sfcStatusToLifecycleStatus(status string) v1.LifecycleStatus {
 func isTerminalNodeStatus(status string) bool {
 	lifecycleStatus := sfcStatusToLifecycleStatus(status)
 	return lifecycleStatus == v1.LifecycleStatusTerminated || lifecycleStatus == v1.LifecycleStatusFailed
+}
+
+// sshHostnameFromVMs finds the first running VM and returns its SSH hostname.
+// Nodes can accumulate multiple VM records (e.g. awaitingcapacity nodes with previous
+// destroyed VMs); only a running VM provides usable SSH info.
+func (c *SFCClient) sshHostnameFromVMs(ctx context.Context, vms []sfcnodes.NodeVMsData) (string, error) {
+	for _, vm := range vms {
+		if strings.ToLower(vm.Status) == vmStatusRunning {
+			return c.getSSHHostnameFromVM(ctx, vm.ID, vm.Status)
+		}
+	}
+	return "", nil
 }
 
 func (c *SFCClient) getSSHHostnameFromVM(ctx context.Context, vmID string, vmStatus string) (string, error) {
