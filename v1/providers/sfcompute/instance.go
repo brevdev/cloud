@@ -174,20 +174,20 @@ func (c *SFCClient) ListInstances(ctx context.Context, args v1.ListInstancesArgs
 
 		nodeInfo, err := c.sfcNodeInfoFromNodeListResponseData(ctx, &node, zone)
 		if err != nil {
-			c.logger.Error(ctx, "sfc: ListInstances skipping node due to error",
+			c.logger.Error(ctx, err,
+				v1.LogField("msg", "sfc: ListInstances skipping node due to error"),
 				v1.LogField("nodeID", node.ID),
 				v1.LogField("nodeName", node.Name),
-				v1.LogField("error", err.Error()),
 			)
 			continue
 		}
 
 		inst, err := c.sfcNodeToBrevInstance(*nodeInfo)
 		if err != nil {
-			c.logger.Error(ctx, "sfc: ListInstances skipping node due to conversion error",
+			c.logger.Error(ctx, err,
+				v1.LogField("msg", "sfc: ListInstances skipping node due to conversion error"),
 				v1.LogField("nodeID", node.ID),
 				v1.LogField("nodeName", node.Name),
-				v1.LogField("error", err.Error()),
 			)
 			continue
 		}
