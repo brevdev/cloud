@@ -58,7 +58,7 @@ func TestCreateInstance(t *testing.T) {
 	id := uuid.New().String()
 
 	instance, err := client.CreateInstance(context.Background(), v1.CreateInstanceAttrs{
-		Name:         "test",
+		Name:         fmt.Print("test-%s", id),
 		RefID:        id,
 		PublicKey:    ssh.GetTestPublicKey(),
 		InstanceType: "h100",
