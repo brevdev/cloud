@@ -19,6 +19,7 @@ const (
 	maxPricePerNodeHour = 1600
 	defaultPort         = 2222
 	defaultSSHUsername  = "ubuntu"
+	vmStatusRunning     = "running"
 )
 
 func (c *SFCClient) CreateInstance(ctx context.Context, attrs v1.CreateInstanceAttrs) (*v1.Instance, error) {
@@ -174,12 +175,22 @@ func (c *SFCClient) ListInstances(ctx context.Context, args v1.ListInstancesArgs
 
 		nodeInfo, err := c.sfcNodeInfoFromNodeListResponseData(ctx, &node, zone)
 		if err != nil {
-			return nil, errors.WrapAndTrace(err)
+			c.logger.Error(ctx, err,
+				v1.LogField("msg", "sfc: ListInstances skipping node due to error"),
+				v1.LogField("nodeID", node.ID),
+				v1.LogField("nodeName", node.Name),
+			)
+			continue
 		}
 
 		inst, err := c.sfcNodeToBrevInstance(*nodeInfo)
 		if err != nil {
-			return nil, errors.WrapAndTrace(err)
+			c.logger.Error(ctx, err,
+				v1.LogField("msg", "sfc: ListInstances skipping node due to conversion error"),
+				v1.LogField("nodeID", node.ID),
+				v1.LogField("nodeName", node.Name),
+			)
+			continue
 		}
 		instances = append(instances, *inst)
 	}
@@ -265,24 +276,51 @@ func (c *SFCClient) sfcNodeToBrevInstance(node sfcNodeInfo) (*v1.Instance, error
 }
 
 func (c *SFCClient) sfcNodeInfoFromNode(ctx context.Context, node *sfcnodes.Node, zone *sfcnodes.ZoneListResponseData) (*sfcNodeInfo, error) {
-	var sshHostname string
-	if len(node.VMs.Data) == 1 { //nolint:gocritic // ok
-		hostname, err := c.getSSHHostnameFromVM(ctx, node.VMs.Data[0].ID, node.VMs.Data[0].Status)
-		if err != nil {
-			return nil, errors.WrapAndTrace(err)
+	nodeStatus := sfcStatusToLifecycleStatus(fmt.Sprint(node.Status))
+
+	// Check node-level status first before inspecting individual VMs.
+	// A node in a terminal state (e.g. "released") may still have VMs reporting as "Running"
+	// because SFC keeps the VM alive until the end of its allotted time window. The node status
+	// is the source of truth — if the node is released/destroyed/deleted, the instance is
+	// terminated; if the node is failed, the instance is failed. VM status should not be
+	// consulted in either case.
+	// Additionally, terminal nodes can accumulate multiple VM records (previous + current),
+	// which would otherwise cause a "multiple VMs found" error and break ListInstances entirely.
+	if isTerminalNodeStatus(fmt.Sprint(node.Status)) {
+		if nodeStatus == v1.LifecycleStatusFailed {
+			for _, vm := range node.VMs.Data {
+				if strings.ToLower(vm.Status) == vmStatusRunning {
+					c.logger.Warn(ctx, "sfc: node is failed but VM is still running",
+						v1.LogField("node_id", node.ID),
+						v1.LogField("node_status", fmt.Sprint(node.Status)),
+						v1.LogField("vm_id", vm.ID),
+						v1.LogField("vm_status", vm.Status),
+					)
+				}
+			}
 		}
-		sshHostname = hostname
-	} else if len(node.VMs.Data) == 0 {
-		sshHostname = ""
-	} else {
-		return nil, errors.WrapAndTrace(fmt.Errorf("multiple VMs found for node %s", node.ID))
+		return &sfcNodeInfo{
+			id:          node.ID,
+			name:        node.Name,
+			createdAt:   time.Unix(node.CreatedAt, 0),
+			status:      nodeStatus,
+			gpuType:     string(node.GPUType),
+			sshUsername: defaultSSHUsername,
+			sshHostname: "",
+			zone:        zone,
+		}, nil
+	}
+
+	sshHostname, err := c.sshHostnameFromVMs(ctx, node.VMs.Data)
+	if err != nil {
+		return nil, errors.WrapAndTrace(err)
 	}
 
 	return &sfcNodeInfo{
 		id:          node.ID,
 		name:        node.Name,
 		createdAt:   time.Unix(node.CreatedAt, 0),
-		status:      sfcStatusToLifecycleStatus(fmt.Sprint(node.Status)),
+		status:      nodeStatus,
 		gpuType:     string(node.GPUType),
 		sshUsername: defaultSSHUsername,
 		sshHostname: sshHostname,
@@ -339,6 +377,23 @@ func sfcListResponseNodeDataToNode(node *sfcnodes.ListResponseNodeData) *sfcnode
 	}
 }
 
+// sfcStatusToLifecycleStatus maps SFC node-level statuses to Brev lifecycle statuses.
+//
+// SFC node statuses (from the nodes-go SDK):
+//   - "pending"          → node is being provisioned
+//   - "awaitingcapacity" → node is waiting for capacity (auto-reserved nodes)
+//   - "running"          → node is active with a VM provisioned
+//   - "released"         → node was released via Nodes.Release(). This is a TERMINAL state.
+//     VMs may still report "Running" underneath until their allotted time ends,
+//     but the node lease is over. "released" means terminated, NOT terminating.
+//   - "terminated"       → node has been terminated
+//   - "deleted"          → node has been deleted
+//   - "destroyed"        → node has been destroyed
+//   - "failed"           → node provisioning or operation failed
+//   - "unknown"          → unknown status
+//
+// Note: SFC does NOT have a transitional "releasing" or "terminating" status.
+// The Release API transitions a node directly from "running" to "released".
 func sfcStatusToLifecycleStatus(status string) v1.LifecycleStatus {
 	switch strings.ToLower(status) {
 	case "pending", "unspecified", "awaitingcapacity", "unknown":
@@ -358,9 +413,29 @@ func sfcStatusToLifecycleStatus(status string) v1.LifecycleStatus {
 	}
 }
 
+// isTerminalNodeStatus returns true if the SFC node status is a terminal state where
+// the node is no longer active. When a node is terminal, its VM statuses should not be
+// inspected — they may be stale (e.g. VM still "Running" after the node was released).
+func isTerminalNodeStatus(status string) bool {
+	lifecycleStatus := sfcStatusToLifecycleStatus(status)
+	return lifecycleStatus == v1.LifecycleStatusTerminated || lifecycleStatus == v1.LifecycleStatusFailed
+}
+
+// sshHostnameFromVMs finds the first running VM and returns its SSH hostname.
+// Nodes can accumulate multiple VM records (e.g. awaitingcapacity nodes with previous
+// destroyed VMs); only a running VM provides usable SSH info.
+func (c *SFCClient) sshHostnameFromVMs(ctx context.Context, vms []sfcnodes.NodeVMsData) (string, error) {
+	for _, vm := range vms {
+		if strings.ToLower(vm.Status) == vmStatusRunning {
+			return c.getSSHHostnameFromVM(ctx, vm.ID, vm.Status)
+		}
+	}
+	return "", nil
+}
+
 func (c *SFCClient) getSSHHostnameFromVM(ctx context.Context, vmID string, vmStatus string) (string, error) {
 	// If the VM is not running, set the SSH username and hostname to empty strings
-	if strings.ToLower(vmStatus) != "running" {
+	if strings.ToLower(vmStatus) != vmStatusRunning {
 		return "", nil
 	}
 
