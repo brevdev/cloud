@@ -19,6 +19,7 @@ const (
 	maxPricePerNodeHour = 1600
 	defaultPort         = 2222
 	defaultSSHUsername  = "ubuntu"
+	vmStatusRunning     = "running"
 )
 
 func (c *SFCClient) CreateInstance(ctx context.Context, attrs v1.CreateInstanceAttrs) (*v1.Instance, error) {
@@ -286,10 +287,9 @@ func (c *SFCClient) sfcNodeInfoFromNode(ctx context.Context, node *sfcnodes.Node
 	// Additionally, terminal nodes can accumulate multiple VM records (previous + current),
 	// which would otherwise cause a "multiple VMs found" error and break ListInstances entirely.
 	if isTerminalNodeStatus(fmt.Sprint(node.Status)) {
-		//Audit log for failed nodes
 		if nodeStatus == v1.LifecycleStatusFailed {
 			for _, vm := range node.VMs.Data {
-				if strings.ToLower(vm.Status) == "running" {
+				if strings.ToLower(vm.Status) == vmStatusRunning {
 					c.logger.Warn(ctx, "sfc: node is failed but VM is still running",
 						v1.LogField("node_id", node.ID),
 						v1.LogField("node_status", fmt.Sprint(node.Status)),
@@ -327,7 +327,7 @@ func (c *SFCClient) sfcNodeInfoFromNode(ctx context.Context, node *sfcnodes.Node
 	} else {
 		// Multiple VMs — find the first running one for SSH info.
 		for _, vm := range node.VMs.Data {
-			if strings.ToLower(vm.Status) == "running" {
+			if strings.ToLower(vm.Status) == vmStatusRunning {
 				hostname, err := c.getSSHHostnameFromVM(ctx, vm.ID, vm.Status)
 				if err != nil {
 					return nil, errors.WrapAndTrace(err)
@@ -445,7 +445,7 @@ func isTerminalNodeStatus(status string) bool {
 
 func (c *SFCClient) getSSHHostnameFromVM(ctx context.Context, vmID string, vmStatus string) (string, error) {
 	// If the VM is not running, set the SSH username and hostname to empty strings
-	if strings.ToLower(vmStatus) != "running" {
+	if strings.ToLower(vmStatus) != vmStatusRunning {
 		return "", nil
 	}
 
