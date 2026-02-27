@@ -104,7 +104,7 @@ func (c *SFCClient) GetInstance(ctx context.Context, id v1.CloudProviderInstance
 
 func (c *SFCClient) getZone(ctx context.Context, location string, includeUnavailable bool) (*sfcnodes.ZoneListResponseData, error) {
 	// Fetch the zones to ensure the location is valid
-	zones, err := c.getZones(ctx, includeUnavailable)
+	zones, _, err := c.getZones(ctx, includeUnavailable)
 	if err != nil {
 		return nil, errors.WrapAndTrace(err)
 	}
