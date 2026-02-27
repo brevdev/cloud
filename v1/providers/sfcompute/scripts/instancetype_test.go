@@ -20,7 +20,7 @@ func TestGetInstanceTypes(t *testing.T) {
 	apiKey := getAPIKey()
 
 	credential := NewSFCCredential("validation-test", apiKey)
-	client, err := credential.MakeClient(context.Background(), "eu-north1")
+	client, err := credential.MakeClient(context.Background(), "richmond")
 	if err != nil {
 		t.Fatalf("failed to make client: %v", err)
 	}
@@ -50,7 +50,7 @@ func TestCreateInstance(t *testing.T) {
 	apiKey := getAPIKey()
 
 	credential := NewSFCCredential("validation-test", apiKey)
-	client, err := credential.MakeClient(context.Background(), "eu-north1")
+	client, err := credential.MakeClient(context.Background(), "richmond")
 	if err != nil {
 		t.Fatalf("failed to make client: %v", err)
 	}
