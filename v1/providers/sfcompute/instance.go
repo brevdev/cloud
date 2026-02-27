@@ -476,6 +476,7 @@ func sfcNameToBrevData(name string) (cloudCredRefID string, brevStage string, re
 		return parts[0], parts[1], parts[2], parts[3], nil
 	case 2:
 		// Old format: refID_name (backward compat — cloudCredRefID and stage unknown)
+		// TODO: remove this case once all old-format nodes have been cleaned up
 		return "", "", parts[0], parts[1], nil
 	default:
 		return "", "", "", "", errors.WrapAndTrace(fmt.Errorf("invalid node name %s: expected 2 or 4 underscore-separated parts", name))

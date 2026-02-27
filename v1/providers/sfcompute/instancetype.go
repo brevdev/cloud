@@ -21,6 +21,11 @@ const (
 	interconnectInfiniband = "infiniband"
 	formFactorSXM5         = "sxm5"
 	diskTypeSSD            = "ssd"
+
+	// Currently only 8xH100/H200 instance types are available
+	// so it's safe to hardcode vCPU and GPU count.
+	sfcVCPU     = 112
+	sfcGPUCount = 8
 )
 
 func makeDefaultInstanceTypePrice(amount string, currencyCode string) currency.Amount {
@@ -236,10 +241,6 @@ func getInstanceTypeMetadata(gpuType string) (*sfcInstanceTypeMetadata, error) {
 	}
 }
 
-// vCPU count provided by SF Compute. Currently only 8xH100/H200 instance types are
-// available so it's safe to hardcode.
-const sfcVCPU = 112
-
 var h100InstanceTypeMetadata = sfcInstanceTypeMetadata{
 	gpuType:             gpuTypeH100,
 	formFactor:          formFactorSXM5,
@@ -247,7 +248,7 @@ var h100InstanceTypeMetadata = sfcInstanceTypeMetadata{
 	memoryBytes:         v1.NewBytes(960, v1.Gigabyte),
 	diskBytes:           v1.NewBytes(1500, v1.Gigabyte),
 	vcpu:                sfcVCPU,
-	gpuCount:            8,
+	gpuCount:            sfcGPUCount,
 	gpuManufacturer:     v1.ManufacturerNVIDIA,
 	gpuVRAM:             v1.NewBytes(80, v1.Gigabyte),
 	estimatedDeployTime: 14 * time.Minute,
@@ -261,7 +262,7 @@ var h200InstanceTypeMetadata = sfcInstanceTypeMetadata{
 	memoryBytes:         v1.NewBytes(960, v1.Gigabyte),
 	diskBytes:           v1.NewBytes(1500, v1.Gigabyte),
 	vcpu:                sfcVCPU,
-	gpuCount:            8,
+	gpuCount:            sfcGPUCount,
 	gpuManufacturer:     v1.ManufacturerNVIDIA,
 	gpuVRAM:             v1.NewBytes(141, v1.Gigabyte),
 	estimatedDeployTime: 14 * time.Minute,
