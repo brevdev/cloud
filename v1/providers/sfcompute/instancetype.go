@@ -21,6 +21,11 @@ const (
 	interconnectInfiniband = "infiniband"
 	formFactorSXM5         = "sxm5"
 	diskTypeSSD            = "ssd"
+
+	// Currently only 8xH100/H200 instance types are available
+	// so it's safe to hardcode vCPU and GPU count.
+	sfcVCPU     = 112
+	sfcGPUCount = 8
 )
 
 func makeDefaultInstanceTypePrice(amount string, currencyCode string) currency.Amount {
@@ -112,6 +117,7 @@ func getInstanceTypeForZone(zone sfcnodes.ZoneListResponseData) (*v1.InstanceTyp
 		Type:                makeInstanceTypeName(zone),
 		Memory:              ram,
 		MemoryBytes:         gpuMetadata.memoryBytes,
+		VCPU:                gpuMetadata.vcpu,
 		Location:            zoneToLocation(zone).Name,
 		Stoppable:           false,
 		Rebootable:          false,
@@ -216,6 +222,7 @@ type sfcInstanceTypeMetadata struct {
 	architecture        v1.Architecture
 	memoryBytes         v1.Bytes
 	diskBytes           v1.Bytes
+	vcpu                int32
 	gpuCount            int32
 	gpuManufacturer     v1.Manufacturer
 	gpuVRAM             v1.Bytes
@@ -240,7 +247,8 @@ var h100InstanceTypeMetadata = sfcInstanceTypeMetadata{
 	architecture:        v1.ArchitectureX86_64,
 	memoryBytes:         v1.NewBytes(960, v1.Gigabyte),
 	diskBytes:           v1.NewBytes(1500, v1.Gigabyte),
-	gpuCount:            8,
+	vcpu:                sfcVCPU,
+	gpuCount:            sfcGPUCount,
 	gpuManufacturer:     v1.ManufacturerNVIDIA,
 	gpuVRAM:             v1.NewBytes(80, v1.Gigabyte),
 	estimatedDeployTime: 14 * time.Minute,
@@ -253,7 +261,8 @@ var h200InstanceTypeMetadata = sfcInstanceTypeMetadata{
 	architecture:        v1.ArchitectureX86_64,
 	memoryBytes:         v1.NewBytes(960, v1.Gigabyte),
 	diskBytes:           v1.NewBytes(1500, v1.Gigabyte),
-	gpuCount:            8,
+	vcpu:                sfcVCPU,
+	gpuCount:            sfcGPUCount,
 	gpuManufacturer:     v1.ManufacturerNVIDIA,
 	gpuVRAM:             v1.NewBytes(141, v1.Gigabyte),
 	estimatedDeployTime: 14 * time.Minute,

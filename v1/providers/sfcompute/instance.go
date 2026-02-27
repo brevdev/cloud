@@ -29,8 +29,10 @@ func (c *SFCClient) CreateInstance(ctx context.Context, attrs v1.CreateInstanceA
 		return nil, errors.WrapAndTrace(err)
 	}
 
-	// Create a name for the node
-	name := brevDataToSFCName(attrs.RefID, attrs.Name)
+	// Pack cloud cred ref ID, brev stage, instance ref ID, and name into the SFC node name.
+	// SFC has no tags API, so the node name is the only place to persist this metadata.
+	stage := getStageFromTags(attrs.Tags)
+	name := brevDataToSFCName(c.refID, stage, attrs.RefID, attrs.Name)
 
 	// Create the node
 	resp, err := c.client.Nodes.New(ctx, sfcnodes.NodeNewParams{
@@ -231,10 +233,14 @@ type sfcNodeInfo struct {
 }
 
 func (c *SFCClient) sfcNodeToBrevInstance(node sfcNodeInfo) (*v1.Instance, error) {
-	// Get the refID and name from the node name
-	refID, name, err := sfcNameToBrevData(node.name)
+	// Parse cloud cred ref ID, brev stage, instance ref ID, and name from the node name.
+	// Old-format names (refID_name) return empty cloudCredRefID — fall back to c.refID.
+	cloudCredRefID, _, refID, name, err := sfcNameToBrevData(node.name)
 	if err != nil {
 		return nil, errors.WrapAndTrace(err)
+	}
+	if cloudCredRefID == "" {
+		cloudCredRefID = c.refID
 	}
 
 	// Get the instance type for the zone
@@ -270,7 +276,7 @@ func (c *SFCClient) sfcNodeToBrevInstance(node sfcNodeInfo) (*v1.Instance, error
 		Spot:           false,
 		Stoppable:      false,
 		Rebootable:     false,
-		CloudCredRefID: c.refID, // TODO: this should be pulled from the node itself
+		CloudCredRefID: cloudCredRefID,
 	}
 	return inst, nil
 }
@@ -448,16 +454,45 @@ func (c *SFCClient) getSSHHostnameFromVM(ctx context.Context, vmID string, vmSta
 	return sshResponse.SSHHostname, nil
 }
 
-func brevDataToSFCName(refID string, name string) string {
-	return fmt.Sprintf("%s_%s", refID, name)
+// brevDataToSFCName packs cloud credential ref ID, brev stage, instance ref ID, and instance
+// name into a single SFC node name, separated by underscores. This is necessary because SFC
+// has no tags/labels API — the node name is the only place to store metadata.
+//
+// Format: {cloudCredRefID}_{brevStage}_{refID}_{name}
+func brevDataToSFCName(cloudCredRefID string, brevStage string, refID string, name string) string {
+	return fmt.Sprintf("%s_%s_%s_%s", cloudCredRefID, brevStage, refID, name)
 }
 
-func sfcNameToBrevData(name string) (string, string, error) {
-	parts := strings.SplitN(name, "_", 2)
-	if len(parts) != 2 {
-		return "", "", errors.WrapAndTrace(fmt.Errorf("invalid node name %s", name))
+// sfcNameToBrevData parses an SFC node name back into its components.
+//
+// Supports two formats for backward compatibility:
+//   - New (4+ parts): {cloudCredRefID}_{brevStage}_{refID}_{name}
+//   - Old (2 parts): {refID}_{name} — cloudCredRefID and brevStage returned empty
+func sfcNameToBrevData(name string) (cloudCredRefID string, brevStage string, refID string, instanceName string, err error) {
+	parts := strings.SplitN(name, "_", 4)
+	switch len(parts) {
+	case 4:
+		// New format: cloudCredRefID_brevStage_refID_name
+		return parts[0], parts[1], parts[2], parts[3], nil
+	case 2:
+		// Old format: refID_name (backward compat — cloudCredRefID and stage unknown)
+		// TODO: remove this case once all old-format nodes have been cleaned up
+		return "", "", parts[0], parts[1], nil
+	default:
+		return "", "", "", "", errors.WrapAndTrace(fmt.Errorf("invalid node name %s: expected 2 or 4 underscore-separated parts", name))
 	}
-	return parts[0], parts[1], nil
+}
+
+// getStageFromTags extracts the control plane stage value from instance tags.
+// The tag key is prefixed by the control plane
+// so we match any key ending with "-stage" to avoid coupling to a specific prefix.
+func getStageFromTags(tags v1.Tags) string {
+	for k, v := range tags {
+		if strings.HasSuffix(k, "-stage") {
+			return v
+		}
+	}
+	return "unknown"
 }
 
 // Optional if supported:
