@@ -39,7 +39,7 @@ func (c *SFCClient) GetInstanceTypes(ctx context.Context, args v1.GetInstanceTyp
 
 	// Fetch all available zones
 	includeUnavailable := false
-	zones, err := c.getZones(ctx, includeUnavailable)
+	zones, limitReached, err := c.getZones(ctx, includeUnavailable)
 	if err != nil {
 		return nil, err
 	}
@@ -62,6 +62,10 @@ func (c *SFCClient) GetInstanceTypes(ctx context.Context, args v1.GetInstanceTyp
 		instanceType, err := getInstanceTypeForZone(zone)
 		if err != nil {
 			return nil, err
+		}
+
+		if limitReached {
+			instanceType.IsAvailable = false
 		}
 
 		if !v1.IsSelectedByArgs(*instanceType, args) {
@@ -155,7 +159,7 @@ func makeInstanceTypeName(zone sfcnodes.ZoneListResponseData) string {
 }
 
 func (c *SFCClient) GetLocations(ctx context.Context, args v1.GetLocationsArgs) ([]v1.Location, error) {
-	zones, err := c.getZones(ctx, args.IncludeUnavailable)
+	zones, limitReached, err := c.getZones(ctx, args.IncludeUnavailable)
 	if err != nil {
 		return nil, err
 	}
@@ -163,22 +167,41 @@ func (c *SFCClient) GetLocations(ctx context.Context, args v1.GetLocationsArgs) 
 	locations := make([]v1.Location, 0, len(zones))
 	for _, zone := range zones {
 		location := zoneToLocation(zone)
+		if limitReached {
+			location.Available = false
+		}
 		locations = append(locations, location)
 	}
 
 	return locations, nil
 }
 
-func (c *SFCClient) getZones(ctx context.Context, includeUnavailable bool) ([]sfcnodes.ZoneListResponseData, error) {
+func (c *SFCClient) getZones(ctx context.Context, includeUnavailable bool) ([]sfcnodes.ZoneListResponseData, bool, error) {
+	// Fetch the nodes to check the active node count
+	respNodes, err := c.client.Nodes.List(ctx, sfcnodes.NodeListParams{})
+	if err != nil {
+		return nil, false, err
+	}
+
+	activeNodeCount := 0
+	for _, node := range respNodes.Data {
+		status := sfcStatusToLifecycleStatus(fmt.Sprint(node.Status))
+		if status == v1.LifecycleStatusRunning || status == v1.LifecycleStatusPending {
+			activeNodeCount++
+		}
+	}
+
+	limitReached := activeNodeCount >= 50
+
 	// Fetch the zones from the API
 	resp, err := c.client.Zones.List(ctx)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	// If there are no zones, return an empty list
 	if resp == nil || len(resp.Data) == 0 {
-		return []sfcnodes.ZoneListResponseData{}, nil
+		return []sfcnodes.ZoneListResponseData{}, limitReached, nil
 	}
 
 	zones := make([]sfcnodes.ZoneListResponseData, 0, len(resp.Data))
@@ -197,7 +220,7 @@ func (c *SFCClient) getZones(ctx context.Context, includeUnavailable bool) ([]sf
 		zones = append(zones, zone)
 	}
 
-	return zones, nil
+	return zones, limitReached, nil
 }
 
 func zoneToLocation(zone sfcnodes.ZoneListResponseData) v1.Location {
