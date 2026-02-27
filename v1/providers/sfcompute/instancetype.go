@@ -112,6 +112,7 @@ func getInstanceTypeForZone(zone sfcnodes.ZoneListResponseData) (*v1.InstanceTyp
 		Type:                makeInstanceTypeName(zone),
 		Memory:              ram,
 		MemoryBytes:         gpuMetadata.memoryBytes,
+		VCPU:                gpuMetadata.vcpu,
 		Location:            zoneToLocation(zone).Name,
 		Stoppable:           false,
 		Rebootable:          false,
@@ -216,6 +217,7 @@ type sfcInstanceTypeMetadata struct {
 	architecture        v1.Architecture
 	memoryBytes         v1.Bytes
 	diskBytes           v1.Bytes
+	vcpu                int32
 	gpuCount            int32
 	gpuManufacturer     v1.Manufacturer
 	gpuVRAM             v1.Bytes
@@ -234,12 +236,17 @@ func getInstanceTypeMetadata(gpuType string) (*sfcInstanceTypeMetadata, error) {
 	}
 }
 
+// vCPU count provided by SF Compute. Currently only 8xH100/H200 instance types are
+// available so it's safe to hardcode.
+const sfcVCPU = 112
+
 var h100InstanceTypeMetadata = sfcInstanceTypeMetadata{
 	gpuType:             gpuTypeH100,
 	formFactor:          formFactorSXM5,
 	architecture:        v1.ArchitectureX86_64,
 	memoryBytes:         v1.NewBytes(960, v1.Gigabyte),
 	diskBytes:           v1.NewBytes(1500, v1.Gigabyte),
+	vcpu:                sfcVCPU,
 	gpuCount:            8,
 	gpuManufacturer:     v1.ManufacturerNVIDIA,
 	gpuVRAM:             v1.NewBytes(80, v1.Gigabyte),
@@ -253,6 +260,7 @@ var h200InstanceTypeMetadata = sfcInstanceTypeMetadata{
 	architecture:        v1.ArchitectureX86_64,
 	memoryBytes:         v1.NewBytes(960, v1.Gigabyte),
 	diskBytes:           v1.NewBytes(1500, v1.Gigabyte),
+	vcpu:                sfcVCPU,
 	gpuCount:            8,
 	gpuManufacturer:     v1.ManufacturerNVIDIA,
 	gpuVRAM:             v1.NewBytes(141, v1.Gigabyte),
