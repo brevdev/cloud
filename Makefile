@@ -111,7 +111,17 @@ bench:
 lint:
 	@echo "Running linter..."
 	@if ! command -v $(GOLINT) > /dev/null 2>&1; then \
-		$(GOINSTALL) $(ARTIFACT_GOLINT); \
+		echo "golangci-lint not found. Installing..."; \
+		GOTOOLCHAIN=go$(shell $(GOCMD) list -m -f '{{.GoVersion}}') $(GOINSTALL) $(ARTIFACT_GOLINT); \
+	else \
+		REQUIRED_GO_VERSION=$$($(GOCMD) list -m -f '{{.GoVersion}}'); \
+		LINTER_GO_VERSION=$$($(GOLINT) version 2>/dev/null | grep -o 'go[0-9]\+\.[0-9]\+\.[0-9]\+' | head -1 | sed 's/go//'); \
+		if [ -n "$$LINTER_GO_VERSION" ] && [ -n "$$REQUIRED_GO_VERSION" ]; then \
+			if ! printf '%s\n%s\n' "$$REQUIRED_GO_VERSION" "$$LINTER_GO_VERSION" | sort -V -C 2>/dev/null; then \
+				echo "golangci-lint was built with Go $$LINTER_GO_VERSION but project requires Go $$REQUIRED_GO_VERSION. Reinstalling..."; \
+				GOTOOLCHAIN=go$$REQUIRED_GO_VERSION $(GOINSTALL) $(ARTIFACT_GOLINT); \
+			fi; \
+		fi; \
 	fi
 	$(GOLINT) run ./...
 
@@ -221,4 +231,4 @@ help:
 	@echo "  docs           - Generate documentation"
 	@echo "  check          - Run all checks (lint, vet, fmt-check, test)"
 	@echo "  install-tools  - Install development tools"
-	@echo "  help           - Show this help message"  
+	@echo "  help           - Show this help message"    
