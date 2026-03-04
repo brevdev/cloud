@@ -196,8 +196,8 @@ func (c *NebiusClient) getDefaultImages(ctx context.Context) ([]v1.Image, error)
 
 // getImageDescription extracts description from ImageSpec if available
 func getImageDescription(image *compute.Image) string {
-	if image.Spec != nil && image.Spec.Description != nil {
-		return *image.Spec.Description
+	if image.Spec != nil {
+		return image.Spec.Description
 	}
 	return ""
 }

@@ -3,6 +3,8 @@ package v1
 import (
 	"context"
 	"encoding/json"
+	"runtime/debug"
+	"sync"
 	"testing"
 
 	v1 "github.com/brevdev/cloud/v1"
@@ -340,4 +342,117 @@ func TestExtractRegionFromProjectName(t *testing.T) {
 				tt.projectName, result, tt.expectedRegion)
 		})
 	}
+}
+
+func TestMainVersionFromLDFlags(t *testing.T) {
+	tests := []struct {
+		name      string
+		ldflags   string
+		wantValue string
+	}{
+		{
+			name:      "main version in standard format",
+			ldflags:   "-X main.Version=v1.2.3 -X main.BuildTime=2026-03-04_12:00:00",
+			wantValue: "v1.2.3",
+		},
+		{
+			name:      "main version in quoted token",
+			ldflags:   `-s -w -X "main.Version=2026.03.04"`,
+			wantValue: "2026.03.04",
+		},
+		{
+			name:      "main version after other -X values",
+			ldflags:   "-X main.BuildTime=2026-03-04_12:00:00 -X main.Version=abc123",
+			wantValue: "abc123",
+		},
+		{
+			name:      "main version not present",
+			ldflags:   "-s -w -X main.BuildTime=2026-03-04_12:00:00",
+			wantValue: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.wantValue, mainVersionFromLDFlags(tt.ldflags))
+		})
+	}
+}
+
+func TestFormatNebiusUserAgentPrefix(t *testing.T) {
+	tests := []struct {
+		name      string
+		version   string
+		wantValue string
+	}{
+		{
+			name:      "no version",
+			version:   "",
+			wantValue: nebiusSDKUserAgentPrefix,
+		},
+		{
+			name:      "version set",
+			version:   "v1.2.3",
+			wantValue: "brev-cloud-sdk-nebius/v1.2.3",
+		},
+		{
+			name:      "leading slash in version",
+			version:   "/v1.2.3",
+			wantValue: "brev-cloud-sdk-nebius/v1.2.3",
+		},
+		{
+			name:      "whitespace version",
+			version:   "   ",
+			wantValue: nebiusSDKUserAgentPrefix,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.wantValue, formatNebiusUserAgentPrefix(tt.version))
+		})
+	}
+}
+
+func TestMainVersionFromBuildInfo_IsCached(t *testing.T) {
+	originalReadBuildInfo := readBuildInfo
+	t.Cleanup(func() {
+		readBuildInfo = originalReadBuildInfo
+		mainVersionCacheOnce = sync.Once{}
+		mainVersionCache = ""
+	})
+
+	mainVersionCacheOnce = sync.Once{}
+	mainVersionCache = ""
+
+	calls := 0
+	readBuildInfo = func() (*debug.BuildInfo, bool) {
+		calls++
+		return &debug.BuildInfo{
+			Settings: []debug.BuildSetting{
+				{
+					Key:   "-ldflags",
+					Value: "-X main.Version=v9.9.9",
+				},
+			},
+		}, true
+	}
+
+	assert.Equal(t, "v9.9.9", mainVersionFromBuildInfo())
+
+	// Change the source to prove the second call comes from cache, not a new read.
+	readBuildInfo = func() (*debug.BuildInfo, bool) {
+		calls++
+		return &debug.BuildInfo{
+			Settings: []debug.BuildSetting{
+				{
+					Key:   "-ldflags",
+					Value: "-X main.Version=v0.0.1",
+				},
+			},
+		}, true
+	}
+
+	assert.Equal(t, "v9.9.9", mainVersionFromBuildInfo())
+	assert.Equal(t, 1, calls)
 }
