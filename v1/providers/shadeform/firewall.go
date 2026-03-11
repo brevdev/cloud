@@ -36,7 +36,7 @@ const (
 	// Allow inbound traffic on the loopback interface.
 	ipTablesAllowDockerUserInpboundLoopback = "iptables -A DOCKER-USER -i lo -j ACCEPT"
 
-	// Allow external inbound to container SSH (dport 22 because Docker DNAT rewrites host:2222 -> container:22).
+	// Allow external inbound TCP traffic to any container port 22 (SSH)
 	ipTablesAllowDockerUserContainerSSH = "iptables -A DOCKER-USER -p tcp --dport 22 -j ACCEPT"
 
 	// Drop everything else.
