@@ -21,6 +21,8 @@ const (
 	interconnectInfiniband = "infiniband"
 	formFactorSXM5         = "sxm5"
 	diskTypeSSD            = "ssd"
+
+	nodeCap = 15
 )
 
 func makeDefaultInstanceTypePrice(amount string, currencyCode string) currency.Amount {
@@ -191,7 +193,7 @@ func (c *SFCClient) getZones(ctx context.Context, includeUnavailable bool) ([]sf
 		}
 	}
 
-	limitReached := activeNodeCount >= 50
+	limitReached := activeNodeCount >= nodeCap
 
 	// Fetch the zones from the API
 	resp, err := c.client.Zones.List(ctx)
