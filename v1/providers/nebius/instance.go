@@ -972,11 +972,17 @@ func (c *NebiusClient) ChangeInstanceType(ctx context.Context, instanceID v1.Clo
 		v1.LogField("platform", platform),
 		v1.LogField("preset", preset))
 
+	// Nebius Update API requires ALL fields
+	// Copy existing instance spec and only modify the resources
 	updateReq := &compute.UpdateInstanceRequest{
 		Metadata: &common.ResourceMetadata{
-			Id: string(instanceID),
+			Id:       string(instanceID),
+			ParentId: instance.GetMetadata().GetParentId(), // REQUIRED: project ID
 		},
 		Spec: &compute.InstanceSpec{
+			NetworkInterfaces: instance.GetSpec().GetNetworkInterfaces(),
+			BootDisk:          instance.GetSpec().GetBootDisk(),
+			CloudInitUserData: instance.GetSpec().GetCloudInitUserData(),
 			Resources: &compute.ResourcesSpec{
 				Platform: platform,
 				Size: &compute.ResourcesSpec_Preset{
@@ -986,6 +992,7 @@ func (c *NebiusClient) ChangeInstanceType(ctx context.Context, instanceID v1.Clo
 		},
 	}
 
+	// Preserve all existing labels and update instance-type-id
 	if instance.GetMetadata() != nil && instance.GetMetadata().GetLabels() != nil {
 		labels := make(map[string]string)
 		for k, lv := range instance.GetMetadata().GetLabels() {
