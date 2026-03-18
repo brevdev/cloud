@@ -132,7 +132,7 @@ func (l launchpadCreateAttrs) generateTags(cloudCredRefID string) v1.Tags {
 
 func (c *LaunchpadClient) getLaunchpadIPAllowlist(ctx context.Context, firewallRules v1.FirewallRules) []string {
 	if len(firewallRules.EgressRules) > 0 {
-		c.logger.Info(ctx, "cloud/launchpad egress rules not supported", v1.LogField("egressRules", firewallRules.EgressRules))
+		c.logger.Debug(ctx, "cloud/launchpad egress rules not supported", v1.LogField("egressRules", firewallRules.EgressRules))
 	}
 	ips := []string{}
 	for _, rule := range firewallRules.IngressRules {

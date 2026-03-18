@@ -174,7 +174,7 @@ func createTestInstance(ctx context.Context, t *testing.T, client *NebiusClient,
 				InstanceType: string(firstInstance.ID),
 			})
 			if err == nil {
-				t.Logf("📊 Quota for %s: %d/%d %s (Available: %t)",
+				t.Logf("Quota for %s: %d/%d %s (Available: %t)",
 					firstInstance.ID, quota.Current, quota.Maximum, quota.Unit, firstInstance.IsAvailable)
 			}
 		}
@@ -232,7 +232,7 @@ func createTestInstance(ctx context.Context, t *testing.T, client *NebiusClient,
 			if strings.Contains(strings.ToLower(it.Type), strings.ToLower(targetPlatform)) ||
 				strings.Contains(strings.ToLower(string(it.ID)), strings.ToLower(targetPlatform)) {
 				selectedInstanceType = it
-				t.Logf("🎯 Found target platform: %s", targetPlatform)
+				t.Logf("Found target platform: %s", targetPlatform)
 				break
 			}
 		}
@@ -243,7 +243,7 @@ func createTestInstance(ctx context.Context, t *testing.T, client *NebiusClient,
 		for _, it := range availableInstanceTypes {
 			if strings.Contains(strings.ToLower(it.Type), "l40s") {
 				selectedInstanceType = it
-				t.Logf("🎮 Found L40S GPU configuration")
+				t.Logf("Found L40S GPU configuration")
 				break
 			}
 		}
@@ -252,7 +252,7 @@ func createTestInstance(ctx context.Context, t *testing.T, client *NebiusClient,
 	// Fallback to first available instance type
 	if selectedInstanceType.ID == "" {
 		selectedInstanceType = availableInstanceTypes[0]
-		t.Logf("⚡ Using fallback instance type")
+		t.Logf("Using fallback instance type")
 	}
 
 	instanceType := string(selectedInstanceType.ID)
@@ -261,7 +261,7 @@ func createTestInstance(ctx context.Context, t *testing.T, client *NebiusClient,
 
 	// Use an actual available x86_64 image family for platform compatibility
 	imageFamily := "ubuntu22.04-cuda12" // Known working x86_64 family with CUDA support for L40S
-	t.Logf("🐧 Using working x86_64 image family: %s", imageFamily)
+	t.Logf("Using working x86_64 image family: %s", imageFamily)
 
 	if len(images) > 0 {
 		t.Logf("Available images: %d (showing architecture diversity)", len(images))
@@ -278,7 +278,7 @@ func createTestInstance(ctx context.Context, t *testing.T, client *NebiusClient,
 	if customDiskSize := os.Getenv("NEBIUS_DISK_SIZE_GB"); customDiskSize != "" {
 		if size, err := strconv.Atoi(customDiskSize); err == nil && size >= 50 {
 			diskSize = units.Base2Bytes(int64(size) * int64(units.Gibibyte))
-			t.Logf("💾 Using custom disk size: %dGB", size)
+			t.Logf("Using custom disk size: %dGB", size)
 		}
 	}
 

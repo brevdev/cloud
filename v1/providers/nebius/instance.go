@@ -25,7 +25,7 @@ func (c *NebiusClient) CreateInstance(ctx context.Context, attrs v1.CreateInstan
 	cleanupOnError := true
 	defer func() {
 		if cleanupOnError {
-			c.logger.Info(ctx, "cleaning up resources after instance creation failure",
+			c.logger.Debug(ctx, "cleaning up resources after instance creation failure",
 				v1.LogField("refID", attrs.RefID),
 				v1.LogField("instanceID", instanceID),
 				v1.LogField("networkID", networkID),
@@ -122,7 +122,7 @@ func (c *NebiusClient) CreateInstance(ctx context.Context, attrs v1.CreateInstan
 
 	// Add labels/tags to metadata (always create labels for resource tracking)
 	createReq.Metadata.Labels = make(map[string]string)
-	c.logger.Info(ctx, "Setting instance tags during CreateInstance",
+	c.logger.Debug(ctx, "Setting instance tags during CreateInstance",
 		v1.LogField("providedTagsCount", len(attrs.Tags)),
 		v1.LogField("providedTags", fmt.Sprintf("%+v", attrs.Tags)),
 		v1.LogField("refID", attrs.RefID))
@@ -166,7 +166,7 @@ func (c *NebiusClient) CreateInstance(ctx context.Context, attrs v1.CreateInstan
 
 	// Wait for instance to reach a stable state (RUNNING or terminal failure)
 	// This prevents leaving orphaned resources if the instance fails after creation
-	c.logger.Info(ctx, "waiting for instance to reach RUNNING state",
+	c.logger.Debug(ctx, "waiting for instance to reach RUNNING state",
 		v1.LogField("instanceID", instanceID),
 		v1.LogField("refID", attrs.RefID))
 
@@ -178,7 +178,7 @@ func (c *NebiusClient) CreateInstance(ctx context.Context, attrs v1.CreateInstan
 		return nil, fmt.Errorf("instance failed to reach RUNNING state: %w", err)
 	}
 
-	// Return the full instance details with IP addresses and SSH info
+	// Return the full instance details with IP addresses and SSH Debug
 	createdInstance.RefID = attrs.RefID
 	createdInstance.CloudCredRefID = c.refID
 	createdInstance.Tags = attrs.Tags
@@ -379,7 +379,7 @@ func (c *NebiusClient) waitForInstanceRunning(ctx context.Context, instanceID v1
 	deadline := time.Now().Add(timeout)
 	pollInterval := 10 * time.Second
 
-	c.logger.Info(ctx, "polling instance state until RUNNING or terminal failure",
+	c.logger.Debug(ctx, "polling instance state until RUNNING or terminal failure",
 		v1.LogField("instanceID", instanceID),
 		v1.LogField("refID", refID),
 		v1.LogField("timeout", timeout.String()))
@@ -405,13 +405,13 @@ func (c *NebiusClient) waitForInstanceRunning(ctx context.Context, instanceID v1
 			continue
 		}
 
-		c.logger.Info(ctx, "instance state check",
+		c.logger.Debug(ctx, "instance state check",
 			v1.LogField("instanceID", instanceID),
 			v1.LogField("status", instance.Status.LifecycleStatus))
 
 		// Check for success: RUNNING state
 		if instance.Status.LifecycleStatus == v1.LifecycleStatusRunning {
-			c.logger.Info(ctx, "instance reached RUNNING state",
+			c.logger.Debug(ctx, "instance reached RUNNING state",
 				v1.LogField("instanceID", instanceID),
 				v1.LogField("refID", refID))
 			return instance, nil
@@ -425,7 +425,7 @@ func (c *NebiusClient) waitForInstanceRunning(ctx context.Context, instanceID v1
 
 		// Instance is still in transitional state (PENDING, STARTING, etc.)
 		// Wait and poll again
-		c.logger.Info(ctx, "instance still transitioning, waiting...",
+		c.logger.Debug(ctx, "instance still transitioning, waiting...",
 			v1.LogField("instanceID", instanceID),
 			v1.LogField("currentStatus", instance.Status.LifecycleStatus),
 			v1.LogField("pollInterval", pollInterval.String()))
@@ -439,7 +439,7 @@ func (c *NebiusClient) waitForInstanceState(ctx context.Context, instanceID v1.C
 	deadline := time.Now().Add(timeout)
 	pollInterval := 5 * time.Second
 
-	c.logger.Info(ctx, "waiting for instance to reach target state",
+	c.logger.Debug(ctx, "waiting for instance to reach target state",
 		v1.LogField("instanceID", instanceID),
 		v1.LogField("targetState", targetState),
 		v1.LogField("timeout", timeout.String()))
@@ -465,14 +465,14 @@ func (c *NebiusClient) waitForInstanceState(ctx context.Context, instanceID v1.C
 			continue
 		}
 
-		c.logger.Info(ctx, "instance state check",
+		c.logger.Debug(ctx, "instance state check",
 			v1.LogField("instanceID", instanceID),
 			v1.LogField("currentState", instance.Status.LifecycleStatus),
 			v1.LogField("targetState", targetState))
 
 		// Check if we've reached the target state
 		if instance.Status.LifecycleStatus == targetState {
-			c.logger.Info(ctx, "instance reached target state",
+			c.logger.Debug(ctx, "instance reached target state",
 				v1.LogField("instanceID", instanceID),
 				v1.LogField("state", targetState))
 			return nil
@@ -488,7 +488,7 @@ func (c *NebiusClient) waitForInstanceState(ctx context.Context, instanceID v1.C
 		}
 
 		// Instance is still transitioning, wait and poll again
-		c.logger.Info(ctx, "instance still transitioning, waiting...",
+		c.logger.Debug(ctx, "instance still transitioning, waiting...",
 			v1.LogField("instanceID", instanceID),
 			v1.LogField("currentState", instance.Status.LifecycleStatus),
 			v1.LogField("targetState", targetState),
@@ -503,7 +503,7 @@ func (c *NebiusClient) waitForInstanceDeleted(ctx context.Context, instanceID v1
 	deadline := time.Now().Add(timeout)
 	pollInterval := 5 * time.Second
 
-	c.logger.Info(ctx, "waiting for instance to be fully deleted",
+	c.logger.Debug(ctx, "waiting for instance to be fully deleted",
 		v1.LogField("instanceID", instanceID),
 		v1.LogField("timeout", timeout.String()))
 
@@ -523,7 +523,7 @@ func (c *NebiusClient) waitForInstanceDeleted(ctx context.Context, instanceID v1
 		if err != nil {
 			// Check if it's a NotFound error - that means the instance is fully deleted
 			if isNotFoundError(err) {
-				c.logger.Info(ctx, "instance successfully deleted (NotFound)",
+				c.logger.Debug(ctx, "instance successfully deleted (NotFound)",
 					v1.LogField("instanceID", instanceID))
 				return nil
 			}
@@ -535,19 +535,19 @@ func (c *NebiusClient) waitForInstanceDeleted(ctx context.Context, instanceID v1
 		}
 
 		// Instance still exists - check its state
-		c.logger.Info(ctx, "instance still exists, checking state",
+		c.logger.Debug(ctx, "instance still exists, checking state",
 			v1.LogField("instanceID", instanceID),
 			v1.LogField("state", instance.Status.LifecycleStatus))
 
 		// If instance is in TERMINATED state, consider it deleted
 		if instance.Status.LifecycleStatus == v1.LifecycleStatusTerminated {
-			c.logger.Info(ctx, "instance reached TERMINATED state",
+			c.logger.Debug(ctx, "instance reached TERMINATED state",
 				v1.LogField("instanceID", instanceID))
 			return nil
 		}
 
 		// Instance still in DELETING or other transitional state, wait and poll again
-		c.logger.Info(ctx, "instance still deleting, waiting...",
+		c.logger.Debug(ctx, "instance still deleting, waiting...",
 			v1.LogField("instanceID", instanceID),
 			v1.LogField("currentState", instance.Status.LifecycleStatus),
 			v1.LogField("pollInterval", pollInterval.String()))
@@ -584,7 +584,7 @@ func extractImageFamily(bootDisk *compute.AttachedDiskSpec) string {
 }
 
 func (c *NebiusClient) TerminateInstance(ctx context.Context, instanceID v1.CloudProviderInstanceID) error {
-	c.logger.Info(ctx, "initiating instance termination",
+	c.logger.Debug(ctx, "initiating instance termination",
 		v1.LogField("instanceID", instanceID))
 
 	// Get instance details to retrieve associated resource IDs
@@ -621,7 +621,7 @@ func (c *NebiusClient) TerminateInstance(ctx context.Context, instanceID v1.Clou
 		return fmt.Errorf("instance termination failed: %v", finalOp.Status())
 	}
 
-	c.logger.Info(ctx, "delete operation completed, waiting for instance to be fully deleted",
+	c.logger.Debug(ctx, "delete operation completed, waiting for instance to be fully deleted",
 		v1.LogField("instanceID", instanceID))
 
 	// Step 2: Wait for instance to be actually deleted (not just "DELETING")
@@ -631,7 +631,7 @@ func (c *NebiusClient) TerminateInstance(ctx context.Context, instanceID v1.Clou
 		return fmt.Errorf("instance failed to complete deletion: %w", err)
 	}
 
-	c.logger.Info(ctx, "instance fully deleted, proceeding with resource cleanup",
+	c.logger.Debug(ctx, "instance fully deleted, proceeding with resource cleanup",
 		v1.LogField("instanceID", instanceID))
 
 	// Step 3: Delete boot disk if it exists and wasn't auto-deleted
@@ -651,7 +651,7 @@ func (c *NebiusClient) TerminateInstance(ctx context.Context, instanceID v1.Clou
 			v1.LogField("subnetID", subnetID))
 	}
 
-	c.logger.Info(ctx, "instance successfully terminated and cleaned up",
+	c.logger.Debug(ctx, "instance successfully terminated and cleaned up",
 		v1.LogField("instanceID", instanceID))
 
 	return nil
@@ -669,21 +669,21 @@ func (c *NebiusClient) deleteInstanceIfExists(ctx context.Context, instanceID v1
 	if err != nil {
 		// Ignore NotFound errors - instance may have already been deleted
 		if isNotFoundError(err) {
-			c.logger.Info(ctx, "instance already deleted or not found",
+			c.logger.Debug(ctx, "instance already deleted or not found",
 				v1.LogField("instanceID", instanceID))
 			return nil
 		}
 		return fmt.Errorf("failed to delete instance: %w", err)
 	}
 
-	c.logger.Info(ctx, "successfully deleted instance",
+	c.logger.Debug(ctx, "successfully deleted instance",
 		v1.LogField("instanceID", instanceID))
 	return nil
 }
 
 //nolint:gocognit,gocyclo,funlen // Complex function listing instances across multiple projects with filtering
 func (c *NebiusClient) ListInstances(ctx context.Context, args v1.ListInstancesArgs) ([]v1.Instance, error) {
-	c.logger.Info(ctx, "listing nebius instances",
+	c.logger.Debug(ctx, "listing nebius instances",
 		v1.LogField("primaryProjectID", c.projectID),
 		v1.LogField("location", c.location),
 		v1.LogField("tagFilters", fmt.Sprintf("%+v", args.TagFilters)),
@@ -700,7 +700,7 @@ func (c *NebiusClient) ListInstances(ctx context.Context, args v1.ListInstancesA
 		projectToRegion = map[string]string{c.projectID: c.location}
 	}
 
-	c.logger.Info(ctx, "querying instances across all projects",
+	c.logger.Debug(ctx, "querying instances across all projects",
 		v1.LogField("projectCount", len(projectToRegion)),
 		v1.LogField("projects", fmt.Sprintf("%v", projectToRegion)))
 
@@ -727,7 +727,7 @@ func (c *NebiusClient) ListInstances(ctx context.Context, args v1.ListInstancesA
 			}
 
 			if len(response.Items) > 0 {
-				c.logger.Info(ctx, "found instances in project",
+				c.logger.Debug(ctx, "found instances in project",
 					v1.LogField("projectID", projectID),
 					v1.LogField("region", projectToRegion[projectID]),
 					v1.LogField("count", len(response.Items)),
@@ -743,11 +743,11 @@ func (c *NebiusClient) ListInstances(ctx context.Context, args v1.ListInstancesA
 	}
 
 	if len(allNebiusInstances) == 0 {
-		c.logger.Info(ctx, "no instances found across all projects")
+		c.logger.Debug(ctx, "no instances found across all projects")
 		return []v1.Instance{}, nil
 	}
 
-	c.logger.Info(ctx, "found raw instances from Nebius API across all projects",
+	c.logger.Debug(ctx, "found raw instances from Nebius API across all projects",
 		v1.LogField("totalCount", len(allNebiusInstances)))
 
 	// Convert and filter each Nebius instance to v1.Instance
@@ -759,7 +759,7 @@ func (c *NebiusClient) ListInstances(ctx context.Context, args v1.ListInstancesA
 			continue
 		}
 
-		c.logger.Info(ctx, "Processing instance from Nebius API",
+		c.logger.Debug(ctx, "Processing instance from Nebius API",
 			v1.LogField("instanceID", nebiusInstance.Metadata.Id),
 			v1.LogField("instanceName", nebiusInstance.Metadata.Name),
 			v1.LogField("rawLabelsCount", len(nebiusInstance.Metadata.Labels)),
@@ -774,27 +774,27 @@ func (c *NebiusClient) ListInstances(ctx context.Context, args v1.ListInstancesA
 			continue
 		}
 
-		c.logger.Info(ctx, "Instance after conversion",
+		c.logger.Debug(ctx, "Instance after conversion",
 			v1.LogField("instanceID", instance.CloudID),
 			v1.LogField("convertedTagsCount", len(instance.Tags)),
 			v1.LogField("convertedTags", fmt.Sprintf("%+v", instance.Tags)))
 
 		// Apply tag filtering if TagFilters are provided
 		if len(args.TagFilters) > 0 {
-			c.logger.Info(ctx, "🔎 Checking tag filters",
+			c.logger.Debug(ctx, "Checking tag filters",
 				v1.LogField("instanceID", instance.CloudID),
 				v1.LogField("requiredFilters", fmt.Sprintf("%+v", args.TagFilters)),
 				v1.LogField("instanceTags", fmt.Sprintf("%+v", instance.Tags)))
 
 			if !matchesTagFilters(instance.Tags, args.TagFilters) {
-				c.logger.Warn(ctx, "❌ Instance FILTERED OUT by tag filters",
+				c.logger.Warn(ctx, "Instance FILTERED OUT by tag filters",
 					v1.LogField("instanceID", instance.CloudID),
 					v1.LogField("instanceTags", fmt.Sprintf("%+v", instance.Tags)),
 					v1.LogField("requiredFilters", fmt.Sprintf("%+v", args.TagFilters)))
 				continue
 			}
 
-			c.logger.Info(ctx, "✅ Instance PASSED tag filters",
+			c.logger.Debug(ctx, "Instance PASSED tag filters",
 				v1.LogField("instanceID", instance.CloudID))
 		}
 
@@ -829,7 +829,7 @@ func (c *NebiusClient) ListInstances(ctx context.Context, args v1.ListInstancesA
 		instances = append(instances, *instance)
 	}
 
-	c.logger.Info(ctx, "successfully listed and filtered instances",
+	c.logger.Debug(ctx, "successfully listed and filtered instances",
 		v1.LogField("totalFromAPI", len(allNebiusInstances)),
 		v1.LogField("afterFiltering", len(instances)))
 
@@ -868,7 +868,7 @@ func matchesTagFilters(instanceTags map[string]string, tagFilters map[string][]s
 
 //nolint:dupl // StopInstance and StartInstance have similar structure but different operations
 func (c *NebiusClient) StopInstance(ctx context.Context, instanceID v1.CloudProviderInstanceID) error {
-	c.logger.Info(ctx, "initiating instance stop operation",
+	c.logger.Debug(ctx, "initiating instance stop operation",
 		v1.LogField("instanceID", instanceID))
 
 	// Initiate instance stop operation
@@ -889,7 +889,7 @@ func (c *NebiusClient) StopInstance(ctx context.Context, instanceID v1.CloudProv
 		return fmt.Errorf("instance stop failed: %v", finalOp.Status())
 	}
 
-	c.logger.Info(ctx, "stop operation completed, waiting for instance to reach STOPPED state",
+	c.logger.Debug(ctx, "stop operation completed, waiting for instance to reach STOPPED state",
 		v1.LogField("instanceID", instanceID))
 
 	// Wait for instance to actually reach STOPPED state
@@ -898,7 +898,7 @@ func (c *NebiusClient) StopInstance(ctx context.Context, instanceID v1.CloudProv
 		return fmt.Errorf("instance failed to reach STOPPED state: %w", err)
 	}
 
-	c.logger.Info(ctx, "instance successfully stopped",
+	c.logger.Debug(ctx, "instance successfully stopped",
 		v1.LogField("instanceID", instanceID))
 
 	return nil
@@ -906,7 +906,7 @@ func (c *NebiusClient) StopInstance(ctx context.Context, instanceID v1.CloudProv
 
 //nolint:dupl // StartInstance and StopInstance have similar structure but different operations
 func (c *NebiusClient) StartInstance(ctx context.Context, instanceID v1.CloudProviderInstanceID) error {
-	c.logger.Info(ctx, "initiating instance start operation",
+	c.logger.Debug(ctx, "initiating instance start operation",
 		v1.LogField("instanceID", instanceID))
 
 	// Initiate instance start operation
@@ -927,7 +927,7 @@ func (c *NebiusClient) StartInstance(ctx context.Context, instanceID v1.CloudPro
 		return fmt.Errorf("instance start failed: %v", finalOp.Status())
 	}
 
-	c.logger.Info(ctx, "start operation completed, waiting for instance to reach RUNNING state",
+	c.logger.Debug(ctx, "start operation completed, waiting for instance to reach RUNNING state",
 		v1.LogField("instanceID", instanceID))
 
 	// Wait for instance to actually reach RUNNING state
@@ -936,7 +936,7 @@ func (c *NebiusClient) StartInstance(ctx context.Context, instanceID v1.CloudPro
 		return fmt.Errorf("instance failed to reach RUNNING state: %w", err)
 	}
 
-	c.logger.Info(ctx, "instance successfully started",
+	c.logger.Debug(ctx, "instance successfully started",
 		v1.LogField("instanceID", instanceID))
 
 	return nil
@@ -1364,7 +1364,7 @@ func (c *NebiusClient) getPublicImagesParent() string {
 //
 //nolint:gocognit,gocyclo,funlen // Complex function with multiple fallback strategies for parsing instance types
 func (c *NebiusClient) parseInstanceType(ctx context.Context, instanceTypeID string) (platform string, preset string, err error) {
-	c.logger.Info(ctx, "parsing instance type",
+	c.logger.Debug(ctx, "parsing instance type",
 		v1.LogField("instanceTypeID", instanceTypeID),
 		v1.LogField("projectID", c.projectID))
 
@@ -1376,7 +1376,7 @@ func (c *NebiusClient) parseInstanceType(ctx context.Context, instanceTypeID str
 		return "", "", errors.WrapAndTrace(err)
 	}
 
-	c.logger.Info(ctx, "listed platforms",
+	c.logger.Debug(ctx, "listed platforms",
 		v1.LogField("platformCount", len(platformsResp.GetItems())))
 
 	// DOT Format: {platform-name}.{preset-name}
@@ -1387,7 +1387,7 @@ func (c *NebiusClient) parseInstanceType(ctx context.Context, instanceTypeID str
 			platformName := dotParts[0]
 			presetName := dotParts[1]
 
-			c.logger.Info(ctx, "parsed DOT format instance type",
+			c.logger.Debug(ctx, "parsed DOT format instance type",
 				v1.LogField("platformName", platformName),
 				v1.LogField("presetName", presetName))
 
@@ -1401,7 +1401,7 @@ func (c *NebiusClient) parseInstanceType(ctx context.Context, instanceTypeID str
 					// Verify the preset exists
 					for _, preset := range p.Spec.Presets {
 						if preset != nil && preset.Name == presetName {
-							c.logger.Info(ctx, "✓ DOT format EXACT MATCH",
+							c.logger.Debug(ctx, "DOT format EXACT MATCH",
 								v1.LogField("platformName", p.Metadata.Name),
 								v1.LogField("presetName", preset.Name))
 							return p.Metadata.Name, preset.Name, nil
@@ -1410,7 +1410,7 @@ func (c *NebiusClient) parseInstanceType(ctx context.Context, instanceTypeID str
 
 					// If preset not found but platform matches, use first preset
 					if len(p.Spec.Presets) > 0 && p.Spec.Presets[0] != nil {
-						c.logger.Warn(ctx, "✗ DOT format - preset not found, using first preset",
+						c.logger.Warn(ctx, "DOT format - preset not found, using first preset",
 							v1.LogField("requestedPreset", presetName),
 							v1.LogField("fallbackPreset", p.Spec.Presets[0].Name))
 						return p.Metadata.Name, p.Spec.Presets[0].Name, nil
@@ -1450,7 +1450,7 @@ func (c *NebiusClient) parseInstanceType(ctx context.Context, instanceTypeID str
 			// Reconstruct the preset name from remaining parts
 			presetName := strings.Join(parts[presetStartIdx:], "-")
 
-			c.logger.Info(ctx, "parsed NEW format instance type",
+			c.logger.Debug(ctx, "parsed NEW format instance type",
 				v1.LogField("gpuType", gpuType),
 				v1.LogField("presetName", presetName),
 				v1.LogField("presetStartIdx", presetStartIdx))
@@ -1474,7 +1474,7 @@ func (c *NebiusClient) parseInstanceType(ctx context.Context, instanceTypeID str
 						}
 					}
 
-					c.logger.Info(ctx, "found matching platform",
+					c.logger.Debug(ctx, "found matching platform",
 						v1.LogField("platformName", p.Metadata.Name),
 						v1.LogField("platformID", p.Metadata.Id),
 						v1.LogField("presetCount", len(p.Spec.Presets)),
@@ -1484,7 +1484,7 @@ func (c *NebiusClient) parseInstanceType(ctx context.Context, instanceTypeID str
 					// Verify the preset exists in this platform
 					for _, preset := range p.Spec.Presets {
 						if preset != nil && preset.Name == presetName {
-							c.logger.Info(ctx, "✓ EXACT MATCH - using requested preset",
+							c.logger.Debug(ctx, "EXACT MATCH - using requested preset",
 								v1.LogField("platformName", p.Metadata.Name),
 								v1.LogField("presetName", preset.Name))
 							return p.Metadata.Name, preset.Name, nil
@@ -1493,7 +1493,7 @@ func (c *NebiusClient) parseInstanceType(ctx context.Context, instanceTypeID str
 
 					// If preset not found, use first preset as fallback
 					if len(p.Spec.Presets) > 0 && p.Spec.Presets[0] != nil {
-						c.logger.Warn(ctx, "✗ MISMATCH - preset not found, using FIRST preset as fallback",
+						c.logger.Warn(ctx, "MISMATCH - preset not found, using FIRST preset as fallback",
 							v1.LogField("requestedPreset", presetName),
 							v1.LogField("fallbackPreset", p.Spec.Presets[0].Name),
 							v1.LogField("platformName", p.Metadata.Name),

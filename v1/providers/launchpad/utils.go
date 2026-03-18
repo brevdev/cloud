@@ -12,7 +12,6 @@ import (
 )
 
 func (c *LaunchpadClient) handleLaunchpadAPIErr(ctx context.Context, resp *http.Response, err error) error {
-	c.logger.Info(ctx, "Launchpad Error", v1.LogField("status", resp.Status))
 	body := ""
 	defer errors.HandleErrDefer(resp.Body.Close)
 	if apiErr, ok := err.(openapi.GenericOpenAPIError); ok {
