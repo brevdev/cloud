@@ -946,8 +946,76 @@ func (c *NebiusClient) RebootInstance(_ context.Context, _ v1.CloudProviderInsta
 	return fmt.Errorf("nebius reboot instance implementation pending: %w", v1.ErrNotImplemented)
 }
 
-func (c *NebiusClient) ChangeInstanceType(_ context.Context, _ v1.CloudProviderInstanceID, _ string) error {
-	return fmt.Errorf("nebius change instance type implementation pending: %w", v1.ErrNotImplemented)
+func (c *NebiusClient) ChangeInstanceType(ctx context.Context, instanceID v1.CloudProviderInstanceID, newInstanceType string) error {
+	c.logger.Info(ctx, "initiating instance type change",
+		v1.LogField("instanceID", instanceID),
+		v1.LogField("newInstanceType", newInstanceType))
+
+	instance, err := c.sdk.Services().Compute().V1().Instance().Get(ctx, &compute.GetInstanceRequest{
+		Id: string(instanceID),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to get instance for type change: %w", err)
+	}
+
+	if instance.GetStatus().GetState() != compute.InstanceStatus_STOPPED {
+		return fmt.Errorf("instance must be stopped to change instance type, current state: %s", instance.GetStatus().GetState())
+	}
+
+	platform, preset, err := c.parseInstanceType(ctx, newInstanceType)
+	if err != nil {
+		return fmt.Errorf("failed to parse new instance type %s: %w", newInstanceType, err)
+	}
+
+	c.logger.Info(ctx, "updating instance resources",
+		v1.LogField("instanceID", instanceID),
+		v1.LogField("platform", platform),
+		v1.LogField("preset", preset))
+
+	updateReq := &compute.UpdateInstanceRequest{
+		Metadata: &common.ResourceMetadata{
+			Id: string(instanceID),
+		},
+		Spec: &compute.InstanceSpec{
+			Resources: &compute.ResourcesSpec{
+				Platform: platform,
+				Size: &compute.ResourcesSpec_Preset{
+					Preset: preset,
+				},
+			},
+		},
+	}
+
+	if instance.GetMetadata() != nil && instance.GetMetadata().GetLabels() != nil {
+		labels := make(map[string]string)
+		for k, lv := range instance.GetMetadata().GetLabels() {
+			labels[k] = lv
+		}
+		labels["instance-type-id"] = newInstanceType
+		updateReq.Metadata.Labels = labels
+	}
+
+	operation, err := c.sdk.Services().Compute().V1().Instance().Update(ctx, updateReq)
+	if err != nil {
+		return fmt.Errorf("failed to initiate instance type change: %w", err)
+	}
+
+	finalOp, err := operation.Wait(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to wait for instance type change: %w", err)
+	}
+
+	if !finalOp.Successful() {
+		return fmt.Errorf("instance type change failed: %v", finalOp.Status())
+	}
+
+	c.logger.Info(ctx, "instance type change completed successfully",
+		v1.LogField("instanceID", instanceID),
+		v1.LogField("newInstanceType", newInstanceType),
+		v1.LogField("platform", platform),
+		v1.LogField("preset", preset))
+
+	return nil
 }
 
 func (c *NebiusClient) UpdateInstanceTags(_ context.Context, _ v1.UpdateInstanceTagsArgs) error {
