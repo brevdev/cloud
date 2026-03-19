@@ -149,9 +149,9 @@ func (c *NebiusClient) getInstanceTypesForLocation(ctx context.Context, platform
 			isAvailable := c.checkPresetQuotaAvailability(preset.Resources, location.Name, platform.Metadata.Name, quotaMap)
 
 			// Skip instance types with no quota at all
-			if !isAvailable {
-				continue
-			}
+			// if !isAvailable {
+			// 	continue
+			// }
 
 			// Increment CPU preset counter if this is a CPU platform
 			if isCPUOnly {
