@@ -101,7 +101,7 @@ func waitForSSH(t *testing.T, publicIP, privateKey, sshUser string, timeout time
 		conn, err := ssh.Dial("tcp", fmt.Sprintf("%s:22", publicIP), config)
 		if err == nil {
 			_ = conn.Close() // Explicitly ignore close error in test connectivity check
-			t.Logf("✓ SSH is ready on %s after %d attempts", publicIP, attempt)
+			t.Logf("SSH is ready on %s after %d attempts", publicIP, attempt)
 			return nil
 		}
 
@@ -134,7 +134,7 @@ func testSSHConnectivity(t *testing.T, publicIP, privateKey, sshUser string) {
 	client, err := ssh.Dial("tcp", fmt.Sprintf("%s:22", publicIP), config)
 	require.NoError(t, err, "SSH connection should succeed")
 	defer func() { _ = client.Close() }()
-	t.Log("✓ SSH connection established successfully")
+	t.Log("SSH connection established successfully")
 
 	// Run a test command to verify functionality
 	session, err := client.NewSession()
@@ -149,7 +149,7 @@ func testSSHConnectivity(t *testing.T, publicIP, privateKey, sshUser string) {
 	assert.Contains(t, outputStr, "SSH connectivity test successful", "Command output should contain test message")
 	assert.NotEmpty(t, outputStr, "Command output should not be empty")
 
-	t.Logf("✓ SSH command execution successful")
+	t.Logf("SSH command execution successful")
 	t.Logf("  Output: %s", outputStr)
 }
 
@@ -247,7 +247,7 @@ func TestIntegration_InstanceLifecycle(t *testing.T) {
 	// Step 0.5: Generate SSH key pair for testing (inspired by Shadeform's SSH key handling)
 	t.Log("Generating SSH key pair for instance access...")
 	privateKey, publicKey := generateTestSSHKeyPair(t)
-	t.Log("✓ SSH key pair generated successfully")
+	t.Log("SSH key pair generated successfully")
 
 	// Step 1: Create instance with SSH key
 	instanceRefID := "integration-test-" + time.Now().Format("20060102-150405")
@@ -311,7 +311,7 @@ func TestIntegration_InstanceLifecycle(t *testing.T) {
 	assert.NotEmpty(t, retrievedInstance.SSHUser, "SSH user should be set")
 	assert.Equal(t, 22, retrievedInstance.SSHPort, "SSH port should be 22")
 	assert.NotEmpty(t, retrievedInstance.Hostname, "Hostname should be set")
-	t.Logf("✓ SSH connectivity fields populated: IP=%s, User=%s, Port=%d",
+	t.Logf("SSH connectivity fields populated: IP=%s, User=%s, Port=%d",
 		retrievedInstance.PublicIP, retrievedInstance.SSHUser, retrievedInstance.SSHPort)
 
 	// Step 2.5: Wait for SSH to be ready (instances need time to boot and run cloud-init)
@@ -326,7 +326,7 @@ func TestIntegration_InstanceLifecycle(t *testing.T) {
 			// Step 2.6: Test actual SSH connectivity
 			t.Log("Testing SSH connectivity and command execution...")
 			testSSHConnectivity(t, retrievedInstance.PublicIP, privateKey, retrievedInstance.SSHUser)
-			t.Log("✓ SSH connectivity validated successfully")
+			t.Log("SSH connectivity validated successfully")
 		}
 	} else {
 		t.Log("WARNING: No public IP available, skipping SSH connectivity test")
@@ -343,7 +343,7 @@ func TestIntegration_InstanceLifecycle(t *testing.T) {
 	for _, inst := range instances {
 		if inst.CloudID == instanceCloudID {
 			foundCreatedInstance = true
-			t.Logf("✓ Found created instance %s in list", instanceCloudID)
+			t.Logf("Found created instance %s in list", instanceCloudID)
 			break
 		}
 	}
@@ -353,25 +353,25 @@ func TestIntegration_InstanceLifecycle(t *testing.T) {
 	t.Logf("Stopping instance: %s", instanceCloudID)
 	err = client.StopInstance(ctx, instanceCloudID)
 	require.NoError(t, err, "StopInstance should succeed")
-	t.Logf("✓ Successfully stopped instance %s", instanceCloudID)
+	t.Logf("Successfully stopped instance %s", instanceCloudID)
 
 	// Verify instance is stopped
 	stoppedInstance, err := client.GetInstance(ctx, instanceCloudID)
 	require.NoError(t, err, "Should be able to get stopped instance")
 	assert.Equal(t, v1.LifecycleStatusStopped, stoppedInstance.Status.LifecycleStatus, "Instance should be stopped")
-	t.Logf("✓ Verified instance status: %s", stoppedInstance.Status.LifecycleStatus)
+	t.Logf("Verified instance status: %s", stoppedInstance.Status.LifecycleStatus)
 
 	// Step 5: Start instance
 	t.Logf("Starting instance: %s", instanceCloudID)
 	err = client.StartInstance(ctx, instanceCloudID)
 	require.NoError(t, err, "StartInstance should succeed")
-	t.Logf("✓ Successfully started instance %s", instanceCloudID)
+	t.Logf("Successfully started instance %s", instanceCloudID)
 
 	// Verify instance is running again
 	startedInstance, err := client.GetInstance(ctx, instanceCloudID)
 	require.NoError(t, err, "Should be able to get started instance")
 	assert.Equal(t, v1.LifecycleStatusRunning, startedInstance.Status.LifecycleStatus, "Instance should be running")
-	t.Logf("✓ Verified instance status: %s", startedInstance.Status.LifecycleStatus)
+	t.Logf("Verified instance status: %s", startedInstance.Status.LifecycleStatus)
 
 	// Step 6: Terminate instance
 	// Note: Cleanup is registered via t.Cleanup() above to ensure deletion even on test failure
