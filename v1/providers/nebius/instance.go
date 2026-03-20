@@ -1748,14 +1748,16 @@ func (c *NebiusClient) cleanupOrphanedBootDisks(ctx context.Context, testID stri
 // generateCloudInitUserData generates a cloud-init user-data script for SSH key injection and firewall configuration
 // This is inspired by Shadeform's LaunchConfiguration approach but uses cloud-init instead of base64 scripts
 func generateCloudInitUserData(publicKey string, firewallRules v1.FirewallRules) string {
-	// Make apt wait on the dpkg frontend lock (vendor bootstrap / parallel apt). Use apt.conf via the
-	// documented `apt:` key — cc_apt_configure writes this before package_update_upgrade_install runs,
-	// so it applies to cloud-init's eatmydata-wrapped apt-get. Top-level apt_get_command is often not
-	// present in merged config on newer cloud-init (logs show default argv without Lock::Timeout).
+	// Make apt wait on the dpkg frontend lock (vendor bootstrap / parallel apt).
+	// apt: conf: {} is silently dropped on this cloud-init version (logs show "handling apt config: {}").
+	// write_files runs in the network stage before cc_package_update_upgrade_install, so the apt.conf.d
+	// file is in place before any apt-get call.
 	script := `#cloud-config
-apt:
-  conf: |
-    DPkg::Lock::Timeout "600";
+write_files:
+  - path: /etc/apt/apt.conf.d/99-lock-timeout
+    content: |
+      DPkg::Lock::Timeout "600";
+    permissions: '0644'
 packages:
   - ufw
 `
