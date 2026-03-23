@@ -21,7 +21,6 @@ func getNebiusCapabilities() v1.Capabilities {
 		v1.CapabilityResizeInstanceVolume,    // Nebius volume resizing
 
 		// Resource Management
-		v1.CapabilityModifyFirewall,    // Nebius has Security Groups for firewall management
 		v1.CapabilityMachineImage,      // Nebius supports custom machine images
 		v1.CapabilityTags,              // Nebius supports resource tagging
 		v1.CapabilityInstanceUserData,  // Nebius supports user data in instance creation
