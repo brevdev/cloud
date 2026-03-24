@@ -5,14 +5,26 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"regexp"
+	"runtime/debug"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/brevdev/cloud/internal/errors"
 	v1 "github.com/brevdev/cloud/v1"
 	"github.com/nebius/gosdk"
 	"github.com/nebius/gosdk/auth"
 	nebiusiamv1 "github.com/nebius/gosdk/proto/nebius/iam/v1"
+)
+
+const nebiusSDKUserAgentPrefix = "brev-cloud-sdk-nebius"
+
+var (
+	mainVersionLDFlagsPattern = regexp.MustCompile(`main\.Version=([^\s"']+)`)
+	readBuildInfo             = debug.ReadBuildInfo
+	mainVersionCacheOnce      sync.Once
+	mainVersionCache          string
 )
 
 // It embeds NotImplCloudClient to handle unsupported features
@@ -75,7 +87,11 @@ func NewNebiusClientWithOrg(ctx context.Context, refID, serviceAccountKey, tenan
 		creds = gosdk.ServiceAccountReader(parser)
 	}
 
-	sdk, err := gosdk.New(ctx, gosdk.WithCredentials(creds))
+	sdk, err := gosdk.New(
+		ctx,
+		gosdk.WithCredentials(creds),
+		gosdk.WithUserAgentPrefix(nebiusUserAgentPrefix()),
+	)
 	if err != nil {
 		return nil, errors.WrapAndTrace(err)
 	}
@@ -110,6 +126,48 @@ func NewNebiusClientWithOrg(ctx context.Context, refID, serviceAccountKey, tenan
 	return client, nil
 }
 
+func nebiusUserAgentPrefix() string {
+	return formatNebiusUserAgentPrefix(mainVersionFromBuildInfo())
+}
+
+func formatNebiusUserAgentPrefix(mainVersion string) string {
+	version := strings.TrimLeft(strings.TrimSpace(mainVersion), "/")
+	if version == "" {
+		return nebiusSDKUserAgentPrefix
+	}
+
+	return nebiusSDKUserAgentPrefix + "/" + version
+}
+
+func mainVersionFromBuildInfo() string {
+	mainVersionCacheOnce.Do(func() {
+		buildInfo, ok := readBuildInfo()
+		if !ok {
+			return
+		}
+
+		for _, setting := range buildInfo.Settings {
+			if setting.Key != "-ldflags" {
+				continue
+			}
+			if version := mainVersionFromLDFlags(setting.Value); version != "" {
+				mainVersionCache = version
+				return
+			}
+		}
+	})
+
+	return mainVersionCache
+}
+
+func mainVersionFromLDFlags(ldflags string) string {
+	matches := mainVersionLDFlagsPattern.FindStringSubmatch(ldflags)
+	if len(matches) < 2 {
+		return ""
+	}
+	return matches[1]
+}
+
 // findProjectForRegion attempts to find an existing project for the given region
 // Priority:
 // 1. Project named "default-project-{region}" or "default-{region}"
@@ -119,7 +177,7 @@ func findProjectForRegion(ctx context.Context, sdk *gosdk.SDK, tenantID, region 
 	pageSize := int64(1000)
 	projectsResp, err := sdk.Services().IAM().V1().Project().List(ctx, &nebiusiamv1.ListProjectsRequest{
 		ParentId: tenantID,
-		PageSize: &pageSize,
+		PageSize: pageSize,
 	})
 	if err != nil {
 		return "", errors.WrapAndTrace(err)
@@ -183,7 +241,7 @@ func (c *NebiusClient) discoverAllProjects(ctx context.Context) ([]string, error
 	pageSize := int64(1000)
 	projectsResp, err := c.sdk.Services().IAM().V1().Project().List(ctx, &nebiusiamv1.ListProjectsRequest{
 		ParentId: c.tenantID,
-		PageSize: &pageSize,
+		PageSize: pageSize,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to list projects: %w", err)
@@ -209,7 +267,7 @@ func (c *NebiusClient) discoverAllProjectsWithRegions(ctx context.Context) (map[
 	pageSize := int64(1000)
 	projectsResp, err := c.sdk.Services().IAM().V1().Project().List(ctx, &nebiusiamv1.ListProjectsRequest{
 		ParentId: c.tenantID,
-		PageSize: &pageSize,
+		PageSize: pageSize,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to list projects: %w", err)
