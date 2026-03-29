@@ -1752,6 +1752,7 @@ func generateCloudInitUserData(publicKey string, firewallRules v1.FirewallRules)
 	script := `#cloud-config
 packages:
   - ufw
+  - iptables-persistent
 `
 
 	// Add SSH key configuration if provided
@@ -1769,6 +1770,13 @@ packages:
 	// Generate IPTables firewall commands to ensure docker ports are not made immediately
 	// accessible from the internet by default.
 	commands = append(commands, generateIPTablesCommands()...)
+
+	// Save the complete iptables state (UFW chains + DOCKER-USER rules) so it
+	// survives instance stop/start cycles. Cloud-init runcmd only executes on
+	// first boot; on subsequent boots netfilter-persistent restores this
+	// snapshot before ufw.service starts, ensuring port 22 stays open even if
+	// ufw.service fails to start cleanly after a reboot.
+	commands = append(commands, "netfilter-persistent save")
 
 	if len(commands) > 0 {
 		// Use runcmd to execute firewall setup commands
