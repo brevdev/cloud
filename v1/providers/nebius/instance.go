@@ -1763,8 +1763,23 @@ packages:
 	}
 
 	var commands []string
+
+	// Fix a systemd race condition: ufw.service and netfilter-persistent.service
+	// both start in parallel (both are Before=network-pre.target with no mutual
+	// ordering). Both call iptables-restore concurrently, and with the iptables-nft
+	// backend the competing nftables transactions cause UFW to fail with
+	// "iptables-restore: line 4 failed". This drop-in forces UFW to wait for
+	// netfilter-persistent to finish first.
+	commands = append(commands,
+		"sudo mkdir -p /etc/systemd/system/ufw.service.d",
+		`sudo tee /etc/systemd/system/ufw.service.d/after-netfilter.conf > /dev/null << 'EOF'
+[Unit]
+After=netfilter-persistent.service
+EOF`,
+		"sudo systemctl daemon-reload",
+	)
+
 	// Generate UFW firewall commands (similar to Shadeform's approach)
-	// UFW (Uncomplicated Firewall) is available on Ubuntu/Debian instances
 	commands = append(commands, generateUFWCommands(firewallRules)...)
 
 	// Generate IPTables firewall commands to ensure docker ports are not made immediately
@@ -1773,10 +1788,11 @@ packages:
 
 	// Save the complete iptables state (UFW chains + DOCKER-USER rules) so it
 	// survives instance stop/start cycles. Cloud-init runcmd only executes on
-	// first boot; on subsequent boots netfilter-persistent restores this
-	// snapshot before ufw.service starts, ensuring port 22 stays open even if
-	// ufw.service fails to start cleanly after a reboot.
-	commands = append(commands, "netfilter-persistent save")
+	// first boot; on subsequent boots netfilter-persistent restores this snapshot,
+	// then UFW starts after it (due to the drop-in above) and re-applies its rules.
+	// This provides defense-in-depth: even if UFW fails for any reason, the
+	// netfilter-persistent snapshot ensures port 22 and DOCKER-USER rules persist.
+	commands = append(commands, "sudo netfilter-persistent save")
 
 	if len(commands) > 0 {
 		// Use runcmd to execute firewall setup commands
