@@ -1793,6 +1793,7 @@ packages:
 	commands = append(commands, "sudo netfilter-persistent save")
 
 	if len(commands) > 0 {
+		// Use runcmd to execute firewall setup commands
 		script += "\nruncmd:\n"
 		for _, cmd := range commands {
 			escaped := strings.ReplaceAll(cmd, `\`, `\\`)
