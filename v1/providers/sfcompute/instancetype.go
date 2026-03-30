@@ -189,8 +189,10 @@ func (c *SFCClient) getZones(ctx context.Context, includeUnavailable bool) ([]sf
 
 	zones := make([]sfcnodes.ZoneListResponseData, 0, len(resp.Data))
 	for _, zone := range resp.Data {
-		// If the there is no available capacity, skip it
-		if len(zone.AvailableCapacity) == 0 && !includeUnavailable {
+		// If there is no current available capacity, skip it.
+		// AvailableCapacity contains time-windowed rectangles; we must check
+		// that at least one rectangle covers the current time with quantity > 0.
+		if !hasCurrentCapacity(zone.AvailableCapacity) && !includeUnavailable {
 			continue
 		}
 
@@ -204,6 +206,18 @@ func (c *SFCClient) getZones(ctx context.Context, includeUnavailable bool) ([]sf
 	}
 
 	return zones, nil
+}
+
+// hasCurrentCapacity returns true if any availability rectangle covers the
+// current time and has quantity > 0.
+func hasCurrentCapacity(capacity []sfcnodes.ZoneListResponseDataAvailableCapacity) bool {
+	now := time.Now().Unix()
+	for _, c := range capacity {
+		if c.StartTimestamp <= now && now < c.EndTimestamp && c.Quantity > 0 {
+			return true
+		}
+	}
+	return false
 }
 
 func zoneToLocation(zone sfcnodes.ZoneListResponseData) v1.Location {
