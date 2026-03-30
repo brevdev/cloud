@@ -1780,6 +1780,7 @@ EOF`,
 	)
 
 	// Generate UFW firewall commands (similar to Shadeform's approach)
+	// UFW (Uncomplicated Firewall) is available on Ubuntu/Debian instances
 	commands = append(commands, generateUFWCommands(firewallRules)...)
 
 	// Generate IPTables firewall commands to ensure docker ports are not made immediately
