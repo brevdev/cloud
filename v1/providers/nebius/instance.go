@@ -1772,10 +1772,7 @@ packages:
 	// netfilter-persistent to finish first.
 	commands = append(commands,
 		"sudo mkdir -p /etc/systemd/system/ufw.service.d",
-		`sudo tee /etc/systemd/system/ufw.service.d/after-netfilter.conf > /dev/null << 'EOF'
-[Unit]
-After=netfilter-persistent.service
-EOF`,
+		`printf '[Unit]\nAfter=netfilter-persistent.service\n' | sudo tee /etc/systemd/system/ufw.service.d/after-netfilter.conf > /dev/null`,
 		"sudo systemctl daemon-reload",
 	)
 
@@ -1796,10 +1793,11 @@ EOF`,
 	commands = append(commands, "sudo netfilter-persistent save")
 
 	if len(commands) > 0 {
-		// Use runcmd to execute firewall setup commands
 		script += "\nruncmd:\n"
 		for _, cmd := range commands {
-			script += fmt.Sprintf("  - %s\n", cmd)
+			escaped := strings.ReplaceAll(cmd, `\`, `\\`)
+			escaped = strings.ReplaceAll(escaped, `"`, `\"`)
+			script += fmt.Sprintf("  - \"%s\"\n", escaped)
 		}
 	}
 
