@@ -291,7 +291,7 @@ func (c *ShadeformClient) getLifecycleStatus(status string) v1.LifecycleStatus {
 	case "error":
 		lifecycleStatus = v1.LifecycleStatusFailed
 	default:
-		lifecycleStatus = v1.LifecycleStatusPending
+		lifecycleStatus = ""
 	}
 	return lifecycleStatus
 }
