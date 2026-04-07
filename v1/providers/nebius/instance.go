@@ -247,7 +247,7 @@ func (c *NebiusClient) convertNebiusInstanceToV1(ctx context.Context, instance *
 		case compute.InstanceStatus_ERROR:
 			lifecycleStatus = v1.LifecycleStatusFailed
 		default:
-			lifecycleStatus = ""
+			lifecycleStatus = v1.LifecycleStatusEmpty
 		}
 	} else {
 		lifecycleStatus = v1.LifecycleStatusFailed
