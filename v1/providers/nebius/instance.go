@@ -1752,6 +1752,7 @@ func generateCloudInitUserData(publicKey string, firewallRules v1.FirewallRules)
 	script := `#cloud-config
 packages:
   - ufw
+  - iptables-persistent
 `
 
 	// Add SSH key configuration if provided
@@ -1762,6 +1763,19 @@ packages:
 	}
 
 	var commands []string
+
+	// Fix a systemd race condition: ufw.service and netfilter-persistent.service
+	// both start in parallel (both are Before=network-pre.target with no mutual
+	// ordering). Both call iptables-restore concurrently, and with the iptables-nft
+	// backend the competing nftables transactions cause UFW to fail with
+	// "iptables-restore: line 4 failed". This drop-in forces UFW to wait for
+	// netfilter-persistent to finish first.
+	commands = append(commands,
+		"sudo mkdir -p /etc/systemd/system/ufw.service.d",
+		`printf '[Unit]\nAfter=netfilter-persistent.service\n' | sudo tee /etc/systemd/system/ufw.service.d/after-netfilter.conf > /dev/null`,
+		"sudo systemctl daemon-reload",
+	)
+
 	// Generate UFW firewall commands (similar to Shadeform's approach)
 	// UFW (Uncomplicated Firewall) is available on Ubuntu/Debian instances
 	commands = append(commands, generateUFWCommands(firewallRules)...)
@@ -1770,11 +1784,21 @@ packages:
 	// accessible from the internet by default.
 	commands = append(commands, generateIPTablesCommands()...)
 
+	// Save the complete iptables state (UFW chains + DOCKER-USER rules) so it
+	// survives instance stop/start cycles. Cloud-init runcmd only executes on
+	// first boot; on subsequent boots netfilter-persistent restores this snapshot,
+	// then UFW starts after it (due to the drop-in above) and re-applies its rules.
+	// This provides defense-in-depth: even if UFW fails for any reason, the
+	// netfilter-persistent snapshot ensures port 22 and DOCKER-USER rules persist.
+	commands = append(commands, "sudo netfilter-persistent save")
+
 	if len(commands) > 0 {
 		// Use runcmd to execute firewall setup commands
 		script += "\nruncmd:\n"
 		for _, cmd := range commands {
-			script += fmt.Sprintf("  - %s\n", cmd)
+			escaped := strings.ReplaceAll(cmd, `\`, `\\`)
+			escaped = strings.ReplaceAll(escaped, `"`, `\"`)
+			script += fmt.Sprintf("  - \"%s\"\n", escaped)
 		}
 	}
 
