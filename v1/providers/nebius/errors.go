@@ -1,9 +1,11 @@
 package v1
 
 import (
+	"errors"
 	"fmt"
 
 	v1 "github.com/brevdev/cloud/v1"
+	"github.com/nebius/gosdk/operations"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -35,7 +37,13 @@ func handleErrToCloudErr(e error) error {
 	if e == nil {
 		return nil
 	}
-
+	// Check for Nebius operations.Error for ResourceExhausted (returned by operation.Wait on async failures)
+	var opErr *operations.Error
+	if errors.As(e, &opErr) {
+		if opErr.Code == codes.ResourceExhausted {
+			return v1.ErrOutOfQuota
+		}
+	}
 	// Check for gRPC ResourceExhausted status code
 	if grpcStatus, ok := status.FromError(e); ok {
 		if grpcStatus.Code() == codes.ResourceExhausted {
