@@ -1209,7 +1209,7 @@ func (c *NebiusClient) buildDiskCreateRequest(ctx context.Context, diskName stri
 		publicImagesParent := c.getPublicImagesParent()
 
 		// Skip validation for known-good common families to speed up instance start
-		knownFamilies := []string{"ubuntu22.04-cuda12", "mk8s-worker-node-v-1-32-ubuntu24.04", "mk8s-worker-node-v-1-32-ubuntu24.04-cuda12.8"}
+		knownFamilies := []string{"ubuntu24.04-cuda13.0", "ubuntu24.04-cuda12", "ubuntu22.04-cuda12", "mk8s-worker-node-v-1-32-ubuntu24.04", "mk8s-worker-node-v-1-32-ubuntu24.04-cuda12.8"}
 		isKnownFamily := false
 		for _, known := range knownFamilies {
 			if imageFamily == known {
@@ -1583,6 +1583,9 @@ func (c *NebiusClient) parseInstanceType(ctx context.Context, instanceTypeID str
 func (c *NebiusClient) resolveImageFamily(ctx context.Context, imageID string) (string, error) {
 	// Common Nebius image families - if ImageID matches one of these, use it directly
 	commonFamilies := []string{
+		"ubuntu24.04-cuda13.0",
+		"ubuntu24.04-cuda12",
+		"ubuntu24.04-driverless",
 		"ubuntu22.04-cuda12",
 		"mk8s-worker-node-v-1-32-ubuntu24.04",
 		"mk8s-worker-node-v-1-32-ubuntu24.04-cuda12.8",
