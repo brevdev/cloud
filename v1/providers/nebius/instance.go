@@ -1762,7 +1762,6 @@ func generateCloudInitUserData(publicKey string, firewallRules v1.FirewallRules)
 	script := `#cloud-config
 packages:
   - ufw
-  - iptables-persistent
 `
 
 	// Add SSH key configuration if provided
@@ -1793,6 +1792,13 @@ packages:
 	// Generate IPTables firewall commands to ensure docker ports are not made immediately
 	// accessible from the internet by default.
 	commands = append(commands, generateIPTablesCommands()...)
+
+	// Install iptables-persistent here (in runcmd, after UFW is configured) rather than
+	// in the packages: directive. Installing it as a package would start netfilter-persistent.service
+	// immediately at first boot, which races with ufw.service — netfilter-persistent flushes
+	// UFW's rules before UFW finishes loading them (Launchpad bug #1987227). By installing
+	// it here, the service only starts after UFW is already set up and the drop-in is in place.
+	commands = append(commands, "DEBIAN_FRONTEND=noninteractive apt-get install -y iptables-persistent")
 
 	// Save the complete iptables state (UFW chains + DOCKER-USER rules) so it
 	// survives instance stop/start cycles. Cloud-init runcmd only executes on
