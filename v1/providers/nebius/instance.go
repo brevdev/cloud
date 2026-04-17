@@ -1198,6 +1198,12 @@ func (c *NebiusClient) createBootDisk(ctx context.Context, attrs v1.CreateInstan
 
 // buildDiskCreateRequest builds a disk creation request, trying image family first, then image ID
 func (c *NebiusClient) buildDiskCreateRequest(ctx context.Context, diskName string, attrs v1.CreateInstanceAttrs) (*compute.CreateDiskRequest, error) {
+	c.logger.Info(ctx, "buildDiskCreateRequest: start",
+		v1.LogField("diskName", diskName),
+		v1.LogField("attrs.ImageID", attrs.ImageID),
+		v1.LogField("attrs.RefID", attrs.RefID),
+		v1.LogField("attrs.DiskSize", attrs.DiskSize))
+
 	if attrs.DiskSize == 0 {
 		attrs.DiskSize = 1280 * units.Gibibyte // Defaulted by the Nebius Console
 	}
@@ -1221,7 +1227,13 @@ func (c *NebiusClient) buildDiskCreateRequest(ctx context.Context, diskName stri
 	}
 
 	// First, try to resolve and use image family
-	if imageFamily, err := c.resolveImageFamily(ctx, attrs.ImageID); err == nil {
+	imageFamily, resolveErr := c.resolveImageFamily(ctx, attrs.ImageID)
+	c.logger.Info(ctx, "buildDiskCreateRequest: resolveImageFamily result",
+		v1.LogField("attrs.ImageID", attrs.ImageID),
+		v1.LogField("resolvedFamily", imageFamily),
+		v1.LogField("err", fmt.Sprintf("%v", resolveErr)))
+
+	if resolveErr == nil {
 		publicImagesParent := c.getPublicImagesParent()
 
 		// Skip validation for known-good common families to speed up instance start
@@ -1233,8 +1245,14 @@ func (c *NebiusClient) buildDiskCreateRequest(ctx context.Context, diskName stri
 				break
 			}
 		}
+		c.logger.Info(ctx, "buildDiskCreateRequest: known-family check",
+			v1.LogField("imageFamily", imageFamily),
+			v1.LogField("isKnownFamily", isKnownFamily),
+			v1.LogField("publicImagesParent", publicImagesParent))
 
 		if isKnownFamily {
+			c.logger.Info(ctx, "buildDiskCreateRequest: BRANCH=known-family (skipping validation)",
+				v1.LogField("imageFamily", imageFamily))
 			// Use known family without validation
 			baseReq.Spec.Source = &compute.DiskSpec_SourceImageFamily{
 				SourceImageFamily: &compute.SourceImageFamily{
@@ -1251,9 +1269,29 @@ func (c *NebiusClient) buildDiskCreateRequest(ctx context.Context, diskName stri
 			ParentId:    publicImagesParent,
 			ImageFamily: imageFamily,
 		})
+		latestName, latestID, latestArch := "", "", ""
+		if latestImage != nil {
+			if latestImage.Metadata != nil {
+				latestName = latestImage.Metadata.Name
+				latestID = latestImage.Metadata.Id
+			}
+			if latestImage.Spec != nil {
+				latestArch = latestImage.Spec.GetCpuArchitecture().String()
+			}
+		}
+		c.logger.Info(ctx, "buildDiskCreateRequest: GetLatestByFamily result",
+			v1.LogField("imageFamily", imageFamily),
+			v1.LogField("err", fmt.Sprintf("%v", err)),
+			v1.LogField("latestImageID", latestID),
+			v1.LogField("latestImageName", latestName),
+			v1.LogField("latestImageArch", latestArch))
+
 		if err == nil {
 			isARM64 := latestImage.Spec != nil && latestImage.Spec.GetCpuArchitecture() == compute.ImageSpec_ARM64
 			if !isARM64 {
+				c.logger.Info(ctx, "buildDiskCreateRequest: BRANCH=validated-family (non-ARM64)",
+					v1.LogField("imageFamily", imageFamily),
+					v1.LogField("latestImageID", latestID))
 				baseReq.Spec.Source = &compute.DiskSpec_SourceImageFamily{
 					SourceImageFamily: &compute.SourceImageFamily{
 						ImageFamily: imageFamily,
@@ -1263,12 +1301,20 @@ func (c *NebiusClient) buildDiskCreateRequest(ctx context.Context, diskName stri
 				baseReq.Metadata.Labels["image-family"] = imageFamily
 				return baseReq, nil
 			}
+			c.logger.Info(ctx, "buildDiskCreateRequest: validated-family is ARM64, falling through to scoring",
+				v1.LogField("imageFamily", imageFamily))
 			// ARM64 family — fall through to getWorkingPublicImageID which filters by architecture
 		}
 	}
 
 	// Family approach failed, try to use a known working public image ID
+	c.logger.Info(ctx, "buildDiskCreateRequest: BRANCH=scoring (falling back to getWorkingPublicImageID)",
+		v1.LogField("attrs.ImageID", attrs.ImageID))
 	publicImageID, err := c.getWorkingPublicImageID(ctx, attrs.ImageID)
+	c.logger.Info(ctx, "buildDiskCreateRequest: getWorkingPublicImageID result",
+		v1.LogField("publicImageID", publicImageID),
+		v1.LogField("err", fmt.Sprintf("%v", err)))
+
 	if err == nil {
 		baseReq.Spec.Source = &compute.DiskSpec_SourceImageId{
 			SourceImageId: publicImageID,
@@ -1285,14 +1331,24 @@ func (c *NebiusClient) buildDiskCreateRequest(ctx context.Context, diskName stri
 // It scores every non-ARM64 image and returns the highest-scored one, this is done to handle change in ordering of images from nebius api.
 func (c *NebiusClient) getWorkingPublicImageID(ctx context.Context, requestedImage string) (string, error) {
 	publicImagesParent := c.getPublicImagesParent()
+	c.logger.Info(ctx, "getWorkingPublicImageID: listing images",
+		v1.LogField("requestedImage", requestedImage),
+		v1.LogField("publicImagesParent", publicImagesParent))
+
 	imagesResp, err := c.sdk.Services().Compute().V1().Image().List(ctx, &compute.ListImagesRequest{
 		ParentId: publicImagesParent,
 	})
 	if err != nil {
+		c.logger.Error(ctx, fmt.Errorf("failed to list public images: %w", err),
+			v1.LogField("publicImagesParent", publicImagesParent))
 		return "", fmt.Errorf("failed to list public images: %w", err)
 	}
 
-	if len(imagesResp.GetItems()) == 0 {
+	totalCount := len(imagesResp.GetItems())
+	c.logger.Info(ctx, "getWorkingPublicImageID: list returned",
+		v1.LogField("totalImages", totalCount))
+
+	if totalCount == 0 {
 		return "", fmt.Errorf("no public images available")
 	}
 
@@ -1300,25 +1356,55 @@ func (c *NebiusClient) getWorkingPublicImageID(ctx context.Context, requestedIma
 
 	var bestImage *compute.Image
 	bestScore := -1
+	consideredCount, arm64Skipped, nilMetadataSkipped := 0, 0, 0
 
 	for _, image := range imagesResp.GetItems() {
 		if image.Metadata == nil {
+			nilMetadataSkipped++
 			continue
 		}
 		if image.Spec != nil && image.Spec.GetCpuArchitecture() == compute.ImageSpec_ARM64 {
+			arm64Skipped++
 			continue
 		}
+		consideredCount++
 
 		score := scoreImage(image, requestedLower)
+		family := ""
+		if image.Spec != nil {
+			family = image.Spec.GetImageFamily()
+		}
+		c.logger.Info(ctx, "getWorkingPublicImageID: scored",
+			v1.LogField("id", image.Metadata.Id),
+			v1.LogField("name", image.Metadata.Name),
+			v1.LogField("family", family),
+			v1.LogField("score", score))
+
 		if score > bestScore {
 			bestScore = score
 			bestImage = image
 		}
 	}
 
+	c.logger.Info(ctx, "getWorkingPublicImageID: scoring summary",
+		v1.LogField("consideredCount", consideredCount),
+		v1.LogField("arm64Skipped", arm64Skipped),
+		v1.LogField("nilMetadataSkipped", nilMetadataSkipped),
+		v1.LogField("bestScore", bestScore))
+
 	if bestImage == nil {
 		return "", fmt.Errorf("no suitable public image found")
 	}
+
+	winnerFamily := ""
+	if bestImage.Spec != nil {
+		winnerFamily = bestImage.Spec.GetImageFamily()
+	}
+	c.logger.Info(ctx, "getWorkingPublicImageID: winner",
+		v1.LogField("id", bestImage.Metadata.Id),
+		v1.LogField("name", bestImage.Metadata.Name),
+		v1.LogField("family", winnerFamily),
+		v1.LogField("score", bestScore))
 
 	return bestImage.Metadata.Id, nil
 }
@@ -1625,6 +1711,10 @@ func (c *NebiusClient) parseInstanceType(ctx context.Context, instanceTypeID str
 //
 //nolint:gocyclo,unparam // Complex image family resolution with fallback logic
 func (c *NebiusClient) resolveImageFamily(ctx context.Context, imageID string) (string, error) {
+	c.logger.Info(ctx, "resolveImageFamily: start",
+		v1.LogField("imageID", imageID),
+		v1.LogField("imageIDLen", len(imageID)))
+
 	// Common Nebius image families - if ImageID matches one of these, use it directly
 	commonFamilies := []string{
 		"ubuntu24.04-cuda13.0",
@@ -1641,6 +1731,8 @@ func (c *NebiusClient) resolveImageFamily(ctx context.Context, imageID string) (
 	// Check if ImageID is already a known family name
 	for _, family := range commonFamilies {
 		if imageID == family {
+			c.logger.Info(ctx, "resolveImageFamily: matched commonFamilies",
+				v1.LogField("family", family))
 			return family, nil
 		}
 	}
@@ -1648,7 +1740,8 @@ func (c *NebiusClient) resolveImageFamily(ctx context.Context, imageID string) (
 	// If ImageID looks like a family name pattern (contains dots, dashes, no UUIDs)
 	// and doesn't look like a UUID, assume it's a family name
 	if !strings.Contains(imageID, "-") || len(imageID) < 32 {
-		// Likely a family name, use it directly
+		c.logger.Info(ctx, "resolveImageFamily: treating as family (short/no-dash)",
+			v1.LogField("returnValue", imageID))
 		return imageID, nil
 	}
 
@@ -1657,17 +1750,22 @@ func (c *NebiusClient) resolveImageFamily(ctx context.Context, imageID string) (
 		Id: imageID,
 	})
 	if err != nil {
-		// If we can't get the image, try using the ID as a family name anyway
-		// This allows for custom family names that don't match our patterns
+		c.logger.Info(ctx, "resolveImageFamily: Get failed, returning imageID as family",
+			v1.LogField("imageID", imageID),
+			v1.LogField("err", fmt.Sprintf("%v", err)))
 		return imageID, nil
 	}
 
 	// Extract family from image metadata/labels if available
 	if image.Metadata != nil && image.Metadata.Labels != nil {
 		if family, exists := image.Metadata.Labels["family"]; exists && family != "" {
+			c.logger.Info(ctx, "resolveImageFamily: resolved via labels[family]",
+				v1.LogField("family", family))
 			return family, nil
 		}
 		if family, exists := image.Metadata.Labels["image-family"]; exists && family != "" {
+			c.logger.Info(ctx, "resolveImageFamily: resolved via labels[image-family]",
+				v1.LogField("family", family))
 			return family, nil
 		}
 	}
@@ -1677,15 +1775,21 @@ func (c *NebiusClient) resolveImageFamily(ctx context.Context, imageID string) (
 		// Try to extract a reasonable family name from the image name
 		name := strings.ToLower(image.Metadata.Name)
 		if strings.Contains(name, "ubuntu22") || strings.Contains(name, "ubuntu-22") {
+			c.logger.Info(ctx, "resolveImageFamily: inferred ubuntu22 from name",
+				v1.LogField("name", image.Metadata.Name))
 			return "ubuntu22.04", nil
 		}
 		if strings.Contains(name, "ubuntu20") || strings.Contains(name, "ubuntu-20") {
+			c.logger.Info(ctx, "resolveImageFamily: inferred ubuntu20 from name",
+				v1.LogField("name", image.Metadata.Name))
 			return "ubuntu20.04", nil
 		}
 	}
 
 	// Default fallback - use the original ImageID as family
 	// This handles cases where users provide custom family names
+	c.logger.Info(ctx, "resolveImageFamily: default fallback, returning imageID as family",
+		v1.LogField("imageID", imageID))
 	return imageID, nil
 }
 
