@@ -18,6 +18,22 @@ const (
 	platformTypeCPU = "cpu"
 )
 
+// image scoring tiers. higher wins. exact-match bonus (200) > max baseline gap
+// so explicit requests always override defaults, even for worker-node.
+const (
+	imageScoreBaseline       = 1
+	imageScoreWorkerNode     = 10
+	imageScoreUbuntuGeneric  = 50
+	imageScoreUbuntu22       = 55
+	imageScoreUbuntu24       = 60
+	imageScoreUbuntu22Cuda   = 80
+	imageScoreUbuntu24Cuda12 = 90
+	imageScoreUbuntu24Cuda13 = 100
+
+	imageScoreExactMatchBonus = 200
+	imageScoreUbuntuHintBonus = 50
+)
+
 //nolint:gocyclo,funlen // Complex instance creation with resource management
 func (c *NebiusClient) CreateInstance(ctx context.Context, attrs v1.CreateInstanceAttrs) (*v1.Instance, error) {
 	// Track created resources for automatic cleanup on failure
@@ -1205,47 +1221,8 @@ func (c *NebiusClient) buildDiskCreateRequest(ctx context.Context, diskName stri
 	}
 
 	// First, try to resolve and use image family
-	if imageFamily, err := c.resolveImageFamily(ctx, attrs.ImageID); err == nil {
-		publicImagesParent := c.getPublicImagesParent()
-
-		// Skip validation for known-good common families to speed up instance start
-		knownFamilies := []string{"ubuntu22.04-cuda12", "mk8s-worker-node-v-1-32-ubuntu24.04", "mk8s-worker-node-v-1-32-ubuntu24.04-cuda12.8"}
-		isKnownFamily := false
-		for _, known := range knownFamilies {
-			if imageFamily == known {
-				isKnownFamily = true
-				break
-			}
-		}
-
-		if isKnownFamily {
-			// Use known family without validation
-			baseReq.Spec.Source = &compute.DiskSpec_SourceImageFamily{
-				SourceImageFamily: &compute.SourceImageFamily{
-					ImageFamily: imageFamily,
-					ParentId:    publicImagesParent,
-				},
-			}
-			baseReq.Metadata.Labels["image-family"] = imageFamily
-			return baseReq, nil
-		}
-
-		// For unknown families, validate first
-		_, err := c.sdk.Services().Compute().V1().Image().GetLatestByFamily(ctx, &compute.GetImageLatestByFamilyRequest{
-			ParentId:    publicImagesParent,
-			ImageFamily: imageFamily,
-		})
-		if err == nil {
-			// Family works, use it
-			baseReq.Spec.Source = &compute.DiskSpec_SourceImageFamily{
-				SourceImageFamily: &compute.SourceImageFamily{
-					ImageFamily: imageFamily,
-					ParentId:    publicImagesParent,
-				},
-			}
-			baseReq.Metadata.Labels["image-family"] = imageFamily
-			return baseReq, nil
-		}
+	if c.tryApplyImageFamilySource(ctx, baseReq, attrs.ImageID) {
+		return baseReq, nil
 	}
 
 	// Family approach failed, try to use a known working public image ID
@@ -1262,80 +1239,170 @@ func (c *NebiusClient) buildDiskCreateRequest(ctx context.Context, diskName stri
 	return nil, fmt.Errorf("could not resolve image %s to either a working family or image ID: %w", attrs.ImageID, err)
 }
 
-// getWorkingPublicImageID gets a working public image ID based on the requested image type
-//
-//nolint:gocognit,gocyclo // Complex function trying multiple image resolution strategies
-func (c *NebiusClient) getWorkingPublicImageID(ctx context.Context, requestedImage string) (string, error) {
-	// Get available public images from the correct region
+// tryApplyImageFamilySource attempts to set baseReq's disk source via image-family lookup.
+// Returns true if a family-based source was applied (caller should return baseReq).
+// Returns false if the caller should fall back to scoring (getWorkingPublicImageID).
+func (c *NebiusClient) tryApplyImageFamilySource(ctx context.Context, baseReq *compute.CreateDiskRequest, imageID string) bool {
+	imageFamily, resolveErr := c.resolveImageFamily(ctx, imageID)
+	if resolveErr != nil {
+		return false
+	}
+
 	publicImagesParent := c.getPublicImagesParent()
-	imagesResp, err := c.sdk.Services().Compute().V1().Image().List(ctx, &compute.ListImagesRequest{
-		ParentId: publicImagesParent,
+	knownFamilies := []string{"ubuntu24.04-cuda13.0", "ubuntu24.04-cuda12", "ubuntu22.04-cuda12", "mk8s-worker-node-v-1-32-ubuntu24.04", "mk8s-worker-node-v-1-32-ubuntu24.04-cuda12.8"}
+	isKnownFamily := false
+	for _, known := range knownFamilies {
+		if imageFamily == known {
+			isKnownFamily = true
+			break
+		}
+	}
+
+	if isKnownFamily {
+		applyImageFamilySource(baseReq, imageFamily, publicImagesParent)
+		return true
+	}
+
+	latestImage, err := c.sdk.Services().Compute().V1().Image().GetLatestByFamily(ctx, &compute.GetImageLatestByFamilyRequest{
+		ParentId:    publicImagesParent,
+		ImageFamily: imageFamily,
 	})
 	if err != nil {
-		return "", fmt.Errorf("failed to list public images: %w", err)
+		return false
 	}
 
-	if len(imagesResp.GetItems()) == 0 {
-		return "", fmt.Errorf("no public images available")
+	if latestImage.Spec != nil && latestImage.Spec.GetCpuArchitecture() == compute.ImageSpec_ARM64 {
+		return false
 	}
 
-	// Try to find the best match based on the requested image
+	applyImageFamilySource(baseReq, imageFamily, publicImagesParent)
+	return true
+}
+
+func applyImageFamilySource(baseReq *compute.CreateDiskRequest, imageFamily, publicImagesParent string) {
+	baseReq.Spec.Source = &compute.DiskSpec_SourceImageFamily{
+		SourceImageFamily: &compute.SourceImageFamily{
+			ImageFamily: imageFamily,
+			ParentId:    publicImagesParent,
+		},
+	}
+	baseReq.Metadata.Labels["image-family"] = imageFamily
+}
+
+// getWorkingPublicImageID gets a working public image ID based on the requested image type.
+// It scores every non-ARM64 image and returns the highest-scored one so the result
+// is deterministic regardless of the page order returned by the Nebius API.
+func (c *NebiusClient) getWorkingPublicImageID(ctx context.Context, requestedImage string) (string, error) {
+	publicImagesParent := c.getPublicImagesParent()
 	requestedLower := strings.ToLower(requestedImage)
 
-	var bestMatch *compute.Image
-	var fallbackImage *compute.Image
+	var bestImage *compute.Image
+	bestScore := -1
+	var iterErr error
 
-	for _, image := range imagesResp.GetItems() {
+	// Filter auto-paginates via the SDK. Using List directly only returns the first
+	// page (small default size), which can omit ubuntu24.04-cuda13.0 entirely.
+	imageIter := c.sdk.Services().Compute().V1().Image().Filter(ctx, &compute.ListImagesRequest{
+		ParentId: publicImagesParent,
+		PageSize: 988,
+	})
+	imageIter(func(image *compute.Image, err error) bool {
+		if err != nil {
+			iterErr = err
+			return false
+		}
 		if image.Metadata == nil {
-			continue
+			return true
+		}
+		if image.Spec != nil && image.Spec.GetCpuArchitecture() == compute.ImageSpec_ARM64 {
+			return true
 		}
 
-		imageName := strings.ToLower(image.Metadata.Name)
-
-		// Set fallback to first available image
-		if fallbackImage == nil {
-			fallbackImage = image
+		if score := scoreImage(image, requestedLower); score > bestScore {
+			bestScore = score
+			bestImage = image
 		}
+		return true
+	})
 
-		// Look for Ubuntu matches
-		if strings.Contains(requestedLower, "ubuntu") && strings.Contains(imageName, "ubuntu") {
-			// Prefer specific version matches
-			//nolint:gocritic // if-else chain is clearer than switch for version matching logic
-			if strings.Contains(requestedLower, "24.04") || strings.Contains(requestedLower, "24") {
-				if strings.Contains(imageName, "ubuntu24.04") {
-					bestMatch = image
-					break
-				}
-			} else if strings.Contains(requestedLower, "22.04") || strings.Contains(requestedLower, "22") {
-				if strings.Contains(imageName, "ubuntu22.04") {
-					bestMatch = image
-					break
-				}
-			} else if strings.Contains(requestedLower, "20.04") || strings.Contains(requestedLower, "20") {
-				if strings.Contains(imageName, "ubuntu20.04") {
-					bestMatch = image
-					break
-				}
-			}
-
-			// Any Ubuntu image is better than non-Ubuntu
-			if bestMatch == nil {
-				bestMatch = image
-			}
-		}
+	if iterErr != nil {
+		return "", fmt.Errorf("failed to iterate public images: %w", iterErr)
 	}
 
-	// Use best match if found, otherwise fallback
-	selectedImage := bestMatch
-	if selectedImage == nil {
-		selectedImage = fallbackImage
-	}
-
-	if selectedImage == nil {
+	if bestImage == nil {
 		return "", fmt.Errorf("no suitable public image found")
 	}
 
-	return selectedImage.Metadata.Id, nil
+	winnerFamily := ""
+	if bestImage.Spec != nil {
+		winnerFamily = bestImage.Spec.GetImageFamily()
+	}
+	c.logger.Info(ctx, "getWorkingPublicImageID: selected image",
+		v1.LogField("id", bestImage.Metadata.Id),
+		v1.LogField("name", bestImage.Metadata.Name),
+		v1.LogField("family", winnerFamily),
+		v1.LogField("score", bestScore))
+
+	return bestImage.Metadata.Id, nil
+}
+
+// scoreImage picks the best public image when Nebius returns a messy list.
+// default order: ubuntu24+cuda13 > ubuntu24+cuda12 > ubuntu22+cuda12 >
+// ubuntu24 > ubuntu22 > other ubuntu > worker-node > rest.
+// request bonus layers on top if the caller asked for something specific.
+func scoreImage(image *compute.Image, requestedLower string) int {
+	family := ""
+	if image.Spec != nil {
+		family = strings.ToLower(image.Spec.GetImageFamily())
+	}
+	name := strings.ToLower(image.Metadata.Name)
+
+	return baseImageScore(name, family) + requestMatchBonus(name, family, requestedLower)
+}
+
+// baseImageScore scores based on the image alone. worker-node is checked first
+// so an ubuntu24-cuda12.8 worker image doesn't get classified as ubuntu24+cuda12.
+func baseImageScore(name, family string) int {
+	has := func(s string) bool { return strings.Contains(name, s) || strings.Contains(family, s) }
+
+	if has("mk8s-worker") || strings.Contains(name, "worker-node") {
+		return imageScoreWorkerNode
+	}
+	if !has("ubuntu") {
+		return imageScoreBaseline
+	}
+	if has("ubuntu24") {
+		if has("cuda13") {
+			return imageScoreUbuntu24Cuda13
+		}
+		if has("cuda12") {
+			return imageScoreUbuntu24Cuda12
+		}
+		return imageScoreUbuntu24
+	}
+	if has("ubuntu22") {
+		if has("cuda12") {
+			return imageScoreUbuntu22Cuda
+		}
+		return imageScoreUbuntu22
+	}
+	return imageScoreUbuntuGeneric
+}
+
+// requestMatchBonus: +200 if request is a substring of name/family (big enough
+// to beat any baseline gap), +50 as a weak nudge when caller said "ubuntu" but
+// nothing matched directly.
+func requestMatchBonus(name, family, requestedLower string) int {
+	if requestedLower == "" {
+		return 0
+	}
+	if strings.Contains(name, requestedLower) || strings.Contains(family, requestedLower) || requestedLower == family {
+		return imageScoreExactMatchBonus
+	}
+	if strings.Contains(requestedLower, "ubuntu") && (strings.Contains(name, "ubuntu") || strings.Contains(family, "ubuntu")) {
+		return imageScoreUbuntuHintBonus
+	}
+	return 0
 }
 
 // getPublicImagesParent determines the correct public images parent ID based on project routing code
@@ -1583,6 +1650,9 @@ func (c *NebiusClient) parseInstanceType(ctx context.Context, instanceTypeID str
 func (c *NebiusClient) resolveImageFamily(ctx context.Context, imageID string) (string, error) {
 	// Common Nebius image families - if ImageID matches one of these, use it directly
 	commonFamilies := []string{
+		"ubuntu24.04-cuda13.0",
+		"ubuntu24.04-cuda12",
+		"ubuntu24.04-driverless",
 		"ubuntu22.04-cuda12",
 		"mk8s-worker-node-v-1-32-ubuntu24.04",
 		"mk8s-worker-node-v-1-32-ubuntu24.04-cuda12.8",
@@ -1601,7 +1671,6 @@ func (c *NebiusClient) resolveImageFamily(ctx context.Context, imageID string) (
 	// If ImageID looks like a family name pattern (contains dots, dashes, no UUIDs)
 	// and doesn't look like a UUID, assume it's a family name
 	if !strings.Contains(imageID, "-") || len(imageID) < 32 {
-		// Likely a family name, use it directly
 		return imageID, nil
 	}
 
@@ -1610,8 +1679,6 @@ func (c *NebiusClient) resolveImageFamily(ctx context.Context, imageID string) (
 		Id: imageID,
 	})
 	if err != nil {
-		// If we can't get the image, try using the ID as a family name anyway
-		// This allows for custom family names that don't match our patterns
 		return imageID, nil
 	}
 
@@ -1752,7 +1819,6 @@ func generateCloudInitUserData(publicKey string, firewallRules v1.FirewallRules)
 	script := `#cloud-config
 packages:
   - ufw
-  - iptables-persistent
 `
 
 	// Add SSH key configuration if provided
@@ -1764,18 +1830,6 @@ packages:
 
 	var commands []string
 
-	// Fix a systemd race condition: ufw.service and netfilter-persistent.service
-	// both start in parallel (both are Before=network-pre.target with no mutual
-	// ordering). Both call iptables-restore concurrently, and with the iptables-nft
-	// backend the competing nftables transactions cause UFW to fail with
-	// "iptables-restore: line 4 failed". This drop-in forces UFW to wait for
-	// netfilter-persistent to finish first.
-	commands = append(commands,
-		"sudo mkdir -p /etc/systemd/system/ufw.service.d",
-		`printf '[Unit]\nAfter=netfilter-persistent.service\n' | sudo tee /etc/systemd/system/ufw.service.d/after-netfilter.conf > /dev/null`,
-		"sudo systemctl daemon-reload",
-	)
-
 	// Generate UFW firewall commands (similar to Shadeform's approach)
 	// UFW (Uncomplicated Firewall) is available on Ubuntu/Debian instances
 	commands = append(commands, generateUFWCommands(firewallRules)...)
@@ -1783,14 +1837,6 @@ packages:
 	// Generate IPTables firewall commands to ensure docker ports are not made immediately
 	// accessible from the internet by default.
 	commands = append(commands, generateIPTablesCommands()...)
-
-	// Save the complete iptables state (UFW chains + DOCKER-USER rules) so it
-	// survives instance stop/start cycles. Cloud-init runcmd only executes on
-	// first boot; on subsequent boots netfilter-persistent restores this snapshot,
-	// then UFW starts after it (due to the drop-in above) and re-applies its rules.
-	// This provides defense-in-depth: even if UFW fails for any reason, the
-	// netfilter-persistent snapshot ensures port 22 and DOCKER-USER rules persist.
-	commands = append(commands, "sudo netfilter-persistent save")
 
 	if len(commands) > 0 {
 		// Use runcmd to execute firewall setup commands

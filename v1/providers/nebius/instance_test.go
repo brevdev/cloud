@@ -6,6 +6,8 @@ import (
 	"time"
 
 	v1 "github.com/brevdev/cloud/v1"
+	common "github.com/nebius/gosdk/proto/nebius/common/v1"
+	compute "github.com/nebius/gosdk/proto/nebius/compute/v1"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -416,4 +418,83 @@ func TestParseInstanceTypeFormat(t *testing.T) {
 			}
 		})
 	}
+}
+
+func makeTestImage(name, family string) *compute.Image {
+	return &compute.Image{
+		Metadata: &common.ResourceMetadata{Name: name},
+		Spec: &compute.ImageSpec{
+			ImageFamily:     family,
+			CpuArchitecture: compute.ImageSpec_AMD64,
+		},
+	}
+}
+
+func TestBaseImageScore(t *testing.T) {
+	tests := []struct {
+		name, family string
+		want         int
+	}{
+		{"ubuntu24.04-cuda13.0.0.2.673", "ubuntu24.04-cuda13.0", imageScoreUbuntu24Cuda13},
+		{"ubuntu24.04-cuda12.8.0.0.12", "ubuntu24.04-cuda12", imageScoreUbuntu24Cuda12},
+		{"ubuntu22.04-cuda12.3.0.0.5", "ubuntu22.04-cuda12", imageScoreUbuntu22Cuda},
+		{"ubuntu24.04-driverless-20260401", "ubuntu24.04-driverless", imageScoreUbuntu24},
+		{"ubuntu22.04-20260401", "ubuntu22.04", imageScoreUbuntu22},
+		{"ubuntu20.04-20260401", "ubuntu20.04", imageScoreUbuntuGeneric},
+		{"worker-node-v-1-33-ubuntu24.04-cuda12.8-20260403", "mk8s-worker-node-v-1-33-ubuntu24.04-cuda12.8", imageScoreWorkerNode},
+		{"debian12-20260301", "debian12", imageScoreBaseline},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := baseImageScore(strings.ToLower(tc.name), strings.ToLower(tc.family))
+			assert.Equal(t, tc.want, got)
+		})
+	}
+}
+
+func TestRequestMatchBonus(t *testing.T) {
+	tests := []struct {
+		desc, name, family, requested string
+		want                          int
+	}{
+		{"empty request, no bonus", "ubuntu24.04-cuda13.0", "ubuntu24.04-cuda13.0", "", 0},
+		{"exact family match", "ubuntu24.04-cuda13.0.0.2.673", "ubuntu24.04-cuda13.0", "ubuntu24.04-cuda13.0", imageScoreExactMatchBonus},
+		{"substring match in name", "worker-node-v-1-33-ubuntu24.04-cuda12.8", "mk8s-worker-node-v-1-33-ubuntu24.04-cuda12.8", "worker-node", imageScoreExactMatchBonus},
+		{"ubuntu hint without exact match", "ubuntu22.04-cuda12", "ubuntu22.04-cuda12", "ubuntu24.04", imageScoreUbuntuHintBonus},
+		{"non-ubuntu request, non-matching image, no bonus", "debian12", "debian12", "ubuntu", 0},
+	}
+	for _, tc := range tests {
+		t.Run(tc.desc, func(t *testing.T) {
+			got := requestMatchBonus(strings.ToLower(tc.name), strings.ToLower(tc.family), strings.ToLower(tc.requested))
+			assert.Equal(t, tc.want, got)
+		})
+	}
+}
+
+func TestScoreImage_prioritizesUbuntu24Cuda13OverWorkerNode(t *testing.T) {
+	ubuntu24Cuda13 := makeTestImage("ubuntu24.04-cuda13.0.0.2.673", "ubuntu24.04-cuda13.0")
+	workerNode := makeTestImage("worker-node-v-1-33-ubuntu24.04-cuda12.8-20260403", "mk8s-worker-node-v-1-33-ubuntu24.04-cuda12.8")
+
+	// Regression guard for BREV-8794 scenario: default deploy (empty request)
+	// must prefer ubuntu24-cuda13 over any mk8s worker-node image.
+	assert.Greater(t, scoreImage(ubuntu24Cuda13, ""), scoreImage(workerNode, ""))
+
+	// Request that happens to contain 'ubuntu24.04' must still prefer
+	// ubuntu24-cuda13 over worker-node (worker image name contains 'ubuntu24.04'
+	// as a substring, but the baseline score gap keeps it below).
+	assert.Greater(t, scoreImage(ubuntu24Cuda13, "ubuntu24.04"), scoreImage(workerNode, "ubuntu24.04"))
+}
+
+func TestScoreImage_exactRequestForWorkerNodeWins(t *testing.T) {
+	ubuntu24Cuda13 := makeTestImage("ubuntu24.04-cuda13.0.0.2.673", "ubuntu24.04-cuda13.0")
+	workerNode := makeTestImage("worker-node-v-1-33-ubuntu24.04-cuda12.8-20260403", "mk8s-worker-node-v-1-33-ubuntu24.04-cuda12.8")
+
+	// If a caller explicitly asks for the worker-node family, it must win.
+	requested := "mk8s-worker-node-v-1-33-ubuntu24.04-cuda12.8"
+	assert.Greater(t, scoreImage(workerNode, requested), scoreImage(ubuntu24Cuda13, requested))
+}
+
+func TestScoreImage_nilSpecUsesBaseline(t *testing.T) {
+	img := &compute.Image{Metadata: &common.ResourceMetadata{Name: "unknown-image"}}
+	assert.Equal(t, imageScoreBaseline, scoreImage(img, ""))
 }
