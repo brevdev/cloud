@@ -1346,7 +1346,7 @@ func (c *NebiusClient) getWorkingPublicImageID(ctx context.Context, requestedIma
 	// page (small default size), which can omit ubuntu24.04-cuda13.0 entirely.
 	imageIter := c.sdk.Services().Compute().V1().Image().Filter(ctx, &compute.ListImagesRequest{
 		ParentId: publicImagesParent,
-		PageSize: 1000,
+		PageSize: 988,
 	})
 	imageIter(func(image *compute.Image, err error) bool {
 		if err != nil {
