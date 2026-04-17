@@ -1227,84 +1227,8 @@ func (c *NebiusClient) buildDiskCreateRequest(ctx context.Context, diskName stri
 	}
 
 	// First, try to resolve and use image family
-	imageFamily, resolveErr := c.resolveImageFamily(ctx, attrs.ImageID)
-	c.logger.Info(ctx, "buildDiskCreateRequest: resolveImageFamily result",
-		v1.LogField("attrs.ImageID", attrs.ImageID),
-		v1.LogField("resolvedFamily", imageFamily),
-		v1.LogField("err", fmt.Sprintf("%v", resolveErr)))
-
-	if resolveErr == nil {
-		publicImagesParent := c.getPublicImagesParent()
-
-		// Skip validation for known-good common families to speed up instance start
-		knownFamilies := []string{"ubuntu24.04-cuda13.0", "ubuntu24.04-cuda12", "ubuntu22.04-cuda12", "mk8s-worker-node-v-1-32-ubuntu24.04", "mk8s-worker-node-v-1-32-ubuntu24.04-cuda12.8"}
-		isKnownFamily := false
-		for _, known := range knownFamilies {
-			if imageFamily == known {
-				isKnownFamily = true
-				break
-			}
-		}
-		c.logger.Info(ctx, "buildDiskCreateRequest: known-family check",
-			v1.LogField("imageFamily", imageFamily),
-			v1.LogField("isKnownFamily", isKnownFamily),
-			v1.LogField("publicImagesParent", publicImagesParent))
-
-		if isKnownFamily {
-			c.logger.Info(ctx, "buildDiskCreateRequest: BRANCH=known-family (skipping validation)",
-				v1.LogField("imageFamily", imageFamily))
-			// Use known family without validation
-			baseReq.Spec.Source = &compute.DiskSpec_SourceImageFamily{
-				SourceImageFamily: &compute.SourceImageFamily{
-					ImageFamily: imageFamily,
-					ParentId:    publicImagesParent,
-				},
-			}
-			baseReq.Metadata.Labels["image-family"] = imageFamily
-			return baseReq, nil
-		}
-
-		// For unknown families, validate first and check architecture
-		latestImage, err := c.sdk.Services().Compute().V1().Image().GetLatestByFamily(ctx, &compute.GetImageLatestByFamilyRequest{
-			ParentId:    publicImagesParent,
-			ImageFamily: imageFamily,
-		})
-		latestName, latestID, latestArch := "", "", ""
-		if latestImage != nil {
-			if latestImage.Metadata != nil {
-				latestName = latestImage.Metadata.Name
-				latestID = latestImage.Metadata.Id
-			}
-			if latestImage.Spec != nil {
-				latestArch = latestImage.Spec.GetCpuArchitecture().String()
-			}
-		}
-		c.logger.Info(ctx, "buildDiskCreateRequest: GetLatestByFamily result",
-			v1.LogField("imageFamily", imageFamily),
-			v1.LogField("err", fmt.Sprintf("%v", err)),
-			v1.LogField("latestImageID", latestID),
-			v1.LogField("latestImageName", latestName),
-			v1.LogField("latestImageArch", latestArch))
-
-		if err == nil {
-			isARM64 := latestImage.Spec != nil && latestImage.Spec.GetCpuArchitecture() == compute.ImageSpec_ARM64
-			if !isARM64 {
-				c.logger.Info(ctx, "buildDiskCreateRequest: BRANCH=validated-family (non-ARM64)",
-					v1.LogField("imageFamily", imageFamily),
-					v1.LogField("latestImageID", latestID))
-				baseReq.Spec.Source = &compute.DiskSpec_SourceImageFamily{
-					SourceImageFamily: &compute.SourceImageFamily{
-						ImageFamily: imageFamily,
-						ParentId:    publicImagesParent,
-					},
-				}
-				baseReq.Metadata.Labels["image-family"] = imageFamily
-				return baseReq, nil
-			}
-			c.logger.Info(ctx, "buildDiskCreateRequest: validated-family is ARM64, falling through to scoring",
-				v1.LogField("imageFamily", imageFamily))
-			// ARM64 family — fall through to getWorkingPublicImageID which filters by architecture
-		}
+	if c.tryApplyImageFamilySource(ctx, baseReq, attrs.ImageID) {
+		return baseReq, nil
 	}
 
 	// Family approach failed, try to use a known working public image ID
@@ -1325,6 +1249,87 @@ func (c *NebiusClient) buildDiskCreateRequest(ctx context.Context, diskName stri
 
 	// Both approaches failed
 	return nil, fmt.Errorf("could not resolve image %s to either a working family or image ID: %w", attrs.ImageID, err)
+}
+
+// tryApplyImageFamilySource attempts to set baseReq's disk source via image-family lookup.
+// Returns true if a family-based source was applied (caller should return baseReq).
+// Returns false if the caller should fall back to scoring (getWorkingPublicImageID).
+func (c *NebiusClient) tryApplyImageFamilySource(ctx context.Context, baseReq *compute.CreateDiskRequest, imageID string) bool {
+	imageFamily, resolveErr := c.resolveImageFamily(ctx, imageID)
+	c.logger.Info(ctx, "buildDiskCreateRequest: resolveImageFamily result",
+		v1.LogField("attrs.ImageID", imageID),
+		v1.LogField("resolvedFamily", imageFamily),
+		v1.LogField("err", fmt.Sprintf("%v", resolveErr)))
+	if resolveErr != nil {
+		return false
+	}
+
+	publicImagesParent := c.getPublicImagesParent()
+	knownFamilies := []string{"ubuntu24.04-cuda13.0", "ubuntu24.04-cuda12", "ubuntu22.04-cuda12", "mk8s-worker-node-v-1-32-ubuntu24.04", "mk8s-worker-node-v-1-32-ubuntu24.04-cuda12.8"}
+	isKnownFamily := false
+	for _, known := range knownFamilies {
+		if imageFamily == known {
+			isKnownFamily = true
+			break
+		}
+	}
+	c.logger.Info(ctx, "buildDiskCreateRequest: known-family check",
+		v1.LogField("imageFamily", imageFamily),
+		v1.LogField("isKnownFamily", isKnownFamily),
+		v1.LogField("publicImagesParent", publicImagesParent))
+
+	if isKnownFamily {
+		c.logger.Info(ctx, "buildDiskCreateRequest: BRANCH=known-family (skipping validation)",
+			v1.LogField("imageFamily", imageFamily))
+		applyImageFamilySource(baseReq, imageFamily, publicImagesParent)
+		return true
+	}
+
+	latestImage, err := c.sdk.Services().Compute().V1().Image().GetLatestByFamily(ctx, &compute.GetImageLatestByFamilyRequest{
+		ParentId:    publicImagesParent,
+		ImageFamily: imageFamily,
+	})
+	latestName, latestID, latestArch := "", "", ""
+	if latestImage != nil {
+		if latestImage.Metadata != nil {
+			latestName = latestImage.Metadata.Name
+			latestID = latestImage.Metadata.Id
+		}
+		if latestImage.Spec != nil {
+			latestArch = latestImage.Spec.GetCpuArchitecture().String()
+		}
+	}
+	c.logger.Info(ctx, "buildDiskCreateRequest: GetLatestByFamily result",
+		v1.LogField("imageFamily", imageFamily),
+		v1.LogField("err", fmt.Sprintf("%v", err)),
+		v1.LogField("latestImageID", latestID),
+		v1.LogField("latestImageName", latestName),
+		v1.LogField("latestImageArch", latestArch))
+	if err != nil {
+		return false
+	}
+
+	if latestImage.Spec != nil && latestImage.Spec.GetCpuArchitecture() == compute.ImageSpec_ARM64 {
+		c.logger.Info(ctx, "buildDiskCreateRequest: validated-family is ARM64, falling through to scoring",
+			v1.LogField("imageFamily", imageFamily))
+		return false
+	}
+
+	c.logger.Info(ctx, "buildDiskCreateRequest: BRANCH=validated-family (non-ARM64)",
+		v1.LogField("imageFamily", imageFamily),
+		v1.LogField("latestImageID", latestID))
+	applyImageFamilySource(baseReq, imageFamily, publicImagesParent)
+	return true
+}
+
+func applyImageFamilySource(baseReq *compute.CreateDiskRequest, imageFamily, publicImagesParent string) {
+	baseReq.Spec.Source = &compute.DiskSpec_SourceImageFamily{
+		SourceImageFamily: &compute.SourceImageFamily{
+			ImageFamily: imageFamily,
+			ParentId:    publicImagesParent,
+		},
+	}
+	baseReq.Metadata.Labels["image-family"] = imageFamily
 }
 
 // getWorkingPublicImageID gets a working public image ID based on the requested image type.
@@ -1945,11 +1950,7 @@ packages:
 	// DEBIAN_FRONTEND=noninteractive writes empty rules.v4/v6, and the service
 	// flushes the UFW + DOCKER-USER rules we just applied (Launchpad #1949643).
 	// With autosave=true, postinst snapshots the currently-applied iptables state.
-	commands = append(commands,
-		`echo iptables-persistent iptables-persistent/autosave_v4 boolean true | sudo debconf-set-selections`,
-		`echo iptables-persistent iptables-persistent/autosave_v6 boolean true | sudo debconf-set-selections`,
-		"sudo DEBIAN_FRONTEND=noninteractive apt-get install -y iptables-persistent",
-	)
+	// removing from here ip tables
 
 	// Save the complete iptables state (UFW chains + DOCKER-USER rules) so it
 	// survives instance stop/start cycles. Cloud-init runcmd only executes on
