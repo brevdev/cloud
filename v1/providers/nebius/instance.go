@@ -1830,12 +1830,18 @@ packages:
 	// accessible from the internet by default.
 	commands = append(commands, generateIPTablesCommands()...)
 
-	// Install iptables-persistent here (in runcmd, after UFW is configured) rather than
-	// in the packages: directive. Installing it as a package would start netfilter-persistent.service
-	// immediately at first boot, which races with ufw.service — netfilter-persistent flushes
-	// UFW's rules before UFW finishes loading them (Launchpad bug #1987227). By installing
-	// it here, the service only starts after UFW is already set up and the drop-in is in place.
-	commands = append(commands, "DEBIAN_FRONTEND=noninteractive apt-get install -y iptables-persistent")
+	// Install iptables-persistent in runcmd (not packages:) so netfilter-persistent.service
+	// doesn't race ufw.service on first boot (Launchpad #1987227).
+	//
+	// Preseed autosave_v4/v6 before installing. Without this, the postinst with
+	// DEBIAN_FRONTEND=noninteractive writes empty rules.v4/v6, and the service
+	// flushes the UFW + DOCKER-USER rules we just applied (Launchpad #1949643).
+	// With autosave=true, postinst snapshots the currently-applied iptables state.
+	commands = append(commands,
+		`echo iptables-persistent iptables-persistent/autosave_v4 boolean true | sudo debconf-set-selections`,
+		`echo iptables-persistent iptables-persistent/autosave_v6 boolean true | sudo debconf-set-selections`,
+		"sudo DEBIAN_FRONTEND=noninteractive apt-get install -y iptables-persistent",
+	)
 
 	// Save the complete iptables state (UFW chains + DOCKER-USER rules) so it
 	// survives instance stop/start cycles. Cloud-init runcmd only executes on
