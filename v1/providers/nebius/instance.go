@@ -1335,37 +1335,33 @@ func (c *NebiusClient) getWorkingPublicImageID(ctx context.Context, requestedIma
 		v1.LogField("requestedImage", requestedImage),
 		v1.LogField("publicImagesParent", publicImagesParent))
 
-	imagesResp, err := c.sdk.Services().Compute().V1().Image().List(ctx, &compute.ListImagesRequest{
-		ParentId: publicImagesParent,
-	})
-	if err != nil {
-		c.logger.Error(ctx, fmt.Errorf("failed to list public images: %w", err),
-			v1.LogField("publicImagesParent", publicImagesParent))
-		return "", fmt.Errorf("failed to list public images: %w", err)
-	}
-
-	totalCount := len(imagesResp.GetItems())
-	c.logger.Info(ctx, "getWorkingPublicImageID: list returned",
-		v1.LogField("totalImages", totalCount))
-
-	if totalCount == 0 {
-		return "", fmt.Errorf("no public images available")
-	}
-
 	requestedLower := strings.ToLower(requestedImage)
 
 	var bestImage *compute.Image
 	bestScore := -1
-	consideredCount, arm64Skipped, nilMetadataSkipped := 0, 0, 0
+	totalCount, consideredCount, arm64Skipped, nilMetadataSkipped := 0, 0, 0, 0
+	var iterErr error
 
-	for _, image := range imagesResp.GetItems() {
+	// Filter auto-paginates via the SDK. Using List directly only returns the first
+	// page (small default size), which can omit ubuntu24.04-cuda13.0 entirely.
+	imageIter := c.sdk.Services().Compute().V1().Image().Filter(ctx, &compute.ListImagesRequest{
+		ParentId: publicImagesParent,
+		PageSize: 1000,
+	})
+	imageIter(func(image *compute.Image, err error) bool {
+		if err != nil {
+			iterErr = err
+			return false
+		}
+		totalCount++
+
 		if image.Metadata == nil {
 			nilMetadataSkipped++
-			continue
+			return true
 		}
 		if image.Spec != nil && image.Spec.GetCpuArchitecture() == compute.ImageSpec_ARM64 {
 			arm64Skipped++
-			continue
+			return true
 		}
 		consideredCount++
 
@@ -1384,9 +1380,17 @@ func (c *NebiusClient) getWorkingPublicImageID(ctx context.Context, requestedIma
 			bestScore = score
 			bestImage = image
 		}
+		return true
+	})
+
+	if iterErr != nil {
+		c.logger.Error(ctx, fmt.Errorf("failed to iterate public images: %w", iterErr),
+			v1.LogField("publicImagesParent", publicImagesParent))
+		return "", fmt.Errorf("failed to iterate public images: %w", iterErr)
 	}
 
 	c.logger.Info(ctx, "getWorkingPublicImageID: scoring summary",
+		v1.LogField("totalImages", totalCount),
 		v1.LogField("consideredCount", consideredCount),
 		v1.LogField("arm64Skipped", arm64Skipped),
 		v1.LogField("nilMetadataSkipped", nilMetadataSkipped),
