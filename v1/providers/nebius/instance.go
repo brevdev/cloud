@@ -18,6 +18,22 @@ const (
 	platformTypeCPU = "cpu"
 )
 
+// image scoring tiers. higher wins. exact-match bonus (200) > max baseline gap
+// so explicit requests always override defaults, even for worker-node.
+const (
+	imageScoreBaseline       = 1
+	imageScoreWorkerNode     = 10
+	imageScoreUbuntuGeneric  = 50
+	imageScoreUbuntu22       = 55
+	imageScoreUbuntu24       = 60
+	imageScoreUbuntu22Cuda   = 80
+	imageScoreUbuntu24Cuda12 = 90
+	imageScoreUbuntu24Cuda13 = 100
+
+	imageScoreExactMatchBonus = 200
+	imageScoreUbuntuHintBonus = 50
+)
+
 //nolint:gocyclo,funlen // Complex instance creation with resource management
 func (c *NebiusClient) CreateInstance(ctx context.Context, attrs v1.CreateInstanceAttrs) (*v1.Instance, error) {
 	// Track created resources for automatic cleanup on failure
@@ -1307,11 +1323,10 @@ func (c *NebiusClient) getWorkingPublicImageID(ctx context.Context, requestedIma
 	return bestImage.Metadata.Id, nil
 }
 
-// scoreImage assigns a priority score to an image. Higher score = better match.
-// When requestedImage is empty (default deploy), the function uses a standard
-// preference order: Ubuntu 24 CUDA 13 > Ubuntu 24 CUDA 12 > Ubuntu 22 CUDA 12
-// > Ubuntu 24 driverless > any Ubuntu > worker node > anything else.
-// When requestedImage is non-empty, exact family/name matches get a bonus.
+// scoreImage picks the best public image when Nebius returns a messy list.
+// default order: ubuntu24+cuda13 > ubuntu24+cuda12 > ubuntu22+cuda12 >
+// ubuntu24 > ubuntu22 > other ubuntu > worker-node > rest.
+// request bonus layers on top if the caller asked for something specific.
 func scoreImage(image *compute.Image, requestedLower string) int {
 	family := ""
 	if image.Spec != nil {
@@ -1319,44 +1334,52 @@ func scoreImage(image *compute.Image, requestedLower string) int {
 	}
 	name := strings.ToLower(image.Metadata.Name)
 
-	isWorkerNode := strings.Contains(family, "mk8s-worker") || strings.Contains(name, "worker-node")
-	isUbuntu := strings.Contains(family, "ubuntu") || strings.Contains(name, "ubuntu")
-	hasCuda13 := strings.Contains(family, "cuda13") || strings.Contains(name, "cuda13")
-	hasCuda12 := strings.Contains(family, "cuda12") || strings.Contains(name, "cuda12")
-	isUbuntu24 := strings.Contains(family, "ubuntu24") || strings.Contains(name, "ubuntu24")
-	isUbuntu22 := strings.Contains(family, "ubuntu22") || strings.Contains(name, "ubuntu22")
+	return baseImageScore(name, family) + requestMatchBonus(name, family, requestedLower)
+}
 
-	score := 1 // baseline for any non-ARM64 image
+// baseImageScore scores based on the image alone. worker-node is checked first
+// so an ubuntu24-cuda12.8 worker image doesn't get classified as ubuntu24+cuda12.
+func baseImageScore(name, family string) int {
+	has := func(s string) bool { return strings.Contains(name, s) || strings.Contains(family, s) }
 
-	if isWorkerNode {
-		score = 10
-	} else if isUbuntu {
-		score = 50
-		if isUbuntu24 {
-			score = 60
-			if hasCuda13 {
-				score = 100
-			} else if hasCuda12 {
-				score = 90
-			}
-		} else if isUbuntu22 {
-			score = 55
-			if hasCuda12 {
-				score = 80
-			}
-		}
+	if has("mk8s-worker") || strings.Contains(name, "worker-node") {
+		return imageScoreWorkerNode
 	}
-
-	// If the caller explicitly requested something, boost images that match the request
-	if requestedLower != "" {
-		if strings.Contains(name, requestedLower) || strings.Contains(family, requestedLower) || requestedLower == family {
-			score += 200
-		} else if isUbuntu && strings.Contains(requestedLower, "ubuntu") {
-			score += 50
-		}
+	if !has("ubuntu") {
+		return imageScoreBaseline
 	}
+	if has("ubuntu24") {
+		if has("cuda13") {
+			return imageScoreUbuntu24Cuda13
+		}
+		if has("cuda12") {
+			return imageScoreUbuntu24Cuda12
+		}
+		return imageScoreUbuntu24
+	}
+	if has("ubuntu22") {
+		if has("cuda12") {
+			return imageScoreUbuntu22Cuda
+		}
+		return imageScoreUbuntu22
+	}
+	return imageScoreUbuntuGeneric
+}
 
-	return score
+// requestMatchBonus: +200 if request is a substring of name/family (big enough
+// to beat any baseline gap), +50 as a weak nudge when caller said "ubuntu" but
+// nothing matched directly.
+func requestMatchBonus(name, family, requestedLower string) int {
+	if requestedLower == "" {
+		return 0
+	}
+	if strings.Contains(name, requestedLower) || strings.Contains(family, requestedLower) || requestedLower == family {
+		return imageScoreExactMatchBonus
+	}
+	if strings.Contains(requestedLower, "ubuntu") && (strings.Contains(name, "ubuntu") || strings.Contains(family, "ubuntu")) {
+		return imageScoreUbuntuHintBonus
+	}
+	return 0
 }
 
 // getPublicImagesParent determines the correct public images parent ID based on project routing code
