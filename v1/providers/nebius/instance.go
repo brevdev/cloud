@@ -1265,11 +1265,9 @@ func (c *NebiusClient) buildDiskCreateRequest(ctx context.Context, diskName stri
 	return nil, fmt.Errorf("could not resolve image %s to either a working family or image ID: %w", attrs.ImageID, err)
 }
 
-// getWorkingPublicImageID gets a working public image ID based on the requested image type
-//
-//nolint:gocognit,gocyclo // Complex function trying multiple image resolution strategies
+// getWorkingPublicImageID gets a working public image ID based on the requested image type.
+// It scores every non-ARM64 image and returns the highest-scored one, this is done to handle change in ordering of images from nebius api.
 func (c *NebiusClient) getWorkingPublicImageID(ctx context.Context, requestedImage string) (string, error) {
-	// Get available public images from the correct region
 	publicImagesParent := c.getPublicImagesParent()
 	imagesResp, err := c.sdk.Services().Compute().V1().Image().List(ctx, &compute.ListImagesRequest{
 		ParentId: publicImagesParent,
@@ -1282,67 +1280,83 @@ func (c *NebiusClient) getWorkingPublicImageID(ctx context.Context, requestedIma
 		return "", fmt.Errorf("no public images available")
 	}
 
-	// Try to find the best match based on the requested image
 	requestedLower := strings.ToLower(requestedImage)
 
-	var bestMatch *compute.Image
-	var fallbackImage *compute.Image
+	var bestImage *compute.Image
+	bestScore := -1
 
 	for _, image := range imagesResp.GetItems() {
 		if image.Metadata == nil {
 			continue
 		}
-
 		if image.Spec != nil && image.Spec.GetCpuArchitecture() == compute.ImageSpec_ARM64 {
 			continue
 		}
 
-		imageName := strings.ToLower(image.Metadata.Name)
-
-		// Set fallback to first available image
-		if fallbackImage == nil {
-			fallbackImage = image
-		}
-
-		// Look for Ubuntu matches
-		if strings.Contains(requestedLower, "ubuntu") && strings.Contains(imageName, "ubuntu") {
-			// Prefer specific version matches
-			//nolint:gocritic // if-else chain is clearer than switch for version matching logic
-			if strings.Contains(requestedLower, "24.04") || strings.Contains(requestedLower, "24") {
-				if strings.Contains(imageName, "ubuntu24.04") {
-					bestMatch = image
-					break
-				}
-			} else if strings.Contains(requestedLower, "22.04") || strings.Contains(requestedLower, "22") {
-				if strings.Contains(imageName, "ubuntu22.04") {
-					bestMatch = image
-					break
-				}
-			} else if strings.Contains(requestedLower, "20.04") || strings.Contains(requestedLower, "20") {
-				if strings.Contains(imageName, "ubuntu20.04") {
-					bestMatch = image
-					break
-				}
-			}
-
-			// Any Ubuntu image is better than non-Ubuntu
-			if bestMatch == nil {
-				bestMatch = image
-			}
+		score := scoreImage(image, requestedLower)
+		if score > bestScore {
+			bestScore = score
+			bestImage = image
 		}
 	}
 
-	// Use best match if found, otherwise fallback
-	selectedImage := bestMatch
-	if selectedImage == nil {
-		selectedImage = fallbackImage
-	}
-
-	if selectedImage == nil {
+	if bestImage == nil {
 		return "", fmt.Errorf("no suitable public image found")
 	}
 
-	return selectedImage.Metadata.Id, nil
+	return bestImage.Metadata.Id, nil
+}
+
+// scoreImage assigns a priority score to an image. Higher score = better match.
+// When requestedImage is empty (default deploy), the function uses a standard
+// preference order: Ubuntu 24 CUDA 13 > Ubuntu 24 CUDA 12 > Ubuntu 22 CUDA 12
+// > Ubuntu 24 driverless > any Ubuntu > worker node > anything else.
+// When requestedImage is non-empty, exact family/name matches get a bonus.
+func scoreImage(image *compute.Image, requestedLower string) int {
+	family := ""
+	if image.Spec != nil {
+		family = strings.ToLower(image.Spec.GetImageFamily())
+	}
+	name := strings.ToLower(image.Metadata.Name)
+
+	isWorkerNode := strings.Contains(family, "mk8s-worker") || strings.Contains(name, "worker-node")
+	isUbuntu := strings.Contains(family, "ubuntu") || strings.Contains(name, "ubuntu")
+	hasCuda13 := strings.Contains(family, "cuda13") || strings.Contains(name, "cuda13")
+	hasCuda12 := strings.Contains(family, "cuda12") || strings.Contains(name, "cuda12")
+	isUbuntu24 := strings.Contains(family, "ubuntu24") || strings.Contains(name, "ubuntu24")
+	isUbuntu22 := strings.Contains(family, "ubuntu22") || strings.Contains(name, "ubuntu22")
+
+	score := 1 // baseline for any non-ARM64 image
+
+	if isWorkerNode {
+		score = 10
+	} else if isUbuntu {
+		score = 50
+		if isUbuntu24 {
+			score = 60
+			if hasCuda13 {
+				score = 100
+			} else if hasCuda12 {
+				score = 90
+			}
+		} else if isUbuntu22 {
+			score = 55
+			if hasCuda12 {
+				score = 80
+			}
+		}
+	}
+
+	// If the caller explicitly requested something, boost images that match the request
+	if requestedLower != "" {
+		if strings.Contains(name, requestedLower) || strings.Contains(family, requestedLower) || requestedLower == family {
+			score += 200
+		} else if isUbuntu && strings.Contains(requestedLower, "ubuntu") {
+			score += 50
+		}
+	}
+
+	return score
 }
 
 // getPublicImagesParent determines the correct public images parent ID based on project routing code
