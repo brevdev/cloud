@@ -65,11 +65,6 @@ func (c *ShadeformClient) CreateInstance(ctx context.Context, attrs v1.CreateIns
 		return nil, errors.WrapAndTrace(err)
 	}
 
-	cloudEnum, err := openapi.NewCloudFromValue(cloud)
-	if err != nil {
-		return nil, errors.WrapAndTrace(err)
-	}
-
 	// Add refID tag
 	refIDTag, err := c.createTag(refIDTagName, attrs.RefID)
 	if err != nil {
@@ -98,7 +93,7 @@ func (c *ShadeformClient) CreateInstance(ctx context.Context, attrs v1.CreateIns
 	}
 
 	req := openapi.CreateRequest{
-		Cloud:             *cloudEnum,
+		Cloud:             cloud,
 		Region:            region,
 		ShadeInstanceType: shadeInstanceType,
 		Name:              c.getInstanceNameForShadeform(attrs.RefID, attrs.Name),
@@ -298,7 +293,7 @@ func (c *ShadeformClient) getLifecycleStatus(status string) v1.LifecycleStatus {
 
 // convertInstanceInfoResponseToV1Instance - converts Instance Info to v1 instance
 func (c *ShadeformClient) convertInstanceInfoResponseToV1Instance(instanceInfo openapi.InstanceInfoResponse) (*v1.Instance, error) {
-	instanceType := c.getInstanceType(string(instanceInfo.Cloud), instanceInfo.ShadeInstanceType)
+	instanceType := c.getInstanceType(instanceInfo.Cloud, instanceInfo.ShadeInstanceType)
 	lifeCycleStatus := c.getLifecycleStatus(string(instanceInfo.Status))
 
 	tags, err := c.convertShadeformTagToV1Tag(instanceInfo.Tags)
@@ -351,7 +346,7 @@ func (c *ShadeformClient) convertInstanceInfoResponseToV1Instance(instanceInfo o
 // convertInstanceInfoResponseToV1Instance - converts /instances response to v1 instance; the api struct is slightly
 // different from instance info response and expected to diverge so keeping it as a separate function for now
 func (c *ShadeformClient) convertShadeformInstanceToV1Instance(shadeformInstance openapi.Instance) (*v1.Instance, error) {
-	instanceType := c.getInstanceType(string(shadeformInstance.Cloud), shadeformInstance.ShadeInstanceType)
+	instanceType := c.getInstanceType(shadeformInstance.Cloud, shadeformInstance.ShadeInstanceType)
 	lifeCycleStatus := c.getLifecycleStatus(string(shadeformInstance.Status))
 
 	tags, err := c.convertShadeformTagToV1Tag(shadeformInstance.Tags)

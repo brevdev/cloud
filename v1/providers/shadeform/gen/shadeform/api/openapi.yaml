@@ -217,6 +217,92 @@ paths:
           description: Confirms the restart of an instance has been initiated. This
             does not confirm that the instance restarted successfully.
       summary: "/instances/{id}/restart"
+  /clusters:
+    get:
+      description: Get all non deleted clusters.
+      operationId: Clusters
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClustersResponse'
+          description: Returns a ClustersResponse object.
+      summary: /clusters
+  /clusters/types:
+    get:
+      description: Return all the GPU cluster types with their corresponding availability
+        and specs.
+      operationId: ClustersTypes
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClusterTypesResponse'
+          description: Returns a ClusterTypesResponse object
+      summary: /clusters/types
+  /clusters/create:
+    post:
+      description: Create a new GPU cluster.
+      operationId: ClustersCreate
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateClusterRequest'
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateClusterResponse'
+          description: Returns a CreateClusterResponse object
+      summary: /clusters/create
+  /clusters/{id}/info:
+    get:
+      description: "Get details for the specified, non deleted, cluster in the url."
+      operationId: ClustersInfo
+      parameters:
+      - description: The cluster id
+        example: 8eda86fe-0f36-41ed-9837-0ccf8f6e0fcb
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          minimum: 1
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClusterInfoResponse'
+          description: Return a cluster object.
+      summary: "/clusters/{id}/info"
+  /clusters/{id}/delete:
+    post:
+      description: "This will move the cluster to the 'deleting' status while the\
+        \ cluster is being deleted. Once the cluster has entered the 'deleting' status,\
+        \ the account will no longer be billed for the cluster."
+      operationId: ClustersDelete
+      parameters:
+      - description: The cluster id
+        example: b1450ae8-2fa3-4ceb-a4f3-b834805418fc
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          minimum: 1
+          type: string
+        style: simple
+      responses:
+        "200":
+          description: Confirms the deletion of a cluster.
+      summary: "/clusters/{id}/delete"
   /sshkeys:
     get:
       description: Get all SSH Keys for the account.
@@ -598,7 +684,10 @@ components:
         shade_instance_type: A6000
       properties:
         cloud:
-          $ref: '#/components/schemas/Cloud'
+          description: "Specifies the underlying cloud provider. See this [explanation](/getting-started/concepts#cloud-cloud-provider)\
+            \ for more details."
+          example: hyperstack
+          type: string
         shade_instance_type:
           description: "The Shadeform standardized instance type. See this [explanation](/getting-started/concepts#shade-instance-type-and-cloud-instance-type)\
             \ for more details."
@@ -862,7 +951,10 @@ components:
           format: uuid
           type: string
         cloud:
-          $ref: '#/components/schemas/Cloud'
+          description: "Specifies the underlying cloud provider. See this [explanation](/getting-started/concepts#cloud-cloud-provider)\
+            \ for more details."
+          example: hyperstack
+          type: string
         region:
           description: Specifies the region.
           example: canada-1
@@ -1065,7 +1157,10 @@ components:
           format: uuid
           type: string
         cloud:
-          $ref: '#/components/schemas/Cloud'
+          description: "Specifies the underlying cloud provider. See this [explanation](/getting-started/concepts#cloud-cloud-provider)\
+            \ for more details."
+          example: hyperstack
+          type: string
         region:
           description: Specifies the region.
           example: canada-1
@@ -1412,7 +1507,10 @@ components:
         region: canada-1
       properties:
         cloud:
-          $ref: '#/components/schemas/Cloud'
+          description: "Specifies the underlying cloud provider. See this [explanation](/getting-started/concepts#cloud-cloud-provider)\
+            \ for more details."
+          example: hyperstack
+          type: string
         region:
           description: Specifies the region.
           example: canada-1
@@ -1709,37 +1807,882 @@ components:
       required:
       - id
       type: object
+    ClustersResponse:
+      example:
+        clusters:
+        - instances:
+          - ssh_port: 22
+            configuration:
+              nvlink: true
+              os: ubuntu_22_shade_os
+              num_gpus: 1
+              gpu_type: A100
+              memory_in_gb: 12
+              vram_per_gpu_in_gb: 48
+              vcpus: 6
+              storage_in_gb: 256
+              interconnect: pcie
+              gpu_manufacturer: nvidia
+            launch_configuration:
+              docker_configuration:
+                args: --model mistralai/Mistral-7B-v0.1
+                shared_memory_in_gb: 8
+                image: vllm/vllm-openai:latest
+                port_mappings:
+                - container_port: 8000
+                  host_port: 80
+                - container_port: 8000
+                  host_port: 80
+                registry_credentials:
+                  password: password
+                  username: username
+                envs:
+                - name: HUGGING_FACE_HUB_TOKEN
+                  value: hugging_face_api_token
+                - name: HUGGING_FACE_HUB_TOKEN
+                  value: hugging_face_api_token
+                volume_mounts:
+                - host_path: "~/.cache/huggingface"
+                  container_path: /root/.cache/huggingface
+                - host_path: "~/.cache/huggingface"
+                  container_path: /root/.cache/huggingface
+              script_configuration:
+                base64_script: IyEvYmluL2Jhc2gKCiMgRW5kbGVzcyBsb29wCndoaWxlIHRydWUKZG8KICAgICMgRmV0Y2ggYSBjYXQgZmFjdCB3aXRoIGEgbWF4aW11bSBsZW5ndGggb2YgMTQwIGNoYXJhY3RlcnMKICAgIGN1cmwgLS1uby1wcm9ncmVzcy1tZXRlciBodHRwczovL2NhdGZhY3QubmluamEvZmFjdD9tYXhfbGVuZ3RoPTE0MAoKICAgICMgUHJpbnQgYSBuZXdsaW5lIGZvciByZWFkYWJpbGl0eQogICAgZWNobwoKICAgICMgU2xlZXAgZm9yIDMgc2Vjb25kcyBiZWZvcmUgdGhlIG5leHQgaXRlcmF0aW9uCiAgICBzbGVlcCAzCmRvbmUKCgo=
+              type: docker
+            cloud_instance_type: gpu_1x_a6000
+            ip: 1.0.0.1
+            created_at: 2016-08-29T09:12:33.001Z
+            cloud_assigned_id: 13b057d7-e266-4869-985f-760fe75a78b3
+            deleted_at: 2016-08-29T09:12:33.001Z
+            shade_cloud: true
+            shade_instance_type: A6000
+            tags:
+            - tag1
+            - tag1
+            cloud: hyperstack
+            hourly_price: 210
+            cost_estimate: "103.4"
+            boot_time:
+              max_boot_in_sec: 300
+              min_boot_in_sec: 180
+            port_mappings:
+            - external_port: 80
+              internal_port: 8000
+            - external_port: 80
+              internal_port: 8000
+            name: cool-gpu-server
+            id: d290f1ee-6c54-4b01-90e6-d701748f0851
+            region: canada-1
+            active_at: 2016-08-29T09:12:33.001Z
+            status_details: downloading
+            ssh_user: shadeform
+            status: active
+          - ssh_port: 22
+            configuration:
+              nvlink: true
+              os: ubuntu_22_shade_os
+              num_gpus: 1
+              gpu_type: A100
+              memory_in_gb: 12
+              vram_per_gpu_in_gb: 48
+              vcpus: 6
+              storage_in_gb: 256
+              interconnect: pcie
+              gpu_manufacturer: nvidia
+            launch_configuration:
+              docker_configuration:
+                args: --model mistralai/Mistral-7B-v0.1
+                shared_memory_in_gb: 8
+                image: vllm/vllm-openai:latest
+                port_mappings:
+                - container_port: 8000
+                  host_port: 80
+                - container_port: 8000
+                  host_port: 80
+                registry_credentials:
+                  password: password
+                  username: username
+                envs:
+                - name: HUGGING_FACE_HUB_TOKEN
+                  value: hugging_face_api_token
+                - name: HUGGING_FACE_HUB_TOKEN
+                  value: hugging_face_api_token
+                volume_mounts:
+                - host_path: "~/.cache/huggingface"
+                  container_path: /root/.cache/huggingface
+                - host_path: "~/.cache/huggingface"
+                  container_path: /root/.cache/huggingface
+              script_configuration:
+                base64_script: IyEvYmluL2Jhc2gKCiMgRW5kbGVzcyBsb29wCndoaWxlIHRydWUKZG8KICAgICMgRmV0Y2ggYSBjYXQgZmFjdCB3aXRoIGEgbWF4aW11bSBsZW5ndGggb2YgMTQwIGNoYXJhY3RlcnMKICAgIGN1cmwgLS1uby1wcm9ncmVzcy1tZXRlciBodHRwczovL2NhdGZhY3QubmluamEvZmFjdD9tYXhfbGVuZ3RoPTE0MAoKICAgICMgUHJpbnQgYSBuZXdsaW5lIGZvciByZWFkYWJpbGl0eQogICAgZWNobwoKICAgICMgU2xlZXAgZm9yIDMgc2Vjb25kcyBiZWZvcmUgdGhlIG5leHQgaXRlcmF0aW9uCiAgICBzbGVlcCAzCmRvbmUKCgo=
+              type: docker
+            cloud_instance_type: gpu_1x_a6000
+            ip: 1.0.0.1
+            created_at: 2016-08-29T09:12:33.001Z
+            cloud_assigned_id: 13b057d7-e266-4869-985f-760fe75a78b3
+            deleted_at: 2016-08-29T09:12:33.001Z
+            shade_cloud: true
+            shade_instance_type: A6000
+            tags:
+            - tag1
+            - tag1
+            cloud: hyperstack
+            hourly_price: 210
+            cost_estimate: "103.4"
+            boot_time:
+              max_boot_in_sec: 300
+              min_boot_in_sec: 180
+            port_mappings:
+            - external_port: 80
+              internal_port: 8000
+            - external_port: 80
+              internal_port: 8000
+            name: cool-gpu-server
+            id: d290f1ee-6c54-4b01-90e6-d701748f0851
+            region: canada-1
+            active_at: 2016-08-29T09:12:33.001Z
+            status_details: downloading
+            ssh_user: shadeform
+            status: active
+          created_at: 2000-01-23T04:56:07.000+00:00
+          cloud: denvr
+          hourly_price: 1500
+          cloud_cluster_id: cluster-abc123
+          cost_estimate: $15.00
+          region_info:
+            region: houston-usa-1
+            display_name: "US, Houston, TX"
+          updated_at: 2000-01-23T04:56:07.000+00:00
+          name: devnr-cluster1
+          id: 8eda86fe-0f36-41ed-9837-0ccf8f6e0fcb
+          active_at: 2000-01-23T04:56:07.000+00:00
+          status_details: Cluster is provisioning
+          status: active
+        - instances:
+          - ssh_port: 22
+            configuration:
+              nvlink: true
+              os: ubuntu_22_shade_os
+              num_gpus: 1
+              gpu_type: A100
+              memory_in_gb: 12
+              vram_per_gpu_in_gb: 48
+              vcpus: 6
+              storage_in_gb: 256
+              interconnect: pcie
+              gpu_manufacturer: nvidia
+            launch_configuration:
+              docker_configuration:
+                args: --model mistralai/Mistral-7B-v0.1
+                shared_memory_in_gb: 8
+                image: vllm/vllm-openai:latest
+                port_mappings:
+                - container_port: 8000
+                  host_port: 80
+                - container_port: 8000
+                  host_port: 80
+                registry_credentials:
+                  password: password
+                  username: username
+                envs:
+                - name: HUGGING_FACE_HUB_TOKEN
+                  value: hugging_face_api_token
+                - name: HUGGING_FACE_HUB_TOKEN
+                  value: hugging_face_api_token
+                volume_mounts:
+                - host_path: "~/.cache/huggingface"
+                  container_path: /root/.cache/huggingface
+                - host_path: "~/.cache/huggingface"
+                  container_path: /root/.cache/huggingface
+              script_configuration:
+                base64_script: IyEvYmluL2Jhc2gKCiMgRW5kbGVzcyBsb29wCndoaWxlIHRydWUKZG8KICAgICMgRmV0Y2ggYSBjYXQgZmFjdCB3aXRoIGEgbWF4aW11bSBsZW5ndGggb2YgMTQwIGNoYXJhY3RlcnMKICAgIGN1cmwgLS1uby1wcm9ncmVzcy1tZXRlciBodHRwczovL2NhdGZhY3QubmluamEvZmFjdD9tYXhfbGVuZ3RoPTE0MAoKICAgICMgUHJpbnQgYSBuZXdsaW5lIGZvciByZWFkYWJpbGl0eQogICAgZWNobwoKICAgICMgU2xlZXAgZm9yIDMgc2Vjb25kcyBiZWZvcmUgdGhlIG5leHQgaXRlcmF0aW9uCiAgICBzbGVlcCAzCmRvbmUKCgo=
+              type: docker
+            cloud_instance_type: gpu_1x_a6000
+            ip: 1.0.0.1
+            created_at: 2016-08-29T09:12:33.001Z
+            cloud_assigned_id: 13b057d7-e266-4869-985f-760fe75a78b3
+            deleted_at: 2016-08-29T09:12:33.001Z
+            shade_cloud: true
+            shade_instance_type: A6000
+            tags:
+            - tag1
+            - tag1
+            cloud: hyperstack
+            hourly_price: 210
+            cost_estimate: "103.4"
+            boot_time:
+              max_boot_in_sec: 300
+              min_boot_in_sec: 180
+            port_mappings:
+            - external_port: 80
+              internal_port: 8000
+            - external_port: 80
+              internal_port: 8000
+            name: cool-gpu-server
+            id: d290f1ee-6c54-4b01-90e6-d701748f0851
+            region: canada-1
+            active_at: 2016-08-29T09:12:33.001Z
+            status_details: downloading
+            ssh_user: shadeform
+            status: active
+          - ssh_port: 22
+            configuration:
+              nvlink: true
+              os: ubuntu_22_shade_os
+              num_gpus: 1
+              gpu_type: A100
+              memory_in_gb: 12
+              vram_per_gpu_in_gb: 48
+              vcpus: 6
+              storage_in_gb: 256
+              interconnect: pcie
+              gpu_manufacturer: nvidia
+            launch_configuration:
+              docker_configuration:
+                args: --model mistralai/Mistral-7B-v0.1
+                shared_memory_in_gb: 8
+                image: vllm/vllm-openai:latest
+                port_mappings:
+                - container_port: 8000
+                  host_port: 80
+                - container_port: 8000
+                  host_port: 80
+                registry_credentials:
+                  password: password
+                  username: username
+                envs:
+                - name: HUGGING_FACE_HUB_TOKEN
+                  value: hugging_face_api_token
+                - name: HUGGING_FACE_HUB_TOKEN
+                  value: hugging_face_api_token
+                volume_mounts:
+                - host_path: "~/.cache/huggingface"
+                  container_path: /root/.cache/huggingface
+                - host_path: "~/.cache/huggingface"
+                  container_path: /root/.cache/huggingface
+              script_configuration:
+                base64_script: IyEvYmluL2Jhc2gKCiMgRW5kbGVzcyBsb29wCndoaWxlIHRydWUKZG8KICAgICMgRmV0Y2ggYSBjYXQgZmFjdCB3aXRoIGEgbWF4aW11bSBsZW5ndGggb2YgMTQwIGNoYXJhY3RlcnMKICAgIGN1cmwgLS1uby1wcm9ncmVzcy1tZXRlciBodHRwczovL2NhdGZhY3QubmluamEvZmFjdD9tYXhfbGVuZ3RoPTE0MAoKICAgICMgUHJpbnQgYSBuZXdsaW5lIGZvciByZWFkYWJpbGl0eQogICAgZWNobwoKICAgICMgU2xlZXAgZm9yIDMgc2Vjb25kcyBiZWZvcmUgdGhlIG5leHQgaXRlcmF0aW9uCiAgICBzbGVlcCAzCmRvbmUKCgo=
+              type: docker
+            cloud_instance_type: gpu_1x_a6000
+            ip: 1.0.0.1
+            created_at: 2016-08-29T09:12:33.001Z
+            cloud_assigned_id: 13b057d7-e266-4869-985f-760fe75a78b3
+            deleted_at: 2016-08-29T09:12:33.001Z
+            shade_cloud: true
+            shade_instance_type: A6000
+            tags:
+            - tag1
+            - tag1
+            cloud: hyperstack
+            hourly_price: 210
+            cost_estimate: "103.4"
+            boot_time:
+              max_boot_in_sec: 300
+              min_boot_in_sec: 180
+            port_mappings:
+            - external_port: 80
+              internal_port: 8000
+            - external_port: 80
+              internal_port: 8000
+            name: cool-gpu-server
+            id: d290f1ee-6c54-4b01-90e6-d701748f0851
+            region: canada-1
+            active_at: 2016-08-29T09:12:33.001Z
+            status_details: downloading
+            ssh_user: shadeform
+            status: active
+          created_at: 2000-01-23T04:56:07.000+00:00
+          cloud: denvr
+          hourly_price: 1500
+          cloud_cluster_id: cluster-abc123
+          cost_estimate: $15.00
+          region_info:
+            region: houston-usa-1
+            display_name: "US, Houston, TX"
+          updated_at: 2000-01-23T04:56:07.000+00:00
+          name: devnr-cluster1
+          id: 8eda86fe-0f36-41ed-9837-0ccf8f6e0fcb
+          active_at: 2000-01-23T04:56:07.000+00:00
+          status_details: Cluster is provisioning
+          status: active
+      properties:
+        clusters:
+          items:
+            $ref: '#/components/schemas/Cluster'
+          type: array
+      required:
+      - clusters
+      type: object
+    Cluster:
+      example:
+        instances:
+        - ssh_port: 22
+          configuration:
+            nvlink: true
+            os: ubuntu_22_shade_os
+            num_gpus: 1
+            gpu_type: A100
+            memory_in_gb: 12
+            vram_per_gpu_in_gb: 48
+            vcpus: 6
+            storage_in_gb: 256
+            interconnect: pcie
+            gpu_manufacturer: nvidia
+          launch_configuration:
+            docker_configuration:
+              args: --model mistralai/Mistral-7B-v0.1
+              shared_memory_in_gb: 8
+              image: vllm/vllm-openai:latest
+              port_mappings:
+              - container_port: 8000
+                host_port: 80
+              - container_port: 8000
+                host_port: 80
+              registry_credentials:
+                password: password
+                username: username
+              envs:
+              - name: HUGGING_FACE_HUB_TOKEN
+                value: hugging_face_api_token
+              - name: HUGGING_FACE_HUB_TOKEN
+                value: hugging_face_api_token
+              volume_mounts:
+              - host_path: "~/.cache/huggingface"
+                container_path: /root/.cache/huggingface
+              - host_path: "~/.cache/huggingface"
+                container_path: /root/.cache/huggingface
+            script_configuration:
+              base64_script: IyEvYmluL2Jhc2gKCiMgRW5kbGVzcyBsb29wCndoaWxlIHRydWUKZG8KICAgICMgRmV0Y2ggYSBjYXQgZmFjdCB3aXRoIGEgbWF4aW11bSBsZW5ndGggb2YgMTQwIGNoYXJhY3RlcnMKICAgIGN1cmwgLS1uby1wcm9ncmVzcy1tZXRlciBodHRwczovL2NhdGZhY3QubmluamEvZmFjdD9tYXhfbGVuZ3RoPTE0MAoKICAgICMgUHJpbnQgYSBuZXdsaW5lIGZvciByZWFkYWJpbGl0eQogICAgZWNobwoKICAgICMgU2xlZXAgZm9yIDMgc2Vjb25kcyBiZWZvcmUgdGhlIG5leHQgaXRlcmF0aW9uCiAgICBzbGVlcCAzCmRvbmUKCgo=
+            type: docker
+          cloud_instance_type: gpu_1x_a6000
+          ip: 1.0.0.1
+          created_at: 2016-08-29T09:12:33.001Z
+          cloud_assigned_id: 13b057d7-e266-4869-985f-760fe75a78b3
+          deleted_at: 2016-08-29T09:12:33.001Z
+          shade_cloud: true
+          shade_instance_type: A6000
+          tags:
+          - tag1
+          - tag1
+          cloud: hyperstack
+          hourly_price: 210
+          cost_estimate: "103.4"
+          boot_time:
+            max_boot_in_sec: 300
+            min_boot_in_sec: 180
+          port_mappings:
+          - external_port: 80
+            internal_port: 8000
+          - external_port: 80
+            internal_port: 8000
+          name: cool-gpu-server
+          id: d290f1ee-6c54-4b01-90e6-d701748f0851
+          region: canada-1
+          active_at: 2016-08-29T09:12:33.001Z
+          status_details: downloading
+          ssh_user: shadeform
+          status: active
+        - ssh_port: 22
+          configuration:
+            nvlink: true
+            os: ubuntu_22_shade_os
+            num_gpus: 1
+            gpu_type: A100
+            memory_in_gb: 12
+            vram_per_gpu_in_gb: 48
+            vcpus: 6
+            storage_in_gb: 256
+            interconnect: pcie
+            gpu_manufacturer: nvidia
+          launch_configuration:
+            docker_configuration:
+              args: --model mistralai/Mistral-7B-v0.1
+              shared_memory_in_gb: 8
+              image: vllm/vllm-openai:latest
+              port_mappings:
+              - container_port: 8000
+                host_port: 80
+              - container_port: 8000
+                host_port: 80
+              registry_credentials:
+                password: password
+                username: username
+              envs:
+              - name: HUGGING_FACE_HUB_TOKEN
+                value: hugging_face_api_token
+              - name: HUGGING_FACE_HUB_TOKEN
+                value: hugging_face_api_token
+              volume_mounts:
+              - host_path: "~/.cache/huggingface"
+                container_path: /root/.cache/huggingface
+              - host_path: "~/.cache/huggingface"
+                container_path: /root/.cache/huggingface
+            script_configuration:
+              base64_script: IyEvYmluL2Jhc2gKCiMgRW5kbGVzcyBsb29wCndoaWxlIHRydWUKZG8KICAgICMgRmV0Y2ggYSBjYXQgZmFjdCB3aXRoIGEgbWF4aW11bSBsZW5ndGggb2YgMTQwIGNoYXJhY3RlcnMKICAgIGN1cmwgLS1uby1wcm9ncmVzcy1tZXRlciBodHRwczovL2NhdGZhY3QubmluamEvZmFjdD9tYXhfbGVuZ3RoPTE0MAoKICAgICMgUHJpbnQgYSBuZXdsaW5lIGZvciByZWFkYWJpbGl0eQogICAgZWNobwoKICAgICMgU2xlZXAgZm9yIDMgc2Vjb25kcyBiZWZvcmUgdGhlIG5leHQgaXRlcmF0aW9uCiAgICBzbGVlcCAzCmRvbmUKCgo=
+            type: docker
+          cloud_instance_type: gpu_1x_a6000
+          ip: 1.0.0.1
+          created_at: 2016-08-29T09:12:33.001Z
+          cloud_assigned_id: 13b057d7-e266-4869-985f-760fe75a78b3
+          deleted_at: 2016-08-29T09:12:33.001Z
+          shade_cloud: true
+          shade_instance_type: A6000
+          tags:
+          - tag1
+          - tag1
+          cloud: hyperstack
+          hourly_price: 210
+          cost_estimate: "103.4"
+          boot_time:
+            max_boot_in_sec: 300
+            min_boot_in_sec: 180
+          port_mappings:
+          - external_port: 80
+            internal_port: 8000
+          - external_port: 80
+            internal_port: 8000
+          name: cool-gpu-server
+          id: d290f1ee-6c54-4b01-90e6-d701748f0851
+          region: canada-1
+          active_at: 2016-08-29T09:12:33.001Z
+          status_details: downloading
+          ssh_user: shadeform
+          status: active
+        created_at: 2000-01-23T04:56:07.000+00:00
+        cloud: denvr
+        hourly_price: 1500
+        cloud_cluster_id: cluster-abc123
+        cost_estimate: $15.00
+        region_info:
+          region: houston-usa-1
+          display_name: "US, Houston, TX"
+        updated_at: 2000-01-23T04:56:07.000+00:00
+        name: devnr-cluster1
+        id: 8eda86fe-0f36-41ed-9837-0ccf8f6e0fcb
+        active_at: 2000-01-23T04:56:07.000+00:00
+        status_details: Cluster is provisioning
+        status: active
+      properties:
+        id:
+          description: The unique identifier for the cluster.
+          example: 8eda86fe-0f36-41ed-9837-0ccf8f6e0fcb
+          format: uuid
+          type: string
+        cloud:
+          description: The cloud provider for the cluster.
+          example: denvr
+          type: string
+        name:
+          description: The name of the cluster.
+          example: devnr-cluster1
+          type: string
+        cloud_cluster_id:
+          description: The cloud provider assigned cluster ID.
+          example: cluster-abc123
+          nullable: true
+          type: string
+        region_info:
+          $ref: '#/components/schemas/ClusterRegionInfo'
+        status:
+          description: The current status of the cluster.
+          example: active
+          type: string
+        status_details:
+          description: Additional details about the cluster status.
+          example: Cluster is provisioning
+          nullable: true
+          type: string
+        created_at:
+          description: The timestamp when the cluster was created.
+          format: date-time
+          type: string
+        updated_at:
+          description: The timestamp when the cluster was last updated.
+          format: date-time
+          type: string
+        instances:
+          description: Array of instances in the cluster.
+          items:
+            $ref: '#/components/schemas/Instance'
+          type: array
+        hourly_price:
+          description: The hourly price of the cluster in cents.
+          example: 1500
+          type: integer
+        cost_estimate:
+          description: Estimated cost of the cluster.
+          example: $15.00
+          nullable: true
+          type: string
+        active_at:
+          description: The timestamp when the cluster became active.
+          format: date-time
+          nullable: true
+          type: string
+      required:
+      - cloud
+      - created_at
+      - hourly_price
+      - id
+      - instances
+      - name
+      - region_info
+      - status
+      - updated_at
+      type: object
+    ClusterRegionInfo:
+      example:
+        region: houston-usa-1
+        display_name: "US, Houston, TX"
+      properties:
+        region:
+          description: The region code.
+          example: houston-usa-1
+          type: string
+        display_name:
+          description: Human-readable display name for the region.
+          example: "US, Houston, TX"
+          type: string
+      required:
+      - display_name
+      - region
+      type: object
+    ClusterAvailability:
+      properties:
+        region:
+          description: The region code.
+          example: houston-usa-1
+          type: string
+        display_name:
+          description: Human-readable display name for the region.
+          example: "US, Houston, TX"
+          type: string
+        available:
+          description: Whether the cluster type is available in this region.
+          example: true
+          type: boolean
+      required:
+      - available
+      - display_name
+      - region
+      type: object
+    ClusterTypesResponse:
+      example:
+        cluster_types:
+        - cloud: denvr
+          num_instances: 2
+          availability:
+            region: houston-usa-1
+            display_name: "US, Houston, TX"
+            available: true
+          cluster_type:
+            cloud: denvr
+            shade_instance_type: H100_sxm5x8
+            cloud_instance_type: H100_80GB_SXM_8x
+            configuration:
+              memory_in_gb: 940
+              storage_in_gb: 20000
+              vcpus: 208
+              num_gpus: 8
+              gpu_type: H100
+              interconnect: sxm5
+              nvlink: true
+              os_options:
+              - ubuntu22.04_cuda12.4_shade_os
+              - ubuntu20.04_cuda12.4_shade_os
+              - ubuntu20.04
+              - ubuntu22.04
+              vram_per_gpu_in_gb: 80
+              gpu_manufacturer: nvidia
+            memory_in_gb: 940
+            storage_in_gb: 20000
+            vcpus: 208
+            num_gpus: 8
+            gpu_type: H100
+            interconnect: sxm5
+            nvlink: true
+            hourly_price: 1400
+            boot_time:
+              min_boot_in_sec: 600
+              max_boot_in_sec: 1200
+            deployment_type: vm
+      properties:
+        cluster_types:
+          example:
+          - cloud: denvr
+            num_instances: 2
+            availability:
+              region: houston-usa-1
+              display_name: "US, Houston, TX"
+              available: true
+            cluster_type:
+              cloud: denvr
+              shade_instance_type: H100_sxm5x8
+              cloud_instance_type: H100_80GB_SXM_8x
+              configuration:
+                memory_in_gb: 940
+                storage_in_gb: 20000
+                vcpus: 208
+                num_gpus: 8
+                gpu_type: H100
+                interconnect: sxm5
+                nvlink: true
+                os_options:
+                - ubuntu22.04_cuda12.4_shade_os
+                - ubuntu20.04_cuda12.4_shade_os
+                - ubuntu20.04
+                - ubuntu22.04
+                vram_per_gpu_in_gb: 80
+                gpu_manufacturer: nvidia
+              memory_in_gb: 940
+              storage_in_gb: 20000
+              vcpus: 208
+              num_gpus: 8
+              gpu_type: H100
+              interconnect: sxm5
+              nvlink: true
+              hourly_price: 1400
+              boot_time:
+                min_boot_in_sec: 600
+                max_boot_in_sec: 1200
+              deployment_type: vm
+          items:
+            $ref: '#/components/schemas/ClusterType'
+          type: array
+      required:
+      - cluster_types
+      type: object
+    ClusterType:
+      properties:
+        cloud:
+          description: The cloud provider.
+          example: denvr
+          type: string
+        num_instances:
+          description: The number of instances in this cluster type.
+          example: 2
+          type: integer
+        availability:
+          $ref: '#/components/schemas/ClusterAvailability'
+        cluster_type:
+          $ref: '#/components/schemas/InstanceType'
+      required:
+      - availability
+      - cloud
+      - cluster_type
+      - num_instances
+      type: object
+    CreateClusterRequest:
+      example:
+        cloud: denvr
+        os: ubuntu20.04
+        ssh_key_id: f0c6ac6d-7240-4968-8eb7-a11c4a0a5dc6
+        name: protestant-aquamarine-cluster
+        cluster_type: H100_sxm5x8
+        region: houston-usa-1
+        num_instances: 2
+      properties:
+        name:
+          description: The name of the cluster.
+          example: protestant-aquamarine-cluster
+          type: string
+        cloud:
+          description: The cloud provider for the cluster.
+          example: denvr
+          type: string
+        region:
+          description: The region where the cluster will be deployed.
+          example: houston-usa-1
+          type: string
+        cluster_type:
+          description: The type of GPU cluster to create.
+          example: H100_sxm5x8
+          type: string
+        num_instances:
+          description: The number of instances in the cluster.
+          example: 2
+          type: integer
+        ssh_key_id:
+          description: The SSH key ID to use for the cluster instances.
+          example: f0c6ac6d-7240-4968-8eb7-a11c4a0a5dc6
+          type: string
+        os:
+          description: The operating system for the cluster.
+          example: ubuntu20.04
+          type: string
+      required:
+      - cloud
+      - cluster_type
+      - name
+      - num_instances
+      - region
+      type: object
+    CreateClusterResponse:
+      description: Response of the /clusters/create API call
+      example:
+        id: 8eda86fe-0f36-41ed-9837-0ccf8f6e0fcb
+      properties:
+        id:
+          description: The unique identifier for the newly created cluster.
+          example: 8eda86fe-0f36-41ed-9837-0ccf8f6e0fcb
+          format: uuid
+          type: string
+      required:
+      - id
+      type: object
+    ClusterInfoResponse:
+      allOf:
+      - $ref: '#/components/schemas/Cluster'
+      example:
+        instances:
+        - ssh_port: 22
+          configuration:
+            nvlink: true
+            os: ubuntu_22_shade_os
+            num_gpus: 1
+            gpu_type: A100
+            memory_in_gb: 12
+            vram_per_gpu_in_gb: 48
+            vcpus: 6
+            storage_in_gb: 256
+            interconnect: pcie
+            gpu_manufacturer: nvidia
+          launch_configuration:
+            docker_configuration:
+              args: --model mistralai/Mistral-7B-v0.1
+              shared_memory_in_gb: 8
+              image: vllm/vllm-openai:latest
+              port_mappings:
+              - container_port: 8000
+                host_port: 80
+              - container_port: 8000
+                host_port: 80
+              registry_credentials:
+                password: password
+                username: username
+              envs:
+              - name: HUGGING_FACE_HUB_TOKEN
+                value: hugging_face_api_token
+              - name: HUGGING_FACE_HUB_TOKEN
+                value: hugging_face_api_token
+              volume_mounts:
+              - host_path: "~/.cache/huggingface"
+                container_path: /root/.cache/huggingface
+              - host_path: "~/.cache/huggingface"
+                container_path: /root/.cache/huggingface
+            script_configuration:
+              base64_script: IyEvYmluL2Jhc2gKCiMgRW5kbGVzcyBsb29wCndoaWxlIHRydWUKZG8KICAgICMgRmV0Y2ggYSBjYXQgZmFjdCB3aXRoIGEgbWF4aW11bSBsZW5ndGggb2YgMTQwIGNoYXJhY3RlcnMKICAgIGN1cmwgLS1uby1wcm9ncmVzcy1tZXRlciBodHRwczovL2NhdGZhY3QubmluamEvZmFjdD9tYXhfbGVuZ3RoPTE0MAoKICAgICMgUHJpbnQgYSBuZXdsaW5lIGZvciByZWFkYWJpbGl0eQogICAgZWNobwoKICAgICMgU2xlZXAgZm9yIDMgc2Vjb25kcyBiZWZvcmUgdGhlIG5leHQgaXRlcmF0aW9uCiAgICBzbGVlcCAzCmRvbmUKCgo=
+            type: docker
+          cloud_instance_type: gpu_1x_a6000
+          ip: 1.0.0.1
+          created_at: 2016-08-29T09:12:33.001Z
+          cloud_assigned_id: 13b057d7-e266-4869-985f-760fe75a78b3
+          deleted_at: 2016-08-29T09:12:33.001Z
+          shade_cloud: true
+          shade_instance_type: A6000
+          tags:
+          - tag1
+          - tag1
+          cloud: hyperstack
+          hourly_price: 210
+          cost_estimate: "103.4"
+          boot_time:
+            max_boot_in_sec: 300
+            min_boot_in_sec: 180
+          port_mappings:
+          - external_port: 80
+            internal_port: 8000
+          - external_port: 80
+            internal_port: 8000
+          name: cool-gpu-server
+          id: d290f1ee-6c54-4b01-90e6-d701748f0851
+          region: canada-1
+          active_at: 2016-08-29T09:12:33.001Z
+          status_details: downloading
+          ssh_user: shadeform
+          status: active
+        - ssh_port: 22
+          configuration:
+            nvlink: true
+            os: ubuntu_22_shade_os
+            num_gpus: 1
+            gpu_type: A100
+            memory_in_gb: 12
+            vram_per_gpu_in_gb: 48
+            vcpus: 6
+            storage_in_gb: 256
+            interconnect: pcie
+            gpu_manufacturer: nvidia
+          launch_configuration:
+            docker_configuration:
+              args: --model mistralai/Mistral-7B-v0.1
+              shared_memory_in_gb: 8
+              image: vllm/vllm-openai:latest
+              port_mappings:
+              - container_port: 8000
+                host_port: 80
+              - container_port: 8000
+                host_port: 80
+              registry_credentials:
+                password: password
+                username: username
+              envs:
+              - name: HUGGING_FACE_HUB_TOKEN
+                value: hugging_face_api_token
+              - name: HUGGING_FACE_HUB_TOKEN
+                value: hugging_face_api_token
+              volume_mounts:
+              - host_path: "~/.cache/huggingface"
+                container_path: /root/.cache/huggingface
+              - host_path: "~/.cache/huggingface"
+                container_path: /root/.cache/huggingface
+            script_configuration:
+              base64_script: IyEvYmluL2Jhc2gKCiMgRW5kbGVzcyBsb29wCndoaWxlIHRydWUKZG8KICAgICMgRmV0Y2ggYSBjYXQgZmFjdCB3aXRoIGEgbWF4aW11bSBsZW5ndGggb2YgMTQwIGNoYXJhY3RlcnMKICAgIGN1cmwgLS1uby1wcm9ncmVzcy1tZXRlciBodHRwczovL2NhdGZhY3QubmluamEvZmFjdD9tYXhfbGVuZ3RoPTE0MAoKICAgICMgUHJpbnQgYSBuZXdsaW5lIGZvciByZWFkYWJpbGl0eQogICAgZWNobwoKICAgICMgU2xlZXAgZm9yIDMgc2Vjb25kcyBiZWZvcmUgdGhlIG5leHQgaXRlcmF0aW9uCiAgICBzbGVlcCAzCmRvbmUKCgo=
+            type: docker
+          cloud_instance_type: gpu_1x_a6000
+          ip: 1.0.0.1
+          created_at: 2016-08-29T09:12:33.001Z
+          cloud_assigned_id: 13b057d7-e266-4869-985f-760fe75a78b3
+          deleted_at: 2016-08-29T09:12:33.001Z
+          shade_cloud: true
+          shade_instance_type: A6000
+          tags:
+          - tag1
+          - tag1
+          cloud: hyperstack
+          hourly_price: 210
+          cost_estimate: "103.4"
+          boot_time:
+            max_boot_in_sec: 300
+            min_boot_in_sec: 180
+          port_mappings:
+          - external_port: 80
+            internal_port: 8000
+          - external_port: 80
+            internal_port: 8000
+          name: cool-gpu-server
+          id: d290f1ee-6c54-4b01-90e6-d701748f0851
+          region: canada-1
+          active_at: 2016-08-29T09:12:33.001Z
+          status_details: downloading
+          ssh_user: shadeform
+          status: active
+        created_at: 2000-01-23T04:56:07.000+00:00
+        cloud: denvr
+        hourly_price: 1500
+        cloud_cluster_id: cluster-abc123
+        cost_estimate: $15.00
+        region_info:
+          region: houston-usa-1
+          display_name: "US, Houston, TX"
+        updated_at: 2000-01-23T04:56:07.000+00:00
+        name: devnr-cluster1
+        id: 8eda86fe-0f36-41ed-9837-0ccf8f6e0fcb
+        active_at: 2000-01-23T04:56:07.000+00:00
+        status_details: Cluster is provisioning
+        status: active
     Cloud:
       description: "Specifies the underlying cloud provider. See this [explanation](/getting-started/concepts#cloud-cloud-provider)\
         \ for more details."
-      enum:
-      - lambdalabs
-      - paperspace
-      - vultr
-      - datacrunch
-      - latitude
-      - massedcompute
-      - imwt
-      - hyperstack
-      - nebius
-      - crusoe
-      - denvr
-      - digitalocean
-      - tcm
-      - hotaisle
-      - cudo
-      - scaleway
-      - evergreen
-      - excesssupply
-      - voltagepark
-      - boostrun
-      - ionstream
-      - whitefiber
-      - horizon
-      - fpt
-      - hydra
-      - amaya
-      - verda
       example: hyperstack
       type: string
     Region:
@@ -2069,7 +3012,10 @@ components:
         size_in_gb: 100
       properties:
         cloud:
-          $ref: '#/components/schemas/Cloud'
+          description: "Specifies the underlying cloud provider. See this [explanation](/getting-started/concepts#cloud-cloud-provider)\
+            \ for more details."
+          example: hyperstack
+          type: string
         region:
           description: Specifies the region.
           example: canada-1
@@ -2138,7 +3084,10 @@ components:
           example: 78a0dd5a-dbb1-4568-b55c-5e7e0a8b0c40
           type: string
         cloud:
-          $ref: '#/components/schemas/Cloud'
+          description: "Specifies the underlying cloud provider. See this [explanation](/getting-started/concepts#cloud-cloud-provider)\
+            \ for more details."
+          example: hyperstack
+          type: string
         cloud_assigned_id:
           description: The unique identifier of the storage volume issued by the underlying
             cloud provider.
@@ -2726,7 +3675,10 @@ components:
         region: canada-1
       properties:
         cloud:
-          $ref: '#/components/schemas/Cloud'
+          description: "Specifies the underlying cloud provider. See this [explanation](/getting-started/concepts#cloud-cloud-provider)\
+            \ for more details."
+          example: hyperstack
+          type: string
         region:
           description: Specifies the region.
           example: canada-1

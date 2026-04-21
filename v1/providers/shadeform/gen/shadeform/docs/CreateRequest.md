@@ -4,7 +4,7 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**Cloud** | [**Cloud**](Cloud.md) |  | 
+**Cloud** | **string** | Specifies the underlying cloud provider. See this [explanation](/getting-started/concepts#cloud-cloud-provider) for more details. | 
 **Region** | **string** | Specifies the region. | 
 **ShadeInstanceType** | **string** | The Shadeform standardized instance type. See this [explanation](/getting-started/concepts#shade-instance-type-and-cloud-instance-type) for more details. | 
 **ShadeCloud** | **bool** | Specifies if the instance is launched in [Shade Cloud](/getting-started/concepts#shade-cloud) or in a linked cloud account. | 
@@ -24,7 +24,7 @@ Name | Type | Description | Notes
 
 ### NewCreateRequest
 
-`func NewCreateRequest(cloud Cloud, region string, shadeInstanceType string, shadeCloud bool, name string, ) *CreateRequest`
+`func NewCreateRequest(cloud string, region string, shadeInstanceType string, shadeCloud bool, name string, ) *CreateRequest`
 
 NewCreateRequest instantiates a new CreateRequest object
 This constructor will assign default values to properties that have it defined,
@@ -41,20 +41,20 @@ but it doesn't guarantee that properties required by API are set
 
 ### GetCloud
 
-`func (o *CreateRequest) GetCloud() Cloud`
+`func (o *CreateRequest) GetCloud() string`
 
 GetCloud returns the Cloud field if non-nil, zero value otherwise.
 
 ### GetCloudOk
 
-`func (o *CreateRequest) GetCloudOk() (*Cloud, bool)`
+`func (o *CreateRequest) GetCloudOk() (*string, bool)`
 
 GetCloudOk returns a tuple with the Cloud field if it's non-nil, zero value otherwise
 and a boolean to check if the value has been set.
 
 ### SetCloud
 
-`func (o *CreateRequest) SetCloud(v Cloud)`
+`func (o *CreateRequest) SetCloud(v string)`
 
 SetCloud sets Cloud field to given value.
 

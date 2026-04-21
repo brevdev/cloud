@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/brevdev/cloud/internal/validation"
-	openapi "github.com/brevdev/cloud/v1/providers/shadeform/gen/shadeform"
 
 	"github.com/brevdev/cloud/internal/ssh"
 	v1 "github.com/brevdev/cloud/v1"
@@ -53,8 +52,8 @@ func TestInstanceTypeFilter(t *testing.T) {
 
 	client := NewShadeformClient("validation-test", apiKey)
 	client.WithConfiguration(Configuration{
-		AllowedInstanceTypes: map[openapi.Cloud]map[string]bool{
-			openapi.HYPERSTACK: {
+		AllowedInstanceTypes: map[string]map[string]bool{
+			"hyperstack": {
 				"A4000": true,
 			},
 		},

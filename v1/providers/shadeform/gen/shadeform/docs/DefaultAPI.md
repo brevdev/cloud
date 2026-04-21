@@ -4,6 +4,11 @@ All URIs are relative to *https://api.shadeform.ai/v1*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
+[**Clusters**](DefaultAPI.md#Clusters) | **Get** /clusters | /clusters
+[**ClustersCreate**](DefaultAPI.md#ClustersCreate) | **Post** /clusters/create | /clusters/create
+[**ClustersDelete**](DefaultAPI.md#ClustersDelete) | **Post** /clusters/{id}/delete | /clusters/{id}/delete
+[**ClustersInfo**](DefaultAPI.md#ClustersInfo) | **Get** /clusters/{id}/info | /clusters/{id}/info
+[**ClustersTypes**](DefaultAPI.md#ClustersTypes) | **Get** /clusters/types | /clusters/types
 [**Instances**](DefaultAPI.md#Instances) | **Get** /instances | /instances
 [**InstancesCreate**](DefaultAPI.md#InstancesCreate) | **Post** /instances/create | /instances/create
 [**InstancesDelete**](DefaultAPI.md#InstancesDelete) | **Post** /instances/{id}/delete | /instances/{id}/delete
@@ -28,6 +33,332 @@ Method | HTTP request | Description
 [**VolumesInfo**](DefaultAPI.md#VolumesInfo) | **Get** /volumes/{id}/info | /volumes/{id}/info
 [**VolumesTypes**](DefaultAPI.md#VolumesTypes) | **Get** /volumes/types | /volumes/types
 
+
+
+## Clusters
+
+> ClustersResponse Clusters(ctx).Execute()
+
+/clusters
+
+
+
+### Example
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+	"os"
+	openapiclient "github.com/brevdev/cloud"
+)
+
+func main() {
+
+	configuration := openapiclient.NewConfiguration()
+	apiClient := openapiclient.NewAPIClient(configuration)
+	resp, r, err := apiClient.DefaultAPI.Clusters(context.Background()).Execute()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error when calling `DefaultAPI.Clusters``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
+	}
+	// response from `Clusters`: ClustersResponse
+	fmt.Fprintf(os.Stdout, "Response from `DefaultAPI.Clusters`: %v\n", resp)
+}
+```
+
+### Path Parameters
+
+This endpoint does not need any parameter.
+
+### Other Parameters
+
+Other parameters are passed through a pointer to a apiClustersRequest struct via the builder pattern
+
+
+### Return type
+
+[**ClustersResponse**](ClustersResponse.md)
+
+### Authorization
+
+[ApiKeyAuth](../README.md#ApiKeyAuth)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints)
+[[Back to Model list]](../README.md#documentation-for-models)
+[[Back to README]](../README.md)
+
+
+## ClustersCreate
+
+> CreateClusterResponse ClustersCreate(ctx).CreateClusterRequest(createClusterRequest).Execute()
+
+/clusters/create
+
+
+
+### Example
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+	"os"
+	openapiclient "github.com/brevdev/cloud"
+)
+
+func main() {
+	createClusterRequest := *openapiclient.NewCreateClusterRequest("protestant-aquamarine-cluster", "denvr", "houston-usa-1", "H100_sxm5x8", int32(2)) // CreateClusterRequest |  (optional)
+
+	configuration := openapiclient.NewConfiguration()
+	apiClient := openapiclient.NewAPIClient(configuration)
+	resp, r, err := apiClient.DefaultAPI.ClustersCreate(context.Background()).CreateClusterRequest(createClusterRequest).Execute()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error when calling `DefaultAPI.ClustersCreate``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
+	}
+	// response from `ClustersCreate`: CreateClusterResponse
+	fmt.Fprintf(os.Stdout, "Response from `DefaultAPI.ClustersCreate`: %v\n", resp)
+}
+```
+
+### Path Parameters
+
+
+
+### Other Parameters
+
+Other parameters are passed through a pointer to a apiClustersCreateRequest struct via the builder pattern
+
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **createClusterRequest** | [**CreateClusterRequest**](CreateClusterRequest.md) |  | 
+
+### Return type
+
+[**CreateClusterResponse**](CreateClusterResponse.md)
+
+### Authorization
+
+[ApiKeyAuth](../README.md#ApiKeyAuth)
+
+### HTTP request headers
+
+- **Content-Type**: application/json
+- **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints)
+[[Back to Model list]](../README.md#documentation-for-models)
+[[Back to README]](../README.md)
+
+
+## ClustersDelete
+
+> ClustersDelete(ctx, id).Execute()
+
+/clusters/{id}/delete
+
+
+
+### Example
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+	"os"
+	openapiclient "github.com/brevdev/cloud"
+)
+
+func main() {
+	id := "b1450ae8-2fa3-4ceb-a4f3-b834805418fc" // string | The cluster id
+
+	configuration := openapiclient.NewConfiguration()
+	apiClient := openapiclient.NewAPIClient(configuration)
+	r, err := apiClient.DefaultAPI.ClustersDelete(context.Background(), id).Execute()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error when calling `DefaultAPI.ClustersDelete``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
+	}
+}
+```
+
+### Path Parameters
+
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+**ctx** | **context.Context** | context for authentication, logging, cancellation, deadlines, tracing, etc.
+**id** | **string** | The cluster id | 
+
+### Other Parameters
+
+Other parameters are passed through a pointer to a apiClustersDeleteRequest struct via the builder pattern
+
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+
+
+### Return type
+
+ (empty response body)
+
+### Authorization
+
+[ApiKeyAuth](../README.md#ApiKeyAuth)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: Not defined
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints)
+[[Back to Model list]](../README.md#documentation-for-models)
+[[Back to README]](../README.md)
+
+
+## ClustersInfo
+
+> ClusterInfoResponse ClustersInfo(ctx, id).Execute()
+
+/clusters/{id}/info
+
+
+
+### Example
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+	"os"
+	openapiclient "github.com/brevdev/cloud"
+)
+
+func main() {
+	id := "8eda86fe-0f36-41ed-9837-0ccf8f6e0fcb" // string | The cluster id
+
+	configuration := openapiclient.NewConfiguration()
+	apiClient := openapiclient.NewAPIClient(configuration)
+	resp, r, err := apiClient.DefaultAPI.ClustersInfo(context.Background(), id).Execute()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error when calling `DefaultAPI.ClustersInfo``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
+	}
+	// response from `ClustersInfo`: ClusterInfoResponse
+	fmt.Fprintf(os.Stdout, "Response from `DefaultAPI.ClustersInfo`: %v\n", resp)
+}
+```
+
+### Path Parameters
+
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+**ctx** | **context.Context** | context for authentication, logging, cancellation, deadlines, tracing, etc.
+**id** | **string** | The cluster id | 
+
+### Other Parameters
+
+Other parameters are passed through a pointer to a apiClustersInfoRequest struct via the builder pattern
+
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+
+
+### Return type
+
+[**ClusterInfoResponse**](ClusterInfoResponse.md)
+
+### Authorization
+
+[ApiKeyAuth](../README.md#ApiKeyAuth)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints)
+[[Back to Model list]](../README.md#documentation-for-models)
+[[Back to README]](../README.md)
+
+
+## ClustersTypes
+
+> ClusterTypesResponse ClustersTypes(ctx).Execute()
+
+/clusters/types
+
+
+
+### Example
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+	"os"
+	openapiclient "github.com/brevdev/cloud"
+)
+
+func main() {
+
+	configuration := openapiclient.NewConfiguration()
+	apiClient := openapiclient.NewAPIClient(configuration)
+	resp, r, err := apiClient.DefaultAPI.ClustersTypes(context.Background()).Execute()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error when calling `DefaultAPI.ClustersTypes``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
+	}
+	// response from `ClustersTypes`: ClusterTypesResponse
+	fmt.Fprintf(os.Stdout, "Response from `DefaultAPI.ClustersTypes`: %v\n", resp)
+}
+```
+
+### Path Parameters
+
+This endpoint does not need any parameter.
+
+### Other Parameters
+
+Other parameters are passed through a pointer to a apiClustersTypesRequest struct via the builder pattern
+
+
+### Return type
+
+[**ClusterTypesResponse**](ClusterTypesResponse.md)
+
+### Authorization
+
+[ApiKeyAuth](../README.md#ApiKeyAuth)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints)
+[[Back to Model list]](../README.md#documentation-for-models)
+[[Back to README]](../README.md)
 
 
 ## Instances
@@ -112,7 +443,7 @@ import (
 )
 
 func main() {
-	createRequest := *openapiclient.NewCreateRequest(openapiclient.Cloud("lambdalabs"), "canada-1", "A6000", true, "cool-gpu-server") // CreateRequest |  (optional)
+	createRequest := *openapiclient.NewCreateRequest("hyperstack", "canada-1", "A6000", true, "cool-gpu-server") // CreateRequest |  (optional)
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
@@ -1322,7 +1653,7 @@ import (
 )
 
 func main() {
-	createVolumeRequest := *openapiclient.NewCreateVolumeRequest(openapiclient.Cloud("lambdalabs"), "canada-1", int32(100), "My storage volume") // CreateVolumeRequest |  (optional)
+	createVolumeRequest := *openapiclient.NewCreateVolumeRequest("hyperstack", "canada-1", int32(100), "My storage volume") // CreateVolumeRequest |  (optional)
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)

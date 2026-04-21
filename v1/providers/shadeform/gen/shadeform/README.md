@@ -79,6 +79,11 @@ All URIs are relative to *https://api.shadeform.ai/v1*
 
 Class | Method | HTTP request | Description
 ------------ | ------------- | ------------- | -------------
+*DefaultAPI* | [**Clusters**](docs/DefaultAPI.md#clusters) | **Get** /clusters | /clusters
+*DefaultAPI* | [**ClustersCreate**](docs/DefaultAPI.md#clusterscreate) | **Post** /clusters/create | /clusters/create
+*DefaultAPI* | [**ClustersDelete**](docs/DefaultAPI.md#clustersdelete) | **Post** /clusters/{id}/delete | /clusters/{id}/delete
+*DefaultAPI* | [**ClustersInfo**](docs/DefaultAPI.md#clustersinfo) | **Get** /clusters/{id}/info | /clusters/{id}/info
+*DefaultAPI* | [**ClustersTypes**](docs/DefaultAPI.md#clusterstypes) | **Get** /clusters/types | /clusters/types
 *DefaultAPI* | [**Instances**](docs/DefaultAPI.md#instances) | **Get** /instances | /instances
 *DefaultAPI* | [**InstancesCreate**](docs/DefaultAPI.md#instancescreate) | **Post** /instances/create | /instances/create
 *DefaultAPI* | [**InstancesDelete**](docs/DefaultAPI.md#instancesdelete) | **Post** /instances/{id}/delete | /instances/{id}/delete
@@ -112,7 +117,15 @@ Class | Method | HTTP request | Description
  - [AutoDelete](docs/AutoDelete.md)
  - [Availability](docs/Availability.md)
  - [BootTime](docs/BootTime.md)
- - [Cloud](docs/Cloud.md)
+ - [Cluster](docs/Cluster.md)
+ - [ClusterAvailability](docs/ClusterAvailability.md)
+ - [ClusterInfoResponse](docs/ClusterInfoResponse.md)
+ - [ClusterRegionInfo](docs/ClusterRegionInfo.md)
+ - [ClusterType](docs/ClusterType.md)
+ - [ClusterTypesResponse](docs/ClusterTypesResponse.md)
+ - [ClustersResponse](docs/ClustersResponse.md)
+ - [CreateClusterRequest](docs/CreateClusterRequest.md)
+ - [CreateClusterResponse](docs/CreateClusterResponse.md)
  - [CreateRequest](docs/CreateRequest.md)
  - [CreateResponse](docs/CreateResponse.md)
  - [CreateVolumeRequest](docs/CreateVolumeRequest.md)

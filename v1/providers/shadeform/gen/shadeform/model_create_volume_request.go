@@ -21,7 +21,8 @@ var _ MappedNullable = &CreateVolumeRequest{}
 
 // CreateVolumeRequest struct for CreateVolumeRequest
 type CreateVolumeRequest struct {
-	Cloud Cloud `json:"cloud"`
+	// Specifies the underlying cloud provider. See this [explanation](/getting-started/concepts#cloud-cloud-provider) for more details.
+	Cloud string `json:"cloud"`
 	// Specifies the region.
 	Region string `json:"region"`
 	// Storage volume size in GB
@@ -37,7 +38,7 @@ type _CreateVolumeRequest CreateVolumeRequest
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewCreateVolumeRequest(cloud Cloud, region string, sizeInGb int32, name string) *CreateVolumeRequest {
+func NewCreateVolumeRequest(cloud string, region string, sizeInGb int32, name string) *CreateVolumeRequest {
 	this := CreateVolumeRequest{}
 	this.Cloud = cloud
 	this.Region = region
@@ -55,9 +56,9 @@ func NewCreateVolumeRequestWithDefaults() *CreateVolumeRequest {
 }
 
 // GetCloud returns the Cloud field value
-func (o *CreateVolumeRequest) GetCloud() Cloud {
+func (o *CreateVolumeRequest) GetCloud() string {
 	if o == nil {
-		var ret Cloud
+		var ret string
 		return ret
 	}
 
@@ -66,7 +67,7 @@ func (o *CreateVolumeRequest) GetCloud() Cloud {
 
 // GetCloudOk returns a tuple with the Cloud field value
 // and a boolean to check if the value has been set.
-func (o *CreateVolumeRequest) GetCloudOk() (*Cloud, bool) {
+func (o *CreateVolumeRequest) GetCloudOk() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -74,7 +75,7 @@ func (o *CreateVolumeRequest) GetCloudOk() (*Cloud, bool) {
 }
 
 // SetCloud sets field value
-func (o *CreateVolumeRequest) SetCloud(v Cloud) {
+func (o *CreateVolumeRequest) SetCloud(v string) {
 	o.Cloud = v
 }
 
