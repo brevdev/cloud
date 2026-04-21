@@ -20,6 +20,7 @@ const (
 	CloudProviderID                = "naver"
 	architectureX8664              = "x86_64"
 	defaultBaseURL                 = "https://ncloud.apigw.ntruss.com"
+	defaultBillingBaseURL          = "https://billingapi.apigw.ntruss.com"
 	defaultRegionCode              = "KR"
 	defaultServerImageProductCode  = "SW.VSVR.OS.LNX64.UBNTU.SVR24.G003"
 	defaultSSHUser                 = "root"
@@ -77,6 +78,7 @@ type NaverClient struct {
 	accessKey  string
 	secretKey  string
 	baseURL    string
+	billingURL string
 	httpClient *http.Client
 	location   string
 	now        func() time.Time
@@ -86,6 +88,7 @@ var _ cloud.CloudClient = &NaverClient{}
 
 type options struct {
 	baseURL    string
+	billingURL string
 	httpClient *http.Client
 	location   string
 	now        func() time.Time
@@ -96,6 +99,13 @@ type Option func(*options)
 func WithBaseURL(baseURL string) Option {
 	return func(opts *options) {
 		opts.baseURL = strings.TrimRight(baseURL, "/")
+		opts.billingURL = strings.TrimRight(baseURL, "/")
+	}
+}
+
+func WithBillingBaseURL(baseURL string) Option {
+	return func(opts *options) {
+		opts.billingURL = strings.TrimRight(baseURL, "/")
 	}
 }
 
@@ -127,6 +137,7 @@ func NewNaverClient(refID, accessKey, secretKey string, opts ...Option) (*NaverC
 
 	options := options{
 		baseURL:    defaultBaseURL,
+		billingURL: defaultBillingBaseURL,
 		httpClient: http.DefaultClient,
 		location:   defaultRegionCode,
 		now:        time.Now,
@@ -149,6 +160,7 @@ func NewNaverClient(refID, accessKey, secretKey string, opts ...Option) (*NaverC
 		accessKey:  accessKey,
 		secretKey:  secretKey,
 		baseURL:    options.baseURL,
+		billingURL: options.billingURL,
 		httpClient: options.httpClient,
 		location:   options.location,
 		now:        options.now,
@@ -180,19 +192,26 @@ func (c *NaverClient) MakeClient(_ context.Context, location string) (cloud.Clou
 }
 
 func (c *NaverClient) do(ctx context.Context, action string, params url.Values, dst any) error {
+	return c.doNcloud(ctx, c.baseURL, "/vserver/v2/"+action, action, params, dst)
+}
+
+func (c *NaverClient) doBilling(ctx context.Context, action string, params url.Values, dst any) error {
+	return c.doNcloud(ctx, c.billingURL, "/billing/v1/"+action, action, params, dst)
+}
+
+func (c *NaverClient) doNcloud(ctx context.Context, baseURL, path, action string, params url.Values, dst any) error {
 	if params == nil {
 		params = url.Values{}
 	}
 	params.Set("responseFormatType", "json")
 
-	path := "/vserver/v2/" + action
 	query := params.Encode()
 	requestURI := path
 	if query != "" {
 		requestURI += "?" + query
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+requestURI, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, baseURL+requestURI, nil)
 	if err != nil {
 		return err
 	}

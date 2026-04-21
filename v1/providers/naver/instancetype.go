@@ -2,6 +2,7 @@ package v1
 
 import (
 	"context"
+	"encoding/json"
 	"net/url"
 	"regexp"
 	"slices"
@@ -10,7 +11,15 @@ import (
 	"time"
 
 	"github.com/alecthomas/units"
+	"github.com/bojanz/currency"
 	cloud "github.com/brevdev/cloud/v1"
+)
+
+const (
+	defaultPayCurrencyCode     = "USD"
+	ncloudServerProductKindVPC = "VSVR"
+	ncloudMeterRatePriceType   = "MTRAT"
+	ncloudHourlyUsageUnit      = "USAGE_HH"
 )
 
 type serverProductListResponse struct {
@@ -40,6 +49,53 @@ type naverProduct struct {
 	DiskType             codeName `json:"diskType"`
 	PlatformType         codeName `json:"platformType"`
 	GenerationCode       string   `json:"generationCode"`
+}
+
+type productPriceListResponse struct {
+	Response naverProductPriceList `json:"getProductPriceListResponse"`
+}
+
+func (r *productPriceListResponse) apiError() error {
+	return r.Response.apiError()
+}
+
+type naverProductPriceList struct {
+	responseMeta
+	TotalRows        int                 `json:"totalRows"`
+	ProductPriceList []naverProductPrice `json:"productPriceList"`
+}
+
+type naverProductPrice struct {
+	ProductCode string       `json:"productCode"`
+	PriceList   []naverPrice `json:"priceList"`
+}
+
+type naverPrice struct {
+	PriceType   codeName         `json:"priceType"`
+	Unit        codeName         `json:"unit"`
+	Price       naverPriceAmount `json:"price"`
+	PayCurrency naverPayCurrency `json:"payCurrency"`
+}
+
+type naverPayCurrency struct {
+	Code string `json:"code"`
+}
+
+type naverPriceAmount string
+
+func (a *naverPriceAmount) UnmarshalJSON(data []byte) error {
+	var value string
+	if err := json.Unmarshal(data, &value); err == nil {
+		*a = naverPriceAmount(value)
+		return nil
+	}
+
+	var number json.Number
+	if err := json.Unmarshal(data, &number); err != nil {
+		return err
+	}
+	*a = naverPriceAmount(number.String())
+	return nil
 }
 
 func (c *NaverClient) GetInstanceTypePollTime() time.Duration {
@@ -92,9 +148,10 @@ func (c *NaverClient) instanceTypesForLocation(ctx context.Context, location str
 		return nil, err
 	}
 
+	prices := c.productPrices(ctx, location)
 	out := make([]cloud.InstanceType, 0, len(resp.Response.ProductList))
 	for _, product := range resp.Response.ProductList {
-		it := product.toInstanceType(location)
+		it := product.toInstanceType(location, prices[product.ProductCode])
 		if includeInstanceType(it, args) {
 			out = append(out, it)
 		}
@@ -127,7 +184,44 @@ func allowsGPUManufacturer(gpus []cloud.GPU, filter *cloud.GPUManufacturerFilter
 	return false
 }
 
-func (p naverProduct) toInstanceType(location string) cloud.InstanceType {
+func (c *NaverClient) productPrices(ctx context.Context, location string) map[string]*currency.Amount {
+	params := url.Values{}
+	params.Set("regionCode", location)
+	params.Set("productItemKindCode", ncloudServerProductKindVPC)
+	params.Set("payCurrencyCode", defaultPayCurrencyCode)
+	params.Set("pageSize", "1000")
+
+	var resp productPriceListResponse
+	if err := c.doBilling(ctx, "product/getProductPriceList", params, &resp); err != nil {
+		return nil
+	}
+
+	prices := make(map[string]*currency.Amount, len(resp.Response.ProductPriceList))
+	for _, productPrice := range resp.Response.ProductPriceList {
+		price := hourlyPrice(productPrice.PriceList)
+		if price != nil {
+			prices[productPrice.ProductCode] = price
+		}
+	}
+	return prices
+}
+
+func hourlyPrice(prices []naverPrice) *currency.Amount {
+	for _, price := range prices {
+		if price.PriceType.Code != ncloudMeterRatePriceType || price.Unit.Code != ncloudHourlyUsageUnit {
+			continue
+		}
+
+		amount, err := currency.NewAmount(string(price.Price), price.PayCurrency.Code)
+		if err != nil {
+			return nil
+		}
+		return &amount
+	}
+	return nil
+}
+
+func (p naverProduct) toInstanceType(location string, basePrice *currency.Amount) cloud.InstanceType {
 	storage := cloud.Storage{
 		Type:      firstNonEmpty(p.DiskType.Code, "NET"),
 		Count:     1,
@@ -149,6 +243,7 @@ func (p naverProduct) toInstanceType(location string) cloud.InstanceType {
 		Stoppable:                true,
 		Rebootable:               true,
 		IsAvailable:              true,
+		BasePrice:                basePrice,
 		Provider:                 CloudProviderID,
 		Cloud:                    CloudProviderID,
 	}
