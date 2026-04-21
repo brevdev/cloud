@@ -4,7 +4,7 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**Cloud** | [**Cloud**](Cloud.md) |  | 
+**Cloud** | **string** | Specifies the underlying cloud provider. See this [explanation](/getting-started/concepts#cloud-cloud-provider) for more details. | 
 **Region** | **string** | Specifies the region. | 
 **SizeInGb** | **int32** | Storage volume size in GB | 
 **Name** | **string** | The name of the storage volume. | 
@@ -13,7 +13,7 @@ Name | Type | Description | Notes
 
 ### NewCreateVolumeRequest
 
-`func NewCreateVolumeRequest(cloud Cloud, region string, sizeInGb int32, name string, ) *CreateVolumeRequest`
+`func NewCreateVolumeRequest(cloud string, region string, sizeInGb int32, name string, ) *CreateVolumeRequest`
 
 NewCreateVolumeRequest instantiates a new CreateVolumeRequest object
 This constructor will assign default values to properties that have it defined,
@@ -30,20 +30,20 @@ but it doesn't guarantee that properties required by API are set
 
 ### GetCloud
 
-`func (o *CreateVolumeRequest) GetCloud() Cloud`
+`func (o *CreateVolumeRequest) GetCloud() string`
 
 GetCloud returns the Cloud field if non-nil, zero value otherwise.
 
 ### GetCloudOk
 
-`func (o *CreateVolumeRequest) GetCloudOk() (*Cloud, bool)`
+`func (o *CreateVolumeRequest) GetCloudOk() (*string, bool)`
 
 GetCloudOk returns a tuple with the Cloud field if it's non-nil, zero value otherwise
 and a boolean to check if the value has been set.
 
 ### SetCloud
 
-`func (o *CreateVolumeRequest) SetCloud(v Cloud)`
+`func (o *CreateVolumeRequest) SetCloud(v string)`
 
 SetCloud sets Cloud field to given value.
 

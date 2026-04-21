@@ -1,4 +1,5 @@
 .gitignore
+.openapi-generator-ignore
 .travis.yml
 README.md
 api/openapi.yaml
@@ -11,7 +12,15 @@ docs/Alert.md
 docs/AutoDelete.md
 docs/Availability.md
 docs/BootTime.md
-docs/Cloud.md
+docs/Cluster.md
+docs/ClusterAvailability.md
+docs/ClusterInfoResponse.md
+docs/ClusterRegionInfo.md
+docs/ClusterType.md
+docs/ClusterTypesResponse.md
+docs/ClustersResponse.md
+docs/CreateClusterRequest.md
+docs/CreateClusterResponse.md
 docs/CreateRequest.md
 docs/CreateResponse.md
 docs/CreateVolumeRequest.md
@@ -58,7 +67,15 @@ model_alert.go
 model_auto_delete.go
 model_availability.go
 model_boot_time.go
-model_cloud.go
+model_cluster.go
+model_cluster_availability.go
+model_cluster_info_response.go
+model_cluster_region_info.go
+model_cluster_type.go
+model_cluster_types_response.go
+model_clusters_response.go
+model_create_cluster_request.go
+model_create_cluster_response.go
 model_create_request.go
 model_create_response.go
 model_create_volume_request.go
@@ -96,4 +113,5 @@ model_volume_types_inner.go
 model_volumes_response.go
 model_volumes_types_response.go
 response.go
+test/api_default_test.go
 utils.go
