@@ -11,19 +11,18 @@ package openapi
 
 import (
 	"context"
-	openapiclient "github.com/brevdev/cloud"
+	"testing"
+
+	openapiclient "github.com/brevdev/cloud/v1/providers/shadeform/gen/shadeform"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func Test_openapi_DefaultAPIService(t *testing.T) {
-
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
 
 	t.Run("Test DefaultAPIService Clusters", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		resp, httpRes, err := apiClient.DefaultAPI.Clusters(context.Background()).Execute()
@@ -31,11 +30,9 @@ func Test_openapi_DefaultAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test DefaultAPIService ClustersCreate", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		resp, httpRes, err := apiClient.DefaultAPI.ClustersCreate(context.Background()).Execute()
@@ -43,11 +40,9 @@ func Test_openapi_DefaultAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test DefaultAPIService ClustersDelete", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		var id string
@@ -56,11 +51,9 @@ func Test_openapi_DefaultAPIService(t *testing.T) {
 
 		require.Nil(t, err)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test DefaultAPIService ClustersInfo", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		var id string
@@ -70,11 +63,9 @@ func Test_openapi_DefaultAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test DefaultAPIService ClustersTypes", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		resp, httpRes, err := apiClient.DefaultAPI.ClustersTypes(context.Background()).Execute()
@@ -82,11 +73,9 @@ func Test_openapi_DefaultAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test DefaultAPIService Instances", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		resp, httpRes, err := apiClient.DefaultAPI.Instances(context.Background()).Execute()
@@ -94,11 +83,9 @@ func Test_openapi_DefaultAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test DefaultAPIService InstancesCreate", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		resp, httpRes, err := apiClient.DefaultAPI.InstancesCreate(context.Background()).Execute()
@@ -106,11 +93,9 @@ func Test_openapi_DefaultAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test DefaultAPIService InstancesDelete", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		var id string
@@ -119,11 +104,9 @@ func Test_openapi_DefaultAPIService(t *testing.T) {
 
 		require.Nil(t, err)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test DefaultAPIService InstancesInfo", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		var id string
@@ -133,11 +116,9 @@ func Test_openapi_DefaultAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test DefaultAPIService InstancesRestart", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		var id string
@@ -146,11 +127,9 @@ func Test_openapi_DefaultAPIService(t *testing.T) {
 
 		require.Nil(t, err)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test DefaultAPIService InstancesTypes", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		resp, httpRes, err := apiClient.DefaultAPI.InstancesTypes(context.Background()).Execute()
@@ -158,11 +137,9 @@ func Test_openapi_DefaultAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test DefaultAPIService InstancesUpdate", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		var id string
@@ -171,11 +148,9 @@ func Test_openapi_DefaultAPIService(t *testing.T) {
 
 		require.Nil(t, err)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test DefaultAPIService SshKeys", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		resp, httpRes, err := apiClient.DefaultAPI.SshKeys(context.Background()).Execute()
@@ -183,11 +158,9 @@ func Test_openapi_DefaultAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test DefaultAPIService SshKeysAdd", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		resp, httpRes, err := apiClient.DefaultAPI.SshKeysAdd(context.Background()).Execute()
@@ -195,11 +168,9 @@ func Test_openapi_DefaultAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test DefaultAPIService SshKeysDelete", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		var id string
@@ -208,11 +179,9 @@ func Test_openapi_DefaultAPIService(t *testing.T) {
 
 		require.Nil(t, err)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test DefaultAPIService SshKeysInfo", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		var id string
@@ -222,11 +191,9 @@ func Test_openapi_DefaultAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test DefaultAPIService SshKeysSetDefault", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		var id string
@@ -235,11 +202,9 @@ func Test_openapi_DefaultAPIService(t *testing.T) {
 
 		require.Nil(t, err)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test DefaultAPIService Templates", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		resp, httpRes, err := apiClient.DefaultAPI.Templates(context.Background()).Execute()
@@ -247,11 +212,9 @@ func Test_openapi_DefaultAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test DefaultAPIService TemplatesDelete", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		var templateId string
@@ -260,11 +223,9 @@ func Test_openapi_DefaultAPIService(t *testing.T) {
 
 		require.Nil(t, err)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test DefaultAPIService TemplatesFeatured", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		resp, httpRes, err := apiClient.DefaultAPI.TemplatesFeatured(context.Background()).Execute()
@@ -272,11 +233,9 @@ func Test_openapi_DefaultAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test DefaultAPIService TemplatesInfo", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		var templateId string
@@ -286,11 +245,9 @@ func Test_openapi_DefaultAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test DefaultAPIService TemplatesSave", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		resp, httpRes, err := apiClient.DefaultAPI.TemplatesSave(context.Background()).Execute()
@@ -298,11 +255,9 @@ func Test_openapi_DefaultAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test DefaultAPIService TemplatesUpdate", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		var templateId string
@@ -311,11 +266,9 @@ func Test_openapi_DefaultAPIService(t *testing.T) {
 
 		require.Nil(t, err)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test DefaultAPIService Volumes", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		resp, httpRes, err := apiClient.DefaultAPI.Volumes(context.Background()).Execute()
@@ -323,11 +276,9 @@ func Test_openapi_DefaultAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test DefaultAPIService VolumesCreate", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		resp, httpRes, err := apiClient.DefaultAPI.VolumesCreate(context.Background()).Execute()
@@ -335,11 +286,9 @@ func Test_openapi_DefaultAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test DefaultAPIService VolumesDelete", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		var id string
@@ -348,11 +297,9 @@ func Test_openapi_DefaultAPIService(t *testing.T) {
 
 		require.Nil(t, err)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test DefaultAPIService VolumesInfo", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		var id string
@@ -362,11 +309,9 @@ func Test_openapi_DefaultAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
 
 	t.Run("Test DefaultAPIService VolumesTypes", func(t *testing.T) {
-
 		t.Skip("skip test") // remove to run test
 
 		resp, httpRes, err := apiClient.DefaultAPI.VolumesTypes(context.Background()).Execute()
@@ -374,7 +319,5 @@ func Test_openapi_DefaultAPIService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
-
 	})
-
 }
