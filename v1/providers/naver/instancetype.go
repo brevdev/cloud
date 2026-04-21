@@ -18,7 +18,7 @@ type serverProductListResponse struct {
 }
 
 func (r *serverProductListResponse) apiError() error {
-	return r.Response.responseMeta.apiError()
+	return r.Response.apiError()
 }
 
 type productList struct {
@@ -47,56 +47,84 @@ func (c *NaverClient) GetInstanceTypePollTime() time.Duration {
 }
 
 func (c *NaverClient) GetInstanceTypes(ctx context.Context, args cloud.GetInstanceTypeArgs) ([]cloud.InstanceType, error) {
-	locations := args.Locations
-	if len(locations) == 0 {
-		locations = cloud.LocationsFilter{c.location}
-	}
-	if locations.IsAll() {
-		locs, err := c.GetLocations(ctx, cloud.GetLocationsArgs{})
-		if err != nil {
-			return nil, err
-		}
-		locations = make(cloud.LocationsFilter, 0, len(locs))
-		for _, loc := range locs {
-			locations = append(locations, loc.Name)
-		}
+	locations, err := c.instanceTypeLocations(ctx, args.Locations)
+	if err != nil {
+		return nil, err
 	}
 
 	var out []cloud.InstanceType
 	for _, location := range locations {
-		params := url.Values{}
-		params.Set("regionCode", location)
-		params.Set("serverImageProductCode", defaultServerImageProductCode)
-		var resp serverProductListResponse
-		if err := c.do(ctx, "getServerProductList", params, &resp); err != nil {
+		instanceTypes, err := c.instanceTypesForLocation(ctx, location, args)
+		if err != nil {
 			return nil, err
 		}
-		for _, product := range resp.Response.ProductList {
-			it := product.toInstanceType(location)
-			if len(args.InstanceTypes) > 0 && !slices.Contains(args.InstanceTypes, it.Type) {
-				continue
-			}
-			if args.CloudFilter != nil && !args.CloudFilter.IsAllowed(it.Cloud) {
-				continue
-			}
-			if args.ArchitectureFilter != nil && !args.ArchitectureFilter.IsAllowed(cloud.ArchitectureX86_64) {
-				continue
-			}
-			if args.GPUManufactererFilter != nil {
-				allowed := len(it.SupportedGPUs) == 0
-				for _, gpu := range it.SupportedGPUs {
-					if args.GPUManufactererFilter.IsAllowed(gpu.Manufacturer) {
-						allowed = true
-					}
-				}
-				if !allowed {
-					continue
-				}
-			}
+		out = append(out, instanceTypes...)
+	}
+	return out, nil
+}
+
+func (c *NaverClient) instanceTypeLocations(ctx context.Context, locations cloud.LocationsFilter) (cloud.LocationsFilter, error) {
+	if len(locations) == 0 {
+		return cloud.LocationsFilter{c.location}, nil
+	}
+	if !locations.IsAll() {
+		return locations, nil
+	}
+
+	locs, err := c.GetLocations(ctx, cloud.GetLocationsArgs{})
+	if err != nil {
+		return nil, err
+	}
+	resolved := make(cloud.LocationsFilter, 0, len(locs))
+	for _, loc := range locs {
+		resolved = append(resolved, loc.Name)
+	}
+	return resolved, nil
+}
+
+func (c *NaverClient) instanceTypesForLocation(ctx context.Context, location string, args cloud.GetInstanceTypeArgs) ([]cloud.InstanceType, error) {
+	params := url.Values{}
+	params.Set("regionCode", location)
+	params.Set("serverImageProductCode", defaultServerImageProductCode)
+
+	var resp serverProductListResponse
+	if err := c.do(ctx, "getServerProductList", params, &resp); err != nil {
+		return nil, err
+	}
+
+	out := make([]cloud.InstanceType, 0, len(resp.Response.ProductList))
+	for _, product := range resp.Response.ProductList {
+		it := product.toInstanceType(location)
+		if includeInstanceType(it, args) {
 			out = append(out, it)
 		}
 	}
 	return out, nil
+}
+
+func includeInstanceType(it cloud.InstanceType, args cloud.GetInstanceTypeArgs) bool {
+	if len(args.InstanceTypes) > 0 && !slices.Contains(args.InstanceTypes, it.Type) {
+		return false
+	}
+	if args.CloudFilter != nil && !args.CloudFilter.IsAllowed(it.Cloud) {
+		return false
+	}
+	if args.ArchitectureFilter != nil && !args.ArchitectureFilter.IsAllowed(cloud.ArchitectureX86_64) {
+		return false
+	}
+	return allowsGPUManufacturer(it.SupportedGPUs, args.GPUManufactererFilter)
+}
+
+func allowsGPUManufacturer(gpus []cloud.GPU, filter *cloud.GPUManufacturerFilter) bool {
+	if filter == nil || len(gpus) == 0 {
+		return true
+	}
+	for _, gpu := range gpus {
+		if filter.IsAllowed(gpu.Manufacturer) {
+			return true
+		}
+	}
+	return false
 }
 
 func (p naverProduct) toInstanceType(location string) cloud.InstanceType {

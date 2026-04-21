@@ -15,7 +15,7 @@ type imageProductListResponse struct {
 }
 
 func (r *imageProductListResponse) apiError() error {
-	return r.Response.responseMeta.apiError()
+	return r.Response.apiError()
 }
 
 func (c *NaverClient) GetImages(ctx context.Context, args cloud.GetImageArgs) ([]cloud.Image, error) {
@@ -23,7 +23,7 @@ func (c *NaverClient) GetImages(ctx context.Context, args cloud.GetImageArgs) ([
 	params.Set("regionCode", c.location)
 	if len(args.Architectures) > 0 {
 		for i, arch := range args.Architectures {
-			if arch == "x86_64" {
+			if arch == architectureX8664 {
 				params.Set(indexedParam("platformTypeCodeList", i+1), "LNX64")
 			}
 		}
@@ -59,7 +59,7 @@ func (c *NaverClient) GetImages(ctx context.Context, args cloud.GetImageArgs) ([
 
 func architectureFromPlatform(platform string) string {
 	if strings.Contains(platform, "64") {
-		return "x86_64"
+		return architectureX8664
 	}
 	if strings.Contains(platform, "32") {
 		return "i386"

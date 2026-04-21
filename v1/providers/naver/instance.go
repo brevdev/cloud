@@ -80,7 +80,7 @@ type importLoginKeyResponse struct {
 }
 
 func (r *importLoginKeyResponse) apiError() error {
-	return r.Response.responseMeta.apiError()
+	return r.Response.apiError()
 }
 
 type loginKeyList struct {
@@ -95,20 +95,46 @@ type naverLoginKey struct {
 }
 
 func (c *NaverClient) CreateInstance(ctx context.Context, attrs cloud.CreateInstanceAttrs) (*cloud.Instance, error) {
-	if attrs.VPCID == "" {
-		return nil, fmt.Errorf("VPCID is required for NAVER VPC server creation")
-	}
-	if attrs.SubnetID == "" {
-		return nil, fmt.Errorf("SubnetID is required for NAVER VPC server creation")
-	}
-	if attrs.InstanceType == "" {
-		return nil, fmt.Errorf("InstanceType is required")
-	}
-	if attrs.ImageID == "" {
-		return nil, fmt.Errorf("ImageID is required")
+	if err := validateCreateInstanceAttrs(attrs); err != nil {
+		return nil, err
 	}
 
 	location := firstNonEmpty(attrs.Location, c.location, defaultRegionCode)
+	keyName, err := c.createInstanceLoginKey(ctx, attrs, location)
+	if err != nil {
+		return nil, err
+	}
+
+	params := createInstanceParams(attrs, location, keyName, c.refID)
+	var resp serverInstanceListResponse
+	if err := c.do(ctx, "createServerInstances", params, &resp); err != nil {
+		return nil, err
+	}
+
+	inst, err := c.createdInstance(resp.Create.ServerInstanceList, attrs)
+	if err != nil {
+		return nil, err
+	}
+	return inst, nil
+}
+
+func validateCreateInstanceAttrs(attrs cloud.CreateInstanceAttrs) error {
+	if attrs.VPCID == "" {
+		return fmt.Errorf("VPCID is required for NAVER VPC server creation")
+	}
+	if attrs.SubnetID == "" {
+		return fmt.Errorf("SubnetID is required for NAVER VPC server creation")
+	}
+	if attrs.InstanceType == "" {
+		return fmt.Errorf("InstanceType is required")
+	}
+	if attrs.ImageID == "" {
+		return fmt.Errorf("ImageID is required")
+	}
+	return nil
+}
+
+func (c *NaverClient) createInstanceLoginKey(ctx context.Context, attrs cloud.CreateInstanceAttrs, location string) (string, error) {
 	keyName := ""
 	if attrs.KeyPairName != nil {
 		keyName = *attrs.KeyPairName
@@ -116,19 +142,22 @@ func (c *NaverClient) CreateInstance(ctx context.Context, attrs cloud.CreateInst
 	if attrs.PublicKey != "" {
 		imported, err := c.importLoginKey(ctx, location, naverResourceName("brev-"+attrs.RefID), attrs.PublicKey)
 		if err != nil {
-			return nil, err
+			return "", err
 		}
 		keyName = imported
 	}
 	if keyName == "" {
-		return nil, fmt.Errorf("KeyPairName or PublicKey is required")
+		return "", fmt.Errorf("KeyPairName or PublicKey is required")
 	}
+	return keyName, nil
+}
 
+func createInstanceParams(attrs cloud.CreateInstanceAttrs, location, keyName, refID string) url.Values {
 	params := url.Values{}
 	params.Set("regionCode", location)
 	params.Set("vpcNo", attrs.VPCID)
 	params.Set("subnetNo", attrs.SubnetID)
-	params.Set("serverName", naverResourceName(firstNonEmpty(attrs.Name, attrs.RefID, c.refID)))
+	params.Set("serverName", naverResourceName(firstNonEmpty(attrs.Name, attrs.RefID, refID)))
 	params.Set("serverCreateCount", "1")
 	params.Set("networkInterfaceList.1.networkInterfaceOrder", "0")
 	params.Set("networkInterfaceList.1.subnetNo", attrs.SubnetID)
@@ -139,15 +168,14 @@ func (c *NaverClient) CreateInstance(ctx context.Context, attrs cloud.CreateInst
 	if attrs.UserDataBase64 != "" {
 		params.Set("userData", attrs.UserDataBase64)
 	}
+	return params
+}
 
-	var resp serverInstanceListResponse
-	if err := c.do(ctx, "createServerInstances", params, &resp); err != nil {
-		return nil, err
+func (c *NaverClient) createdInstance(servers []naverServerInstance, attrs cloud.CreateInstanceAttrs) (*cloud.Instance, error) {
+	if len(servers) != 1 {
+		return nil, fmt.Errorf("expected 1 server instance, got %d", len(servers))
 	}
-	if len(resp.Create.ServerInstanceList) != 1 {
-		return nil, fmt.Errorf("expected 1 server instance, got %d", len(resp.Create.ServerInstanceList))
-	}
-	inst := c.convertServerInstance(resp.Create.ServerInstanceList[0])
+	inst := c.convertServerInstance(servers[0])
 	inst.RefID = attrs.RefID
 	inst.CloudCredRefID = c.refID
 	inst.Tags = attrs.Tags

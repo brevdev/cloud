@@ -24,7 +24,7 @@ func TestGetImagesConvertsAndFiltersImageProducts(t *testing.T) {
 
 	client := newTestNaverClient(t, server.URL)
 	images, err := client.GetImages(context.Background(), cloud.GetImageArgs{
-		Architectures: []string{"x86_64"},
+		Architectures: []string{architectureX8664},
 		ImageIDs:      []string{"UBUNTU24"},
 	})
 	if err != nil {
@@ -33,7 +33,7 @@ func TestGetImagesConvertsAndFiltersImageProducts(t *testing.T) {
 	if len(images) != 1 {
 		t.Fatalf("images len = %d, want 1", len(images))
 	}
-	if images[0].ID != "UBUNTU24" || images[0].Architecture != "x86_64" || images[0].Name != "ubuntu-24.04" {
+	if images[0].ID != "UBUNTU24" || images[0].Architecture != architectureX8664 || images[0].Name != "ubuntu-24.04" {
 		t.Fatalf("unexpected image: %+v", images[0])
 	}
 }

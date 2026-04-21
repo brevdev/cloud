@@ -11,7 +11,7 @@ type regionListResponse struct {
 }
 
 func (r *regionListResponse) apiError() error {
-	return r.Response.responseMeta.apiError()
+	return r.Response.apiError()
 }
 
 type regionList struct {
@@ -25,6 +25,8 @@ type naverRegion struct {
 	RegionCode string `json:"regionCode"`
 	RegionName string `json:"regionName"`
 }
+
+const countryJPN = "JPN"
 
 func (c *NaverClient) GetLocations(ctx context.Context, _ cloud.GetLocationsArgs) ([]cloud.Location, error) {
 	var resp regionListResponse
@@ -49,8 +51,8 @@ func countryForRegion(regionCode string) string {
 	switch regionCode {
 	case "KR":
 		return "KOR"
-	case "JPN":
-		return "JPN"
+	case countryJPN:
+		return countryJPN
 	case "SGN":
 		return "SGP"
 	case "USWN", "USEN":

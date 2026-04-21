@@ -18,6 +18,7 @@ import (
 
 const (
 	CloudProviderID                = "naver"
+	architectureX8664              = "x86_64"
 	defaultBaseURL                 = "https://ncloud.apigw.ntruss.com"
 	defaultRegionCode              = "KR"
 	defaultServerImageProductCode  = "SW.VSVR.OS.LNX64.UBNTU.SVR24.G003"
