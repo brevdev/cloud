@@ -270,6 +270,46 @@ func TestExtractGPUTypeAndName(t *testing.T) {
 	}
 }
 
+func TestGetNebiusBootImageFamily(t *testing.T) {
+	tests := []struct {
+		name         string
+		instanceType string
+		expected     string
+	}{
+		{
+			name:         "gpu dot format uses cuda image",
+			instanceType: "gpu-h100-sxm.8gpu-128vcpu-1600gb",
+			expected:     nebiusGPUImageFamily,
+		},
+		{
+			name:         "cpu dot format uses driverless image",
+			instanceType: "cpu-e2.4vcpu-16gb",
+			expected:     nebiusCPUImageFamily,
+		},
+		{
+			name:         "gpu legacy format uses cuda image",
+			instanceType: "nebius-eu-north1-l40s-4gpu-96vcpu-768gb",
+			expected:     nebiusGPUImageFamily,
+		},
+		{
+			name:         "cpu legacy format uses driverless image",
+			instanceType: "nebius-eu-north1-cpu-4vcpu-16gb",
+			expected:     nebiusCPUImageFamily,
+		},
+		{
+			name:         "empty instance type defaults to cpu image",
+			instanceType: "",
+			expected:     nebiusCPUImageFamily,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, getNebiusBootImageFamily(tt.instanceType))
+		})
+	}
+}
+
 func TestIsPlatformSupported(t *testing.T) {
 	client := createTestClient()
 

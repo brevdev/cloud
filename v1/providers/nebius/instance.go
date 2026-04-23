@@ -15,7 +15,9 @@ import (
 )
 
 const (
-	platformTypeCPU = "cpu"
+	platformTypeCPU      = "cpu"
+	nebiusGPUImageFamily = "ubuntu24.04-cuda13.0"
+	nebiusCPUImageFamily = "ubuntu24.04-driverless"
 )
 
 //nolint:gocyclo,funlen // Complex instance creation with resource management
@@ -1180,8 +1182,8 @@ func (c *NebiusClient) createBootDisk(ctx context.Context, attrs v1.CreateInstan
 	return diskID, nil
 }
 
-// buildDiskCreateRequest builds a disk creation request, trying image family first, then image ID
-func (c *NebiusClient) buildDiskCreateRequest(ctx context.Context, diskName string, attrs v1.CreateInstanceAttrs) (*compute.CreateDiskRequest, error) {
+// buildDiskCreateRequest builds a disk creation request using the fixed Nebius image family for the instance type.
+func (c *NebiusClient) buildDiskCreateRequest(_ context.Context, diskName string, attrs v1.CreateInstanceAttrs) (*compute.CreateDiskRequest, error) {
 	if attrs.DiskSize == 0 {
 		attrs.DiskSize = 1280 * units.Gibibyte // Defaulted by the Nebius Console
 	}
@@ -1204,138 +1206,39 @@ func (c *NebiusClient) buildDiskCreateRequest(ctx context.Context, diskName stri
 		},
 	}
 
-	// First, try to resolve and use image family
-	if imageFamily, err := c.resolveImageFamily(ctx, attrs.ImageID); err == nil {
-		publicImagesParent := c.getPublicImagesParent()
-
-		// Skip validation for known-good common families to speed up instance start
-		knownFamilies := []string{"ubuntu22.04-cuda12", "mk8s-worker-node-v-1-32-ubuntu24.04", "mk8s-worker-node-v-1-32-ubuntu24.04-cuda12.8"}
-		isKnownFamily := false
-		for _, known := range knownFamilies {
-			if imageFamily == known {
-				isKnownFamily = true
-				break
-			}
-		}
-
-		if isKnownFamily {
-			// Use known family without validation
-			baseReq.Spec.Source = &compute.DiskSpec_SourceImageFamily{
-				SourceImageFamily: &compute.SourceImageFamily{
-					ImageFamily: imageFamily,
-					ParentId:    publicImagesParent,
-				},
-			}
-			baseReq.Metadata.Labels["image-family"] = imageFamily
-			return baseReq, nil
-		}
-
-		// For unknown families, validate first
-		_, err := c.sdk.Services().Compute().V1().Image().GetLatestByFamily(ctx, &compute.GetImageLatestByFamilyRequest{
-			ParentId:    publicImagesParent,
+	imageFamily := getNebiusBootImageFamily(attrs.InstanceType)
+	baseReq.Spec.Source = &compute.DiskSpec_SourceImageFamily{
+		SourceImageFamily: &compute.SourceImageFamily{
 			ImageFamily: imageFamily,
-		})
-		if err == nil {
-			// Family works, use it
-			baseReq.Spec.Source = &compute.DiskSpec_SourceImageFamily{
-				SourceImageFamily: &compute.SourceImageFamily{
-					ImageFamily: imageFamily,
-					ParentId:    publicImagesParent,
-				},
-			}
-			baseReq.Metadata.Labels["image-family"] = imageFamily
-			return baseReq, nil
-		}
+			ParentId:    c.getPublicImagesParent(),
+		},
 	}
+	baseReq.Metadata.Labels["image-family"] = imageFamily
 
-	// Family approach failed, try to use a known working public image ID
-	publicImageID, err := c.getWorkingPublicImageID(ctx, attrs.ImageID)
-	if err == nil {
-		baseReq.Spec.Source = &compute.DiskSpec_SourceImageId{
-			SourceImageId: publicImageID,
-		}
-		baseReq.Metadata.Labels["source-image-id"] = publicImageID
-		return baseReq, nil
-	}
-
-	// Both approaches failed
-	return nil, fmt.Errorf("could not resolve image %s to either a working family or image ID: %w", attrs.ImageID, err)
+	return baseReq, nil
 }
 
-// getWorkingPublicImageID gets a working public image ID based on the requested image type
-//
-//nolint:gocognit,gocyclo // Complex function trying multiple image resolution strategies
-func (c *NebiusClient) getWorkingPublicImageID(ctx context.Context, requestedImage string) (string, error) {
-	// Get available public images from the correct region
-	publicImagesParent := c.getPublicImagesParent()
-	imagesResp, err := c.sdk.Services().Compute().V1().Image().List(ctx, &compute.ListImagesRequest{
-		ParentId: publicImagesParent,
-	})
-	if err != nil {
-		return "", fmt.Errorf("failed to list public images: %w", err)
+func getNebiusBootImageFamily(instanceType string) string {
+	if isNebiusGPUInstanceType(instanceType) {
+		return nebiusGPUImageFamily
+	}
+	return nebiusCPUImageFamily
+}
+
+func isNebiusGPUInstanceType(instanceType string) bool {
+	instanceTypeLower := strings.ToLower(instanceType)
+	if instanceTypeLower == "" {
+		return false
 	}
 
-	if len(imagesResp.GetItems()) == 0 {
-		return "", fmt.Errorf("no public images available")
-	}
-
-	// Try to find the best match based on the requested image
-	requestedLower := strings.ToLower(requestedImage)
-
-	var bestMatch *compute.Image
-	var fallbackImage *compute.Image
-
-	for _, image := range imagesResp.GetItems() {
-		if image.Metadata == nil {
-			continue
-		}
-
-		imageName := strings.ToLower(image.Metadata.Name)
-
-		// Set fallback to first available image
-		if fallbackImage == nil {
-			fallbackImage = image
-		}
-
-		// Look for Ubuntu matches
-		if strings.Contains(requestedLower, "ubuntu") && strings.Contains(imageName, "ubuntu") {
-			// Prefer specific version matches
-			//nolint:gocritic // if-else chain is clearer than switch for version matching logic
-			if strings.Contains(requestedLower, "24.04") || strings.Contains(requestedLower, "24") {
-				if strings.Contains(imageName, "ubuntu24.04") {
-					bestMatch = image
-					break
-				}
-			} else if strings.Contains(requestedLower, "22.04") || strings.Contains(requestedLower, "22") {
-				if strings.Contains(imageName, "ubuntu22.04") {
-					bestMatch = image
-					break
-				}
-			} else if strings.Contains(requestedLower, "20.04") || strings.Contains(requestedLower, "20") {
-				if strings.Contains(imageName, "ubuntu20.04") {
-					bestMatch = image
-					break
-				}
-			}
-
-			// Any Ubuntu image is better than non-Ubuntu
-			if bestMatch == nil {
-				bestMatch = image
-			}
+	if strings.Contains(instanceTypeLower, ".") {
+		parts := strings.SplitN(instanceTypeLower, ".", 2)
+		if len(parts) == 2 {
+			return !strings.HasPrefix(parts[0], "cpu-")
 		}
 	}
 
-	// Use best match if found, otherwise fallback
-	selectedImage := bestMatch
-	if selectedImage == nil {
-		selectedImage = fallbackImage
-	}
-
-	if selectedImage == nil {
-		return "", fmt.Errorf("no suitable public image found")
-	}
-
-	return selectedImage.Metadata.Id, nil
+	return !strings.Contains(instanceTypeLower, "-cpu-")
 }
 
 // getPublicImagesParent determines the correct public images parent ID based on project routing code
