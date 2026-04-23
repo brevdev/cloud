@@ -287,16 +287,6 @@ func TestGetNebiusBootImageFamily(t *testing.T) {
 			expected:     nebiusCPUImageFamily,
 		},
 		{
-			name:         "gpu legacy format uses cuda image",
-			instanceType: "nebius-eu-north1-l40s-4gpu-96vcpu-768gb",
-			expected:     nebiusGPUImageFamily,
-		},
-		{
-			name:         "cpu legacy format uses driverless image",
-			instanceType: "nebius-eu-north1-cpu-4vcpu-16gb",
-			expected:     nebiusCPUImageFamily,
-		},
-		{
 			name:         "empty instance type defaults to cpu image",
 			instanceType: "",
 			expected:     nebiusCPUImageFamily,

@@ -1153,10 +1153,7 @@ func (c *NebiusClient) createBootDisk(ctx context.Context, attrs v1.CreateInstan
 	diskName := fmt.Sprintf("%s-boot-disk", attrs.RefID)
 
 	// Try to use image family first, then fallback to specific image ID
-	createReq, err := c.buildDiskCreateRequest(ctx, diskName, attrs)
-	if err != nil {
-		return "", fmt.Errorf("failed to build disk create request: %w", err)
-	}
+	createReq := c.buildDiskCreateRequest(ctx, diskName, attrs)
 
 	operation, err := c.sdk.Services().Compute().V1().Disk().Create(ctx, createReq)
 	if err != nil {
@@ -1183,10 +1180,12 @@ func (c *NebiusClient) createBootDisk(ctx context.Context, attrs v1.CreateInstan
 }
 
 // buildDiskCreateRequest builds a disk creation request using the fixed Nebius image family for the instance type.
-func (c *NebiusClient) buildDiskCreateRequest(_ context.Context, diskName string, attrs v1.CreateInstanceAttrs) (*compute.CreateDiskRequest, error) {
+func (c *NebiusClient) buildDiskCreateRequest(_ context.Context, diskName string, attrs v1.CreateInstanceAttrs) *compute.CreateDiskRequest {
 	if attrs.DiskSize == 0 {
 		attrs.DiskSize = 1280 * units.Gibibyte // Defaulted by the Nebius Console
 	}
+
+	imageFamily := getNebiusBootImageFamily(attrs.InstanceType)
 
 	baseReq := &compute.CreateDiskRequest{
 		Metadata: &common.ResourceMetadata{
@@ -1196,6 +1195,7 @@ func (c *NebiusClient) buildDiskCreateRequest(_ context.Context, diskName string
 				"created-by":     "brev-cloud-sdk",
 				"brev-user":      c.refID,
 				"environment-id": attrs.RefID,
+				"image-family":   imageFamily,
 			},
 		},
 		Spec: &compute.DiskSpec{
@@ -1203,19 +1203,16 @@ func (c *NebiusClient) buildDiskCreateRequest(_ context.Context, diskName string
 				SizeGibibytes: int64(attrs.DiskSize / units.Gibibyte),
 			},
 			Type: compute.DiskSpec_NETWORK_SSD,
+			Source: &compute.DiskSpec_SourceImageFamily{
+				SourceImageFamily: &compute.SourceImageFamily{
+					ImageFamily: imageFamily,
+					ParentId:    c.getPublicImagesParent(),
+				},
+			},
 		},
 	}
 
-	imageFamily := getNebiusBootImageFamily(attrs.InstanceType)
-	baseReq.Spec.Source = &compute.DiskSpec_SourceImageFamily{
-		SourceImageFamily: &compute.SourceImageFamily{
-			ImageFamily: imageFamily,
-			ParentId:    c.getPublicImagesParent(),
-		},
-	}
-	baseReq.Metadata.Labels["image-family"] = imageFamily
-
-	return baseReq, nil
+	return baseReq
 }
 
 func getNebiusBootImageFamily(instanceType string) string {
@@ -1231,14 +1228,12 @@ func isNebiusGPUInstanceType(instanceType string) bool {
 		return false
 	}
 
-	if strings.Contains(instanceTypeLower, ".") {
-		parts := strings.SplitN(instanceTypeLower, ".", 2)
-		if len(parts) == 2 {
-			return !strings.HasPrefix(parts[0], "cpu-")
-		}
+	// GPU instance types start with "gpu-" (see getInstanceTypesForLocation)
+	if strings.HasPrefix(instanceTypeLower, "gpu-") {
+		return true
 	}
 
-	return !strings.Contains(instanceTypeLower, "-cpu-")
+	return false
 }
 
 // getPublicImagesParent determines the correct public images parent ID based on project routing code
@@ -1476,73 +1471,6 @@ func (c *NebiusClient) parseInstanceType(ctx context.Context, instanceTypeID str
 	c.logger.Error(ctx, fmt.Errorf("no platforms available"),
 		v1.LogField("instanceTypeID", instanceTypeID))
 	return "", "", fmt.Errorf("could not parse instance type %s or find suitable platform/preset", instanceTypeID)
-}
-
-// resolveImageFamily resolves an ImageID to an image family name
-// If ImageID is already a family name, use it directly
-// Otherwise, try to get the image and extract its family
-//
-//nolint:gocyclo,unparam // Complex image family resolution with fallback logic
-func (c *NebiusClient) resolveImageFamily(ctx context.Context, imageID string) (string, error) {
-	// Common Nebius image families - if ImageID matches one of these, use it directly
-	commonFamilies := []string{
-		"ubuntu22.04-cuda12",
-		"mk8s-worker-node-v-1-32-ubuntu24.04",
-		"mk8s-worker-node-v-1-32-ubuntu24.04-cuda12.8",
-		"mk8s-worker-node-v-1-31-ubuntu24.04-cuda12",
-		"ubuntu22.04",
-		"ubuntu20.04",
-	}
-
-	// Check if ImageID is already a known family name
-	for _, family := range commonFamilies {
-		if imageID == family {
-			return family, nil
-		}
-	}
-
-	// If ImageID looks like a family name pattern (contains dots, dashes, no UUIDs)
-	// and doesn't look like a UUID, assume it's a family name
-	if !strings.Contains(imageID, "-") || len(imageID) < 32 {
-		// Likely a family name, use it directly
-		return imageID, nil
-	}
-
-	// If it looks like a UUID/ID, try to get the image and extract its family
-	image, err := c.sdk.Services().Compute().V1().Image().Get(ctx, &compute.GetImageRequest{
-		Id: imageID,
-	})
-	if err != nil {
-		// If we can't get the image, try using the ID as a family name anyway
-		// This allows for custom family names that don't match our patterns
-		return imageID, nil
-	}
-
-	// Extract family from image metadata/labels if available
-	if image.Metadata != nil && image.Metadata.Labels != nil {
-		if family, exists := image.Metadata.Labels["family"]; exists && family != "" {
-			return family, nil
-		}
-		if family, exists := image.Metadata.Labels["image-family"]; exists && family != "" {
-			return family, nil
-		}
-	}
-
-	// Extract family from image name as fallback
-	if image.Metadata != nil && image.Metadata.Name != "" {
-		// Try to extract a reasonable family name from the image name
-		name := strings.ToLower(image.Metadata.Name)
-		if strings.Contains(name, "ubuntu22") || strings.Contains(name, "ubuntu-22") {
-			return "ubuntu22.04", nil
-		}
-		if strings.Contains(name, "ubuntu20") || strings.Contains(name, "ubuntu-20") {
-			return "ubuntu20.04", nil
-		}
-	}
-
-	// Default fallback - use the original ImageID as family
-	// This handles cases where users provide custom family names
-	return imageID, nil
 }
 
 // deleteBootDisk deletes a boot disk by ID
