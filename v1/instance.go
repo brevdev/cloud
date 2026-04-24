@@ -112,6 +112,7 @@ const (
 	LifecycleStatusTerminating LifecycleStatus = "terminating"
 	LifecycleStatusTerminated  LifecycleStatus = "terminated"
 	LifecycleStatusFailed      LifecycleStatus = "failed"
+	LifecycleStatusEmpty       LifecycleStatus = ""
 )
 
 const (
