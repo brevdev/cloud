@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"maps"
 	"slices"
-	"strings"
 	"time"
 
 	"github.com/alecthomas/units"
@@ -16,25 +16,21 @@ import (
 	"github.com/sfcompute/sfc-go/optionalnullable"
 )
 
-
 func (c *SFCClientV2) CreateInstance(ctx context.Context, attrs v1.CreateInstanceAttrs) (*v1.Instance, error) {
 	c.logger.Debug(ctx, "sfcv2: CreateInstance start",
 		v1.LogField("name", attrs.Name),
 		v1.LogField("location", attrs.Location),
 	)
 
-	stage := getStageFromTags(attrs.Tags)
-	tags := map[string]string{
-		tagKeyCloudCredRefID: c.refID,
-		tagKeyStage:          stage,
-		tagKeyRefID:          attrs.RefID,
-		tagKeyName:           attrs.Name,
-	}
+	tags := make(map[string]string, len(attrs.Tags)+2)
+	maps.Copy(tags, attrs.Tags)
+	tags[tagKeyCloudCredRefID] = c.refID
+	tags[tagKeyRefID] = attrs.RefID
 
 	cloudInit := sshKeyCloudInit(attrs.PublicKey)
 	resp, err := c.client.Instances.Create(ctx, components.CreateInstanceRequest{
-		Capacity:          c.capacityID,
-		Image:             c.imageID,
+		Capacity:          BrevProductionCapacityID,
+		Image:             BrevProductionImageID,
 		CloudInitUserData: &cloudInit,
 		Tags:              optionalnullable.From(&tags),
 		Name:              optionalnullable.From(&attrs.Name),
@@ -99,8 +95,9 @@ func (c *SFCClientV2) ListInstances(ctx context.Context, args v1.ListInstancesAr
 		v1.LogField("location", c.location),
 	)
 
+	capacityID := BrevProductionCapacityID
 	resp, err := c.client.Instances.List(ctx, operations.ListInstancesRequest{
-		Capacity: &c.capacityID,
+		Capacity: &capacityID,
 	})
 	if err != nil {
 		return nil, errors.WrapAndTrace(err)
@@ -111,8 +108,6 @@ func (c *SFCClientV2) ListInstances(ctx context.Context, args v1.ListInstancesAr
 
 	var instances []v1.Instance
 	for _, inst := range resp.ListInstancesResponse.Data {
-		inst := inst // capture loop variable
-
 		// Filter by instance IDs if specified.
 		if len(args.InstanceIDs) > 0 && !slices.Contains(args.InstanceIDs, v1.CloudProviderInstanceID(inst.ID)) {
 			continue
@@ -185,10 +180,14 @@ func (c *SFCClientV2) sfcInstanceToBrevInstance(inst *components.InstanceRespons
 	if cloudCredRefID == "" {
 		cloudCredRefID = c.refID
 	}
-	refID := tags[tagKeyRefID]
-	name := tags[tagKeyName]
-	if name == "" {
-		name = inst.Name
+
+	userTags := make(v1.Tags)
+	for k, v := range tags {
+		switch k {
+		case tagKeyCloudCredRefID, tagKeyRefID:
+		default:
+			userTags[k] = v
+		}
 	}
 
 	status := sfcStatusToLifecycleStatus(inst.Status)
@@ -200,9 +199,9 @@ func (c *SFCClientV2) sfcInstanceToBrevInstance(inst *components.InstanceRespons
 	diskSize := units.Base2Bytes(diskInt64 * int64(units.Gibibyte))
 
 	return &v1.Instance{
-		Name:          name,
+		Name:          inst.Name,
 		CloudID:       v1.CloudProviderInstanceID(inst.ID),
-		RefID:         refID,
+		RefID:         tags[tagKeyRefID],
 		PublicDNS:     sshHostname,
 		PublicIP:      sshHostname,
 		SSHUser:       defaultSSHUsername,
@@ -215,11 +214,12 @@ func (c *SFCClientV2) sfcInstanceToBrevInstance(inst *components.InstanceRespons
 		},
 		InstanceTypeID: h100InstanceTypeMetadata.instanceTypeID,
 		InstanceType:   h100InstanceType,
-		Location:       c.location,
+		Location:       sfcLocation,
 		Spot:           false,
 		Stoppable:      false,
 		Rebootable:     false,
 		CloudCredRefID: cloudCredRefID,
+		Tags:           userTags,
 	}, nil
 }
 
@@ -236,15 +236,6 @@ func sfcStatusToLifecycleStatus(status components.InstanceStatus) v1.LifecycleSt
 	default:
 		return v1.LifecycleStatusPending
 	}
-}
-
-func getStageFromTags(tags v1.Tags) string {
-	for k, v := range tags {
-		if strings.HasSuffix(k, "-stage") {
-			return v
-		}
-	}
-	return "unknown"
 }
 
 func (c *SFCClientV2) RebootInstance(_ context.Context, _ v1.CloudProviderInstanceID) error {

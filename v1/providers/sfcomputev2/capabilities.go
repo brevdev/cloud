@@ -11,6 +11,7 @@ func getSFCCapabilitiesV2() v1.Capabilities {
 		v1.CapabilityCreateInstance,
 		v1.CapabilityTerminateInstance,
 		v1.CapabilityCreateTerminateInstance,
+		v1.CapabilityTags,
 	}
 }
 

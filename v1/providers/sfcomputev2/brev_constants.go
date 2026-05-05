@@ -1,19 +1,23 @@
 package v2
 
+// Package-internal constants — SSH defaults and internal tag keys.
 const (
 	defaultPort        = 22
 	defaultSSHUsername = "ubuntu"
 
-	// Tag keys used to persist Brev metadata on SFCompute V2 instances.
+	// Internal tag keys written to every SFCompute V2 instance. These are stripped from
+	// v1.Instance.Tags on read so they don't surface as user-facing tags.
 	tagKeyCloudCredRefID = "brev-cloud-cred-ref-id"
-	tagKeyStage          = "brev-stage"
 	tagKeyRefID          = "brev-ref-id"
-	tagKeyName           = "brev-name"
+)
 
-	// BrevProductionCapacityID is the SFCompute capacity used for Brev-managed instances.
-	// TODO: replace with dynamic lookup from the Brev credential config; this is a stand-in.
+// Brev environment config for SFCompute V2.
+// TODO: source these from environment variables rather than hardcoding them here.
+const (
+	// BrevProductionCapacityID is the SFCompute V2 capacity ID for Brev production instances.
 	BrevProductionCapacityID = "brev-production-capacity"
 
-	// BrevProductionImageID is the public SFCompute image "ubuntu-24.04.4-cuda-12.8" (vm_images.vm_image_id).
+	// BrevProductionImageID is the SFCompute image for Brev production instances
+	// (ubuntu-24.04.4-cuda-12.8, vm_images.vm_image_id).
 	BrevProductionImageID = "vmi_4GwEvmclFURy7ztFQjOdr"
 )

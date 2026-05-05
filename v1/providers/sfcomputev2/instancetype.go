@@ -132,10 +132,9 @@ func (c *SFCClientV2) GetInstanceTypes(ctx context.Context, args v1.GetInstanceT
 }
 
 // availableSlots returns how many more instances can be created in the configured capacity.
-// It subtracts the count of active (running + awaiting_allocation) instances from the total
-// procurement target.
+// It subtracts the count of non-terminated instances from the current capacity allocation.
 func (c *SFCClientV2) availableSlots(ctx context.Context) (int, error) {
-	target, err := c.procurementTarget(ctx)
+	allocated, err := c.currentCapacityAllocation(ctx)
 	if err != nil {
 		return 0, errors.WrapAndTrace(err)
 	}
@@ -145,45 +144,38 @@ func (c *SFCClientV2) availableSlots(ctx context.Context) (int, error) {
 		return 0, errors.WrapAndTrace(err)
 	}
 
-	available := target - active
-	if available < 0 {
-		available = 0
-	}
-	return available, nil
+	return max(allocated-active, 0), nil
 }
 
-// procurementTarget sums the Integer targets from all procurements on c.capacityID.
-func (c *SFCClientV2) procurementTarget(ctx context.Context) (int, error) {
-	resp, err := c.client.Procurements.List(ctx, operations.ListProcurementsRequest{
-		Capacity: &c.capacityID,
-	})
+// currentCapacityAllocation returns the NodeAllocation from the most recent schedule entry
+// in BrevProductionCapacityID that is currently in effect (EffectiveAt <= now).
+func (c *SFCClientV2) currentCapacityAllocation(ctx context.Context) (int, error) {
+	resp, err := c.client.Capacities.Fetch(ctx, BrevProductionCapacityID, nil, nil)
 	if err != nil {
 		return 0, errors.WrapAndTrace(err)
 	}
-	if resp.ListProcurementsResponse == nil {
+	if resp.CapacityResponse == nil {
 		return 0, nil
 	}
 
-	total := 0
-	for _, p := range resp.ListProcurementsResponse.Data {
-		if p.Target.Type == components.ProcurementTargetTypeInteger && p.Target.Integer != nil {
-			total += int(*p.Target.Integer)
+	now := time.Now().Unix()
+	allocation := 0
+	latestAt := int64(-1)
+	for _, entry := range resp.CapacityResponse.AllocationSchedule.Total {
+		if entry.EffectiveAt <= now && entry.EffectiveAt > latestAt {
+			latestAt = entry.EffectiveAt
+			allocation = entry.NodeAllocation
 		}
 	}
-	return total, nil
+	return allocation, nil
 }
 
-// activeInstanceCount returns the number of running or awaiting_allocation instances
-// in c.capacityID.
+// activeInstanceCount returns the number of non-terminated instances in BrevProductionCapacityID.
+// All non-terminated instances occupy a slot in the capacity, including failed ones.
 func (c *SFCClientV2) activeInstanceCount(ctx context.Context) (int, error) {
-	activeStatuses := []components.InstanceStatus{
-		components.InstanceStatusRunning,
-		components.InstanceStatusAwaitingAllocation,
-	}
-
+	capacityID := BrevProductionCapacityID
 	resp, err := c.client.Instances.List(ctx, operations.ListInstancesRequest{
-		Capacity: &c.capacityID,
-		Status:   activeStatuses,
+		Capacity: &capacityID,
 	})
 	if err != nil {
 		return 0, errors.WrapAndTrace(err)
@@ -192,7 +184,13 @@ func (c *SFCClientV2) activeInstanceCount(ctx context.Context) (int, error) {
 		return 0, nil
 	}
 
-	return len(resp.ListInstancesResponse.Data), nil
+	count := 0
+	for _, inst := range resp.ListInstancesResponse.Data {
+		if inst.Status != components.InstanceStatusTerminated {
+			count++
+		}
+	}
+	return count, nil
 }
 
 func (c *SFCClientV2) GetLocations(_ context.Context, _ v1.GetLocationsArgs) ([]v1.Location, error) {
