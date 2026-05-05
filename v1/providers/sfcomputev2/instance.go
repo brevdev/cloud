@@ -16,16 +16,6 @@ import (
 	"github.com/sfcompute/sfc-go/optionalnullable"
 )
 
-const (
-	defaultPort        = 22
-	defaultSSHUsername = "ubuntu"
-
-	// Tag keys used to persist Brev metadata on V2 instances (native tags replace name encoding).
-	tagKeyCloudCredRefID = "brev-cloud-cred-ref-id"
-	tagKeyStage          = "brev-stage"
-	tagKeyRefID          = "brev-ref-id"
-	tagKeyName           = "brev-name"
-)
 
 func (c *SFCClientV2) CreateInstance(ctx context.Context, attrs v1.CreateInstanceAttrs) (*v1.Instance, error) {
 	c.logger.Debug(ctx, "sfcv2: CreateInstance start",
