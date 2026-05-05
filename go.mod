@@ -22,7 +22,7 @@ require (
 	github.com/nebius/gosdk v0.0.0-20250826102719-940ad1dfb5de
 	github.com/pkg/errors v0.9.1
 	github.com/sfcompute/nodes-go v0.1.0-alpha.4
-	github.com/sfcompute/sfc-go v0.0.0-local
+	github.com/sfcompute/sfc-go v0.1.0-preview
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/crypto v0.47.0
 	golang.org/x/text v0.33.0
@@ -115,5 +115,3 @@ require (
 	sigs.k8s.io/structured-merge-diff/v6 v6.3.0 // indirect
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
-
-replace github.com/sfcompute/sfc-go v0.0.0-local => /Users/andreaanez/Documents/sf_compute/sfc-go
