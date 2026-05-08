@@ -868,7 +868,6 @@ func matchesTagFilters(instanceTags map[string]string, tagFilters map[string][]s
 	return true
 }
 
-//nolint:dupl // StopInstance and StartInstance have similar structure but different operations
 func (c *NebiusClient) StopInstance(ctx context.Context, instanceID v1.CloudProviderInstanceID) error {
 	c.logger.Debug(ctx, "initiating instance stop operation",
 		v1.LogField("instanceID", instanceID))
@@ -906,7 +905,6 @@ func (c *NebiusClient) StopInstance(ctx context.Context, instanceID v1.CloudProv
 	return nil
 }
 
-//nolint:dupl // StartInstance and StopInstance have similar structure but different operations
 func (c *NebiusClient) StartInstance(ctx context.Context, instanceID v1.CloudProviderInstanceID) error {
 	c.logger.Debug(ctx, "initiating instance start operation",
 		v1.LogField("instanceID", instanceID))
@@ -916,17 +914,18 @@ func (c *NebiusClient) StartInstance(ctx context.Context, instanceID v1.CloudPro
 		Id: string(instanceID),
 	})
 	if err != nil {
-		return fmt.Errorf("failed to initiate instance start: %w", err)
+		return fmt.Errorf("failed to initiate instance start: %w", handleErrToCloudErr(err))
 	}
 
 	// Wait for the start operation to complete
 	finalOp, err := operation.Wait(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to wait for instance start: %w", err)
+		return fmt.Errorf("failed to wait for instance start: %w", handleErrToCloudErr(err))
 	}
 
 	if !finalOp.Successful() {
-		return fmt.Errorf("instance start failed: %v", finalOp.Status())
+		statusErr := fmt.Errorf("instance start failed: %v", finalOp.Status())
+		return handleErrToCloudErr(statusErr)
 	}
 
 	c.logger.Debug(ctx, "start operation completed, waiting for instance to reach RUNNING state",
