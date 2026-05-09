@@ -2,6 +2,8 @@ package v1
 
 import (
 	"context"
+	_ "embed"
+	"encoding/base64"
 	"fmt"
 	"strings"
 	"time"
@@ -19,6 +21,12 @@ const (
 	nebiusGPUImageFamily = "ubuntu24.04-cuda13.0"
 	nebiusCPUImageFamily = "ubuntu24.04-driverless"
 )
+
+//go:embed scripts/brev-apply-docker-firewall.sh
+var dockerFirewallScript string
+
+//go:embed scripts/10-brev-firewall.conf
+var dockerFirewallDropIn string
 
 //nolint:gocyclo,funlen // Complex instance creation with resource management
 func (c *NebiusClient) CreateInstance(ctx context.Context, attrs v1.CreateInstanceAttrs) (*v1.Instance, error) {
@@ -1576,7 +1584,7 @@ func (c *NebiusClient) cleanupOrphanedBootDisks(ctx context.Context, testID stri
 }
 
 // generateCloudInitUserData generates a cloud-init user-data script for SSH key injection and firewall configuration
-// This is inspired by Shadeform's LaunchConfiguration approach but uses cloud-init instead of base64 scripts
+// This is inspired by Shadeform's LaunchConfiguration approach but uses cloud-init directly.
 func generateCloudInitUserData(publicKey string, firewallRules v1.FirewallRules) string {
 	// Start with cloud-init header
 	script := `#cloud-config
@@ -1591,13 +1599,11 @@ packages:
 `, publicKey)
 	}
 
+	script += generateDockerFirewallWriteFiles()
+
 	var commands []string
 
-	// Install an idempotent Docker firewall hook before enabling UFW. Some
-	// Nebius images start Docker after cloud-init runcmd; Docker creates or
-	// resets DOCKER-USER during startup, so the rules need to be re-applied after
-	// docker.service starts instead of only once during runcmd.
-	commands = append(commands, generateDockerFirewallInstallCommands()...)
+	commands = append(commands, "sudo systemctl daemon-reload")
 
 	// Generate UFW firewall commands (similar to Shadeform's approach)
 	// UFW (Uncomplicated Firewall) is available on Ubuntu/Debian instances
@@ -1648,14 +1654,18 @@ func generateUFWCommands(firewallRules v1.FirewallRules) []string {
 }
 
 const (
-	// Keep these paths stable: they are useful operator touchpoints when
-	// debugging instance firewall state with systemctl/cat/iptables.
+	// Keep these generated paths stable: cloud-init, systemd, and validation
+	// tests all depend on this Docker firewall handoff.
 	dockerFirewallScriptPath = "/usr/local/sbin/brev-apply-docker-firewall.sh"
 	dockerServiceDropInDir   = "/etc/systemd/system/docker.service.d"
 	dockerFirewallDropInPath = dockerServiceDropInDir + "/10-brev-firewall.conf"
 )
 
-func generateDockerFirewallInstallCommands() []string {
+func generateDockerFirewallWriteFiles() string {
+	// This function emits the only write_files block in this cloud-config. If
+	// another generated file is added later, merge it into this block instead of
+	// adding a second top-level write_files key.
+	//
 	// Docker published ports are not governed by UFW's INPUT policy. Docker adds
 	// NAT/FORWARD rules that can make `docker run -p host:container` reachable
 	// from the public internet even when UFW says incoming traffic is denied.
@@ -1671,65 +1681,22 @@ func generateDockerFirewallInstallCommands() []string {
 	// because failing Docker startup would be worse operationally. Validation
 	// tests assert that the rule set is actually present and blocks published
 	// ports.
-	scriptLines := append([]string{
-		"#!/bin/sh",
-		"set +e",
-	}, generateIPTablesCommands()...)
-	scriptLines = append(scriptLines, "exit 0")
-
-	return []string{
-		generatePrintfToFileCommand(scriptLines, dockerFirewallScriptPath),
-		"sudo chmod 0755 " + dockerFirewallScriptPath,
-		"sudo mkdir -p " + dockerServiceDropInDir,
-		generatePrintfToFileCommand([]string{
-			"[Service]",
-			"ExecStartPost=" + dockerFirewallScriptPath,
-		}, dockerFirewallDropInPath),
-		"sudo systemctl daemon-reload",
-	}
-}
-
-func generatePrintfToFileCommand(lines []string, path string) string {
-	quotedLines := make([]string, 0, len(lines))
-	for _, line := range lines {
-		quotedLines = append(quotedLines, shellSingleQuote(line))
-	}
-
-	return fmt.Sprintf("printf '%%s\\n' %s | sudo tee %s > /dev/null", strings.Join(quotedLines, " "), path)
-}
-
-func shellSingleQuote(value string) string {
-	return "'" + strings.ReplaceAll(value, "'", `'\''`) + "'"
-}
-
-// generateIPTablesCommands generates IPTables firewall commands to ensure docker ports are not made immediately
-// accessible from the internet by default.
-func generateIPTablesCommands() []string {
-	commands := []string{
-		// CPU images can run cloud-init before Docker has created DOCKER-USER.
-		// Create it first so the immediate cloud-init run succeeds; when Docker
-		// starts later, the systemd ExecStartPost hook above re-applies the same
-		// rules after Docker has finished creating/resetting its own chains.
-		"iptables -N DOCKER-USER 2>/dev/null || true",
-		"iptables -F DOCKER-USER || true",
-
-		// Preserve already-established connections, then allow container bridge
-		// egress and intra-bridge traffic. The final DROP below is what prevents
-		// externally-published Docker ports from being reachable by default.
-		"iptables -A DOCKER-USER -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT",
-		"iptables -A DOCKER-USER -i docker0 ! -o docker0 -j ACCEPT",
-		"iptables -A DOCKER-USER -i br+     ! -o br+     -j ACCEPT",
-		"iptables -A DOCKER-USER -i cni+    ! -o cni+    -j ACCEPT", // TODO: add these back in when we have a way to test it
-		"iptables -A DOCKER-USER -i cali+   ! -o cali+   -j ACCEPT",
-		"iptables -A DOCKER-USER -i docker0 -o docker0 -j ACCEPT",
-		"iptables -A DOCKER-USER -i br+     -o br+     -j ACCEPT",
-		"iptables -A DOCKER-USER -i cni+    -o cni+    -j ACCEPT",
-		"iptables -A DOCKER-USER -i cali+   -o cali+   -j ACCEPT",
-		"iptables -A DOCKER-USER -i lo -j ACCEPT",
-		"iptables -A DOCKER-USER -j DROP",
-		"iptables -A DOCKER-USER -j RETURN", // Expected by Docker
-	}
-	return commands
+	//
+	// UFW persists its own rules in /etc/ufw; only DOCKER-USER needed a Docker
+	// startup hook after removing netfilter-persistent.
+	return fmt.Sprintf(`
+write_files:
+  - path: %s
+    owner: root:root
+    permissions: '0755'
+    encoding: b64
+    content: %s
+  - path: %s
+    owner: root:root
+    permissions: '0644'
+    encoding: b64
+    content: %s
+`, dockerFirewallScriptPath, base64.StdEncoding.EncodeToString([]byte(dockerFirewallScript)), dockerFirewallDropInPath, base64.StdEncoding.EncodeToString([]byte(dockerFirewallDropIn)))
 }
 
 // convertIngressRuleToUFW converts an ingress firewall rule to UFW command(s)

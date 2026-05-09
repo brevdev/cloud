@@ -89,19 +89,29 @@ func TestGenerateCloudInitUserDataInstallsDockerFirewallHook(t *testing.T) {
 
 	assert.NotContains(t, script, "iptables-persistent")
 	assert.NotContains(t, script, "netfilter-persistent")
+	assert.Contains(t, script, "write_files:")
+	assert.Contains(t, script, "encoding: b64")
 	assert.Contains(t, script, "/usr/local/sbin/brev-apply-docker-firewall.sh")
 	assert.Contains(t, script, "/etc/systemd/system/docker.service.d")
-	assert.Contains(t, script, "ExecStartPost=/usr/local/sbin/brev-apply-docker-firewall.sh")
 	assert.Contains(t, script, "sudo /usr/local/sbin/brev-apply-docker-firewall.sh || true")
+	assert.NotContains(t, script, "content: |")
+	assert.NotContains(t, script, "      #!/bin/sh")
+	assert.NotContains(t, script, "ExecStartPost=/usr/local/sbin/brev-apply-docker-firewall.sh")
+	assert.NotContains(t, script, "printf '%s\\n'")
+	assert.NotContains(t, script, "| sudo tee")
 }
 
-func TestGenerateIPTablesCommandsCreateDockerUserChainBeforeFlush(t *testing.T) {
-	commands := generateIPTablesCommands()
+func TestDockerFirewallScriptCreatesDockerUserChainBeforeFlush(t *testing.T) {
+	createChainIndex := strings.Index(dockerFirewallScript, "iptables -N DOCKER-USER")
+	flushChainIndex := strings.Index(dockerFirewallScript, "iptables -F DOCKER-USER")
 
-	assert.GreaterOrEqual(t, len(commands), 2)
-	assert.Equal(t, "iptables -N DOCKER-USER 2>/dev/null || true", commands[0])
-	assert.Equal(t, "iptables -F DOCKER-USER || true", commands[1])
-	assert.Contains(t, strings.Join(commands, "\n"), "iptables -A DOCKER-USER -j DROP")
+	assert.Greater(t, createChainIndex, -1)
+	assert.Greater(t, flushChainIndex, createChainIndex)
+	assert.Contains(t, dockerFirewallScript, "iptables -A DOCKER-USER -j DROP")
+}
+
+func TestDockerFirewallDropInIgnoresExecStartPostFailure(t *testing.T) {
+	assert.Contains(t, dockerFirewallDropIn, "ExecStartPost=-/usr/local/sbin/brev-apply-docker-firewall.sh")
 }
 
 // BenchmarkCreateInstance benchmarks the CreateInstance method
