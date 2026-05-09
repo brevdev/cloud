@@ -1582,7 +1582,6 @@ func generateCloudInitUserData(publicKey string, firewallRules v1.FirewallRules)
 	script := `#cloud-config
 packages:
   - ufw
-  - iptables-persistent
 `
 
 	// Add SSH key configuration if provided
@@ -1594,33 +1593,19 @@ packages:
 
 	var commands []string
 
-	// Fix a systemd race condition: ufw.service and netfilter-persistent.service
-	// both start in parallel (both are Before=network-pre.target with no mutual
-	// ordering). Both call iptables-restore concurrently, and with the iptables-nft
-	// backend the competing nftables transactions cause UFW to fail with
-	// "iptables-restore: line 4 failed". This drop-in forces UFW to wait for
-	// netfilter-persistent to finish first.
-	commands = append(commands,
-		"sudo mkdir -p /etc/systemd/system/ufw.service.d",
-		`printf '[Unit]\nAfter=netfilter-persistent.service\n' | sudo tee /etc/systemd/system/ufw.service.d/after-netfilter.conf > /dev/null`,
-		"sudo systemctl daemon-reload",
-	)
+	// Install an idempotent Docker firewall hook before enabling UFW. Some
+	// Nebius images start Docker after cloud-init runcmd; Docker creates or
+	// resets DOCKER-USER during startup, so the rules need to be re-applied after
+	// docker.service starts instead of only once during runcmd.
+	commands = append(commands, generateDockerFirewallInstallCommands()...)
 
 	// Generate UFW firewall commands (similar to Shadeform's approach)
 	// UFW (Uncomplicated Firewall) is available on Ubuntu/Debian instances
 	commands = append(commands, generateUFWCommands(firewallRules)...)
 
-	// Generate IPTables firewall commands to ensure docker ports are not made immediately
-	// accessible from the internet by default.
-	commands = append(commands, generateIPTablesCommands()...)
-
-	// Save the complete iptables state (UFW chains + DOCKER-USER rules) so it
-	// survives instance stop/start cycles. Cloud-init runcmd only executes on
-	// first boot; on subsequent boots netfilter-persistent restores this snapshot,
-	// then UFW starts after it (due to the drop-in above) and re-applies its rules.
-	// This provides defense-in-depth: even if UFW fails for any reason, the
-	// netfilter-persistent snapshot ensures port 22 and DOCKER-USER rules persist.
-	commands = append(commands, "sudo netfilter-persistent save")
+	// Apply immediately for images where Docker is already running. The
+	// docker.service ExecStartPost hook handles images where Docker starts later.
+	commands = append(commands, "sudo /usr/local/sbin/brev-apply-docker-firewall.sh || true")
 
 	if len(commands) > 0 {
 		// Use runcmd to execute firewall setup commands
@@ -1662,11 +1647,75 @@ func generateUFWCommands(firewallRules v1.FirewallRules) []string {
 	return commands
 }
 
+const (
+	// Keep these paths stable: they are useful operator touchpoints when
+	// debugging instance firewall state with systemctl/cat/iptables.
+	dockerFirewallScriptPath = "/usr/local/sbin/brev-apply-docker-firewall.sh"
+	dockerServiceDropInDir   = "/etc/systemd/system/docker.service.d"
+	dockerFirewallDropInPath = dockerServiceDropInDir + "/10-brev-firewall.conf"
+)
+
+func generateDockerFirewallInstallCommands() []string {
+	// Docker published ports are not governed by UFW's INPUT policy. Docker adds
+	// NAT/FORWARD rules that can make `docker run -p host:container` reachable
+	// from the public internet even when UFW says incoming traffic is denied.
+	//
+	// DOCKER-USER is Docker's documented filter hook for this traffic. The
+	// ordering is important: some Nebius images run cloud-init before Docker has
+	// created DOCKER-USER, and Docker may create/reset the chain during daemon
+	// startup. We therefore install both:
+	//   - an immediate cloud-init run for images where Docker is already active
+	//   - a docker.service ExecStartPost hook for images where Docker starts later
+	//
+	// The generated script exits successfully even if an iptables command fails
+	// because failing Docker startup would be worse operationally. Validation
+	// tests assert that the rule set is actually present and blocks published
+	// ports.
+	scriptLines := append([]string{
+		"#!/bin/sh",
+		"set +e",
+	}, generateIPTablesCommands()...)
+	scriptLines = append(scriptLines, "exit 0")
+
+	return []string{
+		generatePrintfToFileCommand(scriptLines, dockerFirewallScriptPath),
+		"sudo chmod 0755 " + dockerFirewallScriptPath,
+		"sudo mkdir -p " + dockerServiceDropInDir,
+		generatePrintfToFileCommand([]string{
+			"[Service]",
+			"ExecStartPost=" + dockerFirewallScriptPath,
+		}, dockerFirewallDropInPath),
+		"sudo systemctl daemon-reload",
+	}
+}
+
+func generatePrintfToFileCommand(lines []string, path string) string {
+	quotedLines := make([]string, 0, len(lines))
+	for _, line := range lines {
+		quotedLines = append(quotedLines, shellSingleQuote(line))
+	}
+
+	return fmt.Sprintf("printf '%%s\\n' %s | sudo tee %s > /dev/null", strings.Join(quotedLines, " "), path)
+}
+
+func shellSingleQuote(value string) string {
+	return "'" + strings.ReplaceAll(value, "'", `'\''`) + "'"
+}
+
 // generateIPTablesCommands generates IPTables firewall commands to ensure docker ports are not made immediately
 // accessible from the internet by default.
 func generateIPTablesCommands() []string {
 	commands := []string{
-		"iptables -F DOCKER-USER",
+		// CPU images can run cloud-init before Docker has created DOCKER-USER.
+		// Create it first so the immediate cloud-init run succeeds; when Docker
+		// starts later, the systemd ExecStartPost hook above re-applies the same
+		// rules after Docker has finished creating/resetting its own chains.
+		"iptables -N DOCKER-USER 2>/dev/null || true",
+		"iptables -F DOCKER-USER || true",
+
+		// Preserve already-established connections, then allow container bridge
+		// egress and intra-bridge traffic. The final DROP below is what prevents
+		// externally-published Docker ports from being reachable by default.
 		"iptables -A DOCKER-USER -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT",
 		"iptables -A DOCKER-USER -i docker0 ! -o docker0 -j ACCEPT",
 		"iptables -A DOCKER-USER -i br+     ! -o br+     -j ACCEPT",

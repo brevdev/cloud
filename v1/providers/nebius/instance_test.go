@@ -84,6 +84,26 @@ func TestNebiusClient_MergeInstanceForUpdate(t *testing.T) {
 	assert.Equal(t, newInstance.Status, merged.Status)
 }
 
+func TestGenerateCloudInitUserDataInstallsDockerFirewallHook(t *testing.T) {
+	script := generateCloudInitUserData("ssh-rsa test", v1.FirewallRules{})
+
+	assert.NotContains(t, script, "iptables-persistent")
+	assert.NotContains(t, script, "netfilter-persistent")
+	assert.Contains(t, script, "/usr/local/sbin/brev-apply-docker-firewall.sh")
+	assert.Contains(t, script, "/etc/systemd/system/docker.service.d")
+	assert.Contains(t, script, "ExecStartPost=/usr/local/sbin/brev-apply-docker-firewall.sh")
+	assert.Contains(t, script, "sudo /usr/local/sbin/brev-apply-docker-firewall.sh || true")
+}
+
+func TestGenerateIPTablesCommandsCreateDockerUserChainBeforeFlush(t *testing.T) {
+	commands := generateIPTablesCommands()
+
+	assert.GreaterOrEqual(t, len(commands), 2)
+	assert.Equal(t, "iptables -N DOCKER-USER 2>/dev/null || true", commands[0])
+	assert.Equal(t, "iptables -F DOCKER-USER || true", commands[1])
+	assert.Contains(t, strings.Join(commands, "\n"), "iptables -A DOCKER-USER -j DROP")
+}
+
 // BenchmarkCreateInstance benchmarks the CreateInstance method
 func BenchmarkCreateInstance(b *testing.B) {
 	b.Skip("CreateInstance requires real SDK initialization - use integration tests instead")
