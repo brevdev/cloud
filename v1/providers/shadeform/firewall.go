@@ -15,6 +15,10 @@ const (
 	ufwDefaultAllowPort2222 = "ufw allow 2222/tcp"
 	ufwForceEnable          = "ufw --force enable"
 
+	// Ensure DOCKER-USER exists before clearing it. Docker normally creates this
+	// chain, but firewall setup can run before Docker has initialized iptables.
+	ipTablesCreateDockerUserChain = "iptables -N DOCKER-USER || true"
+
 	// Clear DOCKER-USER policy.
 	ipTablesResetDockerUserChain = "iptables -F DOCKER-USER"
 
@@ -83,6 +87,7 @@ func (c *ShadeformClient) getUFWCommands(firewallRules v1.FirewallRules) []strin
 
 func (c *ShadeformClient) getIPTablesCommands() []string {
 	commands := []string{
+		ipTablesCreateDockerUserChain,
 		ipTablesResetDockerUserChain,
 		ipTablesAllowDockerUserOutbound,
 		ipTablesAllowDockerUserOutboundInit0,

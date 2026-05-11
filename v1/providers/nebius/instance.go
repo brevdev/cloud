@@ -1657,6 +1657,12 @@ const (
 	// Keep these generated paths stable: cloud-init, systemd, and validation
 	// tests all depend on this Docker firewall handoff.
 	dockerFirewallScriptPath = "/usr/local/sbin/brev-apply-docker-firewall.sh"
+
+	// This is a docker.service drop-in because the firewall rules must be
+	// re-applied immediately after Docker initializes or resets DOCKER-USER. If
+	// we need a separately inspectable status surface later, this can move to a
+	// named oneshot unit such as brev-docker-firewall.service; for now the
+	// execution is visible through docker.service journal/status output.
 	dockerServiceDropInDir   = "/etc/systemd/system/docker.service.d"
 	dockerFirewallDropInPath = dockerServiceDropInDir + "/10-brev-firewall.conf"
 )
@@ -1670,20 +1676,17 @@ func generateDockerFirewallWriteFiles() string {
 	// NAT/FORWARD rules that can make `docker run -p host:container` reachable
 	// from the public internet even when UFW says incoming traffic is denied.
 	//
-	// DOCKER-USER is Docker's documented filter hook for this traffic. The
-	// ordering is important: some Nebius images run cloud-init before Docker has
-	// created DOCKER-USER, and Docker may create/reset the chain during daemon
-	// startup. We therefore install both:
-	//   - an immediate cloud-init run for images where Docker is already active
-	//   - a docker.service ExecStartPost hook for images where Docker starts later
+	// DOCKER-USER is Docker's documented filter hook for this traffic. The script
+	// ensures the chain exists before configuring it. If Docker already created
+	// the chain, the create command fails harmlessly and the script continues.
 	//
 	// The generated script exits successfully even if an iptables command fails
 	// because failing Docker startup would be worse operationally. Validation
 	// tests assert that the rule set is actually present and blocks published
 	// ports.
 	//
-	// UFW persists its own rules in /etc/ufw; only DOCKER-USER needed a Docker
-	// startup hook after removing netfilter-persistent.
+	// UFW persists its own rules in /etc/ufw; Docker firewall rules are applied
+	// through cloud-init and the docker.service post-start hook.
 	return fmt.Sprintf(`
 write_files:
   - path: %s
