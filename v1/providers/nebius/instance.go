@@ -2,6 +2,8 @@ package v1
 
 import (
 	"context"
+	_ "embed"
+	"encoding/base64"
 	"fmt"
 	"strings"
 	"time"
@@ -19,6 +21,12 @@ const (
 	nebiusGPUImageFamily = "ubuntu24.04-cuda13.0"
 	nebiusCPUImageFamily = "ubuntu24.04-driverless"
 )
+
+//go:embed scripts/brev-apply-docker-firewall.sh
+var dockerFirewallScript string
+
+//go:embed scripts/10-brev-firewall.conf
+var dockerFirewallDropIn string
 
 //nolint:gocyclo,funlen // Complex instance creation with resource management
 func (c *NebiusClient) CreateInstance(ctx context.Context, attrs v1.CreateInstanceAttrs) (*v1.Instance, error) {
@@ -868,7 +876,6 @@ func matchesTagFilters(instanceTags map[string]string, tagFilters map[string][]s
 	return true
 }
 
-//nolint:dupl // StopInstance and StartInstance have similar structure but different operations
 func (c *NebiusClient) StopInstance(ctx context.Context, instanceID v1.CloudProviderInstanceID) error {
 	c.logger.Debug(ctx, "initiating instance stop operation",
 		v1.LogField("instanceID", instanceID))
@@ -906,7 +913,6 @@ func (c *NebiusClient) StopInstance(ctx context.Context, instanceID v1.CloudProv
 	return nil
 }
 
-//nolint:dupl // StartInstance and StopInstance have similar structure but different operations
 func (c *NebiusClient) StartInstance(ctx context.Context, instanceID v1.CloudProviderInstanceID) error {
 	c.logger.Debug(ctx, "initiating instance start operation",
 		v1.LogField("instanceID", instanceID))
@@ -916,17 +922,18 @@ func (c *NebiusClient) StartInstance(ctx context.Context, instanceID v1.CloudPro
 		Id: string(instanceID),
 	})
 	if err != nil {
-		return fmt.Errorf("failed to initiate instance start: %w", err)
+		return fmt.Errorf("failed to initiate instance start: %w", handleErrToCloudErr(err))
 	}
 
 	// Wait for the start operation to complete
 	finalOp, err := operation.Wait(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to wait for instance start: %w", err)
+		return fmt.Errorf("failed to wait for instance start: %w", handleErrToCloudErr(err))
 	}
 
 	if !finalOp.Successful() {
-		return fmt.Errorf("instance start failed: %v", finalOp.Status())
+		statusErr := fmt.Errorf("instance start failed: %v", finalOp.Status())
+		return handleErrToCloudErr(statusErr)
 	}
 
 	c.logger.Debug(ctx, "start operation completed, waiting for instance to reach RUNNING state",
@@ -1577,13 +1584,12 @@ func (c *NebiusClient) cleanupOrphanedBootDisks(ctx context.Context, testID stri
 }
 
 // generateCloudInitUserData generates a cloud-init user-data script for SSH key injection and firewall configuration
-// This is inspired by Shadeform's LaunchConfiguration approach but uses cloud-init instead of base64 scripts
+// This is inspired by Shadeform's LaunchConfiguration approach but uses cloud-init directly.
 func generateCloudInitUserData(publicKey string, firewallRules v1.FirewallRules) string {
 	// Start with cloud-init header
 	script := `#cloud-config
 packages:
   - ufw
-  - iptables-persistent
 `
 
 	// Add SSH key configuration if provided
@@ -1593,35 +1599,19 @@ packages:
 `, publicKey)
 	}
 
+	script += generateDockerFirewallWriteFiles()
+
 	var commands []string
 
-	// Fix a systemd race condition: ufw.service and netfilter-persistent.service
-	// both start in parallel (both are Before=network-pre.target with no mutual
-	// ordering). Both call iptables-restore concurrently, and with the iptables-nft
-	// backend the competing nftables transactions cause UFW to fail with
-	// "iptables-restore: line 4 failed". This drop-in forces UFW to wait for
-	// netfilter-persistent to finish first.
-	commands = append(commands,
-		"sudo mkdir -p /etc/systemd/system/ufw.service.d",
-		`printf '[Unit]\nAfter=netfilter-persistent.service\n' | sudo tee /etc/systemd/system/ufw.service.d/after-netfilter.conf > /dev/null`,
-		"sudo systemctl daemon-reload",
-	)
+	commands = append(commands, "sudo systemctl daemon-reload")
 
 	// Generate UFW firewall commands (similar to Shadeform's approach)
 	// UFW (Uncomplicated Firewall) is available on Ubuntu/Debian instances
 	commands = append(commands, generateUFWCommands(firewallRules)...)
 
-	// Generate IPTables firewall commands to ensure docker ports are not made immediately
-	// accessible from the internet by default.
-	commands = append(commands, generateIPTablesCommands()...)
-
-	// Save the complete iptables state (UFW chains + DOCKER-USER rules) so it
-	// survives instance stop/start cycles. Cloud-init runcmd only executes on
-	// first boot; on subsequent boots netfilter-persistent restores this snapshot,
-	// then UFW starts after it (due to the drop-in above) and re-applies its rules.
-	// This provides defense-in-depth: even if UFW fails for any reason, the
-	// netfilter-persistent snapshot ensures port 22 and DOCKER-USER rules persist.
-	commands = append(commands, "sudo netfilter-persistent save")
+	// Apply immediately for images where Docker is already running. The
+	// docker.service ExecStartPost hook handles images where Docker starts later.
+	commands = append(commands, "sudo /usr/local/sbin/brev-apply-docker-firewall.sh || true")
 
 	if len(commands) > 0 {
 		// Use runcmd to execute firewall setup commands
@@ -1663,25 +1653,53 @@ func generateUFWCommands(firewallRules v1.FirewallRules) []string {
 	return commands
 }
 
-// generateIPTablesCommands generates IPTables firewall commands to ensure docker ports are not made immediately
-// accessible from the internet by default.
-func generateIPTablesCommands() []string {
-	commands := []string{
-		"iptables -F DOCKER-USER",
-		"iptables -A DOCKER-USER -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT",
-		"iptables -A DOCKER-USER -i docker0 ! -o docker0 -j ACCEPT",
-		"iptables -A DOCKER-USER -i br+     ! -o br+     -j ACCEPT",
-		"iptables -A DOCKER-USER -i cni+    ! -o cni+    -j ACCEPT", // TODO: add these back in when we have a way to test it
-		"iptables -A DOCKER-USER -i cali+   ! -o cali+   -j ACCEPT",
-		"iptables -A DOCKER-USER -i docker0 -o docker0 -j ACCEPT",
-		"iptables -A DOCKER-USER -i br+     -o br+     -j ACCEPT",
-		"iptables -A DOCKER-USER -i cni+    -o cni+    -j ACCEPT",
-		"iptables -A DOCKER-USER -i cali+   -o cali+   -j ACCEPT",
-		"iptables -A DOCKER-USER -i lo -j ACCEPT",
-		"iptables -A DOCKER-USER -j DROP",
-		"iptables -A DOCKER-USER -j RETURN", // Expected by Docker
-	}
-	return commands
+const (
+	// Keep these generated paths stable: cloud-init, systemd, and validation
+	// tests all depend on this Docker firewall handoff.
+	dockerFirewallScriptPath = "/usr/local/sbin/brev-apply-docker-firewall.sh"
+
+	// This is a docker.service drop-in because the firewall rules must be
+	// re-applied immediately after Docker initializes or resets DOCKER-USER. If
+	// we need a separately inspectable status surface later, this can move to a
+	// named oneshot unit such as brev-docker-firewall.service; for now the
+	// execution is visible through docker.service journal/status output.
+	dockerServiceDropInDir   = "/etc/systemd/system/docker.service.d"
+	dockerFirewallDropInPath = dockerServiceDropInDir + "/10-brev-firewall.conf"
+)
+
+func generateDockerFirewallWriteFiles() string {
+	// This function emits the only write_files block in this cloud-config. If
+	// another generated file is added later, merge it into this block instead of
+	// adding a second top-level write_files key.
+	//
+	// Docker published ports are not governed by UFW's INPUT policy. Docker adds
+	// NAT/FORWARD rules that can make `docker run -p host:container` reachable
+	// from the public internet even when UFW says incoming traffic is denied.
+	//
+	// DOCKER-USER is Docker's documented filter hook for this traffic. The script
+	// ensures the chain exists before configuring it. If Docker already created
+	// the chain, the create command fails harmlessly and the script continues.
+	//
+	// The generated script exits successfully even if an iptables command fails
+	// because failing Docker startup would be worse operationally. Validation
+	// tests assert that the rule set is actually present and blocks published
+	// ports.
+	//
+	// UFW persists its own rules in /etc/ufw; Docker firewall rules are applied
+	// through cloud-init and the docker.service post-start hook.
+	return fmt.Sprintf(`
+write_files:
+  - path: %s
+    owner: root:root
+    permissions: '0755'
+    encoding: b64
+    content: %s
+  - path: %s
+    owner: root:root
+    permissions: '0644'
+    encoding: b64
+    content: %s
+`, dockerFirewallScriptPath, base64.StdEncoding.EncodeToString([]byte(dockerFirewallScript)), dockerFirewallDropInPath, base64.StdEncoding.EncodeToString([]byte(dockerFirewallDropIn)))
 }
 
 // convertIngressRuleToUFW converts an ingress firewall rule to UFW command(s)

@@ -6,6 +6,7 @@ import (
 
 	v1 "github.com/brevdev/cloud/v1"
 	"github.com/nebius/gosdk/operations"
+	"github.com/nebius/gosdk/serviceerror"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -36,6 +37,17 @@ func isNotFoundError(err error) bool {
 func handleErrToCloudErr(e error) error {
 	if e == nil {
 		return nil
+	}
+	var serviceErr *serviceerror.Error
+	if errors.As(e, &serviceErr) {
+		for _, detail := range serviceErr.Details {
+			switch detail.(type) {
+			case *serviceerror.NotEnoughResources:
+				return v1.ErrInsufficientResources
+			case *serviceerror.QuotaFailure:
+				return v1.ErrOutOfQuota
+			}
+		}
 	}
 	// Check for Nebius operations.Error for ResourceExhausted (returned by operation.Wait on async failures)
 	var opErr *operations.Error

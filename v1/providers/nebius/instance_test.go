@@ -84,6 +84,36 @@ func TestNebiusClient_MergeInstanceForUpdate(t *testing.T) {
 	assert.Equal(t, newInstance.Status, merged.Status)
 }
 
+func TestGenerateCloudInitUserDataInstallsDockerFirewallHook(t *testing.T) {
+	script := generateCloudInitUserData("ssh-rsa test", v1.FirewallRules{})
+
+	assert.NotContains(t, script, "iptables-persistent")
+	assert.NotContains(t, script, "netfilter-persistent")
+	assert.Contains(t, script, "write_files:")
+	assert.Contains(t, script, "encoding: b64")
+	assert.Contains(t, script, "/usr/local/sbin/brev-apply-docker-firewall.sh")
+	assert.Contains(t, script, "/etc/systemd/system/docker.service.d")
+	assert.Contains(t, script, "sudo /usr/local/sbin/brev-apply-docker-firewall.sh || true")
+	assert.NotContains(t, script, "content: |")
+	assert.NotContains(t, script, "      #!/bin/sh")
+	assert.NotContains(t, script, "ExecStartPost=/usr/local/sbin/brev-apply-docker-firewall.sh")
+	assert.NotContains(t, script, "printf '%s\\n'")
+	assert.NotContains(t, script, "| sudo tee")
+}
+
+func TestDockerFirewallScriptCreatesDockerUserChainBeforeFlush(t *testing.T) {
+	createChainIndex := strings.Index(dockerFirewallScript, "iptables -N DOCKER-USER")
+	flushChainIndex := strings.Index(dockerFirewallScript, "iptables -F DOCKER-USER")
+
+	assert.Greater(t, createChainIndex, -1)
+	assert.Greater(t, flushChainIndex, createChainIndex)
+	assert.Contains(t, dockerFirewallScript, "iptables -A DOCKER-USER -j DROP")
+}
+
+func TestDockerFirewallDropInIgnoresExecStartPostFailure(t *testing.T) {
+	assert.Contains(t, dockerFirewallDropIn, "ExecStartPost=-/usr/local/sbin/brev-apply-docker-firewall.sh")
+}
+
 // BenchmarkCreateInstance benchmarks the CreateInstance method
 func BenchmarkCreateInstance(b *testing.B) {
 	b.Skip("CreateInstance requires real SDK initialization - use integration tests instead")
