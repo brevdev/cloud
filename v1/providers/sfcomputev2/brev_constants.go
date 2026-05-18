@@ -14,10 +14,10 @@ const (
 // Brev environment config for SFCompute V2.
 // TODO: source these from environment variables rather than hardcoding them here.
 const (
-	// BrevProductionCapacityID is the SFCompute V2 capacity ID for Brev production instances.
-	BrevProductionCapacityID = "brev-production-capacity"
+	// BrevDefaultCapacityID is the SFCompute V2 capacity ID for Brev production instances.
+	BrevDefaultCapacityID = "brev-default-capacity"
 
-	// BrevProductionImageID is the SFCompute image for Brev production instances
+	// BrevDefaultImageID is the default SFCompute image for Brev instances
 	// (ubuntu-24.04.4-cuda-12.8, vm_images.vm_image_id).
-	BrevProductionImageID = "vmi_4GwEvmclFURy7ztFQjOdr"
+	BrevDefaultImageID = "vmi_4GwEvmclFURy7ztFQjOdr"
 )

@@ -150,7 +150,7 @@ func (c *SFCClientV2) availableSlots(ctx context.Context) (int, error) {
 // currentCapacityAllocation returns the NodeAllocation from the most recent schedule entry
 // in BrevProductionCapacityID that is currently in effect (EffectiveAt <= now).
 func (c *SFCClientV2) currentCapacityAllocation(ctx context.Context) (int, error) {
-	resp, err := c.client.Capacities.Fetch(ctx, BrevProductionCapacityID, nil, nil)
+	resp, err := c.client.Capacities.Fetch(ctx, BrevDefaultCapacityID, nil, nil)
 	if err != nil {
 		return 0, errors.WrapAndTrace(err)
 	}
@@ -173,7 +173,7 @@ func (c *SFCClientV2) currentCapacityAllocation(ctx context.Context) (int, error
 // activeInstanceCount returns the number of non-terminated instances in BrevProductionCapacityID.
 // All non-terminated instances occupy a slot in the capacity, including failed ones.
 func (c *SFCClientV2) activeInstanceCount(ctx context.Context) (int, error) {
-	capacityID := BrevProductionCapacityID
+	capacityID := BrevDefaultCapacityID
 	resp, err := c.client.Instances.List(ctx, operations.ListInstancesRequest{
 		Capacity: &capacityID,
 	})
