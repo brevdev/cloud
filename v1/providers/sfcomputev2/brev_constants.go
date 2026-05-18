@@ -1,5 +1,7 @@
 package v2
 
+import "fmt"
+
 // Package-internal constants — SSH defaults and internal tag keys.
 const (
 	defaultPort        = 22
@@ -12,12 +14,14 @@ const (
 )
 
 // Brev environment config for SFCompute V2.
-// TODO: source these from environment variables rather than hardcoding them here.
 const (
-	// BrevDefaultCapacityID is the SFCompute V2 capacity ID for Brev production instances.
-	BrevDefaultCapacityID = "brev-default-capacity"
-
-	// BrevDefaultImageID is the default SFCompute image for Brev instances
-	// (ubuntu-24.04.4-cuda-12.8, vm_images.vm_image_id).
-	BrevDefaultImageID = "vmi_4GwEvmclFURy7ztFQjOdr"
+	brevDefaultImageID = "sfc:image:sfcompute:public:ubuntu-24.04.4-cuda-12.8"
 )
+
+func GetDefaultCapacityID(workspace string) string {
+	return fmt.Sprintf("sfc:capacity:%s:default:brev-default-capacity", workspace)
+}
+
+func GetDefaultImageID() string {
+	return brevDefaultImageID
+}

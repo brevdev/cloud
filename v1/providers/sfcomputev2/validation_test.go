@@ -13,7 +13,7 @@ func TestValidationFunctions(t *testing.T) {
 	checkSkip(t)
 
 	config := validation.ProviderConfig{
-		Credential: NewSFCCredentialV2("validation-test", getAPIKey()),
+		Credential: NewSFCCredentialV2("validation-test", getAPIKey(), getWorkspace()),
 		StableIDs: []v1.InstanceTypeID{
 			h100InstanceTypeMetadata.instanceTypeID,
 		},
@@ -27,7 +27,7 @@ func TestInstanceLifecycleValidation(t *testing.T) {
 	checkSkip(t)
 
 	config := validation.ProviderConfig{
-		Credential: NewSFCCredentialV2("validation-test", getAPIKey()),
+		Credential: NewSFCCredentialV2("validation-test", getAPIKey(), getWorkspace()),
 		Location:   sfcLocation,
 	}
 
@@ -47,4 +47,8 @@ func checkSkip(t *testing.T) {
 
 func getAPIKey() string {
 	return os.Getenv("SFCOMPUTE_API_KEY")
+}
+
+func getWorkspace() string {
+	return os.Getenv("SFCOMPUTE_WORKSPACE")
 }

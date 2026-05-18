@@ -29,8 +29,8 @@ func (c *SFCClientV2) CreateInstance(ctx context.Context, attrs v1.CreateInstanc
 
 	cloudInit := sshKeyCloudInit(attrs.PublicKey)
 	resp, err := c.client.Instances.Create(ctx, components.CreateInstanceRequest{
-		Capacity:          BrevDefaultCapacityID,
-		Image:             BrevDefaultImageID,
+		Capacity:          GetDefaultCapacityID(c.workspace),
+		Image:             GetDefaultImageID(),
 		CloudInitUserData: &cloudInit,
 		Tags:              optionalnullable.From(&tags),
 		Name:              optionalnullable.From(&attrs.Name),
@@ -95,7 +95,7 @@ func (c *SFCClientV2) ListInstances(ctx context.Context, args v1.ListInstancesAr
 		v1.LogField("location", c.location),
 	)
 
-	capacityID := BrevDefaultCapacityID
+	capacityID := GetDefaultCapacityID(c.workspace)
 	resp, err := c.client.Instances.List(ctx, operations.ListInstancesRequest{
 		Capacity: &capacityID,
 	})
