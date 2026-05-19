@@ -11,17 +11,19 @@ const (
 	// v1.Instance.Tags on read so they don't surface as user-facing tags.
 	tagKeyCloudCredRefID = "brev-cloud-cred-ref-id" //nolint:gosec // not a secret
 	tagKeyRefID          = "brev-ref-id"
+
+	// Brev environment config for SFCompute V2.
+	brevDefaultImageResourcePath = "sfc:image:sfcompute:public:ubuntu-24.04.4-cuda-12.8"
 )
 
-// Brev environment config for SFCompute V2.
-const (
-	brevDefaultImageID = "sfc:image:sfcompute:public:ubuntu-24.04.4-cuda-12.8"
-)
-
-func GetDefaultCapacityID(workspace string) string {
-	return fmt.Sprintf("sfc:capacity:%s:default:brev-default-capacity", workspace)
+func (c *SFCClientV2) GetDefaultCapacityResourcePath() string {
+	return fmt.Sprintf("sfc:capacity:%s:%s:brev-default-capacity", c.organization, c.workspace)
 }
 
-func GetDefaultImageID() string {
-	return brevDefaultImageID
+func (c *SFCClientV2) GetWorkspaceResourcePath() string {
+	return fmt.Sprintf("sfc:workspace:%s:%s", c.organization, c.workspace)
+}
+
+func (c *SFCClientV2) GetDefaultImageResourcePath() string {
+	return brevDefaultImageResourcePath
 }
