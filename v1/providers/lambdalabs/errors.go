@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/brevdev/cloud/internal/errors"
 	v1 "github.com/brevdev/cloud/v1"
 	openapi "github.com/brevdev/cloud/v1/providers/lambdalabs/gen/lambdalabs"
 	"github.com/cenkalti/backoff/v4"
@@ -44,7 +45,7 @@ func handleErrToCloudErr(e error) error {
 	if strings.Contains(e.Error(), "Not enough capacity") || strings.Contains(e.Error(), "insufficient-capacity") { //nolint:gocritic // ignore
 		return v1.ErrInsufficientResources
 	} else if strings.Contains(e.Error(), "global/invalid-parameters") && strings.Contains(e.Error(), "Region") && strings.Contains(e.Error(), "does not exist") {
-		return v1.ErrInsufficientResources
+		return errors.WrapAndTrace(errors.Join(v1.ErrInvalidRegion, e))
 	} else {
 		return e
 	}

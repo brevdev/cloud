@@ -137,6 +137,12 @@ func handleShadeformAPIErrorResponse(httpResp *http.Response) error {
 		return errors.WrapAndTrace(fmt.Errorf("failed to read shadeform API response body: %w", err))
 	}
 
+	msgLower := strings.ToLower(string(httpMessageBytes))
+	if strings.Contains(msgLower, "region not found") || strings.Contains(msgLower, "invalid region") ||
+		strings.Contains(msgLower, "location not found") || strings.Contains(msgLower, "invalid location") {
+		return errors.WrapAndTrace(errors.Join(v1.ErrInvalidRegion, fmt.Errorf("shadeform HTTP error: [%d], %s", httpStatusCode, string(httpMessageBytes))))
+	}
+
 	// Most well-structured errors are 409, so handle these as a special case
 	if httpStatusCode == http.StatusConflict {
 		// Unmarshal the response body into a Shadeform DefaultErrorResponse

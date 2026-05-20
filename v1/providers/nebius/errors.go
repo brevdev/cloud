@@ -1,9 +1,10 @@
 package v1
 
 import (
-	"errors"
 	"fmt"
+	"strings"
 
+	"github.com/brevdev/cloud/internal/errors"
 	v1 "github.com/brevdev/cloud/v1"
 	"github.com/nebius/gosdk/operations"
 	"google.golang.org/grpc/codes"
@@ -44,11 +45,20 @@ func handleErrToCloudErr(e error) error {
 			return v1.ErrOutOfQuota
 		}
 	}
-	// Check for gRPC ResourceExhausted status code
 	if grpcStatus, ok := status.FromError(e); ok {
 		if grpcStatus.Code() == codes.ResourceExhausted {
 			return v1.ErrOutOfQuota
 		}
+		if grpcStatus.Code() == codes.InvalidArgument || grpcStatus.Code() == codes.NotFound {
+			msg := strings.ToLower(grpcStatus.Message())
+			if strings.Contains(msg, "region") || strings.Contains(msg, "location") || strings.Contains(msg, "zone") {
+				return errors.WrapAndTrace(errors.Join(v1.ErrInvalidRegion, e))
+			}
+		}
+	}
+	msg := strings.ToLower(e.Error())
+	if strings.Contains(msg, "no projects found") || strings.Contains(msg, "no suitable project found") {
+		return errors.WrapAndTrace(errors.Join(v1.ErrInvalidRegion, e))
 	}
 	return e
 }

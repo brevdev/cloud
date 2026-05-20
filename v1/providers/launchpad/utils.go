@@ -25,7 +25,9 @@ func (c *LaunchpadClient) handleLaunchpadAPIErr(ctx context.Context, resp *http.
 		body = string(bodyBytes)
 	}
 	outErr := errors.Errorf("Launchpad API error\n%s\n%s:\nErr: %s\n%s", resp.Request.URL, resp.Status, err.Error(), body)
-	if errors.ErrorContains(outErr, "no available capacity") { //nolint:gocritic // if else preferred
+	if errors.ErrorContainsAny(outErr, "region not found", "location not found", "invalid region", "invalid location", "cluster not found in region") { //nolint:gocritic // if else preferred
+		return errors.WrapAndTrace(errors.Join(v1.ErrInvalidRegion, outErr))
+	} else if errors.ErrorContains(outErr, "no available capacity") {
 		return errors.WrapAndTrace(errors.Join(v1.ErrInsufficientResources, outErr))
 	} else if errors.ErrorContains(outErr, "No Deployment matches the given query") {
 		return errors.WrapAndTrace(errors.Join(v1.ErrInstanceNotFound, outErr))

@@ -235,12 +235,12 @@ func TestHandleErrToCloudErr_RegionErrors(t *testing.T) {
 		{
 			name:     "region does not exist",
 			errMsg:   "global/invalid-parameters: Region us-invalid-1 does not exist",
-			expected: v1.ErrInsufficientResources,
+			expected: v1.ErrInvalidRegion,
 		},
 		{
 			name:     "region error with different format",
 			errMsg:   "global/invalid-parameters error: Region eu-central-99 does not exist in this zone",
-			expected: v1.ErrInsufficientResources,
+			expected: v1.ErrInvalidRegion,
 		},
 		{
 			name:     "invalid parameters without region",
@@ -253,8 +253,8 @@ func TestHandleErrToCloudErr_RegionErrors(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			inputErr := errors.New(tt.errMsg)
 			result := handleErrToCloudErr(inputErr)
-			if tt.expected == v1.ErrInsufficientResources {
-				assert.Equal(t, tt.expected, result)
+			if tt.expected == v1.ErrInsufficientResources || tt.expected == v1.ErrInvalidRegion {
+				assert.ErrorIs(t, result, tt.expected)
 			} else {
 				assert.Equal(t, tt.expected.Error(), result.Error())
 			}

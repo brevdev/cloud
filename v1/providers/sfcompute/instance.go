@@ -109,7 +109,7 @@ func (c *SFCClient) getZone(ctx context.Context, location string, includeUnavail
 		return nil, errors.WrapAndTrace(err)
 	}
 	if len(zones) == 0 {
-		return nil, errors.WrapAndTrace(fmt.Errorf("no zones available"))
+		return nil, errors.WrapAndTrace(errors.Join(v1.ErrInvalidRegion, fmt.Errorf("no zones available")))
 	}
 
 	// Find the zone that matches the location
@@ -121,7 +121,7 @@ func (c *SFCClient) getZone(ctx context.Context, location string, includeUnavail
 		}
 	}
 	if zone == nil {
-		return nil, errors.WrapAndTrace(fmt.Errorf("zone not found in location %s", location))
+		return nil, errors.WrapAndTrace(errors.Join(v1.ErrInvalidRegion, fmt.Errorf("zone not found in location %s", location)))
 	}
 
 	return zone, nil

@@ -10,4 +10,5 @@ var (
 	ErrInstanceNotFound      = errors.New("instance not found")
 	ErrResourceNotFound      = errors.New("resource not found")
 	ErrServiceUnavailable    = errors.New("api is temporarily unavailable")
+	ErrInvalidRegion         = errors.New("the specified region is invalid, unavailable, or unsupported for this cloud provider")
 )
