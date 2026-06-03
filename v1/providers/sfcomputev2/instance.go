@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"maps"
+	"regexp"
 	"slices"
 	"time"
 
@@ -15,6 +16,27 @@ import (
 	"github.com/sfcompute/sfc-go/models/operations"
 	"github.com/sfcompute/sfc-go/optionalnullable"
 )
+
+// SFC instance names must match `[a-zA-Z0-9][a-zA-Z0-9._-]{0,254}`: start with an
+// alphanumeric character, then alphanumerics/dot/underscore/hyphen, max 255 chars.
+var (
+	sfcNamePattern    = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._-]{0,254}$`)
+	sfcNameDisallowed = regexp.MustCompile(`[^a-zA-Z0-9._-]`)
+	sfcNameLeading    = regexp.MustCompile(`^[^a-zA-Z0-9]+`)
+)
+
+// sanitizeSFCName coerces a requested instance name into SFC's required format:
+// disallowed characters are replaced with '-', leading non-alphanumeric characters are
+// dropped (SFC requires an alphanumeric first character), and the result is truncated to
+// the 255-char max. Returns "" if no usable characters remain.
+func sanitizeSFCName(name string) string {
+	name = sfcNameDisallowed.ReplaceAllString(name, "-")
+	name = sfcNameLeading.ReplaceAllString(name, "")
+	if len(name) > 255 {
+		name = name[:255]
+	}
+	return name
+}
 
 func (c *SFCClientV2) CreateInstance(ctx context.Context, attrs v1.CreateInstanceAttrs) (*v1.Instance, error) {
 	c.logger.Debug(ctx, "sfcv2: CreateInstance start",
@@ -28,13 +50,19 @@ func (c *SFCClientV2) CreateInstance(ctx context.Context, attrs v1.CreateInstanc
 	tags[tagKeyRefID] = attrs.RefID
 
 	cloudInit := sshKeyCloudInit(attrs.PublicKey)
-	resp, err := c.client.Instances.Create(ctx, components.CreateInstanceRequest{
+	req := components.CreateInstanceRequest{
 		Capacity:          c.GetDefaultCapacityResourcePath(),
 		Image:             c.GetDefaultImageResourcePath(),
+		InstanceSku:       c.GetDefaultInstanceSku(),
 		CloudInitUserData: &cloudInit,
 		Tags:              optionalnullable.From(&tags),
-		Name:              optionalnullable.From(&attrs.Name),
-	})
+	}
+	// name is optional; sanitize the requested name to SFC's format and send it only if
+	// something valid remains. Otherwise omit it — identity is preserved in the tags above.
+	if name := sanitizeSFCName(attrs.Name); sfcNamePattern.MatchString(name) {
+		req.Name = optionalnullable.From(&name)
+	}
+	resp, err := c.client.Instances.Create(ctx, req)
 	if err != nil {
 		return nil, errors.WrapAndTrace(err)
 	}
@@ -64,7 +92,7 @@ func (c *SFCClientV2) GetInstance(ctx context.Context, id v1.CloudProviderInstan
 		v1.LogField("instanceID", id),
 	)
 
-	resp, err := c.client.Instances.Fetch(ctx, string(id), nil)
+	resp, err := c.client.Instances.Fetch(ctx, string(id))
 	if err != nil {
 		return nil, errors.WrapAndTrace(err)
 	}
@@ -97,7 +125,8 @@ func (c *SFCClientV2) ListInstances(ctx context.Context, args v1.ListInstancesAr
 
 	capacityID := c.GetDefaultCapacityResourcePath()
 	resp, err := c.client.Instances.List(ctx, operations.ListInstancesRequest{
-		Capacity: &capacityID,
+		Workspace: c.GetWorkspaceResourcePath(),
+		Capacity:  &capacityID,
 	})
 	if err != nil {
 		return nil, errors.WrapAndTrace(err)

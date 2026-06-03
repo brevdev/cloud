@@ -147,10 +147,11 @@ func (c *SFCClientV2) availableSlots(ctx context.Context) (int, error) {
 	return max(allocated-active, 0), nil
 }
 
-// currentCapacityAllocation returns the NodeAllocation from the most recent schedule entry
-// in BrevProductionCapacityID that is currently in effect (EffectiveAt <= now).
+// currentCapacityAllocation returns the NodeCount from the schedule entry in
+// BrevProductionCapacityID whose [StartAt, EndAt) range is currently in effect. EndAt is null
+// only on the final, unbounded entry.
 func (c *SFCClientV2) currentCapacityAllocation(ctx context.Context) (int, error) {
-	resp, err := c.client.Capacities.Fetch(ctx, c.GetDefaultCapacityResourcePath(), nil, nil)
+	resp, err := c.client.Capacities.Fetch(ctx, c.GetDefaultCapacityResourcePath(), nil)
 	if err != nil {
 		return 0, errors.WrapAndTrace(err)
 	}
@@ -160,12 +161,13 @@ func (c *SFCClientV2) currentCapacityAllocation(ctx context.Context) (int, error
 
 	now := time.Now().Unix()
 	allocation := 0
-	latestAt := int64(-1)
 	for _, entry := range resp.CapacityResponse.AllocationSchedule.Total {
-		if entry.EffectiveAt <= now && entry.EffectiveAt > latestAt {
-			latestAt = entry.EffectiveAt
-			allocation = entry.NodeAllocation
+		// A set, non-null EndAt bound the range; the final entry's null EndAt is unbounded.
+		if endAt, ok := entry.EndAt.Get(); ok && endAt != nil && now >= *endAt {
+			continue
 		}
+		allocation = entry.NodeCount
+		break
 	}
 	return allocation, nil
 }
