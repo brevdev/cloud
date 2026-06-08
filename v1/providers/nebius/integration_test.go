@@ -12,6 +12,7 @@ import (
 	"time"
 
 	v1 "github.com/brevdev/cloud/v1"
+	capacityv1 "github.com/nebius/gosdk/proto/nebius/capacity/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/ssh"
@@ -480,11 +481,16 @@ func TestIntegration_GetInstanceTypes(t *testing.T) {
 		instanceTypes, err := client.GetInstanceTypes(ctx, v1.GetInstanceTypeArgs{})
 		require.NoError(t, err, "Failed to get instance types")
 
-		t.Logf("Found %d instance types with available quota", len(instanceTypes))
+		t.Logf("Found %d instance types (%d available)", len(instanceTypes), countAvailable(instanceTypes))
 
 		// Assert we got at least one instance type
 		if len(instanceTypes) == 0 {
-			t.Fatal("Expected to receive at least one instance type, but got zero. Check tenant quotas.")
+			t.Fatal("Expected to receive at least one instance type, but got zero.")
+		}
+
+		availableCount := countAvailable(instanceTypes)
+		if availableCount == 0 {
+			t.Fatal("Expected at least one available instance type.")
 		}
 
 		// Validate instance type structure
@@ -496,7 +502,6 @@ func TestIntegration_GetInstanceTypes(t *testing.T) {
 			assert.NotEmpty(t, it.ID, "Instance type should have an ID")
 			assert.NotEmpty(t, it.Type, "Instance type should have a type")
 			assert.NotEmpty(t, it.Location, "Instance type should have a location")
-			assert.True(t, it.IsAvailable, "Returned instance types should be available")
 			assert.True(t, it.ElasticRootVolume, "Nebius supports elastic root volumes")
 
 			// Verify supported storage is configured
@@ -676,6 +681,251 @@ func TestIntegration_GetInstanceTypes(t *testing.T) {
 			}
 		}
 	})
+}
+
+func countAvailable(instanceTypes []v1.InstanceType) int {
+	n := 0
+	for _, it := range instanceTypes {
+		if it.IsAvailable {
+			n++
+		}
+	}
+	return n
+}
+
+const (
+	capacityTestRegion   = "eu-north1"
+	capacityTestPlatform = "gpu-h100-sxm"
+	capacityTestPreset   = "8gpu-128vcpu-1600gb"
+)
+
+func testCapacityClient() *NebiusClient {
+	return &NebiusClient{logger: &v1.NoopLogger{}}
+}
+
+func testResourceAdvice(
+	available uint32,
+	dataState capacityv1.ResourceAdviceStatus_Availability_DataState,
+	level capacityv1.ResourceAdviceStatus_Availability_AvailabilityLevel,
+) *capacityv1.ResourceAdvice {
+	return &capacityv1.ResourceAdvice{
+		Spec: &capacityv1.ResourceAdviceSpec{
+			Region: capacityTestRegion,
+			ResourceDetails: &capacityv1.ResourceAdviceSpec_ComputeInstance{
+				ComputeInstance: &capacityv1.ComputeInstanceDetails{
+					Platform: capacityTestPlatform,
+					Preset: &capacityv1.ComputeInstanceDetails_Preset{
+						Name: capacityTestPreset,
+					},
+				},
+			},
+		},
+		Status: &capacityv1.ResourceAdviceStatus{
+			OnDemand: &capacityv1.ResourceAdviceStatus_Availability{
+				Available:         available,
+				DataState:         dataState,
+				AvailabilityLevel: level,
+			},
+		},
+	}
+}
+
+func resolvePresetAvailabilityTestCases() []struct {
+	name              string
+	isCPUOnly         bool
+	hasQuota          bool
+	locationName      string
+	platformName      string
+	presetName        string
+	capacityAdviceMap map[string]uint32
+	want              bool
+} {
+	capacityKey := capacityAdviceKey(capacityTestRegion, capacityTestPlatform, capacityTestPreset)
+	capacityMap := map[string]uint32{capacityKey: 5}
+
+	return []struct {
+		name              string
+		isCPUOnly         bool
+		hasQuota          bool
+		locationName      string
+		platformName      string
+		presetName        string
+		capacityAdviceMap map[string]uint32
+		want              bool
+	}{
+		{
+			name:              "cpu type uses quota only when quota available",
+			isCPUOnly:         true,
+			hasQuota:          true,
+			locationName:      capacityTestRegion,
+			platformName:      capacityTestPlatform,
+			presetName:        capacityTestPreset,
+			capacityAdviceMap: capacityMap,
+			want:              true,
+		},
+		{
+			name:              "cpu type unavailable without quota",
+			isCPUOnly:         true,
+			hasQuota:          false,
+			locationName:      capacityTestRegion,
+			platformName:      capacityTestPlatform,
+			presetName:        capacityTestPreset,
+			capacityAdviceMap: capacityMap,
+			want:              false,
+		},
+		{
+			name:              "gpu falls back to quota when capacity map is nil",
+			isCPUOnly:         false,
+			hasQuota:          true,
+			locationName:      capacityTestRegion,
+			platformName:      capacityTestPlatform,
+			presetName:        capacityTestPreset,
+			capacityAdviceMap: nil,
+			want:              true,
+		},
+		{
+			name:              "gpu falls back to quota when key is missing",
+			isCPUOnly:         false,
+			hasQuota:          true,
+			locationName:      capacityTestRegion,
+			platformName:      capacityTestPlatform,
+			presetName:        "missing-preset",
+			capacityAdviceMap: capacityMap,
+			want:              true,
+		},
+		{
+			name:              "gpu unavailable when stock is zero even with quota",
+			isCPUOnly:         false,
+			hasQuota:          true,
+			locationName:      capacityTestRegion,
+			platformName:      capacityTestPlatform,
+			presetName:        capacityTestPreset,
+			capacityAdviceMap: map[string]uint32{capacityKey: 0},
+			want:              false,
+		},
+		{
+			name:              "gpu unavailable when quota is missing even with stock",
+			isCPUOnly:         false,
+			hasQuota:          false,
+			locationName:      capacityTestRegion,
+			platformName:      capacityTestPlatform,
+			presetName:        capacityTestPreset,
+			capacityAdviceMap: capacityMap,
+			want:              false,
+		},
+		{
+			name:              "gpu available when stock and quota both present",
+			isCPUOnly:         false,
+			hasQuota:          true,
+			locationName:      capacityTestRegion,
+			platformName:      capacityTestPlatform,
+			presetName:        capacityTestPreset,
+			capacityAdviceMap: capacityMap,
+			want:              true,
+		},
+	}
+}
+
+func TestResolvePresetAvailability(t *testing.T) {
+	t.Parallel()
+
+	client := testCapacityClient()
+	ctx := context.Background()
+
+	for _, tt := range resolvePresetAvailabilityTestCases() {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := client.resolvePresetAvailability(
+				ctx,
+				tt.isCPUOnly,
+				tt.hasQuota,
+				tt.locationName,
+				tt.platformName,
+				tt.presetName,
+				tt.capacityAdviceMap,
+			)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestBuildResourceAdviceMapFromItems(t *testing.T) {
+	t.Parallel()
+
+	freshHigh := capacityv1.ResourceAdviceStatus_Availability_DATA_STATE_FRESH
+	levelHigh := capacityv1.ResourceAdviceStatus_Availability_AVAILABILITY_LEVEL_HIGH
+	unknown := capacityv1.ResourceAdviceStatus_Availability_DATA_STATE_UNKNOWN
+	limitReached := capacityv1.ResourceAdviceStatus_Availability_AVAILABILITY_LEVEL_LIMIT_REACHED
+
+	cases := []struct {
+		name  string
+		items []*capacityv1.ResourceAdvice
+		want  map[string]uint32
+	}{
+		{
+			name:  "empty iterator yields empty map",
+			items: nil,
+			want:  map[string]uint32{},
+		},
+		{
+			name: "valid entry is indexed by region platform preset",
+			items: []*capacityv1.ResourceAdvice{
+				testResourceAdvice(12, freshHigh, levelHigh),
+			},
+			want: map[string]uint32{
+				capacityAdviceKey(capacityTestRegion, capacityTestPlatform, capacityTestPreset): 12,
+			},
+		},
+		{
+			name: "duplicate keys keep highest available count",
+			items: []*capacityv1.ResourceAdvice{
+				testResourceAdvice(3, freshHigh, levelHigh),
+				testResourceAdvice(9, freshHigh, levelHigh),
+			},
+			want: map[string]uint32{
+				capacityAdviceKey(capacityTestRegion, capacityTestPlatform, capacityTestPreset): 9,
+			},
+		},
+		{
+			name: "unknown data state is treated as zero available",
+			items: []*capacityv1.ResourceAdvice{
+				testResourceAdvice(10, unknown, levelHigh),
+			},
+			want: map[string]uint32{
+				capacityAdviceKey(capacityTestRegion, capacityTestPlatform, capacityTestPreset): 0,
+			},
+		},
+		{
+			name: "limit reached is treated as zero available",
+			items: []*capacityv1.ResourceAdvice{
+				testResourceAdvice(10, freshHigh, limitReached),
+			},
+			want: map[string]uint32{
+				capacityAdviceKey(capacityTestRegion, capacityTestPlatform, capacityTestPreset): 0,
+			},
+		},
+		{
+			name: "invalid entries are skipped",
+			items: []*capacityv1.ResourceAdvice{
+				{Spec: nil},
+				{Spec: &capacityv1.ResourceAdviceSpec{Region: capacityTestRegion}},
+				testResourceAdvice(4, freshHigh, levelHigh),
+			},
+			want: map[string]uint32{
+				capacityAdviceKey(capacityTestRegion, capacityTestPlatform, capacityTestPreset): 4,
+			},
+		},
+	}
+
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := buildResourceAdviceMapFromItems(tt.items)
+			assert.Equal(t, tt.want, got)
+		})
+	}
 }
 
 // Example of how to run integration tests:
