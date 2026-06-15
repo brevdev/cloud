@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ "${TESTKUBE_FAIL_BUILD:-false}" == "true" ]]; then
+	echo "TESTKUBE_FAIL_BUILD=true; exiting testkube image"
+	systemctl --no-block exit 42 || true
+	exit 42
+fi
+
+user_name="${USER_NAME:-ubuntu}"
+
+if ! id "$user_name" >/dev/null 2>&1; then
+	useradd --create-home --shell /bin/bash "$user_name"
+fi
+passwd -d "$user_name" >/dev/null 2>&1 || true
+
+home_dir="$(getent passwd "$user_name" | cut -d: -f6)"
+install -d -m 0700 -o "$user_name" -g "$user_name" "$home_dir/.ssh"
+
+if [[ -n "${PUBLIC_KEY:-}" ]]; then
+	printf '%s\n' "$PUBLIC_KEY" > "$home_dir/.ssh/authorized_keys"
+else
+	: > "$home_dir/.ssh/authorized_keys"
+fi
+chown "$user_name:$user_name" "$home_dir/.ssh/authorized_keys"
+chmod 0600 "$home_dir/.ssh/authorized_keys"
+
+if [[ "${SUDO_ACCESS:-true}" == "true" ]]; then
+	printf '%s ALL=(ALL) NOPASSWD:ALL\n' "$user_name" > /etc/sudoers.d/testkube-user
+	chmod 0440 /etc/sudoers.d/testkube-user
+else
+	rm -f /etc/sudoers.d/testkube-user
+fi
+
+mkdir -p /run/sshd /etc/testkube /etc/ssh/sshd_config.d
+ssh-keygen -A
+
+password_access="no"
+if [[ "${PASSWORD_ACCESS:-false}" == "true" ]]; then
+	password_access="yes"
+fi
+
+cat > /etc/ssh/sshd_config.d/90-testkube.conf <<EOF
+AuthorizedKeysFile .ssh/authorized_keys
+KbdInteractiveAuthentication no
+PasswordAuthentication ${password_access}
+PermitRootLogin no
+PubkeyAuthentication yes
+EOF
+
+cat > /etc/testkube/scenario.env <<EOF
+TESTKUBE_INSTANCE_TYPE=${TESTKUBE_INSTANCE_TYPE:-}
+TESTKUBE_SCENARIO=${TESTKUBE_SCENARIO:-}
+TESTKUBE_FAIL_BUILD=${TESTKUBE_FAIL_BUILD:-}
+EOF
+chmod 0644 /etc/testkube/scenario.env
