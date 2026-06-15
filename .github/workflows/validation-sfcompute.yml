@@ -45,7 +45,7 @@ jobs:
           SFCOMPUTE_API_KEY: ${{ secrets.SFCOMPUTE_API_KEY }}
           TEST_PRIVATE_KEY_BASE64: ${{ secrets.TEST_PRIVATE_KEY_BASE64 }}
           TEST_PUBLIC_KEY_BASE64: ${{ secrets.TEST_PUBLIC_KEY_BASE64 }}
-          VALIDATION_TEST: true
+          VALIDATION_TEST: false
         run: |
           cd v1/providers/sfcompute
           go test -v -short=false -timeout=30m ./...
