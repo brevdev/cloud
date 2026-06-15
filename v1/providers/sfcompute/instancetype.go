@@ -37,6 +37,9 @@ func makeDefaultInstanceTypePrice(amount string, currencyCode string) currency.A
 }
 
 func (c *SFCClient) GetInstanceTypes(ctx context.Context, args v1.GetInstanceTypeArgs) ([]v1.InstanceType, error) {
+	// Disable instance types for sfcv1
+	return []v1.InstanceType{}, nil
+
 	c.logger.Debug(ctx, "sfc: GetInstanceTypes start",
 		v1.LogField("location", c.location),
 		v1.LogField("args", fmt.Sprintf("%+v", args)),

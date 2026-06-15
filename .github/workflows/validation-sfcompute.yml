@@ -1,14 +1,11 @@
 name: SFCompute Validation Tests
 
 on:
-  schedule:
-    # Run daily at 2 AM UTC
-    - cron: '0 2 * * *'
   workflow_dispatch:
   # Allow manual triggering
   pull_request:
     paths:
-      - 'v1/providers/sfcompute/**'
+      - 'v1/providers/sfcomputev2/**'
       - 'internal/validation/**'
       - 'v1/**'
     branches: [ main ]
@@ -58,4 +55,4 @@ jobs:
         with:
           name: sfcompute-validation-results
           path: |
-            v1/providers/sfcompute/coverage.out
+            v1/providers/sfcomputev2/coverage.out
