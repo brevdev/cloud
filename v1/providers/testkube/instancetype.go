@@ -144,11 +144,6 @@ func isGPUManufacturerAllowed(filter *cloudv1.GPUManufacturerFilter, gpus []clou
 	return false
 }
 
-func isKnownInstanceType(instanceType string) bool {
-	_, ok := getInstanceTypeSpec(instanceType)
-	return ok
-}
-
 func getInstanceTypeSpec(instanceType string) (testInstanceTypeSpec, bool) {
 	for _, spec := range testInstanceTypeSpecs {
 		if spec.instanceType.Type == instanceType {

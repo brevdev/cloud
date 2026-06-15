@@ -118,7 +118,7 @@ func TestImageBackedInstanceValidation(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, DefaultImage, statefulSet.Spec.Template.Spec.Containers[0].Image)
 
-	instance = waitForValidationInstanceStatus(t, ctx, client, instance.CloudID, cloudv1.LifecycleStatusRunning, 4*time.Minute)
+	instance = waitForValidationInstanceStatus(ctx, t, client, instance.CloudID, cloudv1.LifecycleStatusRunning, 4*time.Minute)
 	require.NotEmpty(t, instance.Hostname)
 	require.NotEmpty(t, instance.PublicIP)
 	require.NotZero(t, instance.SSHPort)
@@ -229,14 +229,7 @@ func ensureValidationSSHKeys(t *testing.T) {
 	require.NoError(t, validationSSHKeysErr)
 }
 
-func waitForValidationInstanceStatus(
-	t *testing.T,
-	ctx context.Context,
-	client *TestKubeClient,
-	instanceID cloudv1.CloudProviderInstanceID,
-	status cloudv1.LifecycleStatus,
-	timeout time.Duration,
-) *cloudv1.Instance {
+func waitForValidationInstanceStatus(ctx context.Context, t *testing.T, client *TestKubeClient, instanceID cloudv1.CloudProviderInstanceID, status cloudv1.LifecycleStatus, timeout time.Duration) *cloudv1.Instance {
 	t.Helper()
 
 	deadline := time.NewTimer(timeout)

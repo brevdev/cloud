@@ -29,7 +29,7 @@ const (
 	labelManagedByValue = "brev-cloud-sdk"
 
 	annotationRefID          = "testkube.brev.dev/ref-id"
-	annotationCloudCredRefID = "testkube.brev.dev/cloud-cred-ref-id"
+	annotationCloudCredRefID = "testkube.brev.dev/cloud-cred-ref-id" //nolint:gosec // this is a valid annotation
 	annotationName           = "testkube.brev.dev/name"
 	annotationLocation       = "testkube.brev.dev/location"
 	annotationSubLocation    = "testkube.brev.dev/sub-location"

@@ -52,7 +52,7 @@ func TestCreateInstanceProvisionFailures(t *testing.T) {
 	}
 }
 
-func TestInstanceLifecycle(t *testing.T) {
+func TestInstanceLifecycle(t *testing.T) { //nolint:funlen // test ok
 	ctx := context.Background()
 	client := newTestClient(t)
 
