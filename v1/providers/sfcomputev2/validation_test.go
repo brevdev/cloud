@@ -9,7 +9,6 @@ import (
 )
 
 func TestValidationFunctions(t *testing.T) {
-	t.Parallel()
 	checkSkip(t)
 
 	config := validation.ProviderConfig{
@@ -23,7 +22,6 @@ func TestValidationFunctions(t *testing.T) {
 }
 
 func TestInstanceLifecycleValidation(t *testing.T) {
-	t.Parallel()
 	checkSkip(t)
 
 	config := validation.ProviderConfig{
