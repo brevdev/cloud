@@ -927,18 +927,3 @@ func TestBuildResourceAdviceMapFromItems(t *testing.T) {
 		})
 	}
 }
-
-// Example of how to run integration tests:
-//
-// # Set up credentials
-// export NEBIUS_SERVICE_ACCOUNT_JSON='{"service_account_id": "...", "private_key": "..."}'
-// export NEBIUS_TENANT_ID="your-tenant-id"
-//
-// # Run integration tests
-// go test -v -tags=integration ./v1/providers/nebius/...
-//
-// # Run only integration tests (not unit tests)
-// go test -v -run TestIntegration ./v1/providers/nebius/...
-//
-// # Run integration tests with timeout
-// go test -v -timeout=10m -run TestIntegration ./v1/providers/nebius/...
