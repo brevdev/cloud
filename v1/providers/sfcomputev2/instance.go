@@ -76,7 +76,7 @@ func (c *SFCClientV2) CreateInstance(ctx context.Context, attrs v1.CreateInstanc
 		return nil, errors.WrapAndTrace(fmt.Errorf("no instance returned from create"))
 	}
 
-	instance, err := c.sfcInstanceToBrevInstance(resp.InstanceResponse, "")
+	instance, err := c.sfcInstanceToBrevInstance(resp.InstanceResponse, nil)
 	if err != nil {
 		return nil, errors.WrapAndTrace(err)
 	}
@@ -107,12 +107,12 @@ func (c *SFCClientV2) GetInstance(ctx context.Context, id v1.CloudProviderInstan
 		return nil, errors.WrapAndTrace(fmt.Errorf("instance %s not found", id))
 	}
 
-	sshHostname, err := c.getSSHHostname(ctx, string(id), resp.InstanceResponse.Status)
+	sshInfo, err := c.getSSHInfo(ctx, string(id), resp.InstanceResponse.Status)
 	if err != nil {
 		return nil, errors.WrapAndTrace(err)
 	}
 
-	instance, err := c.sfcInstanceToBrevInstance(resp.InstanceResponse, sshHostname)
+	instance, err := c.sfcInstanceToBrevInstance(resp.InstanceResponse, sshInfo)
 	if err != nil {
 		return nil, errors.WrapAndTrace(err)
 	}
@@ -149,7 +149,7 @@ func (c *SFCClientV2) ListInstances(ctx context.Context, args v1.ListInstancesAr
 			continue
 		}
 
-		sshHostname, err := c.getSSHHostname(ctx, inst.ID, inst.Status)
+		sshInfo, err := c.getSSHInfo(ctx, inst.ID, inst.Status)
 		if err != nil {
 			c.logger.Error(ctx, err,
 				v1.LogField("msg", "sfcv2: ListInstances skipping instance due to SSH error"),
@@ -158,7 +158,7 @@ func (c *SFCClientV2) ListInstances(ctx context.Context, args v1.ListInstancesAr
 			continue
 		}
 
-		brevInst, err := c.sfcInstanceToBrevInstance(&inst, sshHostname)
+		brevInst, err := c.sfcInstanceToBrevInstance(&inst, sshInfo)
 		if err != nil {
 			c.logger.Error(ctx, err,
 				v1.LogField("msg", "sfcv2: ListInstances skipping instance due to conversion error"),
@@ -193,23 +193,23 @@ func (c *SFCClientV2) TerminateInstance(ctx context.Context, id v1.CloudProvider
 	return nil
 }
 
-func (c *SFCClientV2) getSSHHostname(ctx context.Context, id string, status components.InstanceStatus) (string, error) {
+func (c *SFCClientV2) getSSHInfo(ctx context.Context, id string, status components.InstanceStatus) (*components.InstanceSSHInfo, error) {
 	if status != components.InstanceStatusRunning {
-		return "", nil
+		return nil, nil
 	}
 
 	resp, err := c.client.Instances.GetSSHInfoForInstance(ctx, id)
 	if err != nil {
-		return "", errors.WrapAndTrace(err)
+		return nil, errors.WrapAndTrace(err)
 	}
 	if resp.InstanceSSHInfo == nil {
-		return "", nil
+		return nil, nil
 	}
 
-	return resp.InstanceSSHInfo.Hostname, nil
+	return resp.InstanceSSHInfo, nil
 }
 
-func (c *SFCClientV2) sfcInstanceToBrevInstance(inst *components.InstanceResponse, sshHostname string) (*v1.Instance, error) {
+func (c *SFCClientV2) sfcInstanceToBrevInstance(inst *components.InstanceResponse, sshInfo *components.InstanceSSHInfo) (*v1.Instance, error) {
 	tags, _ := inst.GetTags().GetOrZero()
 
 	cloudCredRefID := tags[tagKeyCloudCredRefID]
@@ -238,10 +238,10 @@ func (c *SFCClientV2) sfcInstanceToBrevInstance(inst *components.InstanceRespons
 		Name:          inst.Name,
 		CloudID:       v1.CloudProviderInstanceID(inst.ID),
 		RefID:         tags[tagKeyRefID],
-		PublicDNS:     sshHostname,
-		PublicIP:      sshHostname,
+		PublicDNS:     sshInfo.GetHostname(),
+		PublicIP:      sshInfo.GetHostname(),
 		SSHUser:       defaultSSHUsername,
-		SSHPort:       defaultPort,
+		SSHPort:       int(sshInfo.GetPort()),
 		CreatedAt:     time.Unix(inst.CreatedAt, 0),
 		DiskSize:      diskSize,
 		DiskSizeBytes: h100InstanceTypeMetadata.diskBytes,

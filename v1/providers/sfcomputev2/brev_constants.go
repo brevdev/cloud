@@ -4,7 +4,6 @@ import "fmt"
 
 // Package-internal constants — SSH defaults and internal tag keys.
 const (
-	defaultPort        = 22
 	defaultSSHUsername = "ubuntu"
 
 	// Internal tag keys written to every SFCompute V2 instance. These are stripped from
