@@ -37,12 +37,14 @@ func TestInstanceLifecycleValidation(t *testing.T) {
 }
 
 func checkSkip(t *testing.T) {
-	apiKey := getAPIKey()
 	isValidationTest := os.Getenv("VALIDATION_TEST")
-	if apiKey == "" && isValidationTest != "" {
+	if isValidationTest != "true" {
+		t.Skip("VALIDATION_TEST is not set to true, skipping sfcompute validation tests")
+	}
+
+	apiKey := getAPIKey()
+	if apiKey == "" {
 		t.Fatal("SFCOMPUTE_API_KEY not set, but VALIDATION_TEST is set")
-	} else if apiKey == "" && isValidationTest == "" {
-		t.Skip("SFCOMPUTE_API_KEY not set, skipping sfcompute validation tests")
 	}
 }
 
