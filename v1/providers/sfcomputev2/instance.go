@@ -49,11 +49,17 @@ func (c *SFCClientV2) CreateInstance(ctx context.Context, attrs v1.CreateInstanc
 	tags[tagKeyCloudCredRefID] = c.refID
 	tags[tagKeyRefID] = attrs.RefID
 
+	// Spread instances across every SKU in the capacity rather than piling onto one.
+	sku, err := c.selectAvailableSku(ctx)
+	if err != nil {
+		return nil, errors.WrapAndTrace(err)
+	}
+
 	cloudInit := sshKeyCloudInit(attrs.PublicKey)
 	req := components.CreateInstanceRequest{
 		Capacity:          c.GetDefaultCapacityResourcePath(),
 		Image:             c.GetDefaultImageResourcePath(),
-		InstanceSku:       c.GetDefaultInstanceSku(),
+		InstanceSku:       sku,
 		CloudInitUserData: &cloudInit,
 		Tags:              optionalnullable.From(&tags),
 	}
@@ -77,6 +83,7 @@ func (c *SFCClientV2) CreateInstance(ctx context.Context, attrs v1.CreateInstanc
 
 	c.logger.Debug(ctx, "sfcv2: CreateInstance end",
 		v1.LogField("instanceID", resp.InstanceResponse.ID),
+		v1.LogField("instanceSku", sku),
 	)
 
 	return instance, nil

@@ -14,10 +14,6 @@ const (
 
 	// Brev environment config for SFCompute V2.
 	brevDefaultImageResourcePath = "sfc:image:sfcompute:public:ubuntu-24.04.4-cuda-12.8"
-
-	// Instance SKU instances are created on. Hardcoded for now: this is the iSKU for the
-	// H100s in the EMA (EuropeMiddleEastAfrica) region, Richmond zone.
-	brevDefaultInstanceSku = "isku_4UpxzQw7A8N"
 )
 
 func (c *SFCClientV2) GetDefaultCapacityResourcePath() string {
@@ -30,8 +26,4 @@ func (c *SFCClientV2) GetWorkspaceResourcePath() string {
 
 func (c *SFCClientV2) GetDefaultImageResourcePath() string {
 	return brevDefaultImageResourcePath
-}
-
-func (c *SFCClientV2) GetDefaultInstanceSku() string {
-	return brevDefaultInstanceSku
 }

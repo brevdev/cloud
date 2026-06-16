@@ -3,6 +3,7 @@ package v2
 import (
 	"context"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/alecthomas/units"
@@ -131,69 +132,108 @@ func (c *SFCClientV2) GetInstanceTypes(ctx context.Context, args v1.GetInstanceT
 	return []v1.InstanceType{instanceType}, nil
 }
 
-// availableSlots returns how many more instances can be created in the configured capacity.
-// It subtracts the count of non-terminated instances from the current capacity allocation.
-func (c *SFCClientV2) availableSlots(ctx context.Context) (int, error) {
-	allocated, err := c.currentCapacityAllocation(ctx)
-	if err != nil {
-		return 0, errors.WrapAndTrace(err)
-	}
+// skuFreeCapacity returns, per instance SKU in the configured capacity, how many more
+// instances can be created on that SKU right now: the SKU's current node allocation minus the
+// number of non-terminated instances already on it. Counts are clamped at zero. Reads the
+// per-SKU allocation from the capacity schedule and the per-SKU consumption from the instance
+// list, issuing exactly two API calls.
+func (c *SFCClientV2) skuFreeCapacity(ctx context.Context) (map[string]int, error) {
+	capacityID := c.GetDefaultCapacityResourcePath()
 
-	active, err := c.activeInstanceCount(ctx)
+	capResp, err := c.client.Capacities.Fetch(ctx, capacityID, nil)
 	if err != nil {
-		return 0, errors.WrapAndTrace(err)
+		return nil, errors.WrapAndTrace(err)
 	}
-
-	return max(allocated-active, 0), nil
-}
-
-// currentCapacityAllocation returns the NodeCount from the schedule entry in
-// BrevProductionCapacityID whose [StartAt, EndAt) range is currently in effect. EndAt is null
-// only on the final, unbounded entry.
-func (c *SFCClientV2) currentCapacityAllocation(ctx context.Context) (int, error) {
-	resp, err := c.client.Capacities.Fetch(ctx, c.GetDefaultCapacityResourcePath(), nil)
-	if err != nil {
-		return 0, errors.WrapAndTrace(err)
-	}
-	if resp.CapacityResponse == nil {
-		return 0, nil
+	if capResp.CapacityResponse == nil {
+		return map[string]int{}, nil
 	}
 
 	now := time.Now().Unix()
-	allocation := 0
-	for _, entry := range resp.CapacityResponse.AllocationSchedule.Total {
-		// A set, non-null EndAt bound the range; the final entry's null EndAt is unbounded.
-		if endAt, ok := entry.EndAt.Get(); ok && endAt != nil && now >= *endAt {
-			continue
-		}
-		allocation = entry.NodeCount
-		break
+	free := make(map[string]int)
+	for skuID, schedule := range capResp.CapacityResponse.AllocationSchedule.ByInstanceSku {
+		free[skuID] = currentScheduleAllocation(schedule, now)
 	}
-	return allocation, nil
-}
 
-// activeInstanceCount returns the number of non-terminated instances in BrevProductionCapacityID.
-// All non-terminated instances occupy a slot in the capacity, including failed ones.
-func (c *SFCClientV2) activeInstanceCount(ctx context.Context) (int, error) {
-	capacityID := c.GetDefaultCapacityResourcePath()
 	resp, err := c.client.Instances.List(ctx, operations.ListInstancesRequest{
 		Workspace: c.GetWorkspaceResourcePath(),
 		Capacity:  &capacityID,
 	})
 	if err != nil {
-		return 0, errors.WrapAndTrace(err)
+		return nil, errors.WrapAndTrace(err)
 	}
-	if resp.ListInstancesResponse == nil {
-		return 0, nil
-	}
-
-	count := 0
-	for _, inst := range resp.ListInstancesResponse.Data {
-		if inst.Status != components.InstanceStatusTerminated {
-			count++
+	if resp.ListInstancesResponse != nil {
+		for _, inst := range resp.ListInstancesResponse.Data {
+			// Every non-terminated instance occupies a slot on its SKU, including failed ones.
+			if inst.Status == components.InstanceStatusTerminated {
+				continue
+			}
+			sku, ok := inst.GetInstanceSku().Get()
+			if !ok || sku == nil {
+				continue
+			}
+			free[sku.ID]--
 		}
 	}
-	return count, nil
+
+	for skuID, n := range free {
+		free[skuID] = max(n, 0)
+	}
+	return free, nil
+}
+
+// currentScheduleAllocation returns the NodeCount from the schedule entry whose
+// [StartAt, EndAt) range is currently in effect. EndAt is null only on the final, unbounded
+// entry. Returns 0 if no entry is in effect.
+func currentScheduleAllocation(schedule []components.ScheduleEntry, now int64) int {
+	for _, entry := range schedule {
+		if entry.StartAt > now {
+			continue
+		}
+		// A set, non-null EndAt bounds the range; the final entry's null EndAt is unbounded.
+		if endAt, ok := entry.EndAt.Get(); ok && endAt != nil && now >= *endAt {
+			continue
+		}
+		return entry.NodeCount
+	}
+	return 0
+}
+
+// availableSlots returns how many more instances can be created in the configured capacity,
+// summed across every SKU.
+func (c *SFCClientV2) availableSlots(ctx context.Context) (int, error) {
+	free, err := c.skuFreeCapacity(ctx)
+	if err != nil {
+		return 0, errors.WrapAndTrace(err)
+	}
+	total := 0
+	for _, n := range free {
+		total += n
+	}
+	return total, nil
+}
+
+// selectAvailableSku returns an instance SKU in the configured capacity that still has a free
+// node. SKUs are considered in sorted order so selection is deterministic; since the goal is to
+// fully consume every SKU and the order doesn't matter, this drains one SKU before moving to the
+// next. Returns an error if no SKU has free capacity.
+func (c *SFCClientV2) selectAvailableSku(ctx context.Context) (string, error) {
+	free, err := c.skuFreeCapacity(ctx)
+	if err != nil {
+		return "", errors.WrapAndTrace(err)
+	}
+
+	skuIDs := make([]string, 0, len(free))
+	for skuID := range free {
+		skuIDs = append(skuIDs, skuID)
+	}
+	sort.Strings(skuIDs)
+
+	for _, skuID := range skuIDs {
+		if free[skuID] > 0 {
+			return skuID, nil
+		}
+	}
+	return "", fmt.Errorf("no instance SKU with available capacity in %s", c.GetDefaultCapacityResourcePath())
 }
 
 func (c *SFCClientV2) GetLocations(_ context.Context, _ v1.GetLocationsArgs) ([]v1.Location, error) {
