@@ -7,7 +7,7 @@ import (
 	sfc "github.com/sfcompute/sfc-go"
 )
 
-const CloudProviderID = "sfcompute"
+const CloudProviderID = "sfcompute-v2"
 
 // SFCCredentialV2 holds authentication details for a Brev-managed SFCompute V2 account.
 type SFCCredentialV2 struct {
