@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	cloudv1 "github.com/brevdev/cloud/v1"
 	"github.com/stretchr/testify/require"
 	"k8s.io/client-go/rest"
 )
@@ -82,5 +83,27 @@ func TestCredentialMakeClientUsesInClusterConfig(t *testing.T) {
 	testKubeClient, ok := client.(*TestKubeClient)
 	require.True(t, ok)
 	require.Equal(t, "testkube", testKubeClient.namespace)
+	require.Equal(t, "staging", testKubeClient.location)
+}
+
+func TestCredentialMakeClientWithOptionsUsesLogger(t *testing.T) {
+	original := restInClusterConfig
+	t.Cleanup(func() {
+		restInClusterConfig = original
+	})
+
+	restInClusterConfig = func() (*rest.Config, error) {
+		return &rest.Config{Host: "https://kubernetes.default.svc"}, nil
+	}
+
+	logger := &cloudv1.NoopLogger{}
+	credential := NewInClusterTestKubeCredential("test", "testkube")
+
+	client, err := credential.MakeClientWithOptions(context.Background(), "staging", WithLogger(logger))
+	require.NoError(t, err)
+
+	testKubeClient, ok := client.(*TestKubeClient)
+	require.True(t, ok)
+	require.Same(t, logger, testKubeClient.logger)
 	require.Equal(t, "staging", testKubeClient.location)
 }

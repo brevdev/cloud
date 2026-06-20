@@ -134,7 +134,7 @@ func isArchitectureAllowed(filter *cloudv1.ArchitectureFilter, architectures []c
 
 func isGPUManufacturerAllowed(filter *cloudv1.GPUManufacturerFilter, gpus []cloudv1.GPU) bool {
 	if len(gpus) == 0 {
-		return filter.IsAllowed(cloudv1.ManufacturerUnknown)
+		return true
 	}
 	for _, gpu := range gpus {
 		if filter.IsAllowed(gpu.Manufacturer) {

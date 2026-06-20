@@ -90,17 +90,22 @@ func (c *TestKubeCredential) GetTenantID() (string, error) {
 	return fmt.Sprintf("%s-%x", CloudProviderID, sha256.Sum256([]byte(fingerprint))), nil
 }
 
-func (c *TestKubeCredential) MakeClient(_ context.Context, location string) (cloudv1.CloudClient, error) {
+func (c *TestKubeCredential) MakeClient(ctx context.Context, location string) (cloudv1.CloudClient, error) {
+	return c.MakeClientWithOptions(ctx, location)
+}
+
+func (c *TestKubeCredential) MakeClientWithOptions(_ context.Context, location string, opts ...TestKubeClientOption) (cloudv1.CloudClient, error) {
 	restConfig, err := c.restConfig()
 	if err != nil {
 		return nil, err
 	}
 
-	opts := []TestKubeClientOption{
+	clientOpts := []TestKubeClientOption{
 		WithNamespace(c.Namespace),
 		WithLocation(firstNonEmpty(location, DefaultLocation)),
 	}
-	return NewTestKubeClient(c.RefID, restConfig, opts...)
+	clientOpts = append(clientOpts, opts...)
+	return NewTestKubeClient(c.RefID, restConfig, clientOpts...)
 }
 
 func (c *TestKubeCredential) restConfig() (*rest.Config, error) {
@@ -156,6 +161,7 @@ type TestKubeClient struct {
 	namespace string
 	location  string
 	k8sClient kubernetes.Interface
+	logger    cloudv1.Logger
 }
 
 var _ cloudv1.CloudClient = &TestKubeClient{}
@@ -164,6 +170,7 @@ type testKubeClientOptions struct {
 	namespace string
 	location  string
 	k8sClient kubernetes.Interface
+	logger    cloudv1.Logger
 }
 
 type TestKubeClientOption func(*testKubeClientOptions) error
@@ -189,10 +196,18 @@ func WithKubernetesClient(k8sClient kubernetes.Interface) TestKubeClientOption {
 	}
 }
 
+func WithLogger(logger cloudv1.Logger) TestKubeClientOption {
+	return func(options *testKubeClientOptions) error {
+		options.logger = logger
+		return nil
+	}
+}
+
 func NewTestKubeClient(refID string, config *rest.Config, opts ...TestKubeClientOption) (*TestKubeClient, error) {
 	options := testKubeClientOptions{
 		namespace: DefaultNamespace,
 		location:  DefaultLocation,
+		logger:    &cloudv1.NoopLogger{},
 	}
 	for _, opt := range opts {
 		if err := opt(&options); err != nil {
@@ -224,6 +239,7 @@ func NewTestKubeClient(refID string, config *rest.Config, opts ...TestKubeClient
 		namespace: options.namespace,
 		location:  options.location,
 		k8sClient: options.k8sClient,
+		logger:    options.logger,
 	}, nil
 }
 
@@ -243,10 +259,29 @@ func (c *TestKubeClient) GetTenantID() (string, error) {
 	return fmt.Sprintf("%s-%x", CloudProviderID, sha256.Sum256([]byte(c.refID+c.namespace))), nil
 }
 
-func (c *TestKubeClient) MakeClient(_ context.Context, location string) (cloudv1.CloudClient, error) {
-	if location != "" {
-		c.location = location
+func (c *TestKubeClient) MakeClient(ctx context.Context, location string) (cloudv1.CloudClient, error) {
+	return c.MakeClientWithOptions(ctx, location)
+}
+
+func (c *TestKubeClient) MakeClientWithOptions(_ context.Context, location string, opts ...TestKubeClientOption) (cloudv1.CloudClient, error) {
+	options := testKubeClientOptions{
+		namespace: c.namespace,
+		location:  c.location,
+		k8sClient: c.k8sClient,
+		logger:    c.logger,
 	}
+	if location != "" {
+		options.location = location
+	}
+	for _, opt := range opts {
+		if err := opt(&options); err != nil {
+			return nil, err
+		}
+	}
+	c.namespace = options.namespace
+	c.location = options.location
+	c.k8sClient = options.k8sClient
+	c.logger = options.logger
 	return c, nil
 }
 

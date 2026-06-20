@@ -35,6 +35,18 @@ func TestGetInstanceTypes(t *testing.T) {
 	}
 }
 
+func TestGetInstanceTypesWithGPUManufacturerFilterIncludesCPU(t *testing.T) {
+	client := newTestClient(t)
+
+	instanceTypes, err := client.GetInstanceTypes(context.Background(), cloudv1.GetInstanceTypeArgs{
+		GPUManufactererFilter: &cloudv1.GPUManufacturerFilter{
+			IncludeGPUManufacturers: []cloudv1.Manufacturer{cloudv1.ManufacturerNVIDIA},
+		},
+	})
+	require.NoError(t, err)
+	require.Len(t, instanceTypes, 4)
+}
+
 func TestCapabilitiesDoNotAdvertiseImages(t *testing.T) {
 	client := newTestClient(t)
 
