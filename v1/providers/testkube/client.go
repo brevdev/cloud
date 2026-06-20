@@ -119,7 +119,7 @@ func (c *TestKubeCredential) restConfig() (*rest.Config, error) {
 		}
 		return clientcmd.RESTConfigFromKubeConfig(kubeconfig)
 	case TestKubeAuthModeInCluster:
-		return rest.InClusterConfig()
+		return restInClusterConfig()
 	default:
 		return nil, fmt.Errorf("unknown testkube auth mode: %s", authMode)
 	}

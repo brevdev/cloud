@@ -48,6 +48,8 @@ TESTKUBE_KUBECONFIG_BASE64=<above base64>
 TESTKUBE_NAMESPACE=testkube
 ```
 
+For in-cluster validation, set `TESTKUBE_AUTH_MODE=in-cluster` and omit `TESTKUBE_KUBECONFIG_BASE64`.
+
 Clean up:
 
 ```bash

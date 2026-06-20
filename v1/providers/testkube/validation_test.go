@@ -21,6 +21,7 @@ import (
 
 const (
 	testKubeKubeconfigBase64EnvVar = "TESTKUBE_KUBECONFIG_BASE64"
+	testKubeAuthModeEnvVar         = "TESTKUBE_AUTH_MODE"
 	testKubeNamespaceEnvVar        = "TESTKUBE_NAMESPACE"
 	testKubeLocationEnvVar         = "TESTKUBE_LOCATION"
 )
@@ -141,17 +142,21 @@ func checkValidationSkip(t *testing.T) {
 	t.Helper()
 
 	kubeconfigBase64 := os.Getenv(testKubeKubeconfigBase64EnvVar)
+	authMode := testKubeAuthMode()
 	isValidationTest := os.Getenv("VALIDATION_TEST")
-	if kubeconfigBase64 == "" && isValidationTest != "" {
+	if authMode == TestKubeAuthModeKubeconfig && kubeconfigBase64 == "" && isValidationTest != "" {
 		t.Fatalf("%s not set, but VALIDATION_TEST is set", testKubeKubeconfigBase64EnvVar)
 	}
-	if kubeconfigBase64 == "" {
+	if authMode == TestKubeAuthModeKubeconfig && kubeconfigBase64 == "" {
 		t.Skipf("%s not set, skipping testkube validation tests", testKubeKubeconfigBase64EnvVar)
 	}
 	ensureValidationSSHKeys(t)
 }
 
 func testKubeCredential() *TestKubeCredential {
+	if testKubeAuthMode() == TestKubeAuthModeInCluster {
+		return NewInClusterTestKubeCredential("validation-test", testKubeNamespace())
+	}
 	return NewTestKubeCredential("validation-test", os.Getenv(testKubeKubeconfigBase64EnvVar), testKubeNamespace())
 }
 
@@ -175,6 +180,13 @@ func testKubeNamespace() string {
 		return namespace
 	}
 	return DefaultNamespace
+}
+
+func testKubeAuthMode() TestKubeAuthMode {
+	if authMode := os.Getenv(testKubeAuthModeEnvVar); authMode != "" {
+		return TestKubeAuthMode(authMode)
+	}
+	return TestKubeAuthModeKubeconfig
 }
 
 func testKubeLocation() string {
