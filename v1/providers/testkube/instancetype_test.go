@@ -32,6 +32,11 @@ func TestGetInstanceTypes(t *testing.T) {
 		require.True(t, instanceType.IsAvailable)
 		require.Equal(t, CloudProviderID, instanceType.Provider)
 		require.Equal(t, CloudProviderID, instanceType.Cloud)
+		require.NotNil(t, instanceType.BasePrice)
+
+		basePrice, err := instanceType.BasePrice.Int64()
+		require.NoError(t, err)
+		require.Greater(t, basePrice, int64(0))
 	}
 }
 

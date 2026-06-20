@@ -14,6 +14,8 @@ const (
 	DefaultImageID = "testkube-ubuntu-vm"
 	DefaultImage   = "ghcr.io/brevdev/cloud/testkube-ubuntu-vm:latest"
 
+	DefaultPriceCentsPerHour = 1
+
 	InstanceTypeOKCPU        = "test.ok.cpu"
 	InstanceTypeFailCapacity = "test.fail.capacity"
 	InstanceTypeFailQuota    = "test.fail.quota"
@@ -66,7 +68,7 @@ func (c *TestKubeClient) instanceTypeFromSpec(spec testInstanceTypeSpec) cloudv1
 }
 
 func makeCPUInstanceType(instanceType string, available bool, estimatedDeployTime *time.Duration) cloudv1.InstanceType {
-	basePrice, _ := currency.NewAmountFromInt64(0, "USD")
+	basePrice, _ := currency.NewAmountFromInt64(DefaultPriceCentsPerHour, "USD")
 	it := cloudv1.InstanceType{
 		Type: instanceType,
 		SupportedStorage: []cloudv1.Storage{
