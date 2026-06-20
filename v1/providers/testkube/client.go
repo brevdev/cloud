@@ -25,21 +25,39 @@ const (
 	containerSSHPort = int32(22)
 )
 
+type TestKubeAuthMode string
+
+const (
+	TestKubeAuthModeKubeconfig TestKubeAuthMode = "kubeconfig"
+	TestKubeAuthModeInCluster  TestKubeAuthMode = "in-cluster"
+)
+
 // TestKubeCredential authenticates a developer test provider backed by Kubernetes.
 type TestKubeCredential struct {
-	RefID string
-
+	RefID            string
+	AuthMode         TestKubeAuthMode
 	KubeconfigBase64 string
 	Namespace        string
 }
 
 var _ cloudv1.CloudCredential = &TestKubeCredential{}
 
+var restInClusterConfig = rest.InClusterConfig
+
 func NewTestKubeCredential(refID, kubeconfigBase64, namespace string) *TestKubeCredential {
 	return &TestKubeCredential{
 		RefID:            refID,
+		AuthMode:         TestKubeAuthModeKubeconfig,
 		KubeconfigBase64: kubeconfigBase64,
 		Namespace:        namespace,
+	}
+}
+
+func NewInClusterTestKubeCredential(refID, namespace string) *TestKubeCredential {
+	return &TestKubeCredential{
+		RefID:     refID,
+		AuthMode:  TestKubeAuthModeInCluster,
+		Namespace: namespace,
 	}
 }
 
@@ -56,7 +74,19 @@ func (c *TestKubeCredential) GetCloudProviderID() cloudv1.CloudProviderID {
 }
 
 func (c *TestKubeCredential) GetTenantID() (string, error) {
-	fingerprint := c.KubeconfigBase64 + c.Namespace
+	authMode, err := c.validateAuthMode()
+	if err != nil {
+		return "", err
+	}
+	var fingerprint string
+	switch authMode {
+	case TestKubeAuthModeKubeconfig:
+		fingerprint = "kubeconfig:" + c.KubeconfigBase64 + ":" + c.Namespace
+	case TestKubeAuthModeInCluster:
+		fingerprint = "in-cluster:" + c.Namespace
+	default:
+		return "", fmt.Errorf("unknown testkube auth mode: %s", authMode)
+	}
 	return fmt.Sprintf("%s-%x", CloudProviderID, sha256.Sum256([]byte(fingerprint))), nil
 }
 
@@ -74,14 +104,48 @@ func (c *TestKubeCredential) MakeClient(_ context.Context, location string) (clo
 }
 
 func (c *TestKubeCredential) restConfig() (*rest.Config, error) {
-	if c.KubeconfigBase64 == "" {
-		return nil, fmt.Errorf("kubeconfigBase64 is required")
-	}
-	kubeconfig, err := base64.StdEncoding.DecodeString(c.KubeconfigBase64)
+	authMode, err := c.validateAuthMode()
 	if err != nil {
-		return nil, fmt.Errorf("decode kubeconfig: %w", err)
+		return nil, err
 	}
-	return clientcmd.RESTConfigFromKubeConfig(kubeconfig)
+	switch authMode {
+	case TestKubeAuthModeKubeconfig:
+		if c.KubeconfigBase64 == "" {
+			return nil, fmt.Errorf("kubeconfigBase64 is required")
+		}
+		kubeconfig, err := base64.StdEncoding.DecodeString(c.KubeconfigBase64)
+		if err != nil {
+			return nil, fmt.Errorf("decode kubeconfig: %w", err)
+		}
+		return clientcmd.RESTConfigFromKubeConfig(kubeconfig)
+	case TestKubeAuthModeInCluster:
+		return rest.InClusterConfig()
+	default:
+		return nil, fmt.Errorf("unknown testkube auth mode: %s", authMode)
+	}
+}
+
+func (c *TestKubeCredential) authMode() TestKubeAuthMode {
+	authMode := TestKubeAuthMode(strings.TrimSpace(string(c.AuthMode)))
+	if authMode == "" {
+		return TestKubeAuthModeKubeconfig
+	}
+	return authMode
+}
+
+func (c *TestKubeCredential) validateAuthMode() (TestKubeAuthMode, error) {
+	authMode := c.authMode()
+	switch authMode {
+	case TestKubeAuthModeKubeconfig:
+		return authMode, nil
+	case TestKubeAuthModeInCluster:
+		if c.KubeconfigBase64 != "" {
+			return "", fmt.Errorf("kubeconfigBase64 must be empty when authMode is %q", authMode)
+		}
+		return authMode, nil
+	default:
+		return "", fmt.Errorf("unknown testkube auth mode: %s", authMode)
+	}
 }
 
 // TestKubeClient implements the CloudClient interface with Kubernetes primitives.

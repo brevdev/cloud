@@ -4,15 +4,18 @@
 
 ## Credentials
 
-The credential intentionally starts with only a base64-encoded kubeconfig and an optional namespace:
+The credential supports either a base64-encoded kubeconfig or in-cluster Kubernetes authentication:
 
 ```go
 type TestKubeCredential struct {
 	RefID            string
+	AuthMode         TestKubeAuthMode // "kubeconfig" or "in-cluster"
 	KubeconfigBase64 string
 	Namespace        string
 }
 ```
+
+When `AuthMode` is empty, it defaults to `"kubeconfig"` for compatibility. When `AuthMode` is `"in-cluster"`, the provider uses `rest.InClusterConfig()` and requires `KubeconfigBase64` to be empty. This is intended for dev-plane running inside the same Kubernetes cluster it will use as the testkube target. The pod's Kubernetes service account must have RBAC permissions to manage the target namespace's testkube resources.
 
 ## Validation
 
