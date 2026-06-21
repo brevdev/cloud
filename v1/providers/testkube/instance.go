@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"slices"
 	"strings"
 	"time"
@@ -365,18 +366,22 @@ func (c *TestKubeClient) instanceFromResources(pod *corev1.Pod, service *corev1.
 }
 
 func populateNetwork(service *corev1.Service, instance *cloudv1.Instance) {
+	// Default the private IP to the cluster IP.
 	if service.Spec.ClusterIP != "" && service.Spec.ClusterIP != corev1.ClusterIPNone {
 		instance.PrivateIP = service.Spec.ClusterIP
 	}
+	// Default the SSH port to the first open port.
 	if len(service.Spec.Ports) > 0 {
 		instance.SSHPort = int(service.Spec.Ports[0].Port)
 	}
 
 	switch service.Spec.Type {
 	case corev1.ServiceTypeLoadBalancer:
+		// No ingress means no public IP.
 		if len(service.Status.LoadBalancer.Ingress) == 0 {
 			return
 		}
+		// Set the public IP to the first ingress IP.
 		ingress := service.Status.LoadBalancer.Ingress[0]
 		if ingress.IP != "" {
 			instance.PublicIP = ingress.IP
@@ -389,11 +394,14 @@ func populateNetwork(service *corev1.Service, instance *cloudv1.Instance) {
 			}
 		}
 	case corev1.ServiceTypeNodePort:
+		// No ports means no node port.
 		if len(service.Spec.Ports) == 0 {
 			return
 		}
+		// Set the SSH port to the first node port.
 		instance.SSHPort = int(service.Spec.Ports[0].NodePort)
 	case corev1.ServiceTypeClusterIP:
+		// Keep the cluster IP as the private IP.
 	}
 }
 
@@ -589,24 +597,15 @@ func tagsFromAnnotations(annotations map[string]string) cloudv1.Tags {
 	return tags
 }
 
+var invalidLabelValueCharPattern = regexp.MustCompile(`[^a-z0-9_.-]`)
+
+const maxLabelValueLength = 63
+
 func sanitizeLabelValue(value string) string {
-	value = strings.ToLower(value)
-	var builder strings.Builder
-	for _, r := range value {
-		switch {
-		case r >= 'a' && r <= 'z':
-			builder.WriteRune(r)
-		case r >= '0' && r <= '9':
-			builder.WriteRune(r)
-		case r == '-' || r == '_' || r == '.':
-			builder.WriteRune(r)
-		default:
-			builder.WriteRune('-')
-		}
-	}
-	sanitized := strings.Trim(builder.String(), "-_.")
-	if len(sanitized) > 63 {
-		sanitized = sanitized[:63]
+	sanitized := invalidLabelValueCharPattern.ReplaceAllString(strings.ToLower(value), "-")
+	sanitized = strings.Trim(sanitized, "-_.")
+	if len(sanitized) > maxLabelValueLength {
+		sanitized = sanitized[:maxLabelValueLength]
 		sanitized = strings.TrimRight(sanitized, "-_.")
 	}
 	if sanitized == "" {
