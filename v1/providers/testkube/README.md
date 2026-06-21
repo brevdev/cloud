@@ -17,34 +17,13 @@ type TestKubeCredential struct {
 
 When `AuthMode` is empty, it defaults to `"kubeconfig"` for compatibility. When `AuthMode` is `"in-cluster"`, the provider uses `rest.InClusterConfig()` and requires `KubeconfigBase64` to be empty. This is intended for dev-plane running inside the same Kubernetes cluster it will use as the testkube target. The pod's Kubernetes service account must have RBAC permissions to manage the target namespace's testkube resources.
 
-## Validation
+### Mode: In-Cluster
 
-The validation tests are opt-in and skipped unless `TESTKUBE_KUBECONFIG_BASE64` is set. The inventory and failure tests only need Kubernetes API access. The real lifecycle validation needs a runnable image tagged as `ghcr.io/brevdev/cloud/testkube-ubuntu-vm:latest` and a working Kubernetes `LoadBalancer` implementation.
+The `testkube` provider can be used as any other, with the caveat being that "VM" resources are actually represented by pods within the context k8s cluster. This allows "environments" to be spun up and down quickly and cheaply, even though they don't necessarily perfectly emulate cloud-provided VMs.
 
-`test.ok.cpu` uses a `LoadBalancer` Service for SSH. The instance remains `pending` until the pod is ready and the Service has a load balancer ingress address. This more closely emulates real providers because arbitrary machines can use the returned `PublicIP`/`PublicDNS` and `SSHPort` without sharing the provider process.
+### Mode: Kubeconfig
 
-### Remote: EKS or Other Real Clusters
-
-Remote clusters pull `ghcr.io/brevdev/cloud/testkube-ubuntu-vm:latest` from the registry. The image package must be public, or the target namespace must provide GHCR credentials through an image pull secret.
-
-The simplest staging setup is to make the GHCR package public. If the package must remain private, add a pull secret in the `testkube` namespace and attach it to the namespace's default service account:
-
-```bash
-kubectl -n testkube create secret docker-registry ghcr-pull \
-  --docker-server=ghcr.io \
-  --docker-username="$GITHUB_USER" \
-  --docker-password="$GITHUB_TOKEN" \
-  --docker-email="$GITHUB_EMAIL"
-
-kubectl -n testkube patch serviceaccount default \
-  -p '{"imagePullSecrets":[{"name":"ghcr-pull"}]}'
-```
-
-Use a GitHub token with `read:packages`. Without one of these options, pods will fail with `ErrImagePull` or `ImagePullBackOff`, and the provider will report the instance as failed.
-
-### Local: minikube
-
-Local validation should use minikube with `minikube tunnel`. The tunnel updates normal Kubernetes `LoadBalancer` Service status and makes the reported external IP reachable from the host, so the provider does not need local-cluster-specific endpoint translation.
+Alternatively to the in-cluster mode, resources can also be hosted by an arbitrary kubernetes cluster. This cluster can be hosted (e.g.: another EKS cluster) but can also be running locally. For example, local validation can use minikube with `minikube tunnel`. The tunnel updates normal Kubernetes `LoadBalancer` Service status and makes the reported external IP reachable from the host, so the provider does not need local-cluster-specific endpoint translation.
 
 ```bash
 brew install minikube kubectl

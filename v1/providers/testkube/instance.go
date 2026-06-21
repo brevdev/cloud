@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -49,13 +50,14 @@ func (c *TestKubeClient) CreateInstance(ctx context.Context, attrs cloudv1.Creat
 		return nil, fmt.Errorf("refID is required")
 	}
 	if attrs.InstanceType == "" {
-		attrs.InstanceType = InstanceTypeOKCPU
+		return nil, fmt.Errorf("instance type is required")
 	}
 	instanceTypeSpec, ok := getInstanceTypeSpec(attrs.InstanceType)
 	if !ok {
 		return nil, fmt.Errorf("unknown testkube instance type: %s", attrs.InstanceType)
 	}
 
+	// Immediate provision failures based on the incoming instance type.
 	switch attrs.InstanceType {
 	case InstanceTypeFailCapacity:
 		return nil, cloudv1.ErrInsufficientResources
@@ -63,14 +65,16 @@ func (c *TestKubeClient) CreateInstance(ctx context.Context, attrs cloudv1.Creat
 		return nil, cloudv1.ErrOutOfQuota
 	}
 
+	// Create a "cloud ID" to emulate a provider-provided instance ID.
 	cloudID := makeCloudID(c.refID, attrs.RefID)
+
 	if _, err := c.k8sClient.AppsV1().StatefulSets(c.namespace).Get(ctx, string(cloudID), metav1.GetOptions{}); err == nil {
 		return c.GetInstance(ctx, cloudID)
 	} else if !apierrors.IsNotFound(err) {
 		return nil, fmt.Errorf("get existing testkube instance: %w", err)
 	}
 
-	service := c.makeService(cloudID, attrs, instanceTypeSpec)
+	service := c.newInstanceAsK8sService(cloudID, attrs, instanceTypeSpec)
 	serviceCreated := false
 	createdService, err := c.k8sClient.CoreV1().Services(c.namespace).Create(ctx, service, metav1.CreateOptions{})
 	if err != nil {
@@ -265,7 +269,7 @@ func (c *TestKubeClient) updateReplicas(ctx context.Context, instanceID cloudv1.
 	return nil
 }
 
-func (c *TestKubeClient) makeService(cloudID cloudv1.CloudProviderInstanceID, attrs cloudv1.CreateInstanceAttrs, spec testInstanceTypeSpec) *corev1.Service {
+func (c *TestKubeClient) newInstanceAsK8sService(cloudID cloudv1.CloudProviderInstanceID, attrs cloudv1.CreateInstanceAttrs, spec instanceTypeSpec) *corev1.Service {
 	location := c.resourceLocation(attrs)
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
@@ -289,7 +293,7 @@ func (c *TestKubeClient) makeService(cloudID cloudv1.CloudProviderInstanceID, at
 	}
 }
 
-func (c *TestKubeClient) makeStatefulSet(cloudID cloudv1.CloudProviderInstanceID, attrs cloudv1.CreateInstanceAttrs, spec testInstanceTypeSpec) *appsv1.StatefulSet {
+func (c *TestKubeClient) makeStatefulSet(cloudID cloudv1.CloudProviderInstanceID, attrs cloudv1.CreateInstanceAttrs, spec instanceTypeSpec) *appsv1.StatefulSet {
 	replicas := int32(1)
 	annotations := c.resourceAnnotations(cloudID, attrs, spec)
 	location := c.resourceLocation(attrs)
@@ -358,7 +362,7 @@ func (c *TestKubeClient) makeStatefulSet(cloudID cloudv1.CloudProviderInstanceID
 	}
 }
 
-func (c *TestKubeClient) resourceAnnotations(cloudID cloudv1.CloudProviderInstanceID, attrs cloudv1.CreateInstanceAttrs, spec testInstanceTypeSpec) map[string]string {
+func (c *TestKubeClient) resourceAnnotations(cloudID cloudv1.CloudProviderInstanceID, attrs cloudv1.CreateInstanceAttrs, spec instanceTypeSpec) map[string]string {
 	name := attrs.Name
 	if name == "" {
 		name = string(cloudID)
@@ -422,7 +426,7 @@ func (c *TestKubeClient) instanceFromResources(statefulSet *appsv1.StatefulSet, 
 		Tags:           tagsFromAnnotations(annotations),
 		Stoppable:      true,
 		Rebootable:     true,
-		IsContainer:    true,
+		IsContainer:    false,
 		Location:       location,
 		SubLocation:    annotations[annotationSubLocation],
 		FirewallRules:  sshFirewallRules(),
@@ -616,7 +620,7 @@ func matchesListArgs(instance cloudv1.Instance, args cloudv1.ListInstancesArgs) 
 		if !ok {
 			return false
 		}
-		if len(allowedValues) > 0 && !containsString(allowedValues, tagValue) {
+		if len(allowedValues) > 0 && !slices.Contains(allowedValues, tagValue) {
 			return false
 		}
 	}
