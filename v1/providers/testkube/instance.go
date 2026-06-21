@@ -65,47 +65,128 @@ func (c *TestKubeClient) CreateInstance(ctx context.Context, attrs cloudv1.Creat
 		return nil, cloudv1.ErrOutOfQuota
 	}
 
+	instance, err := c.createInstanceAsK8sResources(ctx, attrs, instanceTypeSpec)
+	if err != nil {
+		return nil, err
+	}
+	return instance, nil
+}
+
+func (c *TestKubeClient) createInstanceAsK8sResources(ctx context.Context, attrs cloudv1.CreateInstanceAttrs, instanceTypeSpec instanceTypeSpec) (*cloudv1.Instance, error) {
 	// Create a "cloud ID" to emulate a provider-provided instance ID.
 	cloudID := makeCloudID(c.refID, attrs.RefID)
 
-	if _, err := c.k8sClient.AppsV1().StatefulSets(c.namespace).Get(ctx, string(cloudID), metav1.GetOptions{}); err == nil {
-		return c.GetInstance(ctx, cloudID)
-	} else if !apierrors.IsNotFound(err) {
-		return nil, fmt.Errorf("get existing testkube instance: %w", err)
+	location := c.resourceLocation(attrs)
+	annotations := c.resourceAnnotations(cloudID, attrs, instanceTypeSpec)
+
+	// Create the service.
+	k8sService, err := c.k8sClient.
+		CoreV1().
+		Services(c.namespace).
+		Create(ctx, &corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:        string(cloudID),
+				Namespace:   c.namespace,
+				Labels:      objectLabels(string(cloudID), location),
+				Annotations: annotations,
+			},
+			Spec: corev1.ServiceSpec{
+				Type:     instanceTypeSpec.serviceType,
+				Selector: selectorLabels(string(cloudID)),
+				Ports: []corev1.ServicePort{
+					{
+						Name:       servicePortName,
+						Protocol:   corev1.ProtocolTCP,
+						Port:       servicePort,
+						TargetPort: intstr.FromInt32(containerSSHPort),
+					},
+				},
+			},
+		}, metav1.CreateOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("create testkube service: %w", err)
 	}
 
-	service := c.newInstanceAsK8sService(cloudID, attrs, instanceTypeSpec)
-	serviceCreated := false
-	createdService, err := c.k8sClient.CoreV1().Services(c.namespace).Create(ctx, service, metav1.CreateOptions{})
+	// Create the stateful set.
+	replicas := int32(1)
+	k8sStatefulSet, err := c.k8sClient.
+		AppsV1().
+		StatefulSets(c.namespace).
+		Create(ctx, &appsv1.StatefulSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:        string(cloudID),
+				Namespace:   c.namespace,
+				Labels:      objectLabels(string(cloudID), location),
+				Annotations: annotations,
+			},
+			Spec: appsv1.StatefulSetSpec{
+				Replicas:    &replicas,
+				ServiceName: string(cloudID),
+				Selector: &metav1.LabelSelector{
+					MatchLabels: selectorLabels(string(cloudID)),
+				},
+				Template: corev1.PodTemplateSpec{
+					ObjectMeta: metav1.ObjectMeta{
+						Labels:      objectLabels(string(cloudID), location),
+						Annotations: annotations,
+					},
+					Spec: corev1.PodSpec{
+						TerminationGracePeriodSeconds: int64Ptr(1),
+						Containers: []corev1.Container{
+							{
+								Name:            "vm",
+								Image:           instanceTypeSpec.image,
+								ImagePullPolicy: corev1.PullIfNotPresent,
+								SecurityContext: &corev1.SecurityContext{
+									Privileged: boolPtr(true),
+								},
+								Ports: []corev1.ContainerPort{
+									{
+										Name:          servicePortName,
+										ContainerPort: containerSSHPort,
+										Protocol:      corev1.ProtocolTCP,
+									},
+								},
+								ReadinessProbe: &corev1.Probe{
+									ProbeHandler: corev1.ProbeHandler{
+										TCPSocket: &corev1.TCPSocketAction{
+											Port: intstr.FromInt32(containerSSHPort),
+										},
+									},
+									InitialDelaySeconds: 1,
+									PeriodSeconds:       2,
+									FailureThreshold:    30,
+								},
+								Env: c.containerEnv(attrs),
+								Resources: corev1.ResourceRequirements{
+									Requests: corev1.ResourceList{
+										corev1.ResourceCPU:    resource.MustParse("250m"),
+										corev1.ResourceMemory: resource.MustParse("512Mi"),
+									},
+									Limits: corev1.ResourceList{
+										corev1.ResourceCPU:    resource.MustParse("2"),
+										corev1.ResourceMemory: resource.MustParse("4Gi"),
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}, metav1.CreateOptions{})
 	if err != nil {
-		if !apierrors.IsAlreadyExists(err) {
-			return nil, fmt.Errorf("create testkube service: %w", err)
-		}
-		createdService, err = c.k8sClient.CoreV1().Services(c.namespace).Get(ctx, string(cloudID), metav1.GetOptions{})
-		if err != nil {
-			return nil, fmt.Errorf("get existing testkube service: %w", err)
-		}
-	} else {
-		serviceCreated = true
-	}
-
-	statefulSet := c.makeStatefulSet(cloudID, attrs, instanceTypeSpec)
-	createdStatefulSet, err := c.k8sClient.AppsV1().StatefulSets(c.namespace).Create(ctx, statefulSet, metav1.CreateOptions{})
-	if err != nil {
-		if apierrors.IsAlreadyExists(err) {
-			return c.GetInstance(ctx, cloudID)
-		}
-		if serviceCreated {
-			_ = c.k8sClient.CoreV1().Services(c.namespace).Delete(ctx, string(cloudID), metav1.DeleteOptions{})
-		}
 		return nil, fmt.Errorf("create testkube statefulset: %w", err)
 	}
 
-	return c.instanceFromResources(createdStatefulSet, createdService, nil), nil
+	// Map to the brev instance.
+	return c.instanceFromResources(k8sStatefulSet, k8sService, nil), nil
 }
 
 func (c *TestKubeClient) GetInstance(ctx context.Context, instanceID cloudv1.CloudProviderInstanceID) (*cloudv1.Instance, error) {
-	statefulSet, err := c.k8sClient.AppsV1().StatefulSets(c.namespace).Get(ctx, string(instanceID), metav1.GetOptions{})
+	statefulSet, err := c.k8sClient.
+		AppsV1().
+		StatefulSets(c.namespace).
+		Get(ctx, string(instanceID), metav1.GetOptions{})
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			return nil, fmt.Errorf("%w: %s", cloudv1.ErrInstanceNotFound, instanceID)
@@ -113,7 +194,10 @@ func (c *TestKubeClient) GetInstance(ctx context.Context, instanceID cloudv1.Clo
 		return nil, fmt.Errorf("get testkube statefulset: %w", err)
 	}
 
-	service, err := c.k8sClient.CoreV1().Services(c.namespace).Get(ctx, string(instanceID), metav1.GetOptions{})
+	service, err := c.k8sClient.
+		CoreV1().
+		Services(c.namespace).
+		Get(ctx, string(instanceID), metav1.GetOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
 		return nil, fmt.Errorf("get testkube service: %w", err)
 	}
@@ -121,9 +205,12 @@ func (c *TestKubeClient) GetInstance(ctx context.Context, instanceID cloudv1.Clo
 		service = nil
 	}
 
-	pods, err := c.k8sClient.CoreV1().Pods(c.namespace).List(ctx, metav1.ListOptions{
-		LabelSelector: labels.SelectorFromSet(selectorLabels(string(instanceID))).String(),
-	})
+	pods, err := c.k8sClient.
+		CoreV1().
+		Pods(c.namespace).
+		List(ctx, metav1.ListOptions{
+			LabelSelector: labels.SelectorFromSet(selectorLabels(string(instanceID))).String(),
+		})
 	if err != nil {
 		return nil, fmt.Errorf("list testkube pods: %w", err)
 	}
@@ -132,12 +219,15 @@ func (c *TestKubeClient) GetInstance(ctx context.Context, instanceID cloudv1.Clo
 }
 
 func (c *TestKubeClient) ListInstances(ctx context.Context, args cloudv1.ListInstancesArgs) ([]cloudv1.Instance, error) {
-	statefulSets, err := c.k8sClient.AppsV1().StatefulSets(c.namespace).List(ctx, metav1.ListOptions{
-		LabelSelector: labels.SelectorFromSet(labels.Set{
-			labelManagedBy: labelManagedByValue,
-			labelName:      labelNameValue,
-		}).String(),
-	})
+	statefulSets, err := c.k8sClient.
+		AppsV1().
+		StatefulSets(c.namespace).
+		List(ctx, metav1.ListOptions{
+			LabelSelector: labels.SelectorFromSet(labels.Set{
+				labelManagedBy: labelManagedByValue,
+				labelName:      labelNameValue,
+			}).String(),
+		})
 	if err != nil {
 		return nil, fmt.Errorf("list testkube statefulsets: %w", err)
 	}
@@ -184,6 +274,21 @@ func (c *TestKubeClient) StopInstance(ctx context.Context, instanceID cloudv1.Cl
 
 func (c *TestKubeClient) StartInstance(ctx context.Context, instanceID cloudv1.CloudProviderInstanceID) error {
 	return c.updateReplicas(ctx, instanceID, 1)
+}
+
+func (c *TestKubeClient) updateReplicas(ctx context.Context, instanceID cloudv1.CloudProviderInstanceID, replicas int32) error {
+	statefulSet, err := c.k8sClient.AppsV1().StatefulSets(c.namespace).Get(ctx, string(instanceID), metav1.GetOptions{})
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return fmt.Errorf("%w: %s", cloudv1.ErrInstanceNotFound, instanceID)
+		}
+		return fmt.Errorf("get testkube statefulset: %w", err)
+	}
+	statefulSet.Spec.Replicas = int32Ptr(replicas)
+	if _, err := c.k8sClient.AppsV1().StatefulSets(c.namespace).Update(ctx, statefulSet, metav1.UpdateOptions{}); err != nil {
+		return fmt.Errorf("update testkube replicas: %w", err)
+	}
+	return nil
 }
 
 func (c *TestKubeClient) RebootInstance(ctx context.Context, instanceID cloudv1.CloudProviderInstanceID) error {
@@ -252,114 +357,6 @@ func (c *TestKubeClient) MergeInstanceForUpdate(_ cloudv1.Instance, newInst clou
 
 func (c *TestKubeClient) MergeInstanceTypeForUpdate(_ cloudv1.InstanceType, newIt cloudv1.InstanceType) cloudv1.InstanceType {
 	return newIt
-}
-
-func (c *TestKubeClient) updateReplicas(ctx context.Context, instanceID cloudv1.CloudProviderInstanceID, replicas int32) error {
-	statefulSet, err := c.k8sClient.AppsV1().StatefulSets(c.namespace).Get(ctx, string(instanceID), metav1.GetOptions{})
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			return fmt.Errorf("%w: %s", cloudv1.ErrInstanceNotFound, instanceID)
-		}
-		return fmt.Errorf("get testkube statefulset: %w", err)
-	}
-	statefulSet.Spec.Replicas = int32Ptr(replicas)
-	if _, err := c.k8sClient.AppsV1().StatefulSets(c.namespace).Update(ctx, statefulSet, metav1.UpdateOptions{}); err != nil {
-		return fmt.Errorf("update testkube replicas: %w", err)
-	}
-	return nil
-}
-
-func (c *TestKubeClient) newInstanceAsK8sService(cloudID cloudv1.CloudProviderInstanceID, attrs cloudv1.CreateInstanceAttrs, spec instanceTypeSpec) *corev1.Service {
-	location := c.resourceLocation(attrs)
-	return &corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        string(cloudID),
-			Namespace:   c.namespace,
-			Labels:      objectLabels(string(cloudID), location),
-			Annotations: c.resourceAnnotations(cloudID, attrs, spec),
-		},
-		Spec: corev1.ServiceSpec{
-			Type:     spec.serviceType,
-			Selector: selectorLabels(string(cloudID)),
-			Ports: []corev1.ServicePort{
-				{
-					Name:       servicePortName,
-					Protocol:   corev1.ProtocolTCP,
-					Port:       servicePort,
-					TargetPort: intstr.FromInt32(containerSSHPort),
-				},
-			},
-		},
-	}
-}
-
-func (c *TestKubeClient) makeStatefulSet(cloudID cloudv1.CloudProviderInstanceID, attrs cloudv1.CreateInstanceAttrs, spec instanceTypeSpec) *appsv1.StatefulSet {
-	replicas := int32(1)
-	annotations := c.resourceAnnotations(cloudID, attrs, spec)
-	location := c.resourceLocation(attrs)
-	podSpec := corev1.PodSpec{
-		TerminationGracePeriodSeconds: int64Ptr(1),
-		Containers: []corev1.Container{
-			{
-				Name:            "vm",
-				Image:           spec.image,
-				ImagePullPolicy: corev1.PullIfNotPresent,
-				SecurityContext: &corev1.SecurityContext{
-					Privileged: boolPtr(true),
-				},
-				Ports: []corev1.ContainerPort{
-					{
-						Name:          servicePortName,
-						ContainerPort: containerSSHPort,
-						Protocol:      corev1.ProtocolTCP,
-					},
-				},
-				ReadinessProbe: &corev1.Probe{
-					ProbeHandler: corev1.ProbeHandler{
-						TCPSocket: &corev1.TCPSocketAction{
-							Port: intstr.FromInt32(containerSSHPort),
-						},
-					},
-					InitialDelaySeconds: 1,
-					PeriodSeconds:       2,
-					FailureThreshold:    30,
-				},
-				Env: c.containerEnv(attrs),
-				Resources: corev1.ResourceRequirements{
-					Requests: corev1.ResourceList{
-						corev1.ResourceCPU:    resource.MustParse("250m"),
-						corev1.ResourceMemory: resource.MustParse("512Mi"),
-					},
-					Limits: corev1.ResourceList{
-						corev1.ResourceCPU:    resource.MustParse("2"),
-						corev1.ResourceMemory: resource.MustParse("4Gi"),
-					},
-				},
-			},
-		},
-	}
-	return &appsv1.StatefulSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        string(cloudID),
-			Namespace:   c.namespace,
-			Labels:      objectLabels(string(cloudID), location),
-			Annotations: annotations,
-		},
-		Spec: appsv1.StatefulSetSpec{
-			Replicas:    &replicas,
-			ServiceName: string(cloudID),
-			Selector: &metav1.LabelSelector{
-				MatchLabels: selectorLabels(string(cloudID)),
-			},
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels:      objectLabels(string(cloudID), location),
-					Annotations: annotations,
-				},
-				Spec: podSpec,
-			},
-		},
-	}
 }
 
 func (c *TestKubeClient) resourceAnnotations(cloudID cloudv1.CloudProviderInstanceID, attrs cloudv1.CreateInstanceAttrs, spec instanceTypeSpec) map[string]string {
