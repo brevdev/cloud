@@ -36,54 +36,9 @@ func makeDefaultInstanceTypePrice(amount string, currencyCode string) currency.A
 	return instanceTypePrice
 }
 
-func (c *SFCClient) GetInstanceTypes(ctx context.Context, args v1.GetInstanceTypeArgs) ([]v1.InstanceType, error) {
-	c.logger.Debug(ctx, "sfc: GetInstanceTypes start",
-		v1.LogField("location", c.location),
-		v1.LogField("args", fmt.Sprintf("%+v", args)),
-	)
-
-	// Fetch all available zones
-	includeUnavailable := false
-	zones, err := c.getZones(ctx, includeUnavailable)
-	if err != nil {
-		return nil, err
-	}
-
-	c.logger.Debug(ctx, "sfc: GetInstanceTypes zones list",
-		v1.LogField("zone count", len(zones)),
-	)
-
-	instanceTypes := make([]v1.InstanceType, 0, len(zones))
-	for _, zone := range zones {
-		gpuType := strings.ToLower(string(zone.HardwareType))
-
-		if !gpuTypeIsAllowed(gpuType) {
-			c.logger.Debug(ctx, "sfc: GetInstanceTypes gpu type not allowed",
-				v1.LogField("gpuType", gpuType),
-			)
-			continue
-		}
-
-		instanceType, err := getInstanceTypeForZone(zone)
-		if err != nil {
-			return nil, err
-		}
-
-		if !v1.IsSelectedByArgs(*instanceType, args) {
-			c.logger.Debug(ctx, "sfc: GetInstanceTypes instance type not selected by args",
-				v1.LogField("instanceType", instanceType.Type),
-			)
-			continue
-		}
-
-		instanceTypes = append(instanceTypes, *instanceType)
-	}
-
-	c.logger.Debug(ctx, "sfc: GetInstanceTypes end",
-		v1.LogField("instanceType count", len(instanceTypes)),
-	)
-
-	return instanceTypes, nil
+func (c *SFCClient) GetInstanceTypes(_ context.Context, _ v1.GetInstanceTypeArgs) ([]v1.InstanceType, error) {
+	// Artificially set capacity to 0 for all instance types
+	return []v1.InstanceType{}, nil
 }
 
 func getInstanceTypeForZone(zone sfcnodes.ZoneListResponseData) (*v1.InstanceType, error) {
@@ -146,10 +101,6 @@ func getInstanceTypeForZone(zone sfcnodes.ZoneListResponseData) (*v1.InstanceTyp
 	instanceType.ID = v1.MakeGenericInstanceTypeID(instanceType)
 
 	return &instanceType, nil
-}
-
-func gpuTypeIsAllowed(gpuType string) bool {
-	return gpuType == gpuTypeH100 || gpuType == gpuTypeH200
 }
 
 func makeInstanceTypeName(zone sfcnodes.ZoneListResponseData) string {
