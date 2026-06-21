@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	CloudProviderID = "test-kubernetes"
+	CloudProviderID = "testkube"
 
 	DefaultNamespace = "default"
 	DefaultLocation  = "test-local"
