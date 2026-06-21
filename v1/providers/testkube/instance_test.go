@@ -41,9 +41,9 @@ func TestCreateInstanceProvisionFailures(t *testing.T) {
 			require.Nil(t, instance)
 			require.ErrorIs(t, err, tc.expectedErr)
 
-			statefulSets, err := client.k8sClient.AppsV1().StatefulSets(client.namespace).List(ctx, metav1.ListOptions{})
+			pods, err := client.k8sClient.CoreV1().Pods(client.namespace).List(ctx, metav1.ListOptions{})
 			require.NoError(t, err)
-			require.Empty(t, statefulSets.Items)
+			require.Empty(t, pods.Items)
 
 			services, err := client.k8sClient.CoreV1().Services(client.namespace).List(ctx, metav1.ListOptions{})
 			require.NoError(t, err)
@@ -82,13 +82,10 @@ func TestInstanceLifecycle(t *testing.T) { //nolint:funlen // test ok
 	require.NoError(t, err)
 	require.Len(t, listed, 1)
 
-	require.NoError(t, client.StopInstance(ctx, instance.CloudID))
-	stopped, err := client.GetInstance(ctx, instance.CloudID)
-	require.NoError(t, err)
-	require.Equal(t, cloudv1.LifecycleStatusStopped, stopped.Status.LifecycleStatus)
-
-	require.NoError(t, client.StartInstance(ctx, instance.CloudID))
-	createReadyPod(t, client, instance.CloudID)
+	require.ErrorIs(t, client.StopInstance(ctx, instance.CloudID), cloudv1.ErrNotImplemented)
+	require.ErrorIs(t, client.StartInstance(ctx, instance.CloudID), cloudv1.ErrNotImplemented)
+	require.ErrorIs(t, client.RebootInstance(ctx, instance.CloudID), cloudv1.ErrNotImplemented)
+	setPodReady(t, client, instance.CloudID)
 
 	pendingLB, err := client.GetInstance(ctx, instance.CloudID)
 	require.NoError(t, err)
@@ -100,7 +97,7 @@ func TestInstanceLifecycle(t *testing.T) { //nolint:funlen // test ok
 	running, err := client.GetInstance(ctx, instance.CloudID)
 	require.NoError(t, err)
 	require.Equal(t, cloudv1.LifecycleStatusRunning, running.Status.LifecycleStatus)
-	require.Equal(t, string(instance.CloudID)+"-0", running.Hostname)
+	require.Equal(t, string(instance.CloudID), running.Hostname)
 	require.Equal(t, "203.0.113.10", running.PublicIP)
 	require.Equal(t, "203.0.113.10", running.PublicDNS)
 	require.Equal(t, 22, running.SSHPort)
@@ -114,11 +111,6 @@ func TestInstanceLifecycle(t *testing.T) { //nolint:funlen // test ok
 	updated, err := client.GetInstance(ctx, instance.CloudID)
 	require.NoError(t, err)
 	require.Equal(t, "updated", updated.Tags["purpose"])
-
-	require.NoError(t, client.RebootInstance(ctx, instance.CloudID))
-	pods, err := client.k8sClient.CoreV1().Pods(client.namespace).List(ctx, metav1.ListOptions{})
-	require.NoError(t, err)
-	require.Empty(t, pods.Items)
 
 	require.NoError(t, client.TerminateInstance(ctx, instance.CloudID))
 	_, err = client.GetInstance(ctx, instance.CloudID)
@@ -136,7 +128,7 @@ func TestScenarioEnvironment(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	statefulSet, err := client.k8sClient.AppsV1().StatefulSets(client.namespace).Get(ctx, string(instance.CloudID), metav1.GetOptions{})
+	pod, err := client.k8sClient.CoreV1().Pods(client.namespace).Get(ctx, string(instance.CloudID), metav1.GetOptions{})
 	require.NoError(t, err)
 	service, err := client.k8sClient.CoreV1().Services(client.namespace).Get(ctx, string(instance.CloudID), metav1.GetOptions{})
 	require.NoError(t, err)
@@ -144,7 +136,7 @@ func TestScenarioEnvironment(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, spec.serviceType, service.Spec.Type)
 	require.Zero(t, service.Spec.Ports[0].NodePort)
-	container := statefulSet.Spec.Template.Spec.Containers[0]
+	container := pod.Spec.Containers[0]
 	require.Equal(t, spec.image, container.Image)
 	require.Zero(t, container.Ports[0].HostPort)
 	envByName := envMap(container.Env)
@@ -166,9 +158,9 @@ func TestInstanceUsesBakedImageSpec(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, spec.imageID, instance.ImageID)
 
-	statefulSet, err := client.k8sClient.AppsV1().StatefulSets(client.namespace).Get(ctx, string(instance.CloudID), metav1.GetOptions{})
+	pod, err := client.k8sClient.CoreV1().Pods(client.namespace).Get(ctx, string(instance.CloudID), metav1.GetOptions{})
 	require.NoError(t, err)
-	container := statefulSet.Spec.Template.Spec.Containers[0]
+	container := pod.Spec.Containers[0]
 	require.Equal(t, spec.image, container.Image)
 	require.NotNil(t, container.ReadinessProbe)
 	require.NotNil(t, container.ReadinessProbe.TCPSocket)
@@ -205,25 +197,19 @@ func TestPopulateNetworkLoadBalancer(t *testing.T) {
 	require.Equal(t, 22, instance.SSHPort)
 }
 
-func createReadyPod(t *testing.T, client *TestKubeClient, instanceID cloudv1.CloudProviderInstanceID) {
+func setPodReady(t *testing.T, client *TestKubeClient, instanceID cloudv1.CloudProviderInstanceID) {
 	t.Helper()
 
-	_, err := client.k8sClient.CoreV1().Pods(client.namespace).Create(context.Background(), &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      string(instanceID) + "-0",
-			Namespace: client.namespace,
-			Labels:    selectorLabels(string(instanceID)),
+	pod, err := client.k8sClient.CoreV1().Pods(client.namespace).Get(context.Background(), string(instanceID), metav1.GetOptions{})
+	require.NoError(t, err)
+	pod.Status.Phase = corev1.PodRunning
+	pod.Status.Conditions = []corev1.PodCondition{
+		{
+			Type:   corev1.PodReady,
+			Status: corev1.ConditionTrue,
 		},
-		Status: corev1.PodStatus{
-			Phase: corev1.PodRunning,
-			Conditions: []corev1.PodCondition{
-				{
-					Type:   corev1.PodReady,
-					Status: corev1.ConditionTrue,
-				},
-			},
-		},
-	}, metav1.CreateOptions{})
+	}
+	_, err = client.k8sClient.CoreV1().Pods(client.namespace).UpdateStatus(context.Background(), pod, metav1.UpdateOptions{})
 	require.NoError(t, err)
 }
 

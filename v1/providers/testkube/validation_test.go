@@ -115,9 +115,9 @@ func TestImageBackedInstanceValidation(t *testing.T) {
 		_ = client.TerminateInstance(context.Background(), instance.CloudID)
 	})
 
-	statefulSet, err := client.k8sClient.AppsV1().StatefulSets(client.namespace).Get(ctx, string(instance.CloudID), metav1.GetOptions{})
+	pod, err := client.k8sClient.CoreV1().Pods(client.namespace).Get(ctx, string(instance.CloudID), metav1.GetOptions{})
 	require.NoError(t, err)
-	require.Equal(t, DefaultImage, statefulSet.Spec.Template.Spec.Containers[0].Image)
+	require.Equal(t, DefaultImage, pod.Spec.Containers[0].Image)
 
 	instance = waitForValidationInstanceStatus(ctx, t, client, instance.CloudID, cloudv1.LifecycleStatusRunning, 4*time.Minute)
 	require.NotEmpty(t, instance.Hostname)

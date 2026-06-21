@@ -20,7 +20,7 @@ const (
 	InstanceTypeOKCPU        = "test.ok.cpu"
 	InstanceTypeFailCapacity = "test.fail.capacity"
 	InstanceTypeFailQuota    = "test.fail.quota"
-	InstanceTypeFailBuild    = "test.fail.build"
+	InstanceTypeFailBuild    = "test.fail.build" // TODO: trigger build failure, maybe with a process that monitors build?
 )
 
 // instanceTypeSpec is used mainly as a tuple of instance type (from devplane) and service type (from k8s). When a request
@@ -141,8 +141,8 @@ func makeCPUInstanceType(instanceType string, available bool, estimatedDeployTim
 		SupportedArchitectures: []cloudv1.Architecture{
 			cloudv1.ArchitectureX86_64,
 		},
-		Stoppable:           true,
-		Rebootable:          true,
+		Stoppable:           false,
+		Rebootable:          false,
 		IsAvailable:         available,
 		BasePrice:           &basePrice,
 		IsContainer:         false,

@@ -12,7 +12,6 @@ import (
 
 	"github.com/alecthomas/units"
 	cloudv1 "github.com/brevdev/cloud/v1"
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -107,67 +106,54 @@ func (c *TestKubeClient) createInstanceAsK8sResources(ctx context.Context, attrs
 		return nil, fmt.Errorf("create testkube service: %w", err)
 	}
 
-	// Create the stateful set.
-	replicas := int32(1)
-	k8sStatefulSet, err := c.k8sClient.
-		AppsV1().
-		StatefulSets(c.namespace).
-		Create(ctx, &appsv1.StatefulSet{
+	// Create the pod directly.
+	k8sPod, err := c.k8sClient.
+		CoreV1().
+		Pods(c.namespace).
+		Create(ctx, &corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:        string(cloudID),
 				Namespace:   c.namespace,
 				Labels:      objectLabels(string(cloudID), location),
 				Annotations: annotations,
 			},
-			Spec: appsv1.StatefulSetSpec{
-				Replicas:    &replicas,
-				ServiceName: string(cloudID),
-				Selector: &metav1.LabelSelector{
-					MatchLabels: selectorLabels(string(cloudID)),
-				},
-				Template: corev1.PodTemplateSpec{
-					ObjectMeta: metav1.ObjectMeta{
-						Labels:      objectLabels(string(cloudID), location),
-						Annotations: annotations,
-					},
-					Spec: corev1.PodSpec{
-						TerminationGracePeriodSeconds: int64Ptr(1),
-						Containers: []corev1.Container{
+			Spec: corev1.PodSpec{
+				RestartPolicy:                 corev1.RestartPolicyNever,
+				TerminationGracePeriodSeconds: int64Ptr(1),
+				Containers: []corev1.Container{
+					{
+						Name:            "vm",
+						Image:           instanceTypeSpec.image,
+						ImagePullPolicy: corev1.PullIfNotPresent,
+						SecurityContext: &corev1.SecurityContext{
+							Privileged: boolPtr(true),
+						},
+						Ports: []corev1.ContainerPort{
 							{
-								Name:            "vm",
-								Image:           instanceTypeSpec.image,
-								ImagePullPolicy: corev1.PullIfNotPresent,
-								SecurityContext: &corev1.SecurityContext{
-									Privileged: boolPtr(true),
+								Name:          servicePortName,
+								ContainerPort: containerSSHPort,
+								Protocol:      corev1.ProtocolTCP,
+							},
+						},
+						ReadinessProbe: &corev1.Probe{
+							ProbeHandler: corev1.ProbeHandler{
+								TCPSocket: &corev1.TCPSocketAction{
+									Port: intstr.FromInt32(containerSSHPort),
 								},
-								Ports: []corev1.ContainerPort{
-									{
-										Name:          servicePortName,
-										ContainerPort: containerSSHPort,
-										Protocol:      corev1.ProtocolTCP,
-									},
-								},
-								ReadinessProbe: &corev1.Probe{
-									ProbeHandler: corev1.ProbeHandler{
-										TCPSocket: &corev1.TCPSocketAction{
-											Port: intstr.FromInt32(containerSSHPort),
-										},
-									},
-									InitialDelaySeconds: 1,
-									PeriodSeconds:       2,
-									FailureThreshold:    30,
-								},
-								Env: c.containerEnv(attrs),
-								Resources: corev1.ResourceRequirements{
-									Requests: corev1.ResourceList{
-										corev1.ResourceCPU:    resource.MustParse("250m"),
-										corev1.ResourceMemory: resource.MustParse("512Mi"),
-									},
-									Limits: corev1.ResourceList{
-										corev1.ResourceCPU:    resource.MustParse("2"),
-										corev1.ResourceMemory: resource.MustParse("4Gi"),
-									},
-								},
+							},
+							InitialDelaySeconds: 1,
+							PeriodSeconds:       2,
+							FailureThreshold:    30,
+						},
+						Env: c.containerEnv(attrs),
+						Resources: corev1.ResourceRequirements{
+							Requests: corev1.ResourceList{
+								corev1.ResourceCPU:    resource.MustParse("250m"),
+								corev1.ResourceMemory: resource.MustParse("512Mi"),
+							},
+							Limits: corev1.ResourceList{
+								corev1.ResourceCPU:    resource.MustParse("2"),
+								corev1.ResourceMemory: resource.MustParse("4Gi"),
 							},
 						},
 					},
@@ -175,23 +161,24 @@ func (c *TestKubeClient) createInstanceAsK8sResources(ctx context.Context, attrs
 			},
 		}, metav1.CreateOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("create testkube statefulset: %w", err)
+		_ = c.k8sClient.CoreV1().Services(c.namespace).Delete(ctx, string(cloudID), metav1.DeleteOptions{})
+		return nil, fmt.Errorf("create testkube pod: %w", err)
 	}
 
 	// Map to the brev instance.
-	return c.instanceFromResources(k8sStatefulSet, k8sService, nil), nil
+	return c.instanceFromResources(k8sPod, k8sService), nil
 }
 
 func (c *TestKubeClient) GetInstance(ctx context.Context, instanceID cloudv1.CloudProviderInstanceID) (*cloudv1.Instance, error) {
-	statefulSet, err := c.k8sClient.
-		AppsV1().
-		StatefulSets(c.namespace).
+	pod, err := c.k8sClient.
+		CoreV1().
+		Pods(c.namespace).
 		Get(ctx, string(instanceID), metav1.GetOptions{})
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			return nil, fmt.Errorf("%w: %s", cloudv1.ErrInstanceNotFound, instanceID)
 		}
-		return nil, fmt.Errorf("get testkube statefulset: %w", err)
+		return nil, fmt.Errorf("get testkube pod: %w", err)
 	}
 
 	service, err := c.k8sClient.
@@ -205,23 +192,13 @@ func (c *TestKubeClient) GetInstance(ctx context.Context, instanceID cloudv1.Clo
 		service = nil
 	}
 
-	pods, err := c.k8sClient.
-		CoreV1().
-		Pods(c.namespace).
-		List(ctx, metav1.ListOptions{
-			LabelSelector: labels.SelectorFromSet(selectorLabels(string(instanceID))).String(),
-		})
-	if err != nil {
-		return nil, fmt.Errorf("list testkube pods: %w", err)
-	}
-
-	return c.instanceFromResources(statefulSet, service, pods.Items), nil
+	return c.instanceFromResources(pod, service), nil
 }
 
 func (c *TestKubeClient) ListInstances(ctx context.Context, args cloudv1.ListInstancesArgs) ([]cloudv1.Instance, error) {
-	statefulSets, err := c.k8sClient.
-		AppsV1().
-		StatefulSets(c.namespace).
+	pods, err := c.k8sClient.
+		CoreV1().
+		Pods(c.namespace).
 		List(ctx, metav1.ListOptions{
 			LabelSelector: labels.SelectorFromSet(labels.Set{
 				labelManagedBy: labelManagedByValue,
@@ -229,12 +206,12 @@ func (c *TestKubeClient) ListInstances(ctx context.Context, args cloudv1.ListIns
 			}).String(),
 		})
 	if err != nil {
-		return nil, fmt.Errorf("list testkube statefulsets: %w", err)
+		return nil, fmt.Errorf("list testkube pods: %w", err)
 	}
 
-	instances := make([]cloudv1.Instance, 0, len(statefulSets.Items))
-	for _, statefulSet := range statefulSets.Items {
-		instance, err := c.GetInstance(ctx, cloudv1.CloudProviderInstanceID(statefulSet.Name))
+	instances := make([]cloudv1.Instance, 0, len(pods.Items))
+	for _, pod := range pods.Items {
+		instance, err := c.GetInstance(ctx, cloudv1.CloudProviderInstanceID(pod.Name))
 		if err != nil {
 			return nil, err
 		}
@@ -248,9 +225,9 @@ func (c *TestKubeClient) ListInstances(ctx context.Context, args cloudv1.ListIns
 
 func (c *TestKubeClient) TerminateInstance(ctx context.Context, instanceID cloudv1.CloudProviderInstanceID) error {
 	found := false
-	if err := c.k8sClient.AppsV1().StatefulSets(c.namespace).Delete(ctx, string(instanceID), metav1.DeleteOptions{}); err != nil {
+	if err := c.k8sClient.CoreV1().Pods(c.namespace).Delete(ctx, string(instanceID), metav1.DeleteOptions{}); err != nil {
 		if !apierrors.IsNotFound(err) {
-			return fmt.Errorf("delete testkube statefulset: %w", err)
+			return fmt.Errorf("delete testkube pod: %w", err)
 		}
 	} else {
 		found = true
@@ -268,73 +245,25 @@ func (c *TestKubeClient) TerminateInstance(ctx context.Context, instanceID cloud
 	return nil
 }
 
-func (c *TestKubeClient) StopInstance(ctx context.Context, instanceID cloudv1.CloudProviderInstanceID) error {
-	return c.updateReplicas(ctx, instanceID, 0)
-}
-
-func (c *TestKubeClient) StartInstance(ctx context.Context, instanceID cloudv1.CloudProviderInstanceID) error {
-	return c.updateReplicas(ctx, instanceID, 1)
-}
-
-func (c *TestKubeClient) updateReplicas(ctx context.Context, instanceID cloudv1.CloudProviderInstanceID, replicas int32) error {
-	statefulSet, err := c.k8sClient.AppsV1().StatefulSets(c.namespace).Get(ctx, string(instanceID), metav1.GetOptions{})
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			return fmt.Errorf("%w: %s", cloudv1.ErrInstanceNotFound, instanceID)
-		}
-		return fmt.Errorf("get testkube statefulset: %w", err)
-	}
-	statefulSet.Spec.Replicas = int32Ptr(replicas)
-	if _, err := c.k8sClient.AppsV1().StatefulSets(c.namespace).Update(ctx, statefulSet, metav1.UpdateOptions{}); err != nil {
-		return fmt.Errorf("update testkube replicas: %w", err)
-	}
-	return nil
-}
-
-func (c *TestKubeClient) RebootInstance(ctx context.Context, instanceID cloudv1.CloudProviderInstanceID) error {
-	if _, err := c.k8sClient.AppsV1().StatefulSets(c.namespace).Get(ctx, string(instanceID), metav1.GetOptions{}); err != nil {
-		if apierrors.IsNotFound(err) {
-			return fmt.Errorf("%w: %s", cloudv1.ErrInstanceNotFound, instanceID)
-		}
-		return fmt.Errorf("get testkube statefulset: %w", err)
-	}
-	pods, err := c.k8sClient.CoreV1().Pods(c.namespace).List(ctx, metav1.ListOptions{
-		LabelSelector: labels.SelectorFromSet(selectorLabels(string(instanceID))).String(),
-	})
-	if err != nil {
-		return fmt.Errorf("list testkube pods for reboot: %w", err)
-	}
-	for _, pod := range pods.Items {
-		if err := c.k8sClient.CoreV1().Pods(c.namespace).Delete(ctx, pod.Name, metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
-			return fmt.Errorf("delete testkube pod %s: %w", pod.Name, err)
-		}
-	}
-	return nil
-}
-
 func (c *TestKubeClient) UpdateInstanceTags(ctx context.Context, args cloudv1.UpdateInstanceTagsArgs) error {
 	tagsJSON, err := marshalTags(args.Tags)
 	if err != nil {
 		return err
 	}
 
-	statefulSet, err := c.k8sClient.AppsV1().StatefulSets(c.namespace).Get(ctx, string(args.InstanceID), metav1.GetOptions{})
+	pod, err := c.k8sClient.CoreV1().Pods(c.namespace).Get(ctx, string(args.InstanceID), metav1.GetOptions{})
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			return fmt.Errorf("%w: %s", cloudv1.ErrInstanceNotFound, args.InstanceID)
 		}
-		return fmt.Errorf("get testkube statefulset for tag update: %w", err)
+		return fmt.Errorf("get testkube pod for tag update: %w", err)
 	}
-	if statefulSet.Annotations == nil {
-		statefulSet.Annotations = map[string]string{}
+	if pod.Annotations == nil {
+		pod.Annotations = map[string]string{}
 	}
-	statefulSet.Annotations[annotationTagsJSON] = tagsJSON
-	if statefulSet.Spec.Template.Annotations == nil {
-		statefulSet.Spec.Template.Annotations = map[string]string{}
-	}
-	statefulSet.Spec.Template.Annotations[annotationTagsJSON] = tagsJSON
-	if _, err := c.k8sClient.AppsV1().StatefulSets(c.namespace).Update(ctx, statefulSet, metav1.UpdateOptions{}); err != nil {
-		return fmt.Errorf("update testkube statefulset tags: %w", err)
+	pod.Annotations[annotationTagsJSON] = tagsJSON
+	if _, err := c.k8sClient.CoreV1().Pods(c.namespace).Update(ctx, pod, metav1.UpdateOptions{}); err != nil {
+		return fmt.Errorf("update testkube pod tags: %w", err)
 	}
 
 	service, err := c.k8sClient.CoreV1().Services(c.namespace).Get(ctx, string(args.InstanceID), metav1.GetOptions{})
@@ -401,17 +330,17 @@ func (c *TestKubeClient) containerEnv(attrs cloudv1.CreateInstanceAttrs) []corev
 	return env
 }
 
-func (c *TestKubeClient) instanceFromResources(statefulSet *appsv1.StatefulSet, service *corev1.Service, pods []corev1.Pod) *cloudv1.Instance {
-	annotations := statefulSet.Annotations
+func (c *TestKubeClient) instanceFromResources(pod *corev1.Pod, service *corev1.Service) *cloudv1.Instance {
+	annotations := pod.Annotations
 	instanceType := annotations[annotationInstanceType]
 	location := firstNonEmpty(annotations[annotationLocation], c.location)
 	instance := &cloudv1.Instance{
-		Name:           firstNonEmpty(annotations[annotationName], statefulSet.Name),
+		Name:           firstNonEmpty(annotations[annotationName], pod.Name),
 		RefID:          annotations[annotationRefID],
 		CloudCredRefID: annotations[annotationCloudCredRefID],
-		CreatedAt:      createdAt(statefulSet),
-		CloudID:        cloudv1.CloudProviderInstanceID(statefulSet.Name),
-		Hostname:       podHostname(pods),
+		CreatedAt:      createdAt(pod),
+		CloudID:        cloudv1.CloudProviderInstanceID(pod.Name),
+		Hostname:       pod.Name,
 		ImageID:        annotations[annotationImageID],
 		InstanceType:   instanceType,
 		DiskSize:       units.GiB * 20,
@@ -419,10 +348,10 @@ func (c *TestKubeClient) instanceFromResources(statefulSet *appsv1.StatefulSet, 
 		VolumeType:     "ephemeral",
 		SSHUser:        "ubuntu",
 		SSHPort:        int(servicePort),
-		Status:         statusFromResources(statefulSet, service, pods),
+		Status:         statusFromResources(pod, service),
 		Tags:           tagsFromAnnotations(annotations),
-		Stoppable:      true,
-		Rebootable:     true,
+		Stoppable:      false,
+		Rebootable:     false,
 		IsContainer:    false,
 		Location:       location,
 		SubLocation:    annotations[annotationSubLocation],
@@ -468,40 +397,37 @@ func populateNetwork(service *corev1.Service, instance *cloudv1.Instance) {
 	}
 }
 
-func statusFromResources(statefulSet *appsv1.StatefulSet, service *corev1.Service, pods []corev1.Pod) cloudv1.Status {
-	if statefulSet.DeletionTimestamp != nil {
+func statusFromResources(pod *corev1.Pod, service *corev1.Service) cloudv1.Status {
+	if pod.DeletionTimestamp != nil {
 		return cloudv1.Status{LifecycleStatus: cloudv1.LifecycleStatusTerminating}
 	}
-	if statefulSet.Spec.Replicas != nil && *statefulSet.Spec.Replicas == 0 {
-		return cloudv1.Status{LifecycleStatus: cloudv1.LifecycleStatusStopped}
-	}
-	if podFailed(pods) {
+	if podFailed(*pod) {
 		return cloudv1.Status{
 			LifecycleStatus: cloudv1.LifecycleStatusFailed,
-			Messages:        podMessages(pods),
+			Messages:        podMessages(*pod),
 		}
 	}
-	if podReady(pods) || statefulSet.Status.ReadyReplicas > 0 {
+	if podReady(*pod) {
 		if service == nil {
 			return cloudv1.Status{
 				LifecycleStatus: cloudv1.LifecycleStatusPending,
-				Messages:        append(podMessages(pods), "waiting for service"),
+				Messages:        append(podMessages(*pod), "waiting for service"),
 			}
 		}
 		if service.Spec.Type == corev1.ServiceTypeLoadBalancer && !loadBalancerReady(service) {
 			return cloudv1.Status{
 				LifecycleStatus: cloudv1.LifecycleStatusPending,
-				Messages:        append(podMessages(pods), fmt.Sprintf("service %s waiting for load balancer ingress", service.Name)),
+				Messages:        append(podMessages(*pod), fmt.Sprintf("service %s waiting for load balancer ingress", service.Name)),
 			}
 		}
 		return cloudv1.Status{
 			LifecycleStatus: cloudv1.LifecycleStatusRunning,
-			Messages:        podMessages(pods),
+			Messages:        podMessages(*pod),
 		}
 	}
 	return cloudv1.Status{
 		LifecycleStatus: cloudv1.LifecycleStatusPending,
-		Messages:        podMessages(pods),
+		Messages:        podMessages(*pod),
 	}
 }
 
@@ -514,32 +440,28 @@ func loadBalancerReady(service *corev1.Service) bool {
 	return false
 }
 
-func podReady(pods []corev1.Pod) bool {
-	for _, pod := range pods {
-		if pod.Status.Phase != corev1.PodRunning {
-			continue
-		}
-		for _, condition := range pod.Status.Conditions {
-			if condition.Type == corev1.PodReady && condition.Status == corev1.ConditionTrue {
-				return true
-			}
+func podReady(pod corev1.Pod) bool {
+	if pod.Status.Phase != corev1.PodRunning {
+		return false
+	}
+	for _, condition := range pod.Status.Conditions {
+		if condition.Type == corev1.PodReady && condition.Status == corev1.ConditionTrue {
+			return true
 		}
 	}
 	return false
 }
 
-func podFailed(pods []corev1.Pod) bool {
-	for _, pod := range pods {
-		if pod.Status.Phase == corev1.PodFailed {
+func podFailed(pod corev1.Pod) bool {
+	if pod.Status.Phase == corev1.PodFailed {
+		return true
+	}
+	for _, status := range pod.Status.ContainerStatuses {
+		if status.State.Terminated != nil && status.State.Terminated.ExitCode != 0 {
 			return true
 		}
-		for _, status := range pod.Status.ContainerStatuses {
-			if status.State.Terminated != nil && status.State.Terminated.ExitCode != 0 {
-				return true
-			}
-			if status.State.Waiting != nil && isFailureWaitingReason(status.State.Waiting.Reason) {
-				return true
-			}
+		if status.State.Waiting != nil && isFailureWaitingReason(status.State.Waiting.Reason) {
+			return true
 		}
 	}
 	return false
@@ -554,55 +476,44 @@ func isFailureWaitingReason(reason string) bool {
 	}
 }
 
-func podMessages(pods []corev1.Pod) []string {
+func podMessages(pod corev1.Pod) []string {
 	messages := []string{}
-	for _, pod := range pods {
-		if pod.Status.Phase != "" {
-			messages = append(messages, fmt.Sprintf("%s: phase=%s", pod.Name, pod.Status.Phase))
+	if pod.Status.Phase != "" {
+		messages = append(messages, fmt.Sprintf("%s: phase=%s", pod.Name, pod.Status.Phase))
+	}
+	for _, condition := range pod.Status.Conditions {
+		if condition.Message != "" {
+			messages = append(messages, fmt.Sprintf("%s: %s", pod.Name, condition.Message))
 		}
-		for _, condition := range pod.Status.Conditions {
-			if condition.Message != "" {
-				messages = append(messages, fmt.Sprintf("%s: %s", pod.Name, condition.Message))
+	}
+	for _, status := range pod.Status.ContainerStatuses {
+		if status.State.Waiting != nil {
+			message := status.State.Waiting.Reason
+			if status.State.Waiting.Message != "" {
+				message += ": " + status.State.Waiting.Message
 			}
+			messages = append(messages, fmt.Sprintf("%s/%s waiting: %s", pod.Name, status.Name, message))
 		}
-		for _, status := range pod.Status.ContainerStatuses {
-			if status.State.Waiting != nil {
-				message := status.State.Waiting.Reason
-				if status.State.Waiting.Message != "" {
-					message += ": " + status.State.Waiting.Message
-				}
-				messages = append(messages, fmt.Sprintf("%s/%s waiting: %s", pod.Name, status.Name, message))
+		if status.State.Terminated != nil {
+			message := status.State.Terminated.Reason
+			if status.State.Terminated.Message != "" {
+				message += ": " + status.State.Terminated.Message
 			}
-			if status.State.Terminated != nil {
-				message := status.State.Terminated.Reason
-				if status.State.Terminated.Message != "" {
-					message += ": " + status.State.Terminated.Message
-				}
-				messages = append(messages, fmt.Sprintf("%s/%s terminated: %s", pod.Name, status.Name, message))
-			}
+			messages = append(messages, fmt.Sprintf("%s/%s terminated: %s", pod.Name, status.Name, message))
 		}
 	}
 	return messages
 }
 
-func podHostname(pods []corev1.Pod) string {
-	for _, pod := range pods {
-		if pod.Name != "" {
-			return pod.Name
-		}
-	}
-	return ""
-}
-
-func createdAt(statefulSet *appsv1.StatefulSet) time.Time {
-	if statefulSet.Annotations != nil {
-		if createdAtRaw := statefulSet.Annotations[annotationCreatedAt]; createdAtRaw != "" {
+func createdAt(pod *corev1.Pod) time.Time {
+	if pod.Annotations != nil {
+		if createdAtRaw := pod.Annotations[annotationCreatedAt]; createdAtRaw != "" {
 			if parsed, err := time.Parse(time.RFC3339Nano, createdAtRaw); err == nil {
 				return parsed
 			}
 		}
 	}
-	return statefulSet.CreationTimestamp.Time
+	return pod.CreationTimestamp.Time
 }
 
 func matchesListArgs(instance cloudv1.Instance, args cloudv1.ListInstancesArgs) bool {
@@ -714,10 +625,6 @@ func sshFirewallRules() cloudv1.FirewallRules {
 		IngressRules: []cloudv1.FirewallRule{rule},
 		EgressRules:  []cloudv1.FirewallRule{rule},
 	}
-}
-
-func int32Ptr(value int32) *int32 {
-	return &value
 }
 
 func int64Ptr(value int64) *int64 {

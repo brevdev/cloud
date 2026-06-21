@@ -10,8 +10,6 @@ func getTestKubeCapabilities() cloudv1.Capabilities {
 	return cloudv1.Capabilities{
 		cloudv1.CapabilityCreateInstance,
 		cloudv1.CapabilityTerminateInstance,
-		cloudv1.CapabilityStopStartInstance,
-		cloudv1.CapabilityRebootInstance,
 		cloudv1.CapabilityTags,
 	}
 }
