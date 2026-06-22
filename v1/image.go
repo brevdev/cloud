@@ -102,10 +102,11 @@ func validateArchitecture(ctx context.Context, sshClient *ssh.Client) (string, e
 		return "", fmt.Errorf("failed to check architecture: %w, stdout: %s, stderr: %s", err, stdout, stderr)
 	}
 	arch := strings.TrimSpace(stdout)
-	if !strings.Contains(arch, "x86_64") {
-		return "", fmt.Errorf("expected x86_64 architecture, got: %s", arch)
+	normalizedArch := GetArchitecture(arch)
+	if normalizedArch == ArchitectureUnknown {
+		return "", fmt.Errorf("unsupported architecture: %s", arch)
 	}
-	return "x86_64", nil
+	return string(normalizedArch), nil
 }
 
 func validateOSVersion(ctx context.Context, sshClient *ssh.Client) (string, error) {

@@ -1,0 +1,14 @@
+[Unit]
+Description=Configure TestKube SSH environment
+DefaultDependencies=no
+After=local-fs.target
+Before=ssh.service
+
+[Service]
+Type=oneshot
+PassEnvironment=USER_NAME PUBLIC_KEY PASSWORD_ACCESS SUDO_ACCESS TESTKUBE_INSTANCE_TYPE TESTKUBE_SCENARIO TESTKUBE_FAIL_BUILD
+ExecStart=/usr/local/sbin/testkube-bootstrap
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

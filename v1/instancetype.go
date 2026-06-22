@@ -42,10 +42,10 @@ const (
 )
 
 func GetArchitecture(architecture string) Architecture {
-	switch strings.ToLower(architecture) {
-	case "x86_64":
+	switch strings.ToLower(strings.TrimSpace(architecture)) {
+	case "x86_64", "amd64":
 		return ArchitectureX86_64
-	case "arm64":
+	case "arm64", "aarch64":
 		return ArchitectureARM64
 	default:
 		return ArchitectureUnknown
