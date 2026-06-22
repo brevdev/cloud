@@ -166,6 +166,9 @@ func makeDebuggableName(name string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	if name == "" {
+		name = "test"
+	}
 	return fmt.Sprintf("%s-%s", name, time.Now().In(pt).Format("2006-01-02-15-04-05")), nil
 }
 
