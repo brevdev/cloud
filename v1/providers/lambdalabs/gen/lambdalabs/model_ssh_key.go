@@ -29,6 +29,8 @@ type SshKey struct {
 	PublicKey string `json:"public_key"`
 	// Private key for the SSH key. Only returned when generating a new key pair.
 	PrivateKey NullableString `json:"private_key,omitempty"`
+	// Workspace ID associated with the SSH key.
+	WorkspaceId *string `json:"workspace_id,omitempty"`
 }
 
 type _SshKey SshKey
@@ -183,6 +185,9 @@ func (o SshKey) ToMap() (map[string]interface{}, error) {
 	toSerialize["public_key"] = o.PublicKey
 	if o.PrivateKey.IsSet() {
 		toSerialize["private_key"] = o.PrivateKey.Get()
+	}
+	if !IsNil(o.WorkspaceId) {
+		toSerialize["workspace_id"] = o.WorkspaceId
 	}
 	return toSerialize, nil
 }
