@@ -9,6 +9,7 @@ import (
 const (
 	testInstanceID      = "test-instance-id"
 	nonexistentInstance = "nonexistent-instance"
+	testPublicKey       = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQ test@example.com"
 )
 
 func setupMockClient() (*LambdaLabsClient, func()) {

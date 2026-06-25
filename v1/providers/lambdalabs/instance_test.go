@@ -2,6 +2,7 @@ package v1
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"testing"
 
@@ -19,14 +20,16 @@ func TestLambdaLabsClient_CreateInstance_Success(t *testing.T) {
 	defer cleanup()
 
 	instanceID := testInstanceID
-	publicKey := "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQ test@example.com"
+	publicKey := testPublicKey
 
+	workspaceID := "ff393b16489f4f02838062b093181016"
 	httpmock.RegisterResponder("POST", "https://cloud.lambda.ai/api/v1/ssh-keys",
 		httpmock.NewJsonResponderOrPanic(200, openapi.AddSSHKey200Response{
 			Data: openapi.SshKey{
-				Id:        "ssh-key-id",
-				Name:      "test-instance-id",
-				PublicKey: publicKey,
+				Id:          "ssh-key-id",
+				Name:        "test-instance-id",
+				PublicKey:   publicKey,
+				WorkspaceId: &workspaceID,
 			},
 		}))
 
@@ -92,7 +95,7 @@ func TestLambdaLabsClient_CreateInstance_SSHKeyError(t *testing.T) {
 	client, cleanup := setupMockClient()
 	defer cleanup()
 
-	publicKey := "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQ test@example.com"
+	publicKey := testPublicKey
 
 	httpmock.RegisterResponder("POST", "https://cloud.lambda.ai/api/v1/ssh-keys",
 		httpmock.NewStringResponder(400, `{"error": {"code": "INVALID_REQUEST", "message": "SSH key already exists"}}`))
@@ -265,4 +268,40 @@ func TestLambdaLabsClient_RebootInstance_Error(t *testing.T) {
 
 	err := client.RebootInstance(context.Background(), v1.CloudProviderInstanceID(instanceID))
 	assert.Error(t, err)
+}
+
+func TestLambdaLabsClient_CreateInstance_SSHKeyResponseWithWorkspaceID(t *testing.T) {
+	client, cleanup := setupMockClient()
+	defer cleanup()
+
+	instanceID := testInstanceID
+	publicKey := testPublicKey
+
+	// Raw JSON simulating Lambda Labs response after their Workspaces launch (June 2026).
+	// DisallowUnknownFields() in UnmarshalJSON would hard-error without WorkspaceId in the struct.
+	httpmock.RegisterResponder("POST", "https://cloud.lambda.ai/api/v1/ssh-keys",
+		httpmock.NewJsonResponderOrPanic(200, json.RawMessage(`{"data":{"id":"ssh-key-id","name":"test-instance-id","public_key":"ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQ test@example.com","workspace_id":"ff393b16489f4f02838062b093181016"}}`)))
+
+	httpmock.RegisterResponder("POST", "https://cloud.lambda.ai/api/v1/instance-operations/launch",
+		httpmock.NewJsonResponderOrPanic(200, openapi.LaunchInstance200Response{
+			Data: openapi.LaunchInstance200ResponseData{
+				InstanceIds: []string{instanceID},
+			},
+		}))
+
+	mockInstance := createMockInstance(instanceID)
+	httpmock.RegisterResponder("GET", fmt.Sprintf("https://cloud.lambda.ai/api/v1/instances/%s", instanceID),
+		httpmock.NewJsonResponderOrPanic(200, openapi.GetInstance200Response{
+			Data: mockInstance,
+		}))
+
+	args := v1.CreateInstanceAttrs{
+		InstanceType: "gpu_1x_a10",
+		Location:     "us-west-1",
+		PublicKey:    publicKey,
+		Name:         "test-instance",
+	}
+
+	_, err := client.CreateInstance(context.Background(), args)
+	require.NoError(t, err, "should not fail when Lambda Labs returns workspace_id in SSH key response")
 }
