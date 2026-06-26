@@ -15,8 +15,8 @@ const (
 	brevDefaultImageResourcePath = "sfc:image:sfcompute:public:ubuntu-24.04.4-cuda-12.8"
 )
 
-func (c *SFCClientV2) GetDefaultCapacityResourcePath() string {
-	return fmt.Sprintf("sfc:capacity:%s:%s:default", c.organization, c.workspace)
+func (c *SFCClientV2) GetDefaultPoolResourcePath() string {
+	return fmt.Sprintf("sfc:pool:%s:%s:default", c.organization, c.workspace)
 }
 
 func (c *SFCClientV2) GetWorkspaceResourcePath() string {
