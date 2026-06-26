@@ -140,23 +140,23 @@ func (c *SFCClientV2) GetInstanceTypes(ctx context.Context, args v1.GetInstanceT
 func (c *SFCClientV2) skuFreeCapacity(ctx context.Context) (map[string]int, error) {
 	capacityID := c.GetDefaultCapacityResourcePath()
 
-	capResp, err := c.client.Capacities.Fetch(ctx, capacityID, nil)
+	capResp, err := c.client.Pools.Fetch(ctx, capacityID, nil)
 	if err != nil {
 		return nil, errors.WrapAndTrace(err)
 	}
-	if capResp.CapacityResponse == nil {
+	if capResp.PoolResponse == nil {
 		return map[string]int{}, nil
 	}
 
 	now := time.Now().Unix()
 	free := make(map[string]int)
-	for skuID, schedule := range capResp.CapacityResponse.AllocationSchedule.ByInstanceSku {
+	for skuID, schedule := range capResp.PoolResponse.AllocationSchedule.ByInstanceSku {
 		free[skuID] = currentScheduleAllocation(schedule, now)
 	}
 
 	resp, err := c.client.Instances.List(ctx, operations.ListInstancesRequest{
 		Workspace: c.GetWorkspaceResourcePath(),
-		Capacity:  &capacityID,
+		Pool:      []string{capacityID},
 	})
 	if err != nil {
 		return nil, errors.WrapAndTrace(err)
