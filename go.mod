@@ -22,7 +22,7 @@ require (
 	github.com/nebius/gosdk v0.0.0-20250826102719-940ad1dfb5de
 	github.com/pkg/errors v0.9.1
 	github.com/sfcompute/nodes-go v0.1.0-alpha.4
-	github.com/sfcompute/sfc-go v0.1.0-preview.2.0.20260626173751-becf3866cc44
+	github.com/sfcompute/sfc-go v0.1.0-preview.3
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/crypto v0.52.0
 	golang.org/x/text v0.37.0
