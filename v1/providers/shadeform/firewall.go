@@ -40,6 +40,9 @@ const (
 	// Allow inbound traffic on the loopback interface.
 	ipTablesAllowDockerUserInpboundLoopback = "iptables -A DOCKER-USER -i lo -j ACCEPT"
 
+	// Allow inbound traffic on the netbird interface.
+	ipTablesAllowDockerUserInpboundNetbird = "iptables -A DOCKER-USER -i wt0 -j ACCEPT"
+
 	// Allow external inbound TCP traffic to any container port 22 (SSH)
 	ipTablesAllowDockerUserContainerSSH = "iptables -A DOCKER-USER -p tcp --dport 22 -j ACCEPT"
 
@@ -99,6 +102,7 @@ func (c *ShadeformClient) getIPTablesCommands() []string {
 		ipTablesAllowDockerUserDockerToDocker2,
 		ipTablesAllowDockerUserDockerToDocker3,
 		ipTablesAllowDockerUserInpboundLoopback,
+		ipTablesAllowDockerUserInpboundNetbird,
 		ipTablesAllowDockerUserContainerSSH,
 		ipTablesDropDockerUserInbound,
 		ipTablesReturnDockerUser, // Expected by Docker

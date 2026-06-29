@@ -11,7 +11,8 @@ iptables -A DOCKER-USER -i docker0 -o docker0 -j ACCEPT
 iptables -A DOCKER-USER -i br+     -o br+     -j ACCEPT
 iptables -A DOCKER-USER -i cni+    -o cni+    -j ACCEPT
 iptables -A DOCKER-USER -i cali+   -o cali+   -j ACCEPT
-iptables -A DOCKER-USER -i lo -j ACCEPT
+iptables -A DOCKER-USER -i lo                 -j ACCEPT
+iptables -A DOCKER-USER -i wt0                -j ACCEPT
 iptables -A DOCKER-USER -j DROP
 iptables -A DOCKER-USER -j RETURN
 
