@@ -138,25 +138,25 @@ func (c *SFCClientV2) GetInstanceTypes(ctx context.Context, args v1.GetInstanceT
 // per-SKU allocation from the capacity schedule and the per-SKU consumption from the instance
 // list, issuing exactly two API calls.
 func (c *SFCClientV2) skuFreeCapacity(ctx context.Context) (map[string]int, error) {
-	capacityID := c.GetDefaultCapacityResourcePath()
+	poolID := c.GetDefaultPoolResourcePath()
 
-	capResp, err := c.client.Capacities.Fetch(ctx, capacityID, nil)
+	poolResp, err := c.client.Pools.Fetch(ctx, poolID, nil)
 	if err != nil {
 		return nil, errors.WrapAndTrace(err)
 	}
-	if capResp.CapacityResponse == nil {
+	if poolResp.PoolResponse == nil {
 		return map[string]int{}, nil
 	}
 
 	now := time.Now().Unix()
 	free := make(map[string]int)
-	for skuID, schedule := range capResp.CapacityResponse.AllocationSchedule.ByInstanceSku {
+	for skuID, schedule := range poolResp.PoolResponse.AllocationSchedule.ByInstanceSku {
 		free[skuID] = currentScheduleAllocation(schedule, now)
 	}
 
 	resp, err := c.client.Instances.List(ctx, operations.ListInstancesRequest{
 		Workspace: c.GetWorkspaceResourcePath(),
-		Capacity:  &capacityID,
+		Pool:      []string{poolID},
 	})
 	if err != nil {
 		return nil, errors.WrapAndTrace(err)
@@ -233,7 +233,7 @@ func (c *SFCClientV2) selectAvailableSku(ctx context.Context) (string, error) {
 			return skuID, nil
 		}
 	}
-	return "", fmt.Errorf("no instance SKU with available capacity in %s", c.GetDefaultCapacityResourcePath())
+	return "", fmt.Errorf("no instance SKU with available capacity in %s", c.GetDefaultPoolResourcePath())
 }
 
 func (c *SFCClientV2) GetLocations(_ context.Context, _ v1.GetLocationsArgs) ([]v1.Location, error) {

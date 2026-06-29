@@ -57,7 +57,7 @@ func (c *SFCClientV2) CreateInstance(ctx context.Context, attrs v1.CreateInstanc
 
 	cloudInit := sshKeyCloudInit(attrs.PublicKey)
 	req := components.CreateInstanceRequest{
-		Capacity:          c.GetDefaultCapacityResourcePath(),
+		Pool:              c.GetDefaultPoolResourcePath(),
 		Image:             c.GetDefaultImageResourcePath(),
 		InstanceSku:       sku,
 		CloudInitUserData: &cloudInit,
@@ -130,10 +130,10 @@ func (c *SFCClientV2) ListInstances(ctx context.Context, args v1.ListInstancesAr
 		v1.LogField("location", c.location),
 	)
 
-	capacityID := c.GetDefaultCapacityResourcePath()
+	poolID := c.GetDefaultPoolResourcePath()
 	resp, err := c.client.Instances.List(ctx, operations.ListInstancesRequest{
 		Workspace: c.GetWorkspaceResourcePath(),
-		Capacity:  &capacityID,
+		Pool:      []string{poolID},
 	})
 	if err != nil {
 		return nil, errors.WrapAndTrace(err)
