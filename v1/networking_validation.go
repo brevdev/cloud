@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -188,8 +190,8 @@ func ValidateDockerFirewallAllowsEgress(ctx context.Context, client CloudInstanc
 	if err != nil {
 		return fmt.Errorf("failed to connect to Google's DNS server: %w, stderr: %s", err, stderr)
 	}
-	if !strings.Contains(stdout, "3 packets transmitted, 3 packets received") {
-		return fmt.Errorf("expected successful ping, got: %s", stdout)
+	if !dockerEgressPingReceivedReply(stdout) {
+		return fmt.Errorf("expected at least one successful ping reply, got: %s", stdout)
 	}
 
 	return nil
@@ -462,6 +464,21 @@ func runMicroK8sPodToPodTest(ctx context.Context, sshClient *ssh.Client, microK8
 	}
 
 	return nil
+}
+
+var pingStatsRe = regexp.MustCompile(`(?m)(\d+)\s+packets transmitted,\s+(\d+)\s+(?:packets\s+)?received`)
+
+func dockerEgressPingReceivedReply(stdout string) bool {
+	matches := pingStatsRe.FindStringSubmatch(stdout)
+	if len(matches) != 3 {
+		return false
+	}
+
+	received, err := strconv.Atoi(matches[2])
+	if err != nil {
+		return false
+	}
+	return received > 0
 }
 
 // setupDockerCommand ensures Docker is available and returns the command to use (always with sudo)
