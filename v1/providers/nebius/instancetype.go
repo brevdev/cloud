@@ -157,9 +157,10 @@ func (c *NebiusClient) getInstanceTypesForLocation(ctx context.Context, platform
 			// Capacity Advisor stock (when present) and remaining tenant quota.
 			hasQuota := c.checkPresetQuotaAvailability(preset.Resources, location.Name, platform.Metadata.Name, quotaMap)
 
+			capacityKey := capacityAdviceKey(location.Name, platform.Metadata.Name, preset.Name)
 			isAvailable := c.resolvePresetAvailability(
 				ctx, isCPUOnly, hasQuota,
-				location.Name, platform.Metadata.Name, preset.Name,
+				capacityKey,
 				capacityAdviceMap,
 			)
 
@@ -268,14 +269,13 @@ func (c *NebiusClient) resolvePresetAvailability(
 	ctx context.Context,
 	isCPUOnly bool,
 	hasQuota bool,
-	locationName, platformName, presetName string,
+	capacityKey string,
 	capacityAdviceMap map[string]uint32,
 ) bool {
 	if isCPUOnly || capacityAdviceMap == nil {
 		return hasQuota
 	}
 
-	capacityKey := capacityAdviceKey(locationName, platformName, presetName)
 	available, ok := capacityAdviceMap[capacityKey]
 	if !ok {
 		// ResourceAdvice may not include every preset/region; missing key is unknown, not unavailable.
@@ -288,7 +288,7 @@ func (c *NebiusClient) resolvePresetAvailability(
 	return available > 0 && hasQuota
 }
 
-func resourceAdviceEntry(item *capacityv1.ResourceAdvice) (key string, available uint32, ok bool) {
+func resourceAdviceEntry(item *capacityv1.ResourceAdvice) (string, uint32, bool) {
 	spec := item.GetSpec()
 	if spec == nil {
 		return "", 0, false
@@ -305,30 +305,14 @@ func resourceAdviceEntry(item *capacityv1.ResourceAdvice) (key string, available
 	}
 
 	onDemand := item.GetStatus().GetOnDemand()
-	available = onDemand.GetAvailable()
+	available := onDemand.GetAvailable()
 	if onDemand.GetDataState() == capacityv1.ResourceAdviceStatus_Availability_DATA_STATE_UNKNOWN ||
 		onDemand.GetAvailabilityLevel() == capacityv1.ResourceAdviceStatus_Availability_AVAILABILITY_LEVEL_LIMIT_REACHED {
 		available = 0
 	}
 
-	key = capacityAdviceKey(spec.GetRegion(), computeInstance.GetPlatform(), preset.GetName())
+	key := capacityAdviceKey(spec.GetRegion(), computeInstance.GetPlatform(), preset.GetName())
 	return key, available, true
-}
-
-func buildResourceAdviceMapFromItems(items []*capacityv1.ResourceAdvice) map[string]uint32 {
-	adviceMap := make(map[string]uint32)
-
-	for _, item := range items {
-		key, available, ok := resourceAdviceEntry(item)
-		if !ok {
-			continue
-		}
-		if existing, exists := adviceMap[key]; !exists || available > existing {
-			adviceMap[key] = available
-		}
-	}
-
-	return adviceMap
 }
 
 func (c *NebiusClient) getResourceAdviceMap(ctx context.Context) (map[string]uint32, error) {

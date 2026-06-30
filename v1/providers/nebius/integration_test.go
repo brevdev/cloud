@@ -840,14 +840,28 @@ func TestResolvePresetAvailability(t *testing.T) {
 				ctx,
 				tt.isCPUOnly,
 				tt.hasQuota,
-				tt.locationName,
-				tt.platformName,
-				tt.presetName,
+				capacityAdviceKey(tt.locationName, tt.platformName, tt.presetName),
 				tt.capacityAdviceMap,
 			)
 			assert.Equal(t, tt.want, got)
 		})
 	}
+}
+
+func buildResourceAdviceMapFromItems(items []*capacityv1.ResourceAdvice) map[string]uint32 {
+	adviceMap := make(map[string]uint32)
+
+	for _, item := range items {
+		key, available, ok := resourceAdviceEntry(item)
+		if !ok {
+			continue
+		}
+		if existing, exists := adviceMap[key]; !exists || available > existing {
+			adviceMap[key] = available
+		}
+	}
+
+	return adviceMap
 }
 
 func TestBuildResourceAdviceMapFromItems(t *testing.T) {
