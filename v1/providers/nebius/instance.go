@@ -9,17 +9,21 @@ import (
 	"time"
 
 	"github.com/alecthomas/units"
+	"github.com/brevdev/cloud/internal/collections"
 	"github.com/brevdev/cloud/internal/errors"
 	v1 "github.com/brevdev/cloud/v1"
+	"github.com/cenkalti/backoff/v4"
 	common "github.com/nebius/gosdk/proto/nebius/common/v1"
 	compute "github.com/nebius/gosdk/proto/nebius/compute/v1"
 	vpc "github.com/nebius/gosdk/proto/nebius/vpc/v1"
 )
 
 const (
-	platformTypeCPU      = "cpu"
-	nebiusGPUImageFamily = "ubuntu24.04-cuda13.0"
-	nebiusCPUImageFamily = "ubuntu24.04-driverless"
+	platformTypeCPU                           = "cpu"
+	nebiusGPUImageFamily                      = "ubuntu24.04-cuda13.0"
+	nebiusCPUImageFamily                      = "ubuntu24.04-driverless"
+	nebiusListInstancesBackoffInitialInterval = 500 * time.Millisecond
+	nebiusListInstancesBackoffMaxElapsedTime  = 30 * time.Second
 )
 
 //go:embed scripts/brev-apply-docker-firewall.sh
@@ -719,16 +723,11 @@ func (c *NebiusClient) ListInstances(ctx context.Context, args v1.ListInstancesA
 	for projectID := range projectToRegion {
 		var pageToken string
 		for {
-			response, err := c.sdk.Services().Compute().V1().Instance().List(ctx, &compute.ListInstancesRequest{
-				ParentId:  projectID,
-				PageSize:  100,
-				PageToken: pageToken,
-			})
+			response, err := c.listInstancesPageWithRetry(ctx, projectID, pageToken)
 			if err != nil {
 				c.logger.Error(ctx, fmt.Errorf("failed to list instances in project %s: %w", projectID, err),
 					v1.LogField("projectID", projectID))
-				// Continue to next project instead of failing completely
-				break
+				return nil, fmt.Errorf("failed to list instances in project %s: %w", projectID, err)
 			}
 
 			// If the response is nil, we've reached the end of the list
@@ -844,6 +843,25 @@ func (c *NebiusClient) ListInstances(ctx context.Context, args v1.ListInstancesA
 		v1.LogField("afterFiltering", len(instances)))
 
 	return instances, nil
+}
+
+func (c *NebiusClient) listInstancesPageWithRetry(ctx context.Context, projectID, pageToken string) (*compute.ListInstancesResponse, error) {
+	instanceListBackoff := backoff.NewExponentialBackOff()
+	instanceListBackoff.InitialInterval = nebiusListInstancesBackoffInitialInterval
+	instanceListBackoff.MaxElapsedTime = nebiusListInstancesBackoffMaxElapsedTime
+
+	response, err := collections.RetryWithDataAndAttemptCount(func() (*compute.ListInstancesResponse, error) {
+		return c.sdk.Services().Compute().V1().Instance().List(ctx, &compute.ListInstancesRequest{
+			ParentId:  projectID,
+			PageSize:  100,
+			PageToken: pageToken,
+		})
+	}, backoff.WithContext(instanceListBackoff, ctx))
+	if err != nil {
+		return nil, errors.WrapAndTrace(err)
+	}
+
+	return response, nil
 }
 
 // matchesTagFilters checks if the instance tags match the required tag filters.
