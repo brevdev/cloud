@@ -119,7 +119,7 @@ func findProjectForRegion(ctx context.Context, sdk *gosdk.SDK, tenantID, region 
 	pageSize := int64(1000)
 	projectsResp, err := sdk.Services().IAM().V1().Project().List(ctx, &nebiusiamv1.ListProjectsRequest{
 		ParentId: tenantID,
-		PageSize: &pageSize,
+		PageSize: pageSize,
 	})
 	if err != nil {
 		return "", errors.WrapAndTrace(err)
@@ -183,7 +183,7 @@ func (c *NebiusClient) discoverAllProjects(ctx context.Context) ([]string, error
 	pageSize := int64(1000)
 	projectsResp, err := c.sdk.Services().IAM().V1().Project().List(ctx, &nebiusiamv1.ListProjectsRequest{
 		ParentId: c.tenantID,
-		PageSize: &pageSize,
+		PageSize: pageSize,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to list projects: %w", err)
@@ -209,7 +209,7 @@ func (c *NebiusClient) discoverAllProjectsWithRegions(ctx context.Context) (map[
 	pageSize := int64(1000)
 	projectsResp, err := c.sdk.Services().IAM().V1().Project().List(ctx, &nebiusiamv1.ListProjectsRequest{
 		ParentId: c.tenantID,
-		PageSize: &pageSize,
+		PageSize: pageSize,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to list projects: %w", err)

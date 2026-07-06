@@ -11,6 +11,7 @@ import (
 	"github.com/brevdev/cloud/internal/errors"
 	v1 "github.com/brevdev/cloud/v1"
 	billing "github.com/nebius/gosdk/proto/nebius/billing/v1alpha1"
+	capacityv1 "github.com/nebius/gosdk/proto/nebius/capacity/v1"
 	common "github.com/nebius/gosdk/proto/nebius/common/v1"
 	compute "github.com/nebius/gosdk/proto/nebius/compute/v1"
 	quotas "github.com/nebius/gosdk/proto/nebius/quotas/v1"
@@ -65,11 +66,18 @@ func (c *NebiusClient) GetInstanceTypes(ctx context.Context, args v1.GetInstance
 		quotaMap = make(map[string]*quotas.QuotaAllowance)
 	}
 
+	capacityAdviceMap, capacityErr := c.getResourceAdviceMap(ctx)
+	if capacityErr != nil {
+		c.logger.Warn(ctx, "failed to fetch capacity advisor data, falling back to quota-only availability",
+			v1.LogField("error", capacityErr.Error()))
+		capacityAdviceMap = nil
+	}
+
 	var instanceTypes []v1.InstanceType
 
 	// For each location, get instance types with availability/quota info
 	for _, location := range locations {
-		locationInstanceTypes, err := c.getInstanceTypesForLocation(ctx, platformsResp, location, args, quotaMap)
+		locationInstanceTypes, err := c.getInstanceTypesForLocation(ctx, platformsResp, location, args, quotaMap, capacityAdviceMap)
 		if err != nil {
 			continue // Skip failed locations
 		}
@@ -108,8 +116,8 @@ func (c *NebiusClient) GetInstanceTypeQuotas(_ context.Context, _ v1.GetInstance
 
 // getInstanceTypesForLocation gets instance types for a specific location with quota/availability checking
 //
-//nolint:gocognit,unparam // Complex function iterating platforms, presets, and quota checks
-func (c *NebiusClient) getInstanceTypesForLocation(ctx context.Context, platformsResp *compute.ListPlatformsResponse, location v1.Location, _ v1.GetInstanceTypeArgs, quotaMap map[string]*quotas.QuotaAllowance) ([]v1.InstanceType, error) {
+//nolint:unparam // error return kept for consistency with other provider helpers
+func (c *NebiusClient) getInstanceTypesForLocation(ctx context.Context, platformsResp *compute.ListPlatformsResponse, location v1.Location, _ v1.GetInstanceTypeArgs, quotaMap map[string]*quotas.QuotaAllowance, capacityAdviceMap map[string]uint32) ([]v1.InstanceType, error) {
 	var instanceTypes []v1.InstanceType
 
 	for _, platform := range platformsResp.GetItems() {
@@ -145,13 +153,16 @@ func (c *NebiusClient) getInstanceTypesForLocation(ctx context.Context, platform
 			// Determine GPU type and details from platform name
 			gpuType, gpuName := extractGPUTypeAndName(platform.Metadata.Name)
 
-			// Check quota/availability for this instance type in this location
-			isAvailable := c.checkPresetQuotaAvailability(preset.Resources, location.Name, platform.Metadata.Name, quotaMap)
+			// Check quota for this instance type in this location. GPU availability requires both
+			// Capacity Advisor stock (when present) and remaining tenant quota.
+			hasQuota := c.checkPresetQuotaAvailability(preset.Resources, location.Name, platform.Metadata.Name, quotaMap)
 
-			// Skip instance types with no quota at all
-			if !isAvailable {
-				continue
-			}
+			capacityKey := capacityAdviceKey(location.Name, platform.Metadata.Name, preset.Name)
+			isAvailable := c.resolvePresetAvailability(
+				ctx, isCPUOnly, hasQuota,
+				capacityKey,
+				capacityAdviceMap,
+			)
 
 			// Increment CPU preset counter if this is a CPU platform
 			if isCPUOnly {
@@ -248,6 +259,94 @@ func (c *NebiusClient) getQuotaMap(ctx context.Context) (map[string]*quotas.Quot
 	}
 
 	return quotaMap, nil
+}
+
+func capacityAdviceKey(region, platform, preset string) string {
+	return fmt.Sprintf("%s:%s:%s", region, platform, preset)
+}
+
+func (c *NebiusClient) resolvePresetAvailability(
+	ctx context.Context,
+	isCPUOnly bool,
+	hasQuota bool,
+	capacityKey string,
+	capacityAdviceMap map[string]uint32,
+) bool {
+	if isCPUOnly || capacityAdviceMap == nil {
+		return hasQuota
+	}
+
+	available, ok := capacityAdviceMap[capacityKey]
+	if !ok {
+		// ResourceAdvice may not include every preset/region; missing key is unknown, not unavailable.
+		c.logger.Debug(ctx, "capacity advice key not found, falling back to quota availability",
+			v1.LogField("capacityKey", capacityKey),
+			v1.LogField("hasQuota", hasQuota))
+		return hasQuota
+	}
+
+	return available > 0 && hasQuota
+}
+
+func resourceAdviceEntry(item *capacityv1.ResourceAdvice) (string, uint32, bool) {
+	spec := item.GetSpec()
+	if spec == nil {
+		return "", 0, false
+	}
+
+	computeInstance := spec.GetComputeInstance()
+	if computeInstance == nil {
+		return "", 0, false
+	}
+
+	preset := computeInstance.GetPreset()
+	if preset == nil {
+		return "", 0, false
+	}
+
+	onDemand := item.GetStatus().GetOnDemand()
+	available := onDemand.GetAvailable()
+	if onDemand.GetDataState() == capacityv1.ResourceAdviceStatus_Availability_DATA_STATE_UNKNOWN ||
+		onDemand.GetAvailabilityLevel() == capacityv1.ResourceAdviceStatus_Availability_AVAILABILITY_LEVEL_LIMIT_REACHED {
+		available = 0
+	}
+
+	key := capacityAdviceKey(spec.GetRegion(), computeInstance.GetPlatform(), preset.GetName())
+	return key, available, true
+}
+
+func (c *NebiusClient) getResourceAdviceMap(ctx context.Context) (map[string]uint32, error) {
+	adviceMap := make(map[string]uint32)
+
+	for item, err := range c.sdk.Services().Capacity().V1().ResourceAdvice().Filter(ctx, &capacityv1.ListResourceAdviceRequest{
+		ParentId: c.tenantID,
+	}) {
+		if err != nil {
+			return nil, errors.WrapAndTrace(err)
+		}
+
+		key, available, ok := resourceAdviceEntry(item)
+		if !ok {
+			continue
+		}
+
+		spec := item.GetSpec()
+		computeInstance := spec.GetComputeInstance()
+		preset := computeInstance.GetPreset()
+		c.logger.Debug(ctx, "capacity advice map entry",
+			v1.LogField("capacityKey", key),
+			v1.LogField("available", available),
+			v1.LogField("region", spec.GetRegion()),
+			v1.LogField("platform", computeInstance.GetPlatform()),
+			v1.LogField("preset", preset.GetName()))
+		if existing, exists := adviceMap[key]; !exists || available > existing {
+			adviceMap[key] = available
+		}
+	}
+
+	c.logger.Debug(ctx, "built capacity advice map", v1.LogField("entryCount", len(adviceMap)))
+
+	return adviceMap, nil
 }
 
 // checkPresetQuotaAvailability checks if a preset has available quota in the specified region
