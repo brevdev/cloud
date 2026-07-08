@@ -73,6 +73,12 @@ func TestInstanceLifecycle(t *testing.T) {
 	spec, ok := getInstanceTypeSpec(InstanceTypeOKCPU)
 	require.True(t, ok)
 	require.Equal(t, spec.imageID, instance.ImageID)
+	service, err := client.k8sClient.CoreV1().Services(client.namespace).Get(ctx, string(instance.CloudID), metav1.GetOptions{})
+	require.NoError(t, err)
+	require.Equal(t, awsLoadBalancerConnectionIdleTimeout, service.Annotations[annotationAWSLoadBalancerConnectionIdleTimeout])
+	pod, err := client.k8sClient.CoreV1().Pods(client.namespace).Get(ctx, string(instance.CloudID), metav1.GetOptions{})
+	require.NoError(t, err)
+	require.NotContains(t, pod.Annotations, annotationAWSLoadBalancerConnectionIdleTimeout)
 
 	listed, err := client.ListInstances(ctx, cloudv1.ListInstancesArgs{
 		TagFilters: map[string][]string{
