@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"regexp"
 	"slices"
 	"strings"
@@ -29,16 +30,18 @@ const (
 	labelNameValue      = "test-kubernetes"
 	labelManagedByValue = "brev-cloud-sdk"
 
-	annotationRefID          = "testkube.brev.dev/ref-id"
-	annotationCloudCredRefID = "testkube.brev.dev/cloud-cred-ref-id" //nolint:gosec // this is a valid annotation
-	annotationName           = "testkube.brev.dev/name"
-	annotationLocation       = "testkube.brev.dev/location"
-	annotationSubLocation    = "testkube.brev.dev/sub-location"
-	annotationInstanceType   = "testkube.brev.dev/instance-type"
-	annotationImageID        = "testkube.brev.dev/image-id"
-	annotationCreatedAt      = "testkube.brev.dev/created-at"
-	annotationScenario       = "testkube.brev.dev/scenario"
-	annotationTagsJSON       = "testkube.brev.dev/tags-json"
+	annotationRefID                                = "testkube.brev.dev/ref-id"
+	annotationCloudCredRefID                       = "testkube.brev.dev/cloud-cred-ref-id" //nolint:gosec // this is a valid annotation
+	annotationName                                 = "testkube.brev.dev/name"
+	annotationLocation                             = "testkube.brev.dev/location"
+	annotationSubLocation                          = "testkube.brev.dev/sub-location"
+	annotationInstanceType                         = "testkube.brev.dev/instance-type"
+	annotationImageID                              = "testkube.brev.dev/image-id"
+	annotationCreatedAt                            = "testkube.brev.dev/created-at"
+	annotationScenario                             = "testkube.brev.dev/scenario"
+	annotationTagsJSON                             = "testkube.brev.dev/tags-json"
+	annotationAWSLoadBalancerConnectionIdleTimeout = "service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout"
+	awsLoadBalancerConnectionIdleTimeout           = "1800" // 30 minutes
 
 	envInstanceType = "TESTKUBE_INSTANCE_TYPE"
 	envScenario     = "TESTKUBE_SCENARIO"
@@ -79,6 +82,15 @@ func (c *TestKubeClient) createInstanceAsK8sResources(ctx context.Context, attrs
 	location := c.resourceLocation(attrs)
 	annotations := c.resourceAnnotations(cloudID, attrs, instanceTypeSpec)
 
+	var serviceAnnotations map[string]string
+	if instanceTypeSpec.serviceType == corev1.ServiceTypeLoadBalancer {
+		serviceAnnotations = maps.Clone(annotations)
+		// Setup scripts can run without producing SSH traffic. Keep the load balancer from closing an otherwise healthy, idle SSH connection.
+		serviceAnnotations[annotationAWSLoadBalancerConnectionIdleTimeout] = awsLoadBalancerConnectionIdleTimeout
+	} else {
+		serviceAnnotations = annotations
+	}
+
 	// Create the service.
 	k8sService, err := c.k8sClient.
 		CoreV1().
@@ -88,7 +100,7 @@ func (c *TestKubeClient) createInstanceAsK8sResources(ctx context.Context, attrs
 				Name:        string(cloudID),
 				Namespace:   c.namespace,
 				Labels:      objectLabels(string(cloudID), location),
-				Annotations: annotations,
+				Annotations: serviceAnnotations,
 			},
 			Spec: corev1.ServiceSpec{
 				Type:     instanceTypeSpec.serviceType,
