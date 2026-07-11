@@ -381,7 +381,8 @@ func (c *NebiusClient) convertNebiusInstanceToV1(ctx context.Context, instance *
 		PublicDNS: publicIP, // Nebius doesn't provide separate DNS, use public IP
 		Hostname:  hostname,
 		SSHUser:   sshUser,
-		SSHPort:   22, // Standard SSH port
+		SSHPort:   22,   // Standard SSH port
+		Stoppable: true, // All Nebius instances support stop/start operations
 	}
 	inst.InstanceTypeID = v1.MakeGenericInstanceTypeIDFromInstance(*inst)
 	return inst, nil
