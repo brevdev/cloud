@@ -61,19 +61,12 @@ var h100InstanceTypeMetadata = func() sfcInstanceTypeMetadata {
 }()
 
 func buildInstanceType(m sfcInstanceTypeMetadata, isAvailable bool) v1.InstanceType {
-	ramInt64, _ := m.memoryBytes.ByteCountInUnitInt64(v1.Gibibyte)
-	ram := units.Base2Bytes(ramInt64 * int64(units.Gibibyte))
-
-	vramInt64, _ := m.gpuVRAM.ByteCountInUnitInt64(v1.Gibibyte)
-	vram := units.Base2Bytes(vramInt64 * int64(units.Gibibyte))
-
 	diskInt64, _ := m.diskBytes.ByteCountInUnitInt64(v1.Gibibyte)
 	diskSize := units.Base2Bytes(diskInt64 * int64(units.Gibibyte))
 
 	it := v1.InstanceType{
 		IsAvailable:         isAvailable,
 		Type:                h100InstanceType,
-		Memory:              ram,
 		MemoryBytes:         m.memoryBytes,
 		VCPU:                m.vcpu,
 		Location:            sfcLocation,
@@ -88,7 +81,6 @@ func buildInstanceType(m sfcInstanceTypeMetadata, isAvailable bool) v1.InstanceT
 			Type:           "H100",
 			Manufacturer:   m.gpuManufacturer,
 			Name:           "H100",
-			Memory:         vram,
 			MemoryBytes:    m.gpuVRAM,
 			NetworkDetails: formFactorSXM5,
 		}},
