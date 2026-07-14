@@ -37,7 +37,7 @@ type sfcInstanceTypeMetadata struct {
 }
 
 var h100InstanceTypeMetadata = func() sfcInstanceTypeMetadata {
-	price, err := currency.NewAmount("22.43", "USD")
+	price, err := currency.NewAmount("23.37", "USD")
 	if err != nil {
 		panic(err)
 	}
