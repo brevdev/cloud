@@ -104,7 +104,7 @@ func (b Bytes) ByteCountInUnitInt32(unit BytesUnit) (int32, error) {
 	if byteCountInt64 > math.MaxInt32 {
 		return 0, errors.WrapAndTrace(errors.Join(ErrBytesNotAnInt32, fmt.Errorf("byte count %v is greater than %d", byteCountInt64, math.MaxInt32)))
 	}
-	return int32(byteCountInt64), nil
+	return int32(byteCountInt64), nil //nolint:gosec // checked above
 }
 
 // String returns the string representation of the Bytes

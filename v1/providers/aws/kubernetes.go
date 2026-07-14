@@ -485,8 +485,8 @@ func (c *AWSClient) CreateNodeGroup(ctx context.Context, args v1.CreateNodeGroup
 		NodegroupName: aws.String(args.Name),
 		NodeRole:      aws.String(nodeRoleARN),
 		ScalingConfig: &ekstypes.NodegroupScalingConfig{
-			MinSize: aws.Int32(int32(args.MinNodeCount)),
-			MaxSize: aws.Int32(int32(args.MaxNodeCount)),
+			MinSize: aws.Int32(int32(args.MinNodeCount)), //nolint:gosec // checked in input validation
+			MaxSize: aws.Int32(int32(args.MaxNodeCount)), //nolint:gosec // checked in input validation
 		},
 		DiskSize: aws.Int32(diskSizeGiB),
 		Subnets:  subnetIDs,
@@ -649,9 +649,9 @@ func (c *AWSClient) ModifyNodeGroup(ctx context.Context, args v1.ModifyNodeGroup
 		ClusterName:   aws.String(cluster.GetName()),
 		NodegroupName: aws.String(nodeGroup.GetName()),
 		ScalingConfig: &ekstypes.NodegroupScalingConfig{
-			DesiredSize: aws.Int32(int32(args.MinNodeCount)),
-			MinSize:     aws.Int32(int32(args.MinNodeCount)),
-			MaxSize:     aws.Int32(int32(args.MaxNodeCount)),
+			DesiredSize: aws.Int32(int32(args.MinNodeCount)), //nolint:gosec // checked in input validation
+			MinSize:     aws.Int32(int32(args.MinNodeCount)), //nolint:gosec // checked in input validation
+			MaxSize:     aws.Int32(int32(args.MaxNodeCount)), //nolint:gosec // checked in input validation
 		},
 	})
 	if err != nil {

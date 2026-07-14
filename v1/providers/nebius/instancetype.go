@@ -372,6 +372,7 @@ func (c *NebiusClient) checkPresetQuotaAvailability(resources *compute.PresetRes
 			return false
 		}
 
+		//nolint:gosec // Safe conversion: quota limits are controlled by cloud provider
 		available := int64(*quota.Spec.Limit) - int64(quota.Status.Usage)
 		if available < int64(resources.GpuCount) {
 			return false // Not enough GPU quota
@@ -385,6 +386,7 @@ func (c *NebiusClient) checkPresetQuotaAvailability(resources *compute.PresetRes
 	cpuQuotaKey := fmt.Sprintf("compute.instance.non-gpu.vcpu:%s", region)
 	if cpuQuota, exists := quotaMap[cpuQuotaKey]; exists {
 		if cpuQuota.Status != nil && cpuQuota.Spec != nil && cpuQuota.Spec.Limit != nil {
+			//nolint:gosec // Safe conversion: quota limits are controlled by cloud provider
 			cpuAvailable := int64(*cpuQuota.Spec.Limit) - int64(cpuQuota.Status.Usage)
 			if cpuAvailable < int64(resources.VcpuCount) {
 				return false
@@ -397,6 +399,7 @@ func (c *NebiusClient) checkPresetQuotaAvailability(resources *compute.PresetRes
 	if memQuota, exists := quotaMap[memoryQuotaKey]; exists {
 		if memQuota.Status != nil && memQuota.Spec != nil && memQuota.Spec.Limit != nil {
 			memoryRequired := int64(resources.MemoryGibibytes) * 1024 * 1024 * 1024 // Convert GiB to bytes
+			//nolint:gosec // Safe conversion: quota limits are controlled by cloud provider
 			memAvailable := int64(*memQuota.Spec.Limit) - int64(memQuota.Status.Usage)
 			if memAvailable < memoryRequired {
 				return false
