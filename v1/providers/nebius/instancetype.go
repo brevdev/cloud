@@ -186,17 +186,18 @@ func (c *NebiusClient) getInstanceTypesForLocation(ctx context.Context, platform
 
 			// Convert Nebius platform preset to our InstanceType format
 			instanceType := v1.InstanceType{
-				Location:           location.Name,
-				Type:               instanceTypeID, // Same as ID - both use dot-separated format
-				VCPU:               preset.Resources.VcpuCount,
-				Memory:             units.Base2Bytes(preset.Resources.MemoryGibibytes) * units.Gibibyte,
-				MemoryBytes:        v1.NewBytes(v1.BytesValue(preset.Resources.MemoryGibibytes), v1.Gibibyte), // Memory in GiB
-				NetworkPerformance: "standard",                                                                // Default network performance
-				IsAvailable:        isAvailable,
-				Stoppable:          true, // All Nebius instances support stop/start operations
-				ElasticRootVolume:  true, // Nebius supports dynamic disk allocation
-				SupportedStorage:   c.buildSupportedStorage(),
-				Provider:           CloudProviderID, // Nebius is the provider
+				Location:               location.Name,
+				Type:                   instanceTypeID, // Same as ID - both use dot-separated format
+				VCPU:                   preset.Resources.VcpuCount,
+				Memory:                 units.Base2Bytes(preset.Resources.MemoryGibibytes) * units.Gibibyte,
+				MemoryBytes:            v1.NewBytes(v1.BytesValue(preset.Resources.MemoryGibibytes), v1.Gibibyte), // Memory in GiB
+				NetworkPerformance:     "standard",                                                                // Default network performance
+				IsAvailable:            isAvailable,
+				Stoppable:              true, // All Nebius instances support stop/start operations
+				ElasticRootVolume:      true, // Nebius supports dynamic disk allocation
+				SupportedStorage:       c.buildSupportedStorage(),
+				SupportedArchitectures: []v1.Architecture{nebiusPlatformArchitecture(platform.Metadata.Name)},
+				Provider:               CloudProviderID, // Nebius is the provider
 			}
 
 			// Add GPU information if available
@@ -439,6 +440,27 @@ func (c *NebiusClient) getGPUQuotaName(platformName string) string {
 	return ""
 }
 
+var nebiusPlatformArchitectures = map[string]v1.Architecture{
+	"gpu-b300-sxm":   v1.ArchitectureX86_64,
+	"gpu-b200-sxm":   v1.ArchitectureX86_64,
+	"gpu-b200-sxm-a": v1.ArchitectureX86_64,
+	"gpu-h200-sxm":   v1.ArchitectureX86_64,
+	"gpu-h100-sxm":   v1.ArchitectureX86_64,
+	"gpu-rtx6000":    v1.ArchitectureX86_64,
+	"gpu-l40s-a":     v1.ArchitectureX86_64,
+	"gpu-l40s-d":     v1.ArchitectureX86_64,
+	"cpu-d3":         v1.ArchitectureX86_64,
+	"cpu-e2":         v1.ArchitectureX86_64,
+}
+
+func nebiusPlatformArchitecture(platformName string) v1.Architecture {
+	architecture, ok := nebiusPlatformArchitectures[strings.ToLower(strings.TrimSpace(platformName))]
+	if !ok {
+		return v1.ArchitectureUnknown
+	}
+	return architecture
+}
+
 // isPlatformSupported checks if a platform should be included in instance types
 func (c *NebiusClient) isPlatformSupported(platformName string) bool {
 	platformLower := strings.ToLower(platformName)
@@ -513,28 +535,24 @@ func (c *NebiusClient) applyInstanceTypeFilters(instanceTypes []v1.InstanceType,
 			}
 		}
 
-		// Apply architecture filter
-		if args.ArchitectureFilter != nil {
-			arch := determineInstanceTypeArchitecture(instanceType)
-			// Check if architecture matches the filter requirements
-			if len(args.ArchitectureFilter.IncludeArchitectures) > 0 {
-				found := false
-				for _, allowedArch := range args.ArchitectureFilter.IncludeArchitectures {
-					if arch == string(allowedArch) {
-						found = true
-						break
-					}
-				}
-				if !found {
-					continue
-				}
-			}
+		if args.ArchitectureFilter != nil &&
+			!supportsAllowedArchitecture(instanceType, args.ArchitectureFilter) {
+			continue
 		}
 
 		filtered = append(filtered, instanceType)
 	}
 
 	return filtered
+}
+
+func supportsAllowedArchitecture(instanceType v1.InstanceType, filter *v1.ArchitectureFilter) bool {
+	for _, architecture := range instanceType.SupportedArchitectures {
+		if filter.IsAllowed(architecture) {
+			return true
+		}
+	}
+	return false
 }
 
 // extractGPUTypeAndName extracts GPU type and name from platform name
@@ -586,17 +604,6 @@ func getGPUMemory(gpuType string) units.Base2Bytes {
 
 	// Default fallback for unknown GPU types
 	return units.Base2Bytes(0)
-}
-
-// determineInstanceTypeArchitecture determines architecture from instance type
-func determineInstanceTypeArchitecture(instanceType v1.InstanceType) string {
-	// Check if ARM architecture is indicated in the type or name
-	typeLower := strings.ToLower(instanceType.Type)
-	if strings.Contains(typeLower, "arm") || strings.Contains(typeLower, "aarch64") {
-		return "arm64"
-	}
-
-	return "x86_64" // Default assumption
 }
 
 // getPricingForInstanceType fetches real pricing from Nebius Billing Calculator API
