@@ -9,6 +9,29 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestShadeformArchitecture(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		gpuModel string
+		want     v1.Architecture
+	}{
+		{gpuModel: "GH200", want: v1.ArchitectureARM64},
+		{gpuModel: "GB200", want: v1.ArchitectureARM64},
+		{gpuModel: "gh200", want: v1.ArchitectureARM64},
+		{gpuModel: "gb200", want: v1.ArchitectureARM64},
+		{gpuModel: "H100", want: v1.ArchitectureX86_64},
+		{gpuModel: "B200", want: v1.ArchitectureX86_64},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.gpuModel, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.want, shadeformArchitecture(tt.gpuModel))
+		})
+	}
+}
+
 func TestIsSelectedByArgs(t *testing.T) {
 	t.Parallel()
 

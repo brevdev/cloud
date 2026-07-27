@@ -287,8 +287,7 @@ func shadeformCloud(cloud string) string {
 }
 
 func shadeformArchitecture(gpuName string) v1.Architecture {
-	// Shadeform currently does not specify the architecture, so we need to infer it from the GPU name.
-	if strings.HasPrefix(gpuName, "GH") || strings.HasPrefix(gpuName, "GB") {
+	if v1.IsNVIDIAGraceGPU(gpuName) {
 		return v1.ArchitectureARM64
 	}
 	return v1.ArchitectureX86_64
