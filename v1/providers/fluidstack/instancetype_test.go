@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -75,4 +76,61 @@ func TestFilterFluidStackInstanceTypesByArchitecture(t *testing.T) {
 			},
 		),
 	)
+}
+
+func TestFluidStackClientGetInstanceTypesAppliesArchitectureFilter(t *testing.T) {
+	t.Parallel()
+
+	gh200 := "GH200"
+	h100 := "H100"
+	gpuCount := int32(1)
+	catalog := []openapi.InstanceType{
+		{
+			Name:     "gpu-gh200",
+			Cpu:      64,
+			Memory:   "432GB",
+			GpuModel: &gh200,
+			GpuCount: &gpuCount,
+		},
+		{
+			Name:     "gpu-h100",
+			Cpu:      64,
+			Memory:   "432GB",
+			GpuModel: &h100,
+			GpuCount: &gpuCount,
+		},
+	}
+	client := &FluidStackClient{
+		apiKey: "test-api-key",
+		listInstanceTypes: func(context.Context) ([]openapi.InstanceType, error) {
+			return catalog, nil
+		},
+	}
+
+	unfiltered, err := client.GetInstanceTypes(
+		context.Background(),
+		cloudv1.GetInstanceTypeArgs{},
+	)
+	require.NoError(t, err)
+	require.Len(t, unfiltered, 2)
+	require.Equal(t, "gpu-gh200", unfiltered[0].Type)
+	require.Equal(
+		t,
+		[]cloudv1.Architecture{cloudv1.ArchitectureARM64},
+		unfiltered[0].SupportedArchitectures,
+	)
+
+	filtered, err := client.GetInstanceTypes(
+		context.Background(),
+		cloudv1.GetInstanceTypeArgs{
+			ArchitectureFilter: &cloudv1.ArchitectureFilter{
+				ExcludeArchitectures: []cloudv1.Architecture{
+					cloudv1.ArchitectureARM64,
+				},
+			},
+		},
+	)
+	require.NoError(t, err)
+	require.Len(t, filtered, 1)
+	require.Equal(t, "gpu-h100", filtered[0].Type)
 }

@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"context"
 	"testing"
 
 	common "github.com/nebius/gosdk/proto/nebius/common/v1"
@@ -49,6 +50,19 @@ func TestExtractArchitecture(t *testing.T) {
 			want: string(cloudv1.ArchitectureARM64),
 		},
 		{
+			name: "unknown nonzero enum does not use legacy metadata",
+			image: &compute.Image{
+				Metadata: &common.ResourceMetadata{
+					Name:   "ubuntu-24.04-arm64",
+					Labels: map[string]string{"architecture": "amd64"},
+				},
+				Spec: &compute.ImageSpec{
+					CpuArchitecture: compute.ImageSpec_CPUArchitecture(99),
+				},
+			},
+			want: string(cloudv1.ArchitectureUnknown),
+		},
+		{
 			name: "legacy label is canonicalized",
 			image: &compute.Image{
 				Metadata: &common.ResourceMetadata{
@@ -92,5 +106,61 @@ func TestApplyImageFiltersWithoutArchitectureReturnsAll(t *testing.T) {
 		t,
 		images,
 		applyImageFilters(images, cloudv1.GetImageArgs{}),
+	)
+}
+
+func TestNebiusClientGetImagesAppliesArchitectureFilter(t *testing.T) {
+	t.Parallel()
+
+	client := &NebiusClient{
+		listImages: func(context.Context) []cloudv1.Image {
+			return []cloudv1.Image{
+				{
+					ID:           "arm-image",
+					Name:         "arm-image",
+					Architecture: string(cloudv1.ArchitectureARM64),
+				},
+				{
+					ID:           "x86-image",
+					Name:         "x86-image",
+					Architecture: string(cloudv1.ArchitectureX86_64),
+				},
+			}
+		},
+	}
+
+	unfiltered, err := client.GetImages(context.Background(), cloudv1.GetImageArgs{})
+	require.NoError(t, err)
+	require.Equal(
+		t,
+		[]cloudv1.Image{
+			{
+				ID:           "arm-image",
+				Name:         "arm-image",
+				Architecture: string(cloudv1.ArchitectureARM64),
+			},
+			{
+				ID:           "x86-image",
+				Name:         "x86-image",
+				Architecture: string(cloudv1.ArchitectureX86_64),
+			},
+		},
+		unfiltered,
+	)
+
+	filtered, err := client.GetImages(context.Background(), cloudv1.GetImageArgs{
+		Architectures: []string{string(cloudv1.ArchitectureX86_64)},
+	})
+	require.NoError(t, err)
+	require.Equal(
+		t,
+		[]cloudv1.Image{
+			{
+				ID:           "x86-image",
+				Name:         "x86-image",
+				Architecture: string(cloudv1.ArchitectureX86_64),
+			},
+		},
+		filtered,
 	)
 }

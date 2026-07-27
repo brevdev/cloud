@@ -17,6 +17,13 @@ import (
 	quotas "github.com/nebius/gosdk/proto/nebius/quotas/v1"
 )
 
+type getInstanceTypePriceFunc func(
+	context.Context,
+	string,
+	string,
+	string,
+) *currency.Amount
+
 func (c *NebiusClient) GetInstanceTypes(ctx context.Context, args v1.GetInstanceTypeArgs) ([]v1.InstanceType, error) {
 	// Get platforms (instance types) from Nebius API
 	platformsResp, err := c.sdk.Services().Compute().V1().Platform().List(ctx, &compute.ListPlatformsRequest{
@@ -215,7 +222,12 @@ func (c *NebiusClient) getInstanceTypesForLocation(ctx context.Context, platform
 			}
 
 			// Enrich with pricing information from Nebius Billing API
-			pricing := c.getPricingForInstanceType(ctx, platform.Metadata.Name, preset.Name, location.Name)
+			pricing := c.getPriceForInstanceType(
+				ctx,
+				platform.Metadata.Name,
+				preset.Name,
+				location.Name,
+			)
 			if pricing != nil {
 				instanceType.BasePrice = pricing
 			}
@@ -463,23 +475,8 @@ func nebiusPlatformArchitecture(platformName string) v1.Architecture {
 
 // isPlatformSupported checks if a platform should be included in instance types
 func (c *NebiusClient) isPlatformSupported(platformName string) bool {
-	platformLower := strings.ToLower(platformName)
-
-	// For GPU platforms: only accept known GPU types
-	// Check for specific GPU model names (with or without "gpu-" prefix)
-	knownGPUTypes := []string{"h100", "h200", "l40s", "a100", "v100", "a10", "t4", "l4", "b200"}
-	for _, gpuType := range knownGPUTypes {
-		if strings.Contains(platformLower, gpuType) {
-			return true
-		}
-	}
-
-	// For CPU platforms: only accept specific types to avoid polluting the list
-	if strings.Contains(platformLower, "cpu-d3") || strings.Contains(platformLower, "cpu-e2") {
-		return true
-	}
-
-	return false
+	_, ok := nebiusPlatformArchitectures[strings.ToLower(strings.TrimSpace(platformName))]
+	return ok
 }
 
 // isCPUOnlyPlatform checks if a platform is CPU-only (no GPUs)
@@ -577,6 +574,12 @@ func extractGPUTypeAndName(platformName string) (string, string) {
 	if strings.Contains(platformLower, "b200") {
 		return "B200", "B200"
 	}
+	if strings.Contains(platformLower, "b300") {
+		return "B300", "B300"
+	}
+	if strings.Contains(platformLower, "rtx6000") {
+		return "RTX6000", "RTX6000"
+	}
 
 	return "GPU", "GPU" // Generic fallback
 }
@@ -585,15 +588,17 @@ func extractGPUTypeAndName(platformName string) (string, string) {
 func getGPUMemory(gpuType string) units.Base2Bytes {
 	// Static mapping of GPU types to their VRAM capacities
 	vramMap := map[string]int64{
-		"L40S": 48,  // 48 GiB VRAM
-		"H100": 80,  // 80 GiB VRAM
-		"H200": 141, // 141 GiB VRAM
-		"A100": 80,  // 80 GiB VRAM (most common variant)
-		"V100": 32,  // 32 GiB VRAM (most common variant)
-		"A10":  24,  // 24 GiB VRAM
-		"T4":   16,  // 16 GiB VRAM
-		"L4":   24,  // 24 GiB VRAM
-		"B200": 192, // 192 GiB VRAM
+		"L40S":    48,  // 48 GiB VRAM
+		"H100":    80,  // 80 GiB VRAM
+		"H200":    141, // 141 GiB VRAM
+		"A100":    80,  // 80 GiB VRAM (most common variant)
+		"V100":    32,  // 32 GiB VRAM (most common variant)
+		"A10":     24,  // 24 GiB VRAM
+		"T4":      16,  // 16 GiB VRAM
+		"L4":      24,  // 24 GiB VRAM
+		"B200":    192, // 192 GiB VRAM
+		"B300":    270, // 270 GiB VRAM
+		"RTX6000": 96,  // 96 GiB VRAM
 	}
 
 	if vramGiB, exists := vramMap[gpuType]; exists {
@@ -602,6 +607,18 @@ func getGPUMemory(gpuType string) units.Base2Bytes {
 
 	// Default fallback for unknown GPU types
 	return units.Base2Bytes(0)
+}
+
+func (c *NebiusClient) getPriceForInstanceType(
+	ctx context.Context,
+	platformName string,
+	presetName string,
+	location string,
+) *currency.Amount {
+	if c.getInstanceTypePrice != nil {
+		return c.getInstanceTypePrice(ctx, platformName, presetName, location)
+	}
+	return c.getPricingForInstanceType(ctx, platformName, presetName, location)
 }
 
 // getPricingForInstanceType fetches real pricing from Nebius Billing Calculator API

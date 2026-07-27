@@ -17,10 +17,11 @@ func (c *FluidStackClient) GetInstanceTypes(ctx context.Context, args v1.GetInst
 	authCtx := c.makeAuthContext(ctx)
 	projectCtx := c.makeProjectContext(authCtx)
 
-	resp, httpResp, err := c.client.InstanceTypesAPI.ListInstanceTypes(projectCtx).Execute()
-	if httpResp != nil && httpResp.Body != nil {
-		defer func() { _ = httpResp.Body.Close() }()
+	listInstanceTypes := c.listInstanceTypes
+	if listInstanceTypes == nil {
+		listInstanceTypes = c.listInstanceTypesFromAPI
 	}
+	resp, err := listInstanceTypes(projectCtx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get instance types: %w", err)
 	}
@@ -32,6 +33,18 @@ func (c *FluidStackClient) GetInstanceTypes(ctx context.Context, args v1.GetInst
 	}
 
 	return filterInstanceTypesByArchitecture(instanceTypes, args.ArchitectureFilter), nil
+}
+
+func (c *FluidStackClient) listInstanceTypesFromAPI(ctx context.Context) ([]openapi.InstanceType, error) {
+	resp, httpResp, err := c.client.InstanceTypesAPI.ListInstanceTypes(ctx).Execute()
+	if httpResp != nil && httpResp.Body != nil {
+		defer func() { _ = httpResp.Body.Close() }()
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
 }
 
 func filterInstanceTypesByArchitecture(

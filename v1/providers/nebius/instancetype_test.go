@@ -1,8 +1,13 @@
 package v1
 
 import (
+	"context"
 	"testing"
 
+	"github.com/alecthomas/units"
+	"github.com/bojanz/currency"
+	common "github.com/nebius/gosdk/proto/nebius/common/v1"
+	compute "github.com/nebius/gosdk/proto/nebius/compute/v1"
 	"github.com/stretchr/testify/require"
 
 	cloudv1 "github.com/brevdev/cloud/v1"
@@ -33,6 +38,109 @@ func TestNebiusPlatformArchitecture(t *testing.T) {
 			t.Parallel()
 			require.Equal(t, tt.want, nebiusPlatformArchitecture(tt.platform))
 		})
+	}
+}
+
+func TestGetInstanceTypesForLocationConstructsMappedPlatforms(t *testing.T) {
+	t.Parallel()
+
+	client := &NebiusClient{
+		projectID: "test-project",
+		logger:    &cloudv1.NoopLogger{},
+		getInstanceTypePrice: func(
+			context.Context,
+			string,
+			string,
+			string,
+		) *currency.Amount {
+			return nil
+		},
+	}
+	platforms := &compute.ListPlatformsResponse{
+		Items: []*compute.Platform{
+			{
+				Metadata: &common.ResourceMetadata{Name: "gpu-b300-sxm"},
+				Spec: &compute.PlatformSpec{
+					GpuMemoryGigabytes: 270,
+					Presets: []*compute.Preset{
+						{
+							Name: "1gpu-24vcpu-346gb",
+							Resources: &compute.PresetResources{
+								GpuCount:        1,
+								VcpuCount:       24,
+								MemoryGibibytes: 346,
+							},
+						},
+					},
+				},
+			},
+			{
+				Metadata: &common.ResourceMetadata{Name: "gpu-rtx6000"},
+				Spec: &compute.PlatformSpec{
+					GpuMemoryGigabytes: 96,
+					Presets: []*compute.Preset{
+						{
+							Name: "1gpu-24vcpu-218gb",
+							Resources: &compute.PresetResources{
+								GpuCount:        1,
+								VcpuCount:       24,
+								MemoryGibibytes: 218,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	instanceTypes, err := client.getInstanceTypesForLocation(
+		context.Background(),
+		platforms,
+		cloudv1.Location{Name: "test-region"},
+		cloudv1.GetInstanceTypeArgs{},
+		nil,
+		nil,
+	)
+	require.NoError(t, err)
+	require.Len(t, instanceTypes, 2)
+
+	tests := []struct {
+		instanceType string
+		gpuType      string
+		memoryGB     int64
+	}{
+		{
+			instanceType: "gpu-b300-sxm.1gpu-24vcpu-346gb",
+			gpuType:      "B300",
+			memoryGB:     270,
+		},
+		{
+			instanceType: "gpu-rtx6000.1gpu-24vcpu-218gb",
+			gpuType:      "RTX6000",
+			memoryGB:     96,
+		},
+	}
+	for i, tt := range tests {
+		instanceType := instanceTypes[i]
+		require.Equal(t, tt.instanceType, instanceType.Type)
+		require.Equal(
+			t,
+			[]cloudv1.Architecture{cloudv1.ArchitectureX86_64},
+			instanceType.SupportedArchitectures,
+		)
+		require.False(t, instanceType.IsAvailable)
+		require.Len(t, instanceType.SupportedGPUs, 1)
+
+		gpu := instanceType.SupportedGPUs[0]
+		require.Equal(t, int32(1), gpu.Count)
+		require.Equal(t, tt.gpuType, gpu.Type)
+		require.Equal(t, tt.gpuType, gpu.Name)
+		require.Equal(t, cloudv1.ManufacturerNVIDIA, gpu.Manufacturer)
+		require.Equal(
+			t,
+			units.Base2Bytes(tt.memoryGB*int64(units.Gibibyte)),
+			gpu.Memory,
+		)
 	}
 }
 
