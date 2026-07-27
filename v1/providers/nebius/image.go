@@ -32,19 +32,7 @@ func (c *NebiusClient) GetImages(ctx context.Context, args v1.GetImageArgs) ([]v
 		}
 	}
 
-	// Apply architecture filters - default to x86_64 if no architecture specified
-	architectures := args.Architectures
-	if len(architectures) == 0 {
-		architectures = []string{"x86_64"} // Default to x86_64
-	}
-	images = filterImagesByArchitectures(images, architectures)
-
-	// Apply name filter if specified
-	if len(args.NameFilters) > 0 {
-		images = filterImagesByNameFilters(images, args.NameFilters)
-	}
-
-	return images, nil
+	return applyImageFilters(images, args), nil
 }
 
 // getProjectImages retrieves images specific to the current project
@@ -180,7 +168,7 @@ func (c *NebiusClient) getDefaultImages(ctx context.Context) ([]v1.Image, error)
 			ID:           image.Metadata.Id,
 			Name:         image.Metadata.Name,
 			Description:  getImageDescription(image),
-			Architecture: "x86_64",
+			Architecture: extractArchitecture(image),
 		}
 
 		// Set creation time if available
@@ -209,30 +197,44 @@ const (
 	ArchitectureAArch64 = "aarch64"
 )
 
-// extractArchitecture extracts architecture information from image metadata
+// extractArchitecture extracts architecture information from image metadata.
 func extractArchitecture(image *compute.Image) string {
-	// Check labels for architecture info
-	if image.Metadata != nil && image.Metadata.Labels != nil {
-		if arch, exists := image.Metadata.Labels["architecture"]; exists {
-			return arch
-		}
-		if arch, exists := image.Metadata.Labels["arch"]; exists {
-			return arch
+	if image != nil && image.Spec != nil {
+		switch image.Spec.CpuArchitecture {
+		case compute.ImageSpec_AMD64:
+			return string(v1.ArchitectureX86_64)
+		case compute.ImageSpec_ARM64:
+			return string(v1.ArchitectureARM64)
 		}
 	}
 
-	// Infer from image name
-	if image.Metadata != nil {
+	if image != nil && image.Metadata != nil {
+		for _, label := range []string{"architecture", "arch"} {
+			rawArchitecture, ok := image.Metadata.Labels[label]
+			if !ok {
+				continue
+			}
+			architecture := v1.GetArchitecture(rawArchitecture)
+			if architecture != v1.ArchitectureUnknown {
+				return string(architecture)
+			}
+		}
+
 		name := strings.ToLower(image.Metadata.Name)
 		if strings.Contains(name, ArchitectureArm64) || strings.Contains(name, ArchitectureAArch64) {
-			return ArchitectureArm64
+			return string(v1.ArchitectureARM64)
 		}
 		if strings.Contains(name, ArchitectureX86_64) || strings.Contains(name, ArchitectureAMD64) {
-			return ArchitectureX86_64
+			return string(v1.ArchitectureX86_64)
 		}
 	}
 
-	return ArchitectureX86_64
+	return string(v1.ArchitectureUnknown)
+}
+
+func applyImageFilters(images []v1.Image, args v1.GetImageArgs) []v1.Image {
+	images = filterImagesByArchitectures(images, args.Architectures)
+	return filterImagesByNameFilters(images, args.NameFilters)
 }
 
 // filterImagesByArchitectures filters images by multiple architectures
