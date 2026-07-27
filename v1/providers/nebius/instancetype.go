@@ -515,8 +515,6 @@ func (c *NebiusClient) buildSupportedStorage() []v1.Storage {
 }
 
 // applyInstanceTypeFilters applies various filters to the instance type list
-//
-//nolint:gocognit // Complex function with multiple filter conditions for instance types
 func (c *NebiusClient) applyInstanceTypeFilters(instanceTypes []v1.InstanceType, args v1.GetInstanceTypeArgs) []v1.InstanceType {
 	var filtered []v1.InstanceType
 
