@@ -90,7 +90,6 @@ linters:
       - path: (.+)\.go$
         text: composites
     paths:
-      - internal/lambdalabs/gen
       - third_party$
       - builtin$
       - examples$
@@ -104,7 +103,6 @@ formatters:
   exclusions:
     generated: lax
     paths:
-      - internal/lambdalabs/gen
       - third_party$
       - builtin$
       - examples$

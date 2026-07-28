@@ -105,5 +105,3 @@ issues:
   exclude-use-default: false
   exclude:
     - composites
-  exclude-dirs:
-    - internal/lambdalabs/gen

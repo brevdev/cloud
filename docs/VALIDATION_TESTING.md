@@ -23,9 +23,7 @@ make test-all
 
 ### Environment Variables
 
-Each provider requires specific environment variables:
-
-- **LambdaLabs**: `LAMBDALABS_API_KEY`
+Each provider's validation test documents the environment variables it requires.
 
 ### CI/CD
 
@@ -36,7 +34,7 @@ Validation tests run automatically:
 
 ## Adding New Providers
 
-1. Create validation test file: `internal/{provider}/v1/validation_test.go`
+1. Create validation test file: `v1/providers/{provider}/validation_test.go`
 2. Use the shared validation package with provider-specific configuration:
 
 ```go
@@ -118,18 +116,18 @@ The framework tests all validation functions from the SDK:
 ### Debugging
 
 ```bash
-# Run specific validation test
-go test -v -short=false -run TestValidationFunctions ./internal/lambdalabs/v1/
+# Run a specific provider's validation test
+go test -v -short=false -run TestValidationFunctions ./v1/providers/{provider}/
 
 # Run with verbose output
-go test -v -short=false -timeout=20m ./internal/lambdalabs/v1/
+go test -v -short=false -timeout=20m ./v1/providers/{provider}/
 ```
 
 ## Contributing
 
 When adding new validation functions:
 
-1. Add the validation function to the appropriate `pkg/v1/*.go` file
-2. Add corresponding test in `internal/{provider}/v1/validation_test.go`
+1. Add the validation function to the appropriate `v1/*.go` file
+2. Add corresponding test in `v1/providers/{provider}/validation_test.go`
 3. Ensure proper cleanup and error handling
 4. Update this documentation

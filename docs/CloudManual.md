@@ -157,7 +157,7 @@ We need an API endpoint that returns your available instance types. For each typ
 
 **Example: Converting Provider Data to `v1.InstanceType`**
 
-From Lambda Labs implementation (`cloud/v1/providers/lambdalabs/instancetype.go`):
+Example conversion:
 
 ```go
 it := v1.InstanceType{
@@ -195,19 +195,23 @@ When implementing the Cloud SDK, you declare how Brev's control plane should que
 
 **You handle the mapping internally.** The SDK doesn't call your API directly—your implementation does. Whether your cloud's native API is regional, global, or something else entirely, you write the conversion logic in `GetInstanceTypes()`.
 
-**Example: Global API (Lambda Labs)**
-Lambda Labs' API returns all instance types with regional availability embedded. The SDK implementation fetches once and expands to per-region `v1.InstanceType` entries:
+**Example: Global API (Launchpad)**
+Launchpad's catalog returns instance types with per-region capacity. The SDK implementation fetches the catalog once and expands available entries into per-region `v1.InstanceType` values:
 
 ```go
-// Simplified from cloud/v1/providers/lambdalabs/instancetype.go
-func (c *LambdaLabsClient) GetInstanceTypes(ctx context.Context, args v1.GetInstanceTypeArgs) ([]v1.InstanceType, error) {
-    resp, _ := c.client.InstanceTypes(ctx)  // Single API call returns all types
-    
-    // Expand each type to all its available regions
-    for _, instType := range resp.Data {
-        for _, region := range locations {
-            isAvailable := slices.Contains(instType.RegionsWithCapacityAvailable, region.Name)
-            instanceTypes = append(instanceTypes, convertToV1(region.Name, instType, isAvailable))
+// Simplified from cloud/v1/providers/launchpad/instancetype.go
+func (c *LaunchpadClient) GetInstanceTypes(ctx context.Context, args v1.GetInstanceTypeArgs) ([]v1.InstanceType, error) {
+    catalog, _ := c.paginateInstanceTypes(ctx, 100)
+
+    for _, nativeType := range catalog {
+        for region, capacity := range nativeType.Capacity {
+            if capacity == 0 {
+                continue
+            }
+            instanceType, _ := launchpadInstanceTypeToInstanceType(nativeType, region)
+            if v1.IsSelectedByArgs(*instanceType, args) {
+                instanceTypes = append(instanceTypes, *instanceType)
+            }
         }
     }
     return instanceTypes, nil
@@ -248,7 +252,7 @@ When we ingest your instance types, we normalize them to the `v1.InstanceType` s
 | Field | Type | Description |
 |-------|------|-------------|
 | `ID` | `InstanceTypeID` | Stable, unique identifier (you define the format—see below) |
-| `Cloud` | `string` | Your cloud identifier (e.g., `"lambdalabs"`, `"crusoe"`) |
+| `Cloud` | `string` | Your cloud identifier (e.g., `"nebius"`, `"shadeform"`) |
 | `Provider` | `string` | Provider identifier (often same as `Cloud`) |
 | `Type` | `string` | Your native type name |
 | `Location` | `string` | Primary region identifier |
@@ -506,18 +510,6 @@ type GPU struct {
 
 ### Provider Examples
 
-**Lambda Labs** (`cloud/v1/providers/lambdalabs/instancetype.go:parseGPUFromDescription`)
-
-Parses `"8x A100 (40 GB SXM4)"` using regex:
-
-```go
-gpu.Count = int32(count)           // from (\d+)x
-gpu.Name = nameStr                 // from x (.*?) \(
-gpu.MemoryBytes = v1.NewBytes(v1.BytesValue(memoryGiB), v1.Gibibyte)
-gpu.NetworkDetails = networkDetails // remainder after "GB"
-gpu.Manufacturer = "NVIDIA"
-```
-
 **Launchpad** (`cloud/v1/providers/launchpad/instancetype.go:launchpadGpusToGpus`)
 
 Maps structured API fields:
@@ -590,7 +582,6 @@ Providers define their own credential struct with whatever fields they need. The
 
 | Provider | Struct Fields | JSON Fields |
 |----------|---------------|-------------|
-| **Lambda Labs** | `APIKey string` | `api_key` |
 | **Shadeform** | `APIKey string` | `api_key` |
 | **FluidStack** | `APIKey string` | `api_key` |
 | **AWS** | `AccessKeyID`, `SecretAccessKey` | `access_key_id`, `secret_access_key` |
@@ -698,24 +689,21 @@ The SDK defines these states in `LifecycleStatus` (from `cloud/v1/instance.go`):
 | `SSHPort` | Always | SSH port (typically `22`) |
 | `RefID` | Always | Echo back the input `RefID` |
 
-**Example flow (from Lambda Labs implementation):**
+**Example flow:**
 
 ```go
 // 1. Register the SSH key with your API
-keyPairResp, err := c.addSSHKey(ctx, openapi.AddSSHKeyRequest{
-    Name:      attrs.RefID,
-    PublicKey: &attrs.PublicKey,
-})
+keyID, err := c.ensureSSHKey(ctx, attrs.RefID, attrs.PublicKey)
 
 // 2. Launch the instance with the key
-resp, err := c.launchInstance(ctx, openapi.LaunchInstanceRequest{
-    RegionName:       attrs.Location,
-    InstanceTypeName: attrs.InstanceType,
-    SshKeyNames:      []string{keyPairName},
+instanceID, err := c.launchInstance(ctx, providerLaunchRequest{
+    Region:       attrs.Location,
+    InstanceType: attrs.InstanceType,
+    SSHKeyID:     keyID,
 })
 
 // 3. Return instance details
-return c.GetInstance(ctx, v1.CloudProviderInstanceID(resp.Data.InstanceIds[0]))
+return c.GetInstance(ctx, v1.CloudProviderInstanceID(instanceID))
 ```
 
 ### Terminate Instance (Required)
@@ -740,7 +728,7 @@ return c.GetInstance(ctx, v1.CloudProviderInstanceID(resp.Data.InstanceIds[0]))
 - Return `nil` once the stop operation is initiated.
 - Instance should transition: `running` → `stopping` → `stopped`
 
-**When to implement:** Only if your platform supports instances that can stop and preserve storage. Lambda Labs does not support this, but Nebius does.
+**When to implement:** Only if your platform supports instances that can stop and preserve storage. Nebius is an example that supports this capability.
 
 ### Start Instance (Optional)
 
@@ -783,7 +771,7 @@ instance := v1.Instance{
 }
 ```
 
-**Example - Lambda Labs (no stop/start support):**
+**Example - provider without stop/start support:**
 ```go
 // In GetCapabilities()
 // CapabilityStopStartInstance NOT included
@@ -1091,7 +1079,7 @@ cloudCredRefID := tags["cloudCredRefID"]
 
 If your API doesn't support tags, you **still must** persist and return `RefID` and `CloudCredRefID`. Use creative alternatives:
 
-**Example (Lambda Labs without tags):**
+**Example (provider without tags):**
 ```go
 // At creation - encode CloudCredRefID in instance name
 name := fmt.Sprintf("%s--%s", c.GetReferenceID(), time.Now().UTC().Format(timeFormat))
@@ -1165,14 +1153,6 @@ if shadeformErrorResponse.ErrorCode == outOfStockErrorCode {
 }
 ```
 
-**Example from Lambda Labs provider** ([`v1/providers/lambdalabs/errors.go`](v1/providers/lambdalabs/errors.go)):
-
-```go
-if strings.Contains(e.Error(), "Not enough capacity") || strings.Contains(e.Error(), "insufficient-capacity") {
-    return v1.ErrInsufficientResources
-}
-```
-
 ---
 
 ## 12. Billing and Pricing
@@ -1242,7 +1222,7 @@ You don't need to do anything special—just ensure the SSH public key from `Cre
 
 To begin integration:
 
-1. **Follow the Integration Guide and copy the template** — Start with the [Integration Guide](IntegrationGuide.md), which walks through the v1 interfaces, directory layout, and a copy/paste scaffold. Use the Lambda Labs provider as your canonical reference.
+1. **Follow the Integration Guide and copy the template** — Start with the [Integration Guide](IntegrationGuide.md), which walks through the v1 interfaces, directory layout, and a copy/paste scaffold. Use the existing provider whose API model most closely matches yours as a reference.
 2. **Implement your Cloud provider** — Build out instance lifecycle, instance types, capabilities, and security conformance under `internal/{provider}/v1/`. Embed `NotImplCloudClient` for any unsupported operations.
 3. **Run the local Validation Tests** — Wire up `validation_test.go` using real credentials and run `make test-validation` locally. This exercises instance create/get/list/terminate, instance types, and capability checks against your live API.
 4. **Provide Brev with a test account** — Give Brev access to run validation independently. This typically means a console account or provided API credentials, but exact requirements vary by provider.
