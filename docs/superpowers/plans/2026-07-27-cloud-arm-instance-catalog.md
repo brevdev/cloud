@@ -36,7 +36,7 @@
 | Launchpad | Authoritative `SystemArch` | Add mapping and filter characterization tests |
 | Shadeform | GPU-name inference | Use shared classifier |
 | LambdaLabs | Parsed GPU description, currently hardcoded x86 | Classify parsed Grace GPU models |
-| FluidStack | `GpuModel`, currently no architecture metadata/filter | Populate metadata and honor only architecture filtering |
+| FluidStack | Defunct; no active credential | No change |
 | Nebius instances | Platform IDs, name-based fallback to x86 | Explicit platform map, metadata-driven include/exclude filtering |
 | Nebius images | `ImageSpec.CpuArchitecture`, currently ignored | Prefer enum, remove unfiltered x86 default |
 | SFCompute v1/v2 | Static H100/H200 x86 metadata | Add regression coverage only |
@@ -424,190 +424,10 @@ git commit -m "feat: report LambdaLabs Grace architectures"
 
 ---
 
-### Task 5: Populate and filter FluidStack architecture metadata
+### Task 5: Exclude FluidStack
 
-**Files:**
-
-- Modify: `v1/providers/fluidstack/instancetype.go`
-- Create: `v1/providers/fluidstack/instancetype_test.go`
-
-- [ ] **Step 1: Write failing converter and filter tests**
-
-Create `v1/providers/fluidstack/instancetype_test.go`:
-
-```go
-package v1
-
-import (
-	"testing"
-
-	"github.com/stretchr/testify/require"
-
-	cloudv1 "github.com/brevdev/cloud/v1"
-	openapi "github.com/brevdev/cloud/v1/providers/fluidstack/gen/fluidstack"
-)
-
-func TestConvertFluidStackInstanceTypeArchitecture(t *testing.T) {
-	t.Parallel()
-
-	gh200 := "gh200"
-	b200 := "B200"
-	tests := []struct {
-		name     string
-		gpuModel *string
-		want     cloudv1.Architecture
-	}{
-		{name: "GH200", gpuModel: &gh200, want: cloudv1.ArchitectureARM64},
-		{name: "B200", gpuModel: &b200, want: cloudv1.ArchitectureX86_64},
-		{name: "CPU", gpuModel: nil, want: cloudv1.ArchitectureX86_64},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			gpuCount := int32(1)
-			if tt.gpuModel == nil {
-				gpuCount = 0
-			}
-			got := convertFluidStackInstanceTypeToV1InstanceType(
-				"",
-				openapi.InstanceType{
-					Name:     "test-" + tt.name,
-					Cpu:      64,
-					Memory:   "432GB",
-					GpuModel: tt.gpuModel,
-					GpuCount: &gpuCount,
-				},
-				true,
-			)
-			require.Equal(t, []cloudv1.Architecture{tt.want}, got.SupportedArchitectures)
-		})
-	}
-}
-
-func TestFilterFluidStackInstanceTypesByArchitecture(t *testing.T) {
-	t.Parallel()
-
-	x86Type := cloudv1.InstanceType{
-		Type:                   "x86",
-		SupportedArchitectures: []cloudv1.Architecture{cloudv1.ArchitectureX86_64},
-	}
-	armType := cloudv1.InstanceType{
-		Type:                   "arm",
-		SupportedArchitectures: []cloudv1.Architecture{cloudv1.ArchitectureARM64},
-	}
-	instanceTypes := []cloudv1.InstanceType{x86Type, armType}
-
-	require.Equal(
-		t,
-		instanceTypes,
-		filterInstanceTypesByArchitecture(instanceTypes, nil),
-	)
-	require.Equal(
-		t,
-		[]cloudv1.InstanceType{x86Type},
-		filterInstanceTypesByArchitecture(
-			instanceTypes,
-			&cloudv1.ArchitectureFilter{
-				ExcludeArchitectures: []cloudv1.Architecture{cloudv1.ArchitectureARM64},
-			},
-		),
-	)
-}
-```
-
-- [ ] **Step 2: Run the focused tests and confirm the red state**
-
-Run:
-
-```bash
-go test ./v1/providers/fluidstack -run 'Architecture' -count=1
-```
-
-Expected: the filter helper is undefined and the converter emits no
-`SupportedArchitectures`.
-
-- [ ] **Step 3: Populate architecture metadata during conversion**
-
-Before the returned `v1.InstanceType` literal, add:
-
-```go
-architecture := v1.ArchitectureX86_64
-if fsInstanceType.GpuModel != nil &&
-	v1.IsNVIDIAGraceGPU(*fsInstanceType.GpuModel) {
-	architecture = v1.ArchitectureARM64
-}
-```
-
-Add this field to the returned literal:
-
-```go
-SupportedArchitectures: []v1.Architecture{architecture},
-```
-
-- [ ] **Step 4: Add architecture-only filtering**
-
-Change the `GetInstanceTypes` signature to retain `args`:
-
-```go
-func (c *FluidStackClient) GetInstanceTypes(
-	ctx context.Context,
-	args v1.GetInstanceTypeArgs,
-) ([]v1.InstanceType, error) {
-```
-
-Return the architecture-filtered values:
-
-```go
-return filterInstanceTypesByArchitecture(
-	instanceTypes,
-	args.ArchitectureFilter,
-), nil
-```
-
-Add this provider-local helper:
-
-```go
-func filterInstanceTypesByArchitecture(
-	instanceTypes []v1.InstanceType,
-	filter *v1.ArchitectureFilter,
-) []v1.InstanceType {
-	if filter == nil {
-		return instanceTypes
-	}
-
-	filtered := make([]v1.InstanceType, 0, len(instanceTypes))
-	for _, instanceType := range instanceTypes {
-		for _, architecture := range instanceType.SupportedArchitectures {
-			if filter.IsAllowed(architecture) {
-				filtered = append(filtered, instanceType)
-				break
-			}
-		}
-	}
-	return filtered
-}
-```
-
-Do not add location or instance-name filtering in this task.
-
-- [ ] **Step 5: Format and run the complete FluidStack package**
-
-Run:
-
-```bash
-gofmt -w v1/providers/fluidstack/instancetype.go v1/providers/fluidstack/instancetype_test.go
-go test ./v1/providers/fluidstack -count=1
-```
-
-Expected: all FluidStack tests pass.
-
-- [ ] **Step 6: Commit the provider change**
-
-```bash
-git add v1/providers/fluidstack/instancetype.go v1/providers/fluidstack/instancetype_test.go
-git commit -m "feat: expose FluidStack instance architectures"
-```
+FluidStack is defunct and no active credential remains. Make no FluidStack
+provider changes as part of this work.
 
 ---
 
@@ -1172,8 +992,6 @@ gofmt -w \
   v1/providers/shadeform/instancetype_test.go \
   v1/providers/lambdalabs/instancetype.go \
   v1/providers/lambdalabs/instancetype_test.go \
-  v1/providers/fluidstack/instancetype.go \
-  v1/providers/fluidstack/instancetype_test.go \
   v1/providers/nebius/instancetype.go \
   v1/providers/nebius/instancetype_test.go \
   v1/providers/nebius/image.go \
@@ -1192,7 +1010,6 @@ go test \
   ./v1/providers/launchpad \
   ./v1/providers/shadeform \
   ./v1/providers/lambdalabs \
-  ./v1/providers/fluidstack \
   ./v1/providers/nebius \
   ./v1/providers/sfcompute \
   ./v1/providers/sfcomputev2 \
@@ -1238,7 +1055,6 @@ git diff HEAD~8..HEAD -- \
   v1/providers/launchpad \
   v1/providers/shadeform \
   v1/providers/lambdalabs \
-  v1/providers/fluidstack \
   v1/providers/nebius \
   v1/providers/sfcompute \
   v1/providers/sfcomputev2
@@ -1249,8 +1065,8 @@ Confirm:
 - no dev-plane or Verb files changed;
 - no generated clients changed;
 - Launchpad still uses `SystemArch`;
-- Shadeform, LambdaLabs, and FluidStack share only Grace recognition;
-- FluidStack added only architecture filtering;
+- Shadeform and LambdaLabs share only Grace recognition;
+- FluidStack remains unchanged;
 - Nebius unknown platforms and images remain `unknown`;
 - no synthetic Nebius or TestKube ARM offering was introduced;
 - ARM provisioning and boot-image selection remain unchanged.

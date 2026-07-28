@@ -70,8 +70,6 @@ type FluidStackClient struct {
 	baseURL   string
 	projectID string
 	client    *openapi.APIClient
-
-	listInstanceTypes func(context.Context) ([]openapi.InstanceType, error)
 }
 
 var _ v1.CloudClient = &FluidStackClient{}

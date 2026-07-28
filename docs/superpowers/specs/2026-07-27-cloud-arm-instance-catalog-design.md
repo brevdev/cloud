@@ -80,13 +80,8 @@ GH200 type when ARM is excluded.
 
 ### FluidStack
 
-Populate `SupportedArchitectures` from `GpuModel` using the same Grace rule.
-Known non-Grace and CPU offerings remain x86_64.
-
-FluidStack currently ignores `GetInstanceTypeArgs`. Add architecture-filter
-handling without broadening this change into location or instance-name
-filtering. This is required so dev-plane's existing ARM exclusion remains
-effective.
+FluidStack is defunct and no active credential remains. Leave its provider
+adapter unchanged and exclude it from this work.
 
 ### Nebius instance types
 
@@ -181,7 +176,6 @@ Focused tests will cover:
 - Launchpad authoritative AMD64 and ARM64 conversion;
 - Shadeform GH/GB conversion;
 - LambdaLabs GH200 conversion and architecture filtering;
-- FluidStack conversion and architecture filtering;
 - Nebius known x86 and unknown platform mappings;
 - Nebius include and exclude filter behavior;
 - Nebius authoritative AMD64/ARM64 image metadata and unfiltered image listing;

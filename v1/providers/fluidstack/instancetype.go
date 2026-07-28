@@ -13,15 +13,14 @@ import (
 	openapi "github.com/brevdev/cloud/v1/providers/fluidstack/gen/fluidstack"
 )
 
-func (c *FluidStackClient) GetInstanceTypes(ctx context.Context, args v1.GetInstanceTypeArgs) ([]v1.InstanceType, error) {
+func (c *FluidStackClient) GetInstanceTypes(ctx context.Context, _ v1.GetInstanceTypeArgs) ([]v1.InstanceType, error) {
 	authCtx := c.makeAuthContext(ctx)
 	projectCtx := c.makeProjectContext(authCtx)
 
-	listInstanceTypes := c.listInstanceTypes
-	if listInstanceTypes == nil {
-		listInstanceTypes = c.listInstanceTypesFromAPI
+	resp, httpResp, err := c.client.InstanceTypesAPI.ListInstanceTypes(projectCtx).Execute()
+	if httpResp != nil && httpResp.Body != nil {
+		defer func() { _ = httpResp.Body.Close() }()
 	}
-	resp, err := listInstanceTypes(projectCtx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get instance types: %w", err)
 	}
@@ -32,39 +31,7 @@ func (c *FluidStackClient) GetInstanceTypes(ctx context.Context, args v1.GetInst
 		instanceTypes = append(instanceTypes, instanceType)
 	}
 
-	return filterInstanceTypesByArchitecture(instanceTypes, args.ArchitectureFilter), nil
-}
-
-func (c *FluidStackClient) listInstanceTypesFromAPI(ctx context.Context) ([]openapi.InstanceType, error) {
-	resp, httpResp, err := c.client.InstanceTypesAPI.ListInstanceTypes(ctx).Execute()
-	if httpResp != nil && httpResp.Body != nil {
-		defer func() { _ = httpResp.Body.Close() }()
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	return resp, nil
-}
-
-func filterInstanceTypesByArchitecture(
-	instanceTypes []v1.InstanceType,
-	filter *v1.ArchitectureFilter,
-) []v1.InstanceType {
-	if filter == nil {
-		return instanceTypes
-	}
-
-	filtered := make([]v1.InstanceType, 0, len(instanceTypes))
-	for _, instanceType := range instanceTypes {
-		for _, architecture := range instanceType.SupportedArchitectures {
-			if filter.IsAllowed(architecture) {
-				filtered = append(filtered, instanceType)
-				break
-			}
-		}
-	}
-	return filtered
+	return instanceTypes, nil
 }
 
 func (c *FluidStackClient) GetInstanceTypePollTime() time.Duration {
@@ -133,23 +100,16 @@ func convertFluidStackInstanceTypeToV1InstanceType(location string, fsInstanceTy
 
 	price, _ := currency.NewAmount("0", "USD")
 
-	architecture := v1.ArchitectureX86_64
-	if fsInstanceType.GpuModel != nil &&
-		v1.IsNVIDIAGraceGPU(*fsInstanceType.GpuModel) {
-		architecture = v1.ArchitectureARM64
-	}
-
 	return v1.InstanceType{
-		Type:                   fsInstanceType.Name,
-		VCPU:                   vcpus,
-		Memory:                 ram,
-		MemoryBytes:            memoryBytes,
-		SupportedGPUs:          gpus,
-		SupportedArchitectures: []v1.Architecture{architecture},
-		BasePrice:              &price,
-		IsAvailable:            isAvailable,
-		Location:               location,
-		Provider:               CloudProviderID,
-		Cloud:                  CloudProviderID,
+		Type:          fsInstanceType.Name,
+		VCPU:          vcpus,
+		Memory:        ram,
+		MemoryBytes:   memoryBytes,
+		SupportedGPUs: gpus,
+		BasePrice:     &price,
+		IsAvailable:   isAvailable,
+		Location:      location,
+		Provider:      CloudProviderID,
+		Cloud:         CloudProviderID,
 	}
 }
