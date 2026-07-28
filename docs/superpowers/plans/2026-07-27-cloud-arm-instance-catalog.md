@@ -39,7 +39,8 @@
 | FluidStack | Defunct; no active credential | No change |
 | Nebius instances | Platform IDs, name-based fallback to x86 | Explicit platform map, metadata-driven include/exclude filtering |
 | Nebius images | `ImageSpec.CpuArchitecture`, currently ignored | Prefer enum, remove unfiltered x86 default |
-| SFCompute v1/v2 | Static H100/H200 x86 metadata | Add regression coverage only |
+| SFCompute v1 | Deprecated in favor of v2 | No change |
+| SFCompute v2 | Static H100 x86 metadata | Add regression coverage only |
 
 ---
 
@@ -874,45 +875,14 @@ git commit -m "feat: expose Nebius image architectures"
 
 ---
 
-### Task 8: Record SFCompute's current x86-only provider contract
+### Task 8: Record SFComputeV2's current x86-only provider contract
 
 **Files:**
 
-- Create: `v1/providers/sfcompute/instancetype_test.go`
 - Create: `v1/providers/sfcomputev2/instancetype_test.go`
-- Verify only: `v1/providers/sfcompute/instancetype.go`
 - Verify only: `v1/providers/sfcomputev2/instancetype.go`
 
-- [ ] **Step 1: Add SFCompute v1 characterization coverage**
-
-Create `v1/providers/sfcompute/instancetype_test.go`:
-
-```go
-package v1
-
-import (
-	"testing"
-
-	"github.com/stretchr/testify/require"
-
-	cloudv1 "github.com/brevdev/cloud/v1"
-)
-
-func TestSFComputeInstanceTypeArchitectures(t *testing.T) {
-	t.Parallel()
-
-	for _, gpuType := range []string{gpuTypeH100, gpuTypeH200} {
-		t.Run(gpuType, func(t *testing.T) {
-			t.Parallel()
-			metadata, err := getInstanceTypeMetadata(gpuType)
-			require.NoError(t, err)
-			require.Equal(t, cloudv1.ArchitectureX86_64, metadata.architecture)
-		})
-	}
-}
-```
-
-- [ ] **Step 2: Add SFCompute v2 characterization and filter coverage**
+- [ ] **Step 1: Add SFComputeV2 characterization and filter coverage**
 
 Create `v1/providers/sfcomputev2/instancetype_test.go`:
 
@@ -952,23 +922,23 @@ func TestSFComputeV2InstanceTypeArchitecture(t *testing.T) {
 }
 ```
 
-- [ ] **Step 3: Run both characterization packages**
+- [ ] **Step 2: Run the characterization package**
 
 Run:
 
 ```bash
-gofmt -w v1/providers/sfcompute/instancetype_test.go v1/providers/sfcomputev2/instancetype_test.go
-go test ./v1/providers/sfcompute ./v1/providers/sfcomputev2 -count=1
+gofmt -w v1/providers/sfcomputev2/instancetype_test.go
+go test ./v1/providers/sfcomputev2 -count=1
 ```
 
-Expected: tests pass without production changes. H100 and H200 remain truthfully
-x86 until SFCompute exposes an authoritative Grace SKU and compatible image.
+Expected: tests pass without production changes. H100 remains truthfully x86
+until SFComputeV2 exposes an authoritative Grace SKU and compatible image.
 
-- [ ] **Step 4: Commit the contract tests**
+- [ ] **Step 3: Commit the contract test**
 
 ```bash
-git add v1/providers/sfcompute/instancetype_test.go v1/providers/sfcomputev2/instancetype_test.go
-git commit -m "test: record SFCompute architecture contracts"
+git add v1/providers/sfcomputev2/instancetype_test.go
+git commit -m "test: record SFComputeV2 architecture contract"
 ```
 
 ---
@@ -996,7 +966,6 @@ gofmt -w \
   v1/providers/nebius/instancetype_test.go \
   v1/providers/nebius/image.go \
   v1/providers/nebius/image_test.go \
-  v1/providers/sfcompute/instancetype_test.go \
   v1/providers/sfcomputev2/instancetype_test.go
 ```
 
@@ -1011,7 +980,6 @@ go test \
   ./v1/providers/shadeform \
   ./v1/providers/lambdalabs \
   ./v1/providers/nebius \
-  ./v1/providers/sfcompute \
   ./v1/providers/sfcomputev2 \
   -count=1
 ```
@@ -1056,7 +1024,6 @@ git diff HEAD~8..HEAD -- \
   v1/providers/shadeform \
   v1/providers/lambdalabs \
   v1/providers/nebius \
-  v1/providers/sfcompute \
   v1/providers/sfcomputev2
 ```
 
@@ -1067,6 +1034,8 @@ Confirm:
 - Launchpad still uses `SystemArch`;
 - Shadeform and LambdaLabs share only Grace recognition;
 - FluidStack remains unchanged;
+- SFCompute remains unchanged;
+- SFComputeV2 still reports its existing x86-only contract;
 - Nebius unknown platforms and images remain `unknown`;
 - no synthetic Nebius or TestKube ARM offering was introduced;
 - ARM provisioning and boot-image selection remain unchanged.

@@ -113,16 +113,21 @@ Remove the catalog-level x86 restriction:
 This changes image discovery only. Architecture-aware boot-image selection is
 part of the later provisioning work.
 
-### SFCompute and SFComputeV2
+### SFCompute
 
-Make no production classification change. The current providers expose H100
-and H200 offerings backed by x86-only image requirements, and their metadata
-already reports `x86_64`.
+SFCompute is deprecated in favor of SFComputeV2. Leave the v1 provider
+unchanged and exclude it from this work.
+
+### SFComputeV2
+
+Make no production classification change. The current provider exposes an H100
+offering backed by x86-only image requirements, and its metadata already
+reports `x86_64`.
 
 Add focused regression coverage where practical so this is recorded as a
 provider capability rather than an accidental ARM restriction.
 
-Future SFCompute ARM support requires an authoritative Grace SKU plus
+Future SFComputeV2 ARM support requires an authoritative Grace SKU plus
 architecture-compatible image and create-path support; it is not part of this
 catalog change.
 
@@ -179,7 +184,7 @@ Focused tests will cover:
 - Nebius known x86 and unknown platform mappings;
 - Nebius include and exclude filter behavior;
 - Nebius authoritative AMD64/ARM64 image metadata and unfiltered image listing;
-- existing SFCompute x86 metadata where a focused unit seam exists.
+- existing SFComputeV2 x86 metadata where a focused unit seam exists.
 
 Run package-level tests while iterating, then:
 
