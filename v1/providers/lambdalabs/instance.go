@@ -217,7 +217,7 @@ func convertLambdaLabsStatusToV1Status(status string) v1.LifecycleStatus {
 	case "unhealthy":
 		return v1.LifecycleStatusRunning
 	default:
-		return v1.LifecycleStatusPending
+		return v1.LifecycleStatusEmpty
 	}
 }
 

@@ -415,7 +415,7 @@ func sfcStatusToLifecycleStatus(status string) v1.LifecycleStatus {
 	case "nodefailure", "failed":
 		return v1.LifecycleStatusFailed
 	default:
-		return v1.LifecycleStatusPending
+		return v1.LifecycleStatusEmpty
 	}
 }
 

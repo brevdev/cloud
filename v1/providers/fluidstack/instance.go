@@ -131,7 +131,7 @@ func convertFluidStackInstanceToV1Instance(fsInstance openapi.Instance) *v1.Inst
 	case openapi.INSTANCE_ERROR:
 		lifecycleStatus = v1.LifecycleStatusFailed
 	default:
-		lifecycleStatus = v1.LifecycleStatusPending
+		lifecycleStatus = v1.LifecycleStatusEmpty
 	}
 
 	instance := &v1.Instance{
