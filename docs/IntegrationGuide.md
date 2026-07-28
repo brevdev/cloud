@@ -1,6 +1,6 @@
 # How to Add a Cloud Provider
 
-Practical guide to implementing a new cloud provider in the Brev Cloud SDK (v1). The Lambda Labs provider is the best working, well-tested example—use it as your canonical reference.
+Practical guide to implementing a new cloud provider in the Brev Cloud SDK (v1). Use the existing providers as references, choosing the one whose API model most closely matches your integration.
 
 For deeper context on the SDK’s design, interfaces, and provider expectations, see the [Cloud Manual](CloudManual.md).
 
@@ -11,9 +11,9 @@ Background:
 - v1 design notes: ../pkg/v1/V1_DESIGN_NOTES.md
 
 Provider examples:
-- Lambda Labs (canonical): ../internal/lambdalabs/v1/README.md
-- Nebius (in progress): ../internal/nebius/v1/README.md
-- Fluidstack (in progress): ../internal/fluidstack/v1/README.md
+- Nebius: ../v1/providers/nebius/README.md
+- TestKube: ../v1/providers/testkube/README.md
+- FluidStack: ../v1/providers/fluidstack/README.md
 
 ---
 
@@ -63,10 +63,10 @@ Create a new provider folder:
     - networking.go, image.go, storage.go, tags.go, quota.go, location.go (as applicable)
     - validation_test.go (validation suite entry point)
 
-Use Lambda Labs as the pattern:
-- ../internal/lambdalabs/v1/client.go
-- ../internal/lambdalabs/v1/instance.go
-- ../internal/lambdalabs/v1/capabilities.go
+For a complete implementation, see:
+- ../v1/providers/nebius/client.go
+- ../v1/providers/nebius/instance.go
+- ../v1/providers/nebius/capabilities.go
 
 ---
 
@@ -100,7 +100,7 @@ func New{Provider}Credential(refID string /* auth fields */) *{Provider}Credenti
 func (c *{Provider}Credential) GetReferenceID() string { return c.RefID }
 func (c *{Provider}Credential) GetAPIType() v1.APIType  { return v1.APITypeLocational /* or v1.APITypeGlobal */ }
 func (c *{Provider}Credential) GetCloudProviderID() v1.CloudProviderID {
-    return "{provider-id}" // e.g., "lambdalabs"
+    return "{provider-id}" // e.g., "nebius"
 }
 func (c *{Provider}Credential) GetTenantID() (string, error) {
     // Derive stable tenant ID for quota/account scoping if possible
@@ -215,10 +215,10 @@ func (c *{Provider}Client) MergeInstanceForUpdate(_ v1.Instance, newInst v1.Inst
 func (c *{Provider}Client) MergeInstanceTypeForUpdate(_ v1.InstanceType, newIt v1.InstanceType) v1.Type { return newIt }
 ```
 
-See the canonical mapping and conversion logic in Lambda Labs:
-- Create/terminate/list/reboot: ../internal/lambdalabs/v1/instance.go
-- Capabilities: ../internal/lambdalabs/v1/capabilities.go
-- Client/credential + NotImpl: ../internal/lambdalabs/v1/client.go
+See the Nebius implementation for mapping and conversion examples:
+- Create/terminate/list/reboot: ../v1/providers/nebius/instance.go
+- Capabilities: ../v1/providers/nebius/capabilities.go
+- Client/credential + NotImpl: ../v1/providers/nebius/client.go
 
 Implement instance types in internal/{provider}/v1/instancetype.go:
 
@@ -238,9 +238,7 @@ Implement instance types in internal/{provider}/v1/instancetype.go:
 The SDK uses a three-level capability system to accurately represent what operations are supported:
 
 ### 1. Provider-Level Capabilities
-These are high-level features that your cloud provider's API supports, declared in your `GetCapabilities()` method. Capability flags live in ../pkg/v1/capabilities.go. Only include capabilities your API actually supports. For example, Lambda Labs supports:
-- Create/terminate/reboot instance (`CapabilityCreateInstance`, `CapabilityTerminateInstance`, `CapabilityRebootInstance`)
-- Does not (currently) support stop/start, resize volume, machine image, tags
+These are high-level features that your cloud provider's API supports, declared in your `GetCapabilities()` method. Capability flags live in ../pkg/v1/capabilities.go. Only include capabilities your API actually supports. For example, Nebius advertises create, terminate, reboot, stop/start, volume resize, machine image, and tag capabilities.
 
 ### 2. Instance Type Capabilities  
 These are hardware-specific features that vary by instance configuration, expressed as boolean fields on the `InstanceType` struct:
@@ -257,7 +255,7 @@ These are capability boolean fields replicated on individual `Instance` objects,
 These fields must be kept accurate and in sync with the corresponding InstanceType capabilities, even though they appear redundant. They can also reflect runtime state-dependent variations - for example, a running instance might support certain operations that a stopped instance cannot, based on the current `LifecycleStatus`.
 
 Reference:
-- Lambda capabilities: ../internal/lambdalabs/v1/capabilities.go
+- Nebius capabilities: ../v1/providers/nebius/capabilities.go
 
 ---
 
@@ -270,9 +268,7 @@ All providers must conform to ../docs/SECURITY.md:
 - If your provider’s firewall model is global/project-scoped rather than per-instance, document limitations in internal/{provider}/SECURITY.md and reflect that by omitting CapabilityModifyFirewall if applicable.
 
 Provider-specific security doc examples:
-- Lambda Labs: ../internal/lambdalabs/SECURITY.md
-- Nebius: ../internal/nebius/SECURITY.md
-- Fluidstack: ../internal/fluidstack/v1/SECURITY.md
+- FluidStack: ../v1/providers/fluidstack/SECURITY.md
 
 ---
 
@@ -319,7 +315,7 @@ func TestValidationFunctions(t *testing.T) {
 - make test-all        # runs everything
 
 3) CI workflow (recommended):
-- Add .github/workflows/validation-{provider}.yml (copy Lambda Labs workflow if available or follow VALIDATION_TESTING.md).
+- Add .github/workflows/validation-{provider}.yml following VALIDATION_TESTING.md.
 - Store secrets in GitHub Actions (e.g., YOUR_PROVIDER_API_KEY).
 
 ---
@@ -346,8 +342,8 @@ func TestValidationFunctions(t *testing.T) {
 - Capabilities: ../pkg/v1/capabilities.go
 - Instance lifecycle and validations: ../pkg/v1/instance.go
 - Instance types and validations: ../pkg/v1/instancetype.go
-- Lambda Labs example:
-  - Client/Credential: ../internal/lambdalabs/v1/client.go
-  - Capabilities: ../internal/lambdalabs/v1/capabilities.go
-  - Instance operations: ../internal/lambdalabs/v1/instance.go
-  - Provider README: ../internal/lambdalabs/v1/README.md
+- Nebius example:
+  - Client/Credential: ../v1/providers/nebius/client.go
+  - Capabilities: ../v1/providers/nebius/capabilities.go
+  - Instance operations: ../v1/providers/nebius/instance.go
+  - Provider README: ../v1/providers/nebius/README.md
