@@ -52,13 +52,6 @@ func GetArchitecture(architecture string) Architecture {
 	}
 }
 
-func IsNVIDIAGraceGPU(gpuModel string) bool {
-	normalizedModel := strings.ToUpper(strings.TrimSpace(gpuModel))
-	normalizedModel = strings.TrimPrefix(normalizedModel, "NVIDIA ")
-	return strings.HasPrefix(normalizedModel, "GH") ||
-		strings.HasPrefix(normalizedModel, "GB")
-}
-
 type InstanceTypeID string
 
 type InstanceType struct {

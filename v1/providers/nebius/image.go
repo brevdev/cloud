@@ -9,17 +9,7 @@ import (
 	compute "github.com/nebius/gosdk/proto/nebius/compute/v1"
 )
 
-type listNebiusImagesFunc func(context.Context) []v1.Image
-
 func (c *NebiusClient) GetImages(ctx context.Context, args v1.GetImageArgs) ([]v1.Image, error) {
-	listImages := c.listImages
-	if listImages == nil {
-		listImages = c.listImagesFromProvider
-	}
-	return applyImageFilters(listImages(ctx), args), nil
-}
-
-func (c *NebiusClient) listImagesFromProvider(ctx context.Context) []v1.Image {
 	var images []v1.Image
 
 	// First, try to get project-specific images
@@ -42,7 +32,7 @@ func (c *NebiusClient) listImagesFromProvider(ctx context.Context) []v1.Image {
 		}
 	}
 
-	return images
+	return applyImageFilters(images, args), nil
 }
 
 // getProjectImages retrieves images specific to the current project

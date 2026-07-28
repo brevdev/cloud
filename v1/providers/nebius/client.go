@@ -26,9 +26,6 @@ type NebiusClient struct {
 	location          string
 	sdk               *gosdk.SDK
 	logger            v1.Logger
-
-	listImages           listNebiusImagesFunc
-	getInstanceTypePrice getInstanceTypePriceFunc
 }
 
 var _ v1.CloudClient = &NebiusClient{}

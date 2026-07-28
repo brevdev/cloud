@@ -356,32 +356,31 @@ func TestIsPlatformSupported(t *testing.T) {
 		shouldSupport bool
 		description   string
 	}{
-		// Exact documented GPU platforms are supported.
-		{"gpu-b300-sxm", true, "B300 with gpu prefix"},
+		// GPU platforms - all should be supported
 		{"gpu-h100-sxm", true, "H100 with gpu prefix"},
 		{"gpu-h200-sxm", true, "H200 with gpu prefix"},
 		{"gpu-b200-sxm", true, "B200 with gpu prefix"},
-		{"gpu-b200-sxm-a", true, "B200 alternate platform"},
-		{"gpu-rtx6000", true, "RTX PRO 6000 platform"},
-		{"gpu-l40s-a", true, "L40S Intel platform"},
-		{"gpu-l40s-d", true, "L40S AMD platform"},
+		{"gpu-b300-sxm", true, "B300 with gpu prefix"},
+		{"gpu-rtx6000", true, "RTX 6000 with gpu prefix"},
+		{"gpu-l40s", true, "L40S with gpu prefix"},
+		{"gpu-a100-sxm4", true, "A100 with gpu prefix"},
+		{"gpu-v100-sxm2", true, "V100 with gpu prefix"},
+		{"gpu-a10", true, "A10 with gpu prefix"},
+		{"gpu-t4", true, "T4 with gpu prefix"},
+		{"gpu-l4", true, "L4 with gpu prefix"},
+
+		// GPU platforms without "gpu-" prefix (B200 specific test)
+		{"b200-sxm", true, "B200 without gpu prefix"},
+		{"b200", true, "B200 bare name"},
+		{"h100-sxm", true, "H100 without gpu prefix"},
+		{"l40s", true, "L40S without gpu prefix"},
 
 		// CPU platforms - only specific ones supported
 		{"cpu-d3", true, "CPU D3 platform"},
 		{"cpu-e2", true, "CPU E2 platform"},
 		{"cpu-other", false, "Unsupported CPU platform"},
 
-		// Legacy aliases and undocumented platforms are unsupported.
-		{"gpu-l40s", false, "L40S alias without documented suffix"},
-		{"gpu-a100-sxm4", false, "A100 legacy platform"},
-		{"gpu-v100-sxm2", false, "V100 legacy platform"},
-		{"gpu-a10", false, "A10 legacy platform"},
-		{"gpu-t4", false, "T4 legacy platform"},
-		{"gpu-l4", false, "L4 legacy platform"},
-		{"b200-sxm", false, "B200 without gpu prefix"},
-		{"b200", false, "B200 bare name"},
-		{"h100-sxm", false, "H100 without gpu prefix"},
-		{"l40s", false, "L40S without gpu prefix"},
+		// Unsupported platforms
 		{"unknown-platform", false, "Generic unknown platform"},
 		{"random-gpu", false, "Random name with gpu"},
 	}

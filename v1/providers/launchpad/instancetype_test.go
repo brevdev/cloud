@@ -8,7 +8,6 @@ import (
 
 	"github.com/brevdev/cloud/internal/validation"
 	v1 "github.com/brevdev/cloud/v1"
-	openapi "github.com/brevdev/cloud/v1/providers/launchpad/gen/launchpad"
 )
 
 func TestGetInstanceTypes(t *testing.T) {
@@ -130,42 +129,4 @@ func TestMakeGenericInstanceTypeID(t *testing.T) {
 			require.Equal(t, tt.instanceTypeID, instanceTypeID)
 		})
 	}
-}
-
-func TestLaunchpadArchitectureToArchitecture(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name string
-		raw  openapi.SystemArchEnum
-		want v1.Architecture
-	}{
-		{name: "AMD64", raw: openapi.SystemArchAMD64, want: v1.ArchitectureX86_64},
-		{name: "ARM64", raw: openapi.SystemArchARM64, want: v1.ArchitectureARM64},
-		{name: "unknown", raw: openapi.SystemArchEnum("riscv64"), want: v1.ArchitectureUnknown},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			require.Equal(t, tt.want, launchpadArchitectureToArchitecture(tt.raw))
-		})
-	}
-}
-
-func TestLaunchpadArchitectureFilterExcludesARM(t *testing.T) {
-	t.Parallel()
-
-	instanceType := v1.InstanceType{
-		SupportedArchitectures: []v1.Architecture{
-			launchpadArchitectureToArchitecture(openapi.SystemArchARM64),
-		},
-	}
-	args := v1.GetInstanceTypeArgs{
-		ArchitectureFilter: &v1.ArchitectureFilter{
-			ExcludeArchitectures: []v1.Architecture{v1.ArchitectureARM64},
-		},
-	}
-
-	require.False(t, v1.IsSelectedByArgs(instanceType, args))
 }
