@@ -441,6 +441,7 @@ func (c *NebiusClient) getGPUQuotaName(platformName string) string {
 }
 
 var nebiusPlatformArchitectures = map[string]v1.Architecture{
+	"gpu-gb300":      v1.ArchitectureARM64,
 	"gpu-b300-sxm":   v1.ArchitectureX86_64,
 	"gpu-b200-sxm":   v1.ArchitectureX86_64,
 	"gpu-b200-sxm-a": v1.ArchitectureX86_64,
