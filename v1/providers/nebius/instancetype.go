@@ -436,6 +436,15 @@ func (c *NebiusClient) getGPUQuotaName(platformName string) string {
 	if strings.Contains(platformLower, "b200") {
 		return "compute.instance.gpu.b200"
 	}
+	if strings.Contains(platformLower, "gb300") {
+		return "compute.instance.gpu.gb300"
+	}
+	if strings.Contains(platformLower, "b300") {
+		return "compute.instance.gpu.b300"
+	}
+	if strings.Contains(platformLower, "rtx6000") {
+		return "compute.instance.gpu.rtx6000"
+	}
 
 	return ""
 }
