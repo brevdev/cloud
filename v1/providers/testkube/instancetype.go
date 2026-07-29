@@ -13,11 +13,13 @@ import (
 
 const (
 	DefaultImageID = "testkube-ubuntu-vm"
-	DefaultImage   = "ghcr.io/brevdev/cloud/testkube-ubuntu-vm:latest"
+	DefaultImage   = "ghcr.io/brevdev/cloud/testkube-ubuntu-vm:multiarch-v2"
+	ARM64ImageID   = "testkube-ubuntu-vm-arm64"
 
 	DefaultPriceCentsPerHour = 1
 
 	InstanceTypeOKCPU        = "test.ok.cpu"
+	InstanceTypeOKCPUARM64   = "test.ok.cpu.arm64"
 	InstanceTypeFailCapacity = "test.fail.capacity"
 	InstanceTypeFailQuota    = "test.fail.quota"
 	InstanceTypeFailBuild    = "test.fail.build" // TODO: trigger build failure, maybe with a process that monitors build?
@@ -29,23 +31,36 @@ type instanceTypeSpec struct {
 	instanceType cloudv1.InstanceType
 	imageID      string
 	image        string
+	nodeSelector map[string]string
 	serviceType  corev1.ServiceType
 }
 
 var allInstanceTypeSpecs = []instanceTypeSpec{
-	makeInstanceTypeSpec(InstanceTypeOKCPU),
-	makeInstanceTypeSpec(InstanceTypeFailCapacity),
-	makeInstanceTypeSpec(InstanceTypeFailQuota),
-	makeInstanceTypeSpec(InstanceTypeFailBuild),
+	makeInstanceTypeSpec(InstanceTypeOKCPU, cloudv1.ArchitectureX86_64, DefaultImageID),
+	makeInstanceTypeSpec(InstanceTypeOKCPUARM64, cloudv1.ArchitectureARM64, ARM64ImageID),
+	makeInstanceTypeSpec(InstanceTypeFailCapacity, cloudv1.ArchitectureX86_64, DefaultImageID),
+	makeInstanceTypeSpec(InstanceTypeFailQuota, cloudv1.ArchitectureX86_64, DefaultImageID),
+	makeInstanceTypeSpec(InstanceTypeFailBuild, cloudv1.ArchitectureX86_64, DefaultImageID),
 }
 
-func makeInstanceTypeSpec(instanceType string) instanceTypeSpec {
+func makeInstanceTypeSpec(
+	instanceType string,
+	architecture cloudv1.Architecture,
+	imageID string,
+) instanceTypeSpec {
 	estimatedDeployTime := 20 * time.Second
+	nodeArchitecture := string(architecture)
+	if architecture == cloudv1.ArchitectureX86_64 {
+		nodeArchitecture = "amd64"
+	}
 	return instanceTypeSpec{
-		instanceType: makeCPUInstanceType(instanceType, true, &estimatedDeployTime),
-		imageID:      DefaultImageID,
+		instanceType: makeCPUInstanceType(instanceType, architecture, true, &estimatedDeployTime),
+		imageID:      imageID,
 		image:        DefaultImage,
-		serviceType:  corev1.ServiceTypeLoadBalancer,
+		nodeSelector: map[string]string{
+			corev1.LabelArchStable: nodeArchitecture,
+		},
+		serviceType: corev1.ServiceTypeLoadBalancer,
 	}
 }
 
@@ -118,7 +133,12 @@ func (c *TestKubeClient) instanceTypeSpecToBrevInstanceType(spec instanceTypeSpe
 	return instanceType
 }
 
-func makeCPUInstanceType(instanceType string, available bool, estimatedDeployTime *time.Duration) cloudv1.InstanceType {
+func makeCPUInstanceType(
+	instanceType string,
+	architecture cloudv1.Architecture,
+	available bool,
+	estimatedDeployTime *time.Duration,
+) cloudv1.InstanceType {
 	basePrice, _ := currency.NewAmountFromInt64(DefaultPriceCentsPerHour, "USD")
 	it := cloudv1.InstanceType{
 		Type: instanceType,
@@ -139,7 +159,7 @@ func makeCPUInstanceType(instanceType string, available bool, estimatedDeployTim
 		DefaultCores:          2,
 		VCPU:                  2,
 		SupportedArchitectures: []cloudv1.Architecture{
-			cloudv1.ArchitectureX86_64,
+			architecture,
 		},
 		Stoppable:           false,
 		Rebootable:          false,

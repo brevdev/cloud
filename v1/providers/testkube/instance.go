@@ -133,6 +133,7 @@ func (c *TestKubeClient) createInstanceAsK8sResources(ctx context.Context, attrs
 			Spec: corev1.PodSpec{
 				RestartPolicy:                 corev1.RestartPolicyNever,
 				TerminationGracePeriodSeconds: int64Ptr(1),
+				NodeSelector:                  maps.Clone(instanceTypeSpec.nodeSelector),
 				Containers: []corev1.Container{
 					{
 						Name:            "vm",

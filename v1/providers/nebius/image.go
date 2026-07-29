@@ -197,7 +197,7 @@ const (
 	ArchitectureAArch64 = "aarch64"
 )
 
-// extractArchitecture extracts architecture information from image metadata.
+// extractArchitecture extracts architecture information from image metadata
 func extractArchitecture(image *compute.Image) string {
 	if image != nil && image.Spec != nil {
 		switch image.Spec.CpuArchitecture {

@@ -31,8 +31,8 @@ brew install minikube kubectl
 minikube start --driver=docker --profile testkube
 kubectl config use-context testkube
 
-docker build -t ghcr.io/brevdev/cloud/testkube-ubuntu-vm:latest ./v1/providers/testkube/images/ubuntu-vm
-minikube --profile testkube image load ghcr.io/brevdev/cloud/testkube-ubuntu-vm:latest
+docker build -t ghcr.io/brevdev/cloud/testkube-ubuntu-vm:multiarch-v2 ./v1/providers/testkube/images/ubuntu-vm
+minikube --profile testkube image load ghcr.io/brevdev/cloud/testkube-ubuntu-vm:multiarch-v2
 kubectl create namespace testkube
 
 # In another terminal, keep this running while validation runs.
