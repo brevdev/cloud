@@ -22,6 +22,7 @@ require (
 	github.com/sfcompute/nodes-go v0.1.0-alpha.4
 	github.com/sfcompute/sfc-go v0.1.0-preview.3
 	github.com/stretchr/testify v1.11.1
+	github.com/verda-cloud/verdacloud-sdk-go v1.4.2
 	golang.org/x/crypto v0.52.0
 	golang.org/x/text v0.37.0
 	google.golang.org/grpc v1.79.3
