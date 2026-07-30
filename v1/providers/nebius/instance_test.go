@@ -212,10 +212,12 @@ func TestGetGPUMemory(t *testing.T) {
 			gpuType:     "B200",
 			expectedGiB: 192,
 		},
+		{gpuType: "GB200", expectedGiB: 192},
 		{
 			gpuType:     "B300",
 			expectedGiB: 270,
 		},
+		{gpuType: "GB300", expectedGiB: 270},
 		{
 			gpuType:     "RTX6000",
 			expectedGiB: 96,
@@ -285,11 +287,13 @@ func TestExtractGPUTypeAndName(t *testing.T) {
 			expectedType: "B200",
 			expectedName: "B200",
 		},
+		{platformName: "gpu-gb200", expectedType: "GB200", expectedName: "GB200"},
 		{
 			platformName: "gpu-b300-sxm",
 			expectedType: "B300",
 			expectedName: "B300",
 		},
+		{platformName: "gpu-gb300", expectedType: "GB300", expectedName: "GB300"},
 		{
 			platformName: "gpu-rtx6000",
 			expectedType: "RTX6000",
@@ -314,6 +318,22 @@ func TestExtractGPUTypeAndName(t *testing.T) {
 			// Ensure name does not contain manufacturer prefix
 			assert.NotContains(t, gpuName, "NVIDIA",
 				"GPU name should not contain 'NVIDIA' prefix - use GPU.Manufacturer field instead")
+		})
+	}
+}
+
+func TestGetGPUQuotaName(t *testing.T) {
+	client := &NebiusClient{}
+	tests := map[string]string{
+		"gpu-gb200":    "compute.instance.gpu.gb200",
+		"gpu-gb300":    "compute.instance.gpu.gb300",
+		"gpu-b300-sxm": "compute.instance.gpu.b300",
+		"gpu-rtx6000":  "compute.instance.gpu.rtx6000",
+	}
+
+	for platformName, expected := range tests {
+		t.Run(platformName, func(t *testing.T) {
+			assert.Equal(t, expected, client.getGPUQuotaName(platformName))
 		})
 	}
 }

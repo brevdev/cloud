@@ -13,6 +13,7 @@ func TestNebiusPlatformArchitecture(t *testing.T) {
 
 	require.Equal(t, cloudv1.ArchitectureX86_64, nebiusPlatformArchitecture(" GPU-H100-SXM "))
 	require.Equal(t, cloudv1.ArchitectureX86_64, nebiusPlatformArchitecture("cpu-d3"))
+	require.Equal(t, cloudv1.ArchitectureARM64, nebiusPlatformArchitecture("gpu-gb200"))
 	require.Equal(t, cloudv1.ArchitectureARM64, nebiusPlatformArchitecture("gpu-gb300"))
 	require.Equal(t, cloudv1.ArchitectureUnknown, nebiusPlatformArchitecture("future-platform"))
 }

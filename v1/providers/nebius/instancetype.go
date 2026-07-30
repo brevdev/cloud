@@ -416,8 +416,11 @@ func (c *NebiusClient) getGPUQuotaName(platformName string) string {
 	// Nebius GPU quota names follow pattern: "compute.instance.gpu.{type}"
 	// Examples: "compute.instance.gpu.h100", "compute.instance.gpu.h200", "compute.instance.gpu.l40s"
 
-	platformLower := strings.ToLower(platformName)
+	if gpuType := parseBlackwellGPUType(platformName); gpuType != "" {
+		return "compute.instance.gpu." + strings.ToLower(gpuType)
+	}
 
+	platformLower := strings.ToLower(platformName)
 	if strings.Contains(platformLower, "h100") {
 		return "compute.instance.gpu.h100"
 	}
@@ -433,14 +436,15 @@ func (c *NebiusClient) getGPUQuotaName(platformName string) string {
 	if strings.Contains(platformLower, "v100") {
 		return "compute.instance.gpu.v100"
 	}
-	if strings.Contains(platformLower, "b200") {
-		return "compute.instance.gpu.b200"
+	if strings.Contains(platformLower, "rtx6000") {
+		return "compute.instance.gpu.rtx6000"
 	}
 
 	return ""
 }
 
 var nebiusPlatformArchitectures = map[string]v1.Architecture{
+	"gpu-gb200":      v1.ArchitectureARM64,
 	"gpu-gb300":      v1.ArchitectureARM64,
 	"gpu-b300-sxm":   v1.ArchitectureX86_64,
 	"gpu-b200-sxm":   v1.ArchitectureX86_64,
@@ -466,10 +470,14 @@ func nebiusPlatformArchitecture(platformName string) v1.Architecture {
 func (c *NebiusClient) isPlatformSupported(platformName string) bool {
 	platformLower := strings.ToLower(platformName)
 
+	if parseBlackwellGPUType(platformName) != "" {
+		return true
+	}
+
 	// For GPU platforms: only accept known GPU types
 	// Check for specific GPU model names (with or without "gpu-" prefix)
 	knownGPUTypes := []string{
-		"h100", "h200", "l40s", "a100", "v100", "a10", "t4", "l4", "b200", "b300", "rtx6000",
+		"h100", "h200", "l40s", "a100", "v100", "a10", "t4", "l4", "rtx6000",
 	}
 	for _, gpuType := range knownGPUTypes {
 		if strings.Contains(platformLower, gpuType) {
@@ -560,6 +568,10 @@ func supportsAllowedArchitecture(instanceType v1.InstanceType, filter *v1.Archit
 // Note: Returns model name only (e.g., "H100"), not full name with manufacturer
 // Manufacturer info is stored separately in GPU.Manufacturer field
 func extractGPUTypeAndName(platformName string) (string, string) {
+	if gpuType := parseBlackwellGPUType(platformName); gpuType != "" {
+		return gpuType, gpuType
+	}
+
 	platformLower := strings.ToLower(platformName)
 
 	if strings.Contains(platformLower, "h100") {
@@ -577,17 +589,30 @@ func extractGPUTypeAndName(platformName string) (string, string) {
 	if strings.Contains(platformLower, "v100") {
 		return "V100", "V100"
 	}
-	if strings.Contains(platformLower, "b200") {
-		return "B200", "B200"
-	}
-	if strings.Contains(platformLower, "b300") {
-		return "B300", "B300"
-	}
 	if strings.Contains(platformLower, "rtx6000") {
 		return "RTX6000", "RTX6000"
 	}
 
 	return "GPU", "GPU" // Generic fallback
+}
+
+func parseBlackwellGPUType(platformName string) string {
+	platformLower := strings.ToLower(platformName)
+
+	// Keep Grace Blackwell variants before their matching B-series variants:
+	// "gb300" contains "b300", and "gb200" contains "b200".
+	switch {
+	case strings.Contains(platformLower, "gb300"):
+		return "GB300"
+	case strings.Contains(platformLower, "gb200"):
+		return "GB200"
+	case strings.Contains(platformLower, "b300"):
+		return "B300"
+	case strings.Contains(platformLower, "b200"):
+		return "B200"
+	default:
+		return ""
+	}
 }
 
 // getGPUMemory returns the VRAM for a given GPU type in GiB
@@ -603,7 +628,9 @@ func getGPUMemory(gpuType string) units.Base2Bytes {
 		"T4":      16,  // 16 GiB VRAM
 		"L4":      24,  // 24 GiB VRAM
 		"B200":    192, // 192 GiB VRAM
+		"GB200":   192, // 192 GiB VRAM
 		"B300":    270, // 270 GiB VRAM
+		"GB300":   270, // 270 GiB VRAM
 		"RTX6000": 96,  // 96 GiB VRAM
 	}
 
