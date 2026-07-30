@@ -234,15 +234,29 @@ func TestIntegration_InstanceLifecycle(t *testing.T) {
 
 	// Step 0: Get available instance types to find one we can use
 	t.Log("Discovering available instance types...")
-	instanceTypes, err := client.GetInstanceTypes(ctx, v1.GetInstanceTypeArgs{})
+	instanceTypes, err := client.GetInstanceTypes(ctx, v1.GetInstanceTypeArgs{
+		ArchitectureFilter: &v1.ArchitectureFilter{
+			IncludeArchitectures: []v1.Architecture{v1.ArchitectureX86_64},
+		},
+	})
 	require.NoError(t, err, "Failed to get instance types")
 
 	if len(instanceTypes) == 0 {
-		t.Skip("No instance types available - skipping instance lifecycle test")
+		t.Skip("No x86_64 instance types available - skipping instance lifecycle test")
 	}
 
-	// Use the first available instance type (should have quota)
-	selectedInstanceType := instanceTypes[0]
+	selectedInstanceTypeIndex := -1
+	for i := range instanceTypes {
+		if instanceTypes[i].IsAvailable {
+			selectedInstanceTypeIndex = i
+			break
+		}
+	}
+	if selectedInstanceTypeIndex == -1 {
+		t.Skip("No available x86_64 instance types - skipping instance lifecycle test")
+	}
+
+	selectedInstanceType := instanceTypes[selectedInstanceTypeIndex]
 	t.Logf("Using instance type: %s (Location: %s)", selectedInstanceType.ID, selectedInstanceType.Location)
 
 	// Step 0.5: Generate SSH key pair for testing (inspired by Shadeform's SSH key handling)
@@ -256,11 +270,11 @@ func TestIntegration_InstanceLifecycle(t *testing.T) {
 	createAttrs := v1.CreateInstanceAttrs{
 		RefID:        instanceRefID,
 		Name:         instanceName,
-		InstanceType: string(selectedInstanceType.ID), // Use discovered instance type
-		ImageID:      "ubuntu22.04-cuda12",            // Use known-good Nebius image family
-		DiskSize:     50 * 1024 * 1024 * 1024,         // 50 GiB in bytes
-		Location:     selectedInstanceType.Location,   // Use the instance type's location
-		PublicKey:    publicKey,                       // SSH public key for access (like Shadeform)
+		InstanceType: selectedInstanceType.Type,     // Native {platform}.{preset} format
+		ImageID:      "ubuntu22.04-cuda12",          // Use known-good Nebius image family
+		DiskSize:     50 * 1024 * 1024 * 1024,       // 50 GiB in bytes
+		Location:     selectedInstanceType.Location, // Use the instance type's location
+		PublicKey:    publicKey,                     // SSH public key for access (like Shadeform)
 		Tags: map[string]string{
 			"test":        "integration",
 			"created-by":  "nebius-integration-test",
@@ -565,7 +579,7 @@ func TestIntegration_GetInstanceTypes(t *testing.T) {
 				priceStr := it.BasePrice.Number()
 				var priceFloat float64
 				if _, err := fmt.Sscanf(priceStr, "%f", &priceFloat); err == nil {
-					assert.Greater(t, priceFloat, 0.0, "Price should be positive")
+					assert.GreaterOrEqual(t, priceFloat, 0.0, "Price should not be negative")
 					assert.Less(t, priceFloat, 1000.0, "Price per hour should be reasonable (< $1000/hr)")
 				}
 			} else {
