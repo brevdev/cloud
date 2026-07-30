@@ -84,7 +84,7 @@ func verdaInstanceTypeToInstanceType(verdaType verdago.InstanceTypeInfo, locatio
 		Location:               location,
 		Memory:                 memory,
 		MemoryBytes:            memoryBytes,
-		VCPU:                   int32(verdaType.CPU.NumberOfCores),
+		VCPU:                   int32(verdaType.CPU.NumberOfCores), //nolint:gosec // ok
 		SupportedArchitectures: []v1.Architecture{verdaArchitecture(verdaType.Model)},
 		SupportedStorage:       storageDescriptionToStorage(verdaType.Storage.Description),
 		ElasticRootVolume:      true,
@@ -103,7 +103,7 @@ func verdaInstanceTypeToInstanceType(verdaType verdago.InstanceTypeInfo, locatio
 		gpuMemory, gpuMemoryBytes := byteSizes(int64(verdaType.GPUMemory.SizeInGigabytes), v1.Gigabyte)
 		gpuModel := strings.ToUpper(strings.TrimSpace(verdaType.Model))
 		instanceType.SupportedGPUs = []v1.GPU{{
-			Count:          int32(verdaType.GPU.NumberOfGPUs),
+			Count:          int32(verdaType.GPU.NumberOfGPUs), //nolint:gosec // ok
 			Memory:         gpuMemory,
 			MemoryBytes:    gpuMemoryBytes,
 			NetworkDetails: verdaType.P2P,
