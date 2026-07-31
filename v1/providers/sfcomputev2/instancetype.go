@@ -44,7 +44,7 @@ var h100InstanceTypeMetadata = func() sfcInstanceTypeMetadata {
 	m := sfcInstanceTypeMetadata{
 		diskBytes:       v1.NewBytes(1500, v1.Gigabyte),
 		memoryBytes:     v1.NewBytes(960, v1.Gigabyte),
-		gpuVRAM:         v1.NewBytes(80, v1.Gigabyte),
+		gpuVRAM:         v1.NewBytes(80, v1.Gibibyte),
 		vcpu:            sfcVCPU,
 		gpuCount:        sfcGPUCount,
 		gpuManufacturer: v1.ManufacturerNVIDIA,
