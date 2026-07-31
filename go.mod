@@ -20,7 +20,6 @@ require (
 	github.com/nebius/gosdk v0.2.22
 	github.com/pkg/errors v0.9.1
 	github.com/sfcompute/nodes-go v0.1.0-alpha.4
-	github.com/sfcompute/sfc-go v0.1.0-preview.3
 	github.com/stretchr/testify v1.11.1
 	github.com/verda-cloud/verdacloud-sdk-go v1.4.2
 	golang.org/x/crypto v0.52.0
@@ -85,7 +84,6 @@ require (
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
-	github.com/spyzhov/ajson v0.8.0 // indirect
 	github.com/tidwall/gjson v1.18.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect

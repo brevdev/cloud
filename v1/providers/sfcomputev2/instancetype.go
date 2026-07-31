@@ -10,8 +10,6 @@ import (
 	"github.com/bojanz/currency"
 	"github.com/brevdev/cloud/internal/errors"
 	v1 "github.com/brevdev/cloud/v1"
-	"github.com/sfcompute/sfc-go/models/components"
-	"github.com/sfcompute/sfc-go/models/operations"
 )
 
 const (
@@ -140,38 +138,34 @@ func (c *SFCClientV2) GetInstanceTypes(ctx context.Context, args v1.GetInstanceT
 func (c *SFCClientV2) skuFreeCapacity(ctx context.Context) (map[string]int, error) {
 	poolID := c.GetDefaultPoolResourcePath()
 
-	poolResp, err := c.client.Pools.Fetch(ctx, poolID, nil)
+	poolResp, err := c.client.getPool(ctx, poolID)
 	if err != nil {
 		return nil, errors.WrapAndTrace(err)
 	}
-	if poolResp.PoolResponse == nil {
+	if poolResp == nil {
 		return map[string]int{}, nil
 	}
 
 	now := time.Now().Unix()
 	free := make(map[string]int)
-	for skuID, schedule := range poolResp.PoolResponse.AllocationSchedule.ByInstanceSku {
+	for skuID, schedule := range poolResp.AllocationSchedule.ByInstanceSKU {
 		free[skuID] = currentScheduleAllocation(schedule, now)
 	}
 
-	resp, err := c.client.Instances.List(ctx, operations.ListInstancesRequest{
-		Workspace: c.GetWorkspaceResourcePath(),
-		Pool:      []string{poolID},
-	})
+	resp, err := c.client.listInstances(ctx, c.GetWorkspaceResourcePath(), poolID)
 	if err != nil {
 		return nil, errors.WrapAndTrace(err)
 	}
-	if resp.ListInstancesResponse != nil {
-		for _, inst := range resp.ListInstancesResponse.Data {
+	if resp != nil {
+		for _, inst := range resp.Data {
 			// Every non-terminated instance occupies a slot on its SKU, including failed ones.
-			if inst.Status == components.InstanceStatusTerminated {
+			if inst.Status == instanceStatusTerminated {
 				continue
 			}
-			sku, ok := inst.GetInstanceSku().Get()
-			if !ok || sku == nil {
+			if inst.InstanceSKU == nil {
 				continue
 			}
-			free[sku.ID]--
+			free[inst.InstanceSKU.ID]--
 		}
 	}
 
@@ -184,13 +178,13 @@ func (c *SFCClientV2) skuFreeCapacity(ctx context.Context) (map[string]int, erro
 // currentScheduleAllocation returns the NodeCount from the schedule entry whose
 // [StartAt, EndAt) range is currently in effect. EndAt is null only on the final, unbounded
 // entry. Returns 0 if no entry is in effect.
-func currentScheduleAllocation(schedule []components.ScheduleEntry, now int64) int {
+func currentScheduleAllocation(schedule []scheduleEntry, now int64) int {
 	for _, entry := range schedule {
 		if entry.StartAt > now {
 			continue
 		}
 		// A set, non-null EndAt bounds the range; the final entry's null EndAt is unbounded.
-		if endAt, ok := entry.EndAt.Get(); ok && endAt != nil && now >= *endAt {
+		if entry.EndAt != nil && now >= *entry.EndAt {
 			continue
 		}
 		return entry.NodeCount
