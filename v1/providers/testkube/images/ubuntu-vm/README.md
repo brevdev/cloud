@@ -1,9 +1,10 @@
 # Testkube Ubuntu VM Image
 
-This image backs the `test.ok.cpu` testkube instance type:
+This image backs the architecture-specific TestKube instance types:
 
 ```text
-ghcr.io/brevdev/cloud/testkube-ubuntu-vm:latest
+test.ok.cpu       -> ghcr.io/brevdev/cloud/testkube-ubuntu-vm:multiarch-v2
+test.ok.cpu.arm64 -> ghcr.io/brevdev/cloud/testkube-ubuntu-vm:multiarch-v2
 ```
 
 ## Publish to GHCR
@@ -16,22 +17,12 @@ gh auth refresh -h github.com -s write:packages
 gh auth token | docker login ghcr.io -u "$(gh api user --jq .login)" --password-stdin
 ```
 
-Build and push the image from the repository root. For EKS, publish an amd64 image because `test.ok.cpu` advertises `x86_64`:
-
-```bash
-docker buildx build \
-  --platform linux/amd64 \
-  -t ghcr.io/brevdev/cloud/testkube-ubuntu-vm:latest \
-  --push \
-  ./v1/providers/testkube/images/ubuntu-vm
-```
-
-If you need both local Apple Silicon clusters and amd64 EKS nodes to pull the same tag, publish a multi-arch manifest:
+Build and push the image from the repository root. For EKS, publish the versioned multi-arch manifest used by both `test.ok.cpu` and `test.ok.cpu.arm64`:
 
 ```bash
 docker buildx build \
   --platform linux/amd64,linux/arm64 \
-  -t ghcr.io/brevdev/cloud/testkube-ubuntu-vm:latest \
+  -t ghcr.io/brevdev/cloud/testkube-ubuntu-vm:multiarch-v2 \
   --push \
   ./v1/providers/testkube/images/ubuntu-vm
 ```
@@ -50,6 +41,6 @@ For local minikube or kind validation where the image is loaded directly into th
 
 ```bash
 docker build \
-  -t ghcr.io/brevdev/cloud/testkube-ubuntu-vm:latest \
+  -t ghcr.io/brevdev/cloud/testkube-ubuntu-vm:multiarch-v2 \
   ./v1/providers/testkube/images/ubuntu-vm
 ```

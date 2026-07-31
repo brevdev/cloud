@@ -176,6 +176,66 @@ func TestInstanceUsesBakedImageSpec(t *testing.T) {
 	}
 }
 
+func TestARM64InstanceUsesVersionedMultiarchImage(t *testing.T) {
+	ctx := context.Background()
+	client := newTestClient(t)
+
+	instance, err := client.CreateInstance(ctx, cloudv1.CreateInstanceAttrs{
+		RefID:        "arm64-image-spec",
+		Name:         "arm64 image spec",
+		InstanceType: InstanceTypeOKCPUARM64,
+	})
+	require.NoError(t, err)
+	require.Equal(t, "testkube-ubuntu-vm-arm64", instance.ImageID)
+
+	pod, err := client.k8sClient.CoreV1().Pods(client.namespace).Get(ctx, string(instance.CloudID), metav1.GetOptions{})
+	require.NoError(t, err)
+	require.Equal(t, "ghcr.io/brevdev/cloud/testkube-ubuntu-vm:multiarch-v2", pod.Spec.Containers[0].Image)
+}
+
+func TestInstanceUsesArchitectureNodeSelector(t *testing.T) {
+	ctx := context.Background()
+
+	tests := []struct {
+		name             string
+		instanceType     string
+		nodeArchitecture string
+	}{
+		{
+			name:             "x86_64",
+			instanceType:     InstanceTypeOKCPU,
+			nodeArchitecture: "amd64",
+		},
+		{
+			name:             "arm64",
+			instanceType:     InstanceTypeOKCPUARM64,
+			nodeArchitecture: "arm64",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client := newTestClient(t)
+			instance, err := client.CreateInstance(ctx, cloudv1.CreateInstanceAttrs{
+				RefID:        "node-selector-" + tt.name,
+				Name:         "node selector " + tt.name,
+				InstanceType: tt.instanceType,
+			})
+			require.NoError(t, err)
+
+			pod, err := client.k8sClient.CoreV1().Pods(client.namespace).Get(
+				ctx,
+				string(instance.CloudID),
+				metav1.GetOptions{},
+			)
+			require.NoError(t, err)
+			require.Equal(t, map[string]string{
+				corev1.LabelArchStable: tt.nodeArchitecture,
+			}, pod.Spec.NodeSelector)
+		})
+	}
+}
+
 func TestPopulateNetworkLoadBalancer(t *testing.T) {
 	instance := &cloudv1.Instance{}
 	populateNetwork(&corev1.Service{

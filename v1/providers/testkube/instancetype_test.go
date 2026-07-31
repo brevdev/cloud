@@ -14,7 +14,7 @@ func TestGetInstanceTypes(t *testing.T) {
 
 	instanceTypes, err := client.GetInstanceTypes(context.Background(), cloudv1.GetInstanceTypeArgs{})
 	require.NoError(t, err)
-	require.Len(t, instanceTypes, 4)
+	require.Len(t, instanceTypes, 5)
 
 	instanceTypeByName := map[string]cloudv1.InstanceType{}
 	for _, instanceType := range instanceTypes {
@@ -26,6 +26,7 @@ func TestGetInstanceTypes(t *testing.T) {
 		InstanceTypeFailCapacity,
 		InstanceTypeFailQuota,
 		InstanceTypeFailBuild,
+		InstanceTypeOKCPUARM64,
 	} {
 		instanceType, ok := instanceTypeByName[expected]
 		require.True(t, ok, "missing instance type %s", expected)
@@ -40,6 +41,49 @@ func TestGetInstanceTypes(t *testing.T) {
 	}
 }
 
+func TestGetInstanceTypesFiltersByArchitecture(t *testing.T) {
+	client := newTestClient(t)
+
+	tests := []struct {
+		name         string
+		architecture cloudv1.Architecture
+		expected     []string
+	}{
+		{
+			name:         "x86_64",
+			architecture: cloudv1.ArchitectureX86_64,
+			expected: []string{
+				InstanceTypeOKCPU,
+				InstanceTypeFailCapacity,
+				InstanceTypeFailQuota,
+				InstanceTypeFailBuild,
+			},
+		},
+		{
+			name:         "arm64",
+			architecture: cloudv1.ArchitectureARM64,
+			expected:     []string{InstanceTypeOKCPUARM64},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			instanceTypes, err := client.GetInstanceTypes(context.Background(), cloudv1.GetInstanceTypeArgs{
+				ArchitectureFilter: &cloudv1.ArchitectureFilter{
+					IncludeArchitectures: []cloudv1.Architecture{tt.architecture},
+				},
+			})
+			require.NoError(t, err)
+
+			actual := make([]string, 0, len(instanceTypes))
+			for _, instanceType := range instanceTypes {
+				actual = append(actual, instanceType.Type)
+			}
+			require.ElementsMatch(t, tt.expected, actual)
+		})
+	}
+}
+
 func TestGetInstanceTypesWithGPUManufacturerFilterIncludesCPU(t *testing.T) {
 	client := newTestClient(t)
 
@@ -49,7 +93,7 @@ func TestGetInstanceTypesWithGPUManufacturerFilterIncludesCPU(t *testing.T) {
 		},
 	})
 	require.NoError(t, err)
-	require.Len(t, instanceTypes, 4)
+	require.Len(t, instanceTypes, 5)
 }
 
 func TestCapabilitiesDoNotAdvertiseImages(t *testing.T) {
