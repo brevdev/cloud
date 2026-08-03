@@ -12,6 +12,7 @@ import (
 	"github.com/alecthomas/units"
 	"github.com/brevdev/cloud/internal/errors"
 	v1 "github.com/brevdev/cloud/v1"
+	"github.com/sfcompute/sfc-go/models/apierrors"
 	"github.com/sfcompute/sfc-go/models/components"
 	"github.com/sfcompute/sfc-go/models/operations"
 	"github.com/sfcompute/sfc-go/optionalnullable"
@@ -183,7 +184,7 @@ func (c *SFCClientV2) TerminateInstance(ctx context.Context, id v1.CloudProvider
 
 	_, err := c.client.Instances.TerminateInstance(ctx, string(id))
 	if err != nil {
-		return errors.WrapAndTrace(err)
+		return normalizeTerminateInstanceError(err)
 	}
 
 	c.logger.Debug(ctx, "sfcv2: TerminateInstance end",
@@ -191,6 +192,16 @@ func (c *SFCClientV2) TerminateInstance(ctx context.Context, id v1.CloudProvider
 	)
 
 	return nil
+}
+
+func normalizeTerminateInstanceError(err error) error {
+	var notFoundErr *apierrors.NotFoundError
+	if errors.As(err, &notFoundErr) {
+		// Termination is idempotent: a missing instance is already in the
+		// requested terminal state. Do not retain the provider response body.
+		return errors.WrapAndTrace(v1.ErrInstanceNotFound)
+	}
+	return errors.WrapAndTrace(err)
 }
 
 func (c *SFCClientV2) getSSHInfo(ctx context.Context, id string, status components.InstanceStatus) (*components.InstanceSSHInfo, error) {
