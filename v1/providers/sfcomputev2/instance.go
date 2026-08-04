@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"maps"
+	"net/http"
 	"regexp"
 	"slices"
 	"time"
@@ -176,7 +177,7 @@ func (c *SFCClientV2) TerminateInstance(ctx context.Context, id v1.CloudProvider
 	)
 
 	if err := c.client.terminateInstance(ctx, string(id)); err != nil {
-		return errors.WrapAndTrace(err)
+		return normalizeTerminateInstanceError(err)
 	}
 
 	c.logger.Debug(ctx, "sfcv2: TerminateInstance end",
@@ -184,6 +185,16 @@ func (c *SFCClientV2) TerminateInstance(ctx context.Context, id v1.CloudProvider
 	)
 
 	return nil
+}
+
+func normalizeTerminateInstanceError(err error) error {
+	var responseErr *apiError
+	if errors.As(err, &responseErr) && responseErr.statusCode == http.StatusNotFound {
+		// Termination is idempotent: a missing instance is already in the
+		// requested terminal state. Do not retain the provider response body.
+		return errors.WrapAndTrace(v1.ErrInstanceNotFound)
+	}
+	return errors.WrapAndTrace(err)
 }
 
 func (c *SFCClientV2) getSSHInfo(ctx context.Context, id string, status instanceStatus) (*instanceSSHInfo, error) {
