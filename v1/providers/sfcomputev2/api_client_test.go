@@ -24,14 +24,25 @@ func TestAPIClientUsesBrevContract(t *testing.T) {
 			require.Equal(t, "sfc:image:sfcompute:public:ubuntu", body["image"])
 			require.Equal(t, "is_sku", body["instance_sku"])
 			require.Equal(t, "cloud-init", body["cloud_init_user_data"])
-			require.Equal(t, "brev-ref", body["tags"].(map[string]any)[tagKeyRefID])
+			tags, ok := body["tags"].(map[string]any)
+			require.True(t, ok)
+			require.Equal(t, "brev-ref", tags[tagKeyRefID])
 			require.Equal(t, false, body["_preview_enable_infiniband"])
 			writeJSON(t, writer, instanceResponse{ID: "inst_created", Status: instanceStatusAwaitingAllocation})
 		case "GET /integrations/brev/v1/instances":
 			require.Equal(t, "sfc:workspace:account:workspace", request.URL.Query().Get("workspace"))
 			require.Equal(t, []string{"sfc:pool:account:workspace:default"}, request.URL.Query()["pool"])
-			require.Equal(t, "50", request.URL.Query().Get("limit"))
-			writeJSON(t, writer, listInstancesResponse{Data: []instanceResponse{{ID: "inst_listed"}}})
+			require.Equal(t, "200", request.URL.Query().Get("limit"))
+			if request.URL.Query().Get("starting_after") == "" {
+				writeJSON(t, writer, listInstancesResponse{
+					Cursor:  pointerTo("next-page"),
+					HasMore: true,
+					Data:    []instanceResponse{{ID: "inst_listed_1"}},
+				})
+				return
+			}
+			require.Equal(t, "next-page", request.URL.Query().Get("starting_after"))
+			writeJSON(t, writer, listInstancesResponse{Data: []instanceResponse{{ID: "inst_listed_2"}}})
 		case "GET /integrations/brev/v1/instances/inst_test":
 			writeJSON(t, writer, instanceResponse{ID: "inst_test", Status: instanceStatusRunning})
 		case "GET /integrations/brev/v1/instances/inst_test/ssh":
@@ -69,7 +80,7 @@ func TestAPIClientUsesBrevContract(t *testing.T) {
 		"sfc:pool:account:workspace:default",
 	)
 	require.NoError(t, err)
-	require.Equal(t, "inst_listed", listed.Data[0].ID)
+	require.Equal(t, []instanceResponse{{ID: "inst_listed_1"}, {ID: "inst_listed_2"}}, listed.Data)
 
 	instance, err := client.getInstance(ctx, "inst_test")
 	require.NoError(t, err)

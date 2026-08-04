@@ -56,7 +56,9 @@ type instanceResponse struct {
 }
 
 type listInstancesResponse struct {
-	Data []instanceResponse `json:"data"`
+	Cursor  *string            `json:"cursor,omitempty"`
+	HasMore bool               `json:"has_more"`
+	Data    []instanceResponse `json:"data"`
 }
 
 type instanceSSHInfo struct {
@@ -126,12 +128,28 @@ func (c *apiClient) getInstance(ctx context.Context, id string) (*instanceRespon
 }
 
 func (c *apiClient) listInstances(ctx context.Context, workspace, pool string) (*listInstancesResponse, error) {
-	query := url.Values{"workspace": {workspace}, "pool": {pool}, "limit": {"50"}}
+	query := url.Values{"workspace": {workspace}, "pool": {pool}, "limit": {"200"}}
 	var response listInstancesResponse
-	if err := c.do(ctx, http.MethodGet, "/instances", query, nil, &response); err != nil {
-		return nil, err
+	for {
+		var page listInstancesResponse
+		if err := c.do(ctx, http.MethodGet, "/instances", query, nil, &page); err != nil {
+			return nil, err
+		}
+		response.Data = append(response.Data, page.Data...)
+		response.Cursor = page.Cursor
+		response.HasMore = page.HasMore
+
+		if !page.HasMore {
+			return &response, nil
+		}
+		if page.Cursor == nil || *page.Cursor == "" {
+			return nil, fmt.Errorf("list instances response has_more without a cursor")
+		}
+		if query.Get("starting_after") == *page.Cursor {
+			return nil, fmt.Errorf("list instances response repeated cursor %q", *page.Cursor)
+		}
+		query.Set("starting_after", *page.Cursor)
 	}
-	return &response, nil
 }
 
 func (c *apiClient) terminateInstance(ctx context.Context, id string) error {
@@ -192,7 +210,7 @@ func (c *apiClient) do(
 	if err != nil {
 		return err
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 
 	responseBytes, err := io.ReadAll(response.Body)
 	if err != nil {
