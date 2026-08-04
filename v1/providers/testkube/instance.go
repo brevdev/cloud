@@ -75,6 +75,7 @@ func (c *TestKubeClient) CreateInstance(ctx context.Context, attrs cloudv1.Creat
 	return instance, nil
 }
 
+//nolint:funlen // Keep service and pod creation together so partial-resource cleanup remains explicit.
 func (c *TestKubeClient) createInstanceAsK8sResources(ctx context.Context, attrs cloudv1.CreateInstanceAttrs, instanceTypeSpec instanceTypeSpec) (*cloudv1.Instance, error) {
 	// Create a "cloud ID" to emulate a provider-provided instance ID.
 	cloudID := makeCloudID(c.refID, attrs.RefID)
@@ -134,6 +135,7 @@ func (c *TestKubeClient) createInstanceAsK8sResources(ctx context.Context, attrs
 				RestartPolicy:                 corev1.RestartPolicyNever,
 				TerminationGracePeriodSeconds: int64Ptr(1),
 				NodeSelector:                  maps.Clone(instanceTypeSpec.nodeSelector),
+				Tolerations:                   slices.Clone(instanceTypeSpec.tolerations),
 				Containers: []corev1.Container{
 					{
 						Name:            "vm",

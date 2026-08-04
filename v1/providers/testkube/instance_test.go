@@ -193,13 +193,14 @@ func TestARM64InstanceUsesVersionedMultiarchImage(t *testing.T) {
 	require.Equal(t, "ghcr.io/brevdev/cloud/testkube-ubuntu-vm:multiarch-v2", pod.Spec.Containers[0].Image)
 }
 
-func TestInstanceUsesArchitectureNodeSelector(t *testing.T) {
+func TestInstanceUsesArchitectureScheduling(t *testing.T) {
 	ctx := context.Background()
 
 	tests := []struct {
 		name             string
 		instanceType     string
 		nodeArchitecture string
+		tolerations      []corev1.Toleration
 	}{
 		{
 			name:             "x86_64",
@@ -210,6 +211,14 @@ func TestInstanceUsesArchitectureNodeSelector(t *testing.T) {
 			name:             "arm64",
 			instanceType:     InstanceTypeOKCPUARM64,
 			nodeArchitecture: "arm64",
+			tolerations: []corev1.Toleration{
+				{
+					Key:      testKubeComputeTaintKey,
+					Operator: corev1.TolerationOpEqual,
+					Value:    testKubeComputeTaintValue,
+					Effect:   corev1.TaintEffectNoSchedule,
+				},
+			},
 		},
 	}
 
@@ -232,6 +241,7 @@ func TestInstanceUsesArchitectureNodeSelector(t *testing.T) {
 			require.Equal(t, map[string]string{
 				corev1.LabelArchStable: tt.nodeArchitecture,
 			}, pod.Spec.NodeSelector)
+			require.Equal(t, tt.tolerations, pod.Spec.Tolerations)
 		})
 	}
 }

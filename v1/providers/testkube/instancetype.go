@@ -23,6 +23,10 @@ const (
 	InstanceTypeFailCapacity = "test.fail.capacity"
 	InstanceTypeFailQuota    = "test.fail.quota"
 	InstanceTypeFailBuild    = "test.fail.build" // TODO: trigger build failure, maybe with a process that monitors build?
+
+	// Must match the dedicated ARM node-group taint in brevdev/control-plane-infra.
+	testKubeComputeTaintKey   = "testkube.brev.dev/compute-layer"
+	testKubeComputeTaintValue = "true"
 )
 
 // instanceTypeSpec is used mainly as a tuple of instance type (from devplane) and service type (from k8s). When a request
@@ -32,6 +36,7 @@ type instanceTypeSpec struct {
 	imageID      string
 	image        string
 	nodeSelector map[string]string
+	tolerations  []corev1.Toleration
 	serviceType  corev1.ServiceType
 }
 
@@ -53,6 +58,17 @@ func makeInstanceTypeSpec(
 	if architecture == cloudv1.ArchitectureX86_64 {
 		nodeArchitecture = "amd64"
 	}
+	var tolerations []corev1.Toleration
+	if architecture == cloudv1.ArchitectureARM64 {
+		tolerations = []corev1.Toleration{
+			{
+				Key:      testKubeComputeTaintKey,
+				Operator: corev1.TolerationOpEqual,
+				Value:    testKubeComputeTaintValue,
+				Effect:   corev1.TaintEffectNoSchedule,
+			},
+		}
+	}
 	return instanceTypeSpec{
 		instanceType: makeCPUInstanceType(instanceType, architecture, true, &estimatedDeployTime),
 		imageID:      imageID,
@@ -60,6 +76,7 @@ func makeInstanceTypeSpec(
 		nodeSelector: map[string]string{
 			corev1.LabelArchStable: nodeArchitecture,
 		},
+		tolerations: tolerations,
 		serviceType: corev1.ServiceTypeLoadBalancer,
 	}
 }
