@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"maps"
+	"net/http"
 	"regexp"
 	"slices"
 	"time"
@@ -12,10 +13,6 @@ import (
 	"github.com/alecthomas/units"
 	"github.com/brevdev/cloud/internal/errors"
 	v1 "github.com/brevdev/cloud/v1"
-	"github.com/sfcompute/sfc-go/models/apierrors"
-	"github.com/sfcompute/sfc-go/models/components"
-	"github.com/sfcompute/sfc-go/models/operations"
-	"github.com/sfcompute/sfc-go/optionalnullable"
 )
 
 // SFC instance names must match `[a-zA-Z0-9][a-zA-Z0-9._-]{0,254}`: start with an
@@ -57,33 +54,33 @@ func (c *SFCClientV2) CreateInstance(ctx context.Context, attrs v1.CreateInstanc
 	}
 
 	cloudInit := sshKeyCloudInit(attrs.PublicKey)
-	req := components.CreateInstanceRequest{
+	req := createInstanceRequest{
 		Pool:              c.GetDefaultPoolResourcePath(),
 		Image:             c.GetDefaultImageResourcePath(),
-		InstanceSku:       sku,
+		InstanceSKU:       sku,
 		CloudInitUserData: &cloudInit,
-		Tags:              optionalnullable.From(&tags),
+		Tags:              tags,
 	}
 	// name is optional; sanitize the requested name to SFC's format and send it only if
 	// something valid remains. Otherwise omit it — identity is preserved in the tags above.
 	if name := sanitizeSFCName(attrs.Name); sfcNamePattern.MatchString(name) {
-		req.Name = optionalnullable.From(&name)
+		req.Name = &name
 	}
-	resp, err := c.client.Instances.Create(ctx, req)
+	resp, err := c.client.createInstance(ctx, req)
 	if err != nil {
 		return nil, errors.WrapAndTrace(err)
 	}
-	if resp.InstanceResponse == nil {
+	if resp == nil {
 		return nil, errors.WrapAndTrace(fmt.Errorf("no instance returned from create"))
 	}
 
-	instance, err := c.sfcInstanceToBrevInstance(resp.InstanceResponse, nil)
+	instance, err := c.sfcInstanceToBrevInstance(resp, nil)
 	if err != nil {
 		return nil, errors.WrapAndTrace(err)
 	}
 
 	c.logger.Debug(ctx, "sfcv2: CreateInstance end",
-		v1.LogField("instanceID", resp.InstanceResponse.ID),
+		v1.LogField("instanceID", resp.ID),
 		v1.LogField("instanceSku", sku),
 	)
 
@@ -100,27 +97,27 @@ func (c *SFCClientV2) GetInstance(ctx context.Context, id v1.CloudProviderInstan
 		v1.LogField("instanceID", id),
 	)
 
-	resp, err := c.client.Instances.Fetch(ctx, string(id))
+	resp, err := c.client.getInstance(ctx, string(id))
 	if err != nil {
 		return nil, errors.WrapAndTrace(err)
 	}
-	if resp.InstanceResponse == nil {
+	if resp == nil {
 		return nil, errors.WrapAndTrace(fmt.Errorf("instance %s not found", id))
 	}
 
-	sshInfo, err := c.getSSHInfo(ctx, string(id), resp.InstanceResponse.Status)
+	sshInfo, err := c.getSSHInfo(ctx, string(id), resp.Status)
 	if err != nil {
 		return nil, errors.WrapAndTrace(err)
 	}
 
-	instance, err := c.sfcInstanceToBrevInstance(resp.InstanceResponse, sshInfo)
+	instance, err := c.sfcInstanceToBrevInstance(resp, sshInfo)
 	if err != nil {
 		return nil, errors.WrapAndTrace(err)
 	}
 
 	c.logger.Debug(ctx, "sfcv2: GetInstance end",
 		v1.LogField("instanceID", id),
-		v1.LogField("status", resp.InstanceResponse.Status),
+		v1.LogField("status", resp.Status),
 	)
 
 	return instance, nil
@@ -132,19 +129,16 @@ func (c *SFCClientV2) ListInstances(ctx context.Context, args v1.ListInstancesAr
 	)
 
 	poolID := c.GetDefaultPoolResourcePath()
-	resp, err := c.client.Instances.List(ctx, operations.ListInstancesRequest{
-		Workspace: c.GetWorkspaceResourcePath(),
-		Pool:      []string{poolID},
-	})
+	resp, err := c.client.listInstances(ctx, c.GetWorkspaceResourcePath(), poolID)
 	if err != nil {
 		return nil, errors.WrapAndTrace(err)
 	}
-	if resp.ListInstancesResponse == nil {
+	if resp == nil {
 		return []v1.Instance{}, nil
 	}
 
 	var instances []v1.Instance
-	for _, inst := range resp.ListInstancesResponse.Data {
+	for _, inst := range resp.Data {
 		// Filter by instance IDs if specified.
 		if len(args.InstanceIDs) > 0 && !slices.Contains(args.InstanceIDs, v1.CloudProviderInstanceID(inst.ID)) {
 			continue
@@ -182,8 +176,7 @@ func (c *SFCClientV2) TerminateInstance(ctx context.Context, id v1.CloudProvider
 		v1.LogField("instanceID", id),
 	)
 
-	_, err := c.client.Instances.TerminateInstance(ctx, string(id))
-	if err != nil {
+	if err := c.client.terminateInstance(ctx, string(id)); err != nil {
 		return normalizeTerminateInstanceError(err)
 	}
 
@@ -195,8 +188,8 @@ func (c *SFCClientV2) TerminateInstance(ctx context.Context, id v1.CloudProvider
 }
 
 func normalizeTerminateInstanceError(err error) error {
-	var notFoundErr *apierrors.NotFoundError
-	if errors.As(err, &notFoundErr) {
+	var responseErr *apiError
+	if errors.As(err, &responseErr) && responseErr.statusCode == http.StatusNotFound {
 		// Termination is idempotent: a missing instance is already in the
 		// requested terminal state. Do not retain the provider response body.
 		return errors.WrapAndTrace(v1.ErrInstanceNotFound)
@@ -204,24 +197,24 @@ func normalizeTerminateInstanceError(err error) error {
 	return errors.WrapAndTrace(err)
 }
 
-func (c *SFCClientV2) getSSHInfo(ctx context.Context, id string, status components.InstanceStatus) (*components.InstanceSSHInfo, error) {
-	if status != components.InstanceStatusRunning {
+func (c *SFCClientV2) getSSHInfo(ctx context.Context, id string, status instanceStatus) (*instanceSSHInfo, error) {
+	if status != instanceStatusRunning {
 		return nil, nil
 	}
 
-	resp, err := c.client.Instances.GetSSHInfoForInstance(ctx, id)
+	resp, err := c.client.getSSHInfo(ctx, id)
 	if err != nil {
 		return nil, errors.WrapAndTrace(err)
 	}
-	if resp.InstanceSSHInfo == nil {
+	if resp == nil {
 		return nil, nil
 	}
 
-	return resp.InstanceSSHInfo, nil
+	return resp, nil
 }
 
-func (c *SFCClientV2) sfcInstanceToBrevInstance(inst *components.InstanceResponse, sshInfo *components.InstanceSSHInfo) (*v1.Instance, error) {
-	tags, _ := inst.GetTags().GetOrZero()
+func (c *SFCClientV2) sfcInstanceToBrevInstance(inst *instanceResponse, sshInfo *instanceSSHInfo) (*v1.Instance, error) {
+	tags := inst.Tags
 
 	cloudCredRefID := tags[tagKeyCloudCredRefID]
 	if cloudCredRefID == "" {
@@ -270,15 +263,15 @@ func (c *SFCClientV2) sfcInstanceToBrevInstance(inst *components.InstanceRespons
 	}, nil
 }
 
-func sfcStatusToLifecycleStatus(status components.InstanceStatus) v1.LifecycleStatus {
+func sfcStatusToLifecycleStatus(status instanceStatus) v1.LifecycleStatus {
 	switch status {
-	case components.InstanceStatusAwaitingAllocation:
+	case instanceStatusAwaitingAllocation:
 		return v1.LifecycleStatusPending
-	case components.InstanceStatusRunning:
+	case instanceStatusRunning:
 		return v1.LifecycleStatusRunning
-	case components.InstanceStatusTerminated:
+	case instanceStatusTerminated:
 		return v1.LifecycleStatusTerminated
-	case components.InstanceStatusFailed:
+	case instanceStatusFailed:
 		return v1.LifecycleStatusFailed
 	default:
 		return v1.LifecycleStatusPending

@@ -4,7 +4,6 @@ import (
 	"context"
 
 	v1 "github.com/brevdev/cloud/v1"
-	sfc "github.com/sfcompute/sfc-go"
 )
 
 const CloudProviderID = "sfcompute"
@@ -50,7 +49,7 @@ type SFCClientV2 struct {
 	organization string
 	workspace    string
 	location     string
-	client       *sfc.SDK
+	client       *apiClient
 	logger       v1.Logger
 }
 
@@ -70,7 +69,7 @@ func (c *SFCCredentialV2) MakeClientWithOptions(_ context.Context, location stri
 		organization: c.Organization,
 		workspace:    c.Workspace,
 		location:     location,
-		client:       sfc.New(sfc.WithSecurity(c.APIKey)),
+		client:       newAPIClient(c.APIKey),
 		logger:       &v1.NoopLogger{},
 	}
 
