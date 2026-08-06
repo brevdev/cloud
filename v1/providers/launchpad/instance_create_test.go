@@ -35,3 +35,51 @@ func TestLaunchpadClient_CreateInstance(t *testing.T) {
 
 	t.Logf("instance: %v", instance)
 }
+
+func Test_instanceTypeToLaunchpadExperience(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		info     instanceTypeInfo
+		expected string
+	}{
+		{
+			name:     "nebius uses the minimal experience",
+			info:     instanceTypeInfo{cloud: "nebius"},
+			expected: minimalExperienceID,
+		},
+		{
+			name:     "gh200 SXM uses the gh200 experience",
+			info:     instanceTypeInfo{cloud: dmzCloud, gpuName: "gh200", gpuNetworkDetails: "sxm", gpuCount: 1},
+			expected: brevGH200ExperienceID,
+		},
+		{
+			name:     "gh200 SXM selection is count-agnostic",
+			info:     instanceTypeInfo{cloud: dmzCloud, gpuName: "gh200", gpuNetworkDetails: "sxm", gpuCount: 8},
+			expected: brevGH200ExperienceID,
+		},
+		{
+			name:     "gh200 PCIe does not match the SXM-only gh200 experience",
+			info:     instanceTypeInfo{cloud: dmzCloud, gpuName: "gh200", gpuNetworkDetails: "pcie", gpuCount: 1},
+			expected: brevExperienceID,
+		},
+		{
+			name:     "non-gh200 GPU on SXM uses the default experience",
+			info:     instanceTypeInfo{cloud: dmzCloud, gpuName: "h100", gpuNetworkDetails: "sxm", gpuCount: 1},
+			expected: brevExperienceID,
+		},
+		{
+			name:     "gh200 SXM on a non-dmz cloud uses the default experience",
+			info:     instanceTypeInfo{cloud: "oci", gpuName: "gh200", gpuNetworkDetails: "sxm", gpuCount: 1},
+			expected: brevExperienceID,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			require.Equal(t, tt.expected, instanceTypeToLaunchpadExperience(tt.info))
+		})
+	}
+}
