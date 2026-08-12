@@ -3,6 +3,7 @@ package v1
 import (
 	"context"
 	"net"
+	"strings"
 
 	"github.com/brevdev/cloud/internal/collections"
 	"github.com/brevdev/cloud/internal/errors"
@@ -13,8 +14,9 @@ import (
 )
 
 const (
-	brevExperienceID    = "43123766-35ec-4eb4-a5ba-3f2945228445"
-	minimalExperienceID = "a5d93f56-bbdb-44db-a1ae-6b1ad7d3c6df"
+	brevExperienceID      = "43123766-35ec-4eb4-a5ba-3f2945228445"
+	minimalExperienceID   = "a5d93f56-bbdb-44db-a1ae-6b1ad7d3c6df"
+	brevGH200ExperienceID = "d12c37eb-270a-4471-be45-48e4d1fdb764"
 )
 
 func (c *LaunchpadClient) CreateInstance(ctx context.Context, attrs v1.CreateInstanceAttrs) (*v1.Instance, error) {
@@ -99,7 +101,16 @@ func instanceTypeToLaunchpadExperience(instanceTypeInfo instanceTypeInfo) string
 	if instanceTypeInfo.cloud == "nebius" {
 		return minimalExperienceID
 	}
+	if matchesGH200Experience(instanceTypeInfo) {
+		return brevGH200ExperienceID
+	}
 	return brevExperienceID
+}
+
+func matchesGH200Experience(info instanceTypeInfo) bool {
+	return info.cloud == dmzCloud &&
+		strings.EqualFold(info.gpuName, "gh200") &&
+		strings.EqualFold(info.gpuNetworkDetails, "sxm")
 }
 
 type launchpadCreateAttrs v1.CreateInstanceAttrs
