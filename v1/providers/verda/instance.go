@@ -22,7 +22,7 @@ const (
 	instanceIdentitySeparator    = "_"
 	firewallResourceNamePrefix   = "brev-firewall"
 	sshKeyResourceNamePrefix     = "brev-key"
-	defaultSSHUser               = "ubuntu"
+	defaultSSHUser               = "brev"
 	defaultSSHPort               = 22
 )
 
@@ -68,13 +68,17 @@ func (c *VerdaClient) CreateInstance(ctx context.Context, attrs v1.CreateInstanc
 	}
 
 	// SSH keys are independent resources, so must be created and cleaned up separately
-	sshKeyID, err := c.ensureSSHKey(ctx, attrs.PublicKey, attrs.RefID)
+	publicKey, err := normalizeSSHPublicKey(attrs.PublicKey)
+	if err != nil {
+		return nil, err
+	}
+	sshKeyID, err := c.ensureSSHKey(ctx, publicKey, attrs.RefID)
 	if err != nil {
 		return nil, err
 	}
 
 	// Startup scripts are independent resources, so must be created and cleaned up separately
-	startupScript, err := buildStartupScript(attrs.FirewallRules)
+	startupScript, err := buildStartupScript(attrs.FirewallRules, publicKey)
 	if err != nil {
 		return nil, errors.Join(err, c.cleanupManagedResources(ctx, attrs.RefID))
 	}
@@ -223,11 +227,6 @@ func (c *VerdaClient) selectImage(ctx context.Context, instanceType string, requ
 }
 
 func (c *VerdaClient) ensureSSHKey(ctx context.Context, publicKey string, refID string) (string, error) {
-	publicKey, err := normalizeSSHPublicKey(publicKey)
-	if err != nil {
-		return "", err
-	}
-
 	keys, err := c.client.SSHKeys.GetAllSSHKeys(ctx)
 	if err != nil {
 		return "", wrapVerdaError(err)

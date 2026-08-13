@@ -332,6 +332,7 @@ func TestInstanceLifecycle(t *testing.T) { //nolint:gocyclo,funlen // One fixtur
 	assert.Equal(t, "ref-123", instance.RefID)
 	assert.Equal(t, "credential-ref", instance.CloudCredRefID)
 	assert.Equal(t, "ubuntu-24.04-cuda-12.8-open-docker", instance.ImageID)
+	assert.Equal(t, "brev", instance.SSHUser)
 	assert.Equal(t, v1.LifecycleStatusPending, instance.Status.LifecycleStatus)
 	assert.Equal(t, v1.InstanceTypeID("FIN-03-noSub-1H100.80S.22V"), instance.InstanceTypeID)
 	assertLegacyBytesMatch(t, instance.DiskSize, instance.DiskSizeBytes)
@@ -341,6 +342,9 @@ func TestInstanceLifecycle(t *testing.T) { //nolint:gocyclo,funlen // One fixtur
 	assert.Equal(t, "brev-key-ref-123", createdSSHKey.Name)
 	assert.Equal(t, authorizedKey, createdSSHKey.PublicKey)
 	assert.Equal(t, "brev-firewall-ref-123", createdScript.Name)
+	assert.Contains(t, createdScript.Script, "useradd --create-home --shell /bin/bash brev")
+	assert.Contains(t, createdScript.Script, authorizedKey)
+	assert.Contains(t, createdScript.Script, "brev ALL=(ALL) NOPASSWD:ALL")
 	assert.Equal(t, []string{"ssh-key-1"}, createdRequest.SSHKeyIDs)
 	require.NotNil(t, createdRequest.OSVolume)
 	assert.Equal(t, 100, createdRequest.OSVolume.Size)
@@ -418,7 +422,7 @@ func TestBuildStartupScriptRejectsUnsafeRules(t *testing.T) {
 			ToPort:   9999,
 			IPRanges: []string{"not-a-cidr"},
 		}},
-	})
+	}, "public-key")
 	require.Error(t, err)
 }
 

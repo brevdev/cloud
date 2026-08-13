@@ -13,7 +13,7 @@ const (
 	dockerFirewallDropInPath = "/etc/systemd/system/docker.service.d/10-brev-firewall.conf"
 )
 
-func buildStartupScript(rules v1.FirewallRules) (string, error) {
+func buildStartupScript(rules v1.FirewallRules, publicKey string) (string, error) {
 	ufwRules, dockerRules, err := firewallRuleCommands(rules.IngressRules)
 	if err != nil {
 		return "", err
@@ -22,6 +22,20 @@ func buildStartupScript(rules v1.FirewallRules) (string, error) {
 	var script strings.Builder
 	script.WriteString(`#!/bin/bash
 set -u
+
+if ! id brev >/dev/null 2>&1; then
+  useradd --create-home --shell /bin/bash brev
+fi
+install -d -m 0700 -o brev -g brev /home/brev/.ssh
+cat > /home/brev/.ssh/authorized_keys <<'BREV_AUTHORIZED_KEYS'
+`)
+	script.WriteString(publicKey)
+	script.WriteString(`
+BREV_AUTHORIZED_KEYS
+chown brev:brev /home/brev/.ssh/authorized_keys
+chmod 0600 /home/brev/.ssh/authorized_keys
+echo 'brev ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/brev
+chmod 0440 /etc/sudoers.d/brev
 
 if ! command -v ufw >/dev/null 2>&1; then
   apt-get update -y
