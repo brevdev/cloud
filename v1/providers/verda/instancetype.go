@@ -94,7 +94,6 @@ func verdaInstanceTypeToInstanceType(verdaType verdago.InstanceTypeInfo, locatio
 		IsAvailable:            true,
 		BasePrice:              &basePrice,
 		Provider:               CloudProviderID,
-		Cloud:                  CloudProviderID,
 	}
 
 	if verdaType.GPU.NumberOfGPUs > 0 {
