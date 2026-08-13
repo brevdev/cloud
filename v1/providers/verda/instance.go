@@ -362,7 +362,7 @@ func (c *VerdaClient) verdaInstanceToInstance(ctx context.Context, verdaInstance
 			return nil, wrapVerdaError(err)
 		}
 		instance.VolumeType = "nvme"
-		instance.DiskSize = units.Base2Bytes(volume.Size)
+		instance.DiskSize = units.Base2Bytes(volume.Size) * units.GiB
 		instance.DiskSizeBytes = v1.NewBytes(v1.BytesValue(volume.Size), v1.Gibibyte)
 	}
 

@@ -296,6 +296,13 @@ func TestInstanceLifecycle(t *testing.T) { //nolint:gocyclo,funlen // One fixtur
 			writeJSON(t, w, createdInstance)
 		case r.Method == http.MethodGet && r.URL.Path == "/instances/instance-1":
 			writeJSON(t, w, createdInstance)
+		case r.Method == http.MethodGet && r.URL.Path == "/volumes/os-volume-1":
+			writeJSON(t, w, verdago.Volume{
+				ID:         "os-volume-1",
+				Size:       100,
+				Type:       verdago.VolumeTypeNVMe,
+				IsOSVolume: true,
+			})
 		case r.Method == http.MethodPut && r.URL.Path == "/instances":
 			require.NoError(t, json.NewDecoder(r.Body).Decode(&actionRequest))
 			w.WriteHeader(http.StatusAccepted)
@@ -335,6 +342,8 @@ func TestInstanceLifecycle(t *testing.T) { //nolint:gocyclo,funlen // One fixtur
 	assert.Equal(t, "brev", instance.SSHUser)
 	assert.Equal(t, v1.LifecycleStatusPending, instance.Status.LifecycleStatus)
 	assert.Equal(t, v1.InstanceTypeID("FIN-03-noSub-1H100.80S.22V"), instance.InstanceTypeID)
+	assert.Equal(t, "nvme", instance.VolumeType)
+	assert.Equal(t, v1.NewBytes(100, v1.Gibibyte), instance.DiskSizeBytes)
 	assertLegacyBytesMatch(t, instance.DiskSize, instance.DiskSizeBytes)
 
 	assert.Equal(t, "ref-123_credential-ref", createdRequest.Description)
