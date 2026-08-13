@@ -22,7 +22,7 @@ const (
 	instanceIdentitySeparator    = "_"
 	firewallResourceNamePrefix   = "brev-firewall"
 	sshKeyResourceNamePrefix     = "brev-key"
-	defaultSSHUser               = "root"
+	defaultSSHUser               = "ubuntu"
 	defaultSSHPort               = 22
 )
 
