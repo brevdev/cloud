@@ -161,9 +161,8 @@ func TestGetInstanceTypesAndLocations(t *testing.T) { //nolint:funlen // One cat
 	assert.Equal(t, int32(1), h100.SupportedGPUs[0].Count)
 	assert.Equal(t, "H100", h100.SupportedGPUs[0].Name)
 	assert.Equal(t, "H100 80GB", h100.SupportedGPUs[0].Type)
-	assert.Equal(t, "NVMe", h100.SupportedStorage[0].Type)
-	assert.Equal(t, v1.Tebibyte, h100.SupportedStorage[0].SizeBytes.Unit())
-	assert.True(t, h100.Preemptible)
+	assert.Equal(t, "nvme", h100.SupportedStorage[0].Type)
+	assert.Equal(t, v1.Tebibyte, h100.SupportedStorage[0].MaxSizeBytes.Unit())
 	assert.True(t, h100.ElasticRootVolume)
 	assert.Equal(t, CloudProviderID, h100.Provider)
 	assert.Equal(t, []v1.Architecture{v1.ArchitectureX86_64}, h100.SupportedArchitectures)
@@ -297,6 +296,13 @@ func TestInstanceLifecycle(t *testing.T) { //nolint:gocyclo,funlen // One fixtur
 			writeJSON(t, w, createdInstance)
 		case r.Method == http.MethodGet && r.URL.Path == "/instances/instance-1":
 			writeJSON(t, w, createdInstance)
+		case r.Method == http.MethodGet && r.URL.Path == "/volumes/os-volume-1":
+			writeJSON(t, w, verdago.Volume{
+				ID:         "os-volume-1",
+				Size:       100,
+				Type:       verdago.VolumeTypeNVMe,
+				IsOSVolume: true,
+			})
 		case r.Method == http.MethodPut && r.URL.Path == "/instances":
 			require.NoError(t, json.NewDecoder(r.Body).Decode(&actionRequest))
 			w.WriteHeader(http.StatusAccepted)
@@ -333,8 +339,11 @@ func TestInstanceLifecycle(t *testing.T) { //nolint:gocyclo,funlen // One fixtur
 	assert.Equal(t, "ref-123", instance.RefID)
 	assert.Equal(t, "credential-ref", instance.CloudCredRefID)
 	assert.Equal(t, "ubuntu-24.04-cuda-12.8-open-docker", instance.ImageID)
+	assert.Equal(t, "brev", instance.SSHUser)
 	assert.Equal(t, v1.LifecycleStatusPending, instance.Status.LifecycleStatus)
 	assert.Equal(t, v1.InstanceTypeID("FIN-03-noSub-1H100.80S.22V"), instance.InstanceTypeID)
+	assert.Equal(t, "nvme", instance.VolumeType)
+	assert.Equal(t, v1.NewBytes(100, v1.Gibibyte), instance.DiskSizeBytes)
 	assertLegacyBytesMatch(t, instance.DiskSize, instance.DiskSizeBytes)
 
 	assert.Equal(t, "ref-123_credential-ref", createdRequest.Description)
@@ -342,6 +351,9 @@ func TestInstanceLifecycle(t *testing.T) { //nolint:gocyclo,funlen // One fixtur
 	assert.Equal(t, "brev-key-ref-123", createdSSHKey.Name)
 	assert.Equal(t, authorizedKey, createdSSHKey.PublicKey)
 	assert.Equal(t, "brev-firewall-ref-123", createdScript.Name)
+	assert.Contains(t, createdScript.Script, "useradd --create-home --shell /bin/bash brev")
+	assert.Contains(t, createdScript.Script, authorizedKey)
+	assert.Contains(t, createdScript.Script, "brev ALL=(ALL) NOPASSWD:ALL")
 	assert.Equal(t, []string{"ssh-key-1"}, createdRequest.SSHKeyIDs)
 	require.NotNil(t, createdRequest.OSVolume)
 	assert.Equal(t, 100, createdRequest.OSVolume.Size)
@@ -419,7 +431,7 @@ func TestBuildStartupScriptRejectsUnsafeRules(t *testing.T) {
 			ToPort:   9999,
 			IPRanges: []string{"not-a-cidr"},
 		}},
-	})
+	}, "public-key")
 	require.Error(t, err)
 }
 

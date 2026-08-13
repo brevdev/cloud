@@ -18,10 +18,7 @@ import (
 
 const defaultCurrency = "usd"
 
-var (
-	storageSizePattern     = regexp.MustCompile(`(?i)(\d+)\s*(TiB|TB|GiB|GB|MiB|MB)`)
-	gpuMemorySuffixPattern = regexp.MustCompile(`(?i)\s+[0-9]+GB$`)
-)
+var gpuMemorySuffixPattern = regexp.MustCompile(`(?i)\s+[0-9]+GB$`)
 
 func (c *VerdaClient) GetInstanceTypes(ctx context.Context, args v1.GetInstanceTypeArgs) ([]v1.InstanceType, error) {
 	verdaTypes, err := c.client.InstanceTypes.Get(ctx, defaultCurrency)
@@ -86,17 +83,14 @@ func verdaInstanceTypeToInstanceType(verdaType verdago.InstanceTypeInfo, locatio
 		MemoryBytes:            memoryBytes,
 		VCPU:                   int32(verdaType.CPU.NumberOfCores), //nolint:gosec // ok
 		SupportedArchitectures: []v1.Architecture{verdaArchitecture(verdaType.Model)},
-		SupportedStorage:       storageDescriptionToStorage(verdaType.Storage.Description),
+		SupportedStorage:       buildSupportedStorage(),
 		ElasticRootVolume:      true,
 		SupportedUsageClasses:  usageClasses,
 		Stoppable:              true,
 		Rebootable:             false,
-		Preemptible:            verdaType.SpotPrice > 0,
-		VariablePrice:          verdaType.DynamicPrice > 0,
 		IsAvailable:            true,
 		BasePrice:              &basePrice,
 		Provider:               CloudProviderID,
-		Cloud:                  CloudProviderID,
 	}
 
 	if verdaType.GPU.NumberOfGPUs > 0 {
@@ -117,6 +111,28 @@ func verdaInstanceTypeToInstanceType(verdaType verdago.InstanceTypeInfo, locatio
 	return instanceType, nil
 }
 
+func buildSupportedStorage() []v1.Storage {
+	minSize := 50 * units.GiB
+	minSizeBytes := v1.NewBytes(50, v1.Gibibyte)
+	maxSize := 10 * units.TiB
+	maxSizeBytes := v1.NewBytes(10, v1.Tebibyte)
+
+	pricePerGBHr, _ := currency.NewAmount("0.0002740", "USD")
+
+	return []v1.Storage{
+		{
+			Type:         "nvme",
+			Count:        1,
+			MinSize:      &minSize,
+			MaxSize:      &maxSize,
+			MinSizeBytes: &minSizeBytes,
+			MaxSizeBytes: &maxSizeBytes,
+			IsElastic:    true,
+			PricePerGBHr: &pricePerGBHr,
+		},
+	}
+}
+
 func verdaGPUName(model string) string {
 	return gpuMemorySuffixPattern.ReplaceAllString(model, "")
 }
@@ -135,60 +151,6 @@ func currencyCode(code string) string {
 		return code
 	}
 	return "USD"
-}
-
-func storageDescriptionToStorage(description string) []v1.Storage {
-	match := storageSizePattern.FindStringSubmatch(description)
-	if len(match) != 3 {
-		return nil
-	}
-
-	size, err := strconv.ParseInt(match[1], 10, 64)
-	if err != nil {
-		return nil
-	}
-	byteUnit, ok := storageByteUnit(match[2])
-	if !ok {
-		return nil
-	}
-	legacySize, sizeBytes := byteSizes(size, byteUnit)
-
-	storageType := strings.TrimSpace(description)
-	upperDescription := strings.ToUpper(description)
-	switch {
-	case strings.Contains(upperDescription, "NVME"):
-		storageType = "NVMe"
-	case strings.Contains(upperDescription, "SSD"):
-		storageType = "SSD"
-	case strings.Contains(upperDescription, "HDD"):
-		storageType = "HDD"
-	}
-
-	return []v1.Storage{{
-		Count:     1,
-		Size:      legacySize,
-		SizeBytes: sizeBytes,
-		Type:      storageType,
-	}}
-}
-
-func storageByteUnit(unit string) (v1.BytesUnit, bool) {
-	switch strings.ToUpper(unit) {
-	case "MB":
-		return v1.Megabyte, true
-	case "MIB":
-		return v1.Mebibyte, true
-	case "GB":
-		return v1.Gigabyte, true
-	case "GIB":
-		return v1.Gibibyte, true
-	case "TB":
-		return v1.Terabyte, true
-	case "TIB":
-		return v1.Tebibyte, true
-	default:
-		return v1.BytesUnit{}, false
-	}
 }
 
 func byteSizes(value int64, unit v1.BytesUnit) (units.Base2Bytes, v1.Bytes) {

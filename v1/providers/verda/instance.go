@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/alecthomas/units"
 	v1 "github.com/brevdev/cloud/v1"
 	verdago "github.com/verda-cloud/verdacloud-sdk-go/pkg/verda"
 	"golang.org/x/crypto/ssh"
@@ -22,13 +23,13 @@ const (
 	instanceIdentitySeparator    = "_"
 	firewallResourceNamePrefix   = "brev-firewall"
 	sshKeyResourceNamePrefix     = "brev-key"
-	defaultSSHUser               = "root"
+	defaultSSHUser               = "brev"
 	defaultSSHPort               = 22
 )
 
 var resourceNameInvalidCharacters = regexp.MustCompile(`[^a-z0-9-]+`)
 
-func (c *VerdaClient) CreateInstance(ctx context.Context, attrs v1.CreateInstanceAttrs) (*v1.Instance, error) { //nolint:gocyclo // complexity is acceptable for a single func
+func (c *VerdaClient) CreateInstance(ctx context.Context, attrs v1.CreateInstanceAttrs) (*v1.Instance, error) { //nolint:gocyclo,funlen // complexity is acceptable for a single func
 	location := attrs.Location
 	if location == "" {
 		location = c.location
@@ -68,13 +69,17 @@ func (c *VerdaClient) CreateInstance(ctx context.Context, attrs v1.CreateInstanc
 	}
 
 	// SSH keys are independent resources, so must be created and cleaned up separately
-	sshKeyID, err := c.ensureSSHKey(ctx, attrs.PublicKey, attrs.RefID)
+	publicKey, err := normalizeSSHPublicKey(attrs.PublicKey)
+	if err != nil {
+		return nil, err
+	}
+	sshKeyID, err := c.ensureSSHKey(ctx, publicKey, attrs.RefID)
 	if err != nil {
 		return nil, err
 	}
 
 	// Startup scripts are independent resources, so must be created and cleaned up separately
-	startupScript, err := buildStartupScript(attrs.FirewallRules)
+	startupScript, err := buildStartupScript(attrs.FirewallRules, publicKey)
 	if err != nil {
 		return nil, errors.Join(err, c.cleanupManagedResources(ctx, attrs.RefID))
 	}
@@ -110,7 +115,11 @@ func (c *VerdaClient) CreateInstance(ctx context.Context, attrs v1.CreateInstanc
 	if err != nil {
 		return nil, errors.Join(wrapVerdaError(err), c.cleanupManagedResources(ctx, attrs.RefID))
 	}
-	return c.verdaInstanceToInstance(verdaInstance), nil
+	instance, err := c.verdaInstanceToInstance(ctx, verdaInstance)
+	if err != nil {
+		return nil, errors.Join(err, c.cleanupManagedResources(ctx, attrs.RefID))
+	}
+	return instance, nil
 }
 
 func (c *VerdaClient) GetInstance(ctx context.Context, id v1.CloudProviderInstanceID) (*v1.Instance, error) {
@@ -118,7 +127,11 @@ func (c *VerdaClient) GetInstance(ctx context.Context, id v1.CloudProviderInstan
 	if err != nil {
 		return nil, wrapVerdaError(err)
 	}
-	return c.verdaInstanceToInstance(verdaInstance), nil
+	instance, err := c.verdaInstanceToInstance(ctx, verdaInstance)
+	if err != nil {
+		return nil, err
+	}
+	return instance, nil
 }
 
 func (c *VerdaClient) ListInstances(ctx context.Context, args v1.ListInstancesArgs) ([]v1.Instance, error) {
@@ -129,7 +142,10 @@ func (c *VerdaClient) ListInstances(ctx context.Context, args v1.ListInstancesAr
 
 	instances := make([]v1.Instance, 0, len(verdaInstances))
 	for i := range verdaInstances {
-		instance := c.verdaInstanceToInstance(&verdaInstances[i])
+		instance, err := c.verdaInstanceToInstance(ctx, &verdaInstances[i])
+		if err != nil {
+			return nil, err
+		}
 		if len(args.InstanceIDs) > 0 && !slices.Contains(args.InstanceIDs, instance.CloudID) {
 			continue
 		}
@@ -223,11 +239,6 @@ func (c *VerdaClient) selectImage(ctx context.Context, instanceType string, requ
 }
 
 func (c *VerdaClient) ensureSSHKey(ctx context.Context, publicKey string, refID string) (string, error) {
-	publicKey, err := normalizeSSHPublicKey(publicKey)
-	if err != nil {
-		return "", err
-	}
-
 	keys, err := c.client.SSHKeys.GetAllSSHKeys(ctx)
 	if err != nil {
 		return "", wrapVerdaError(err)
@@ -311,7 +322,7 @@ func (c *VerdaClient) cleanupManagedResources(ctx context.Context, refID string)
 	return errors.Join(cleanupErrors...)
 }
 
-func (c *VerdaClient) verdaInstanceToInstance(verdaInstance *verdago.Instance) *v1.Instance {
+func (c *VerdaClient) verdaInstanceToInstance(ctx context.Context, verdaInstance *verdago.Instance) (*v1.Instance, error) {
 	refID, cloudCredRefID := parseInstanceDescription(verdaInstance.Description)
 	if cloudCredRefID == "" {
 		cloudCredRefID = c.refID
@@ -345,12 +356,17 @@ func (c *VerdaClient) verdaInstanceToInstance(verdaInstance *verdago.Instance) *
 	}
 	instance.InstanceTypeID = v1.MakeGenericInstanceTypeIDFromInstance(*instance)
 
-	if storage := storageDescriptionToStorage(verdaInstance.Storage.Description); len(storage) > 0 {
-		instance.DiskSize = storage[0].Size
-		instance.DiskSizeBytes = storage[0].SizeBytes
-		instance.VolumeType = storage[0].Type
+	if verdaInstance.OSVolumeID != nil {
+		volume, err := c.client.Volumes.GetVolume(ctx, *verdaInstance.OSVolumeID)
+		if err != nil {
+			return nil, wrapVerdaError(err)
+		}
+		instance.VolumeType = "nvme"
+		instance.DiskSize = units.Base2Bytes(volume.Size) * units.GiB
+		instance.DiskSizeBytes = v1.NewBytes(v1.BytesValue(volume.Size), v1.Gibibyte)
 	}
-	return instance
+
+	return instance, nil
 }
 
 func verdaStatusToLifecycleStatus(status string) v1.LifecycleStatus {

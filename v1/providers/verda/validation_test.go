@@ -21,6 +21,18 @@ func TestValidationFunctions(t *testing.T) {
 	})
 }
 
+func TestGetInstance(t *testing.T) {
+	checkValidationCredentials(t)
+	credential := validationCredential()
+
+	client, err := credential.MakeClient(context.Background(), "")
+	require.NoError(t, err)
+
+	instance, err := client.GetInstance(context.Background(), v1.CloudProviderInstanceID("b395e9e7-9a21-4ff1-a4b5-fb06d9652942"))
+	require.NoError(t, err)
+	require.NotNil(t, instance)
+}
+
 func TestInstanceLifecycleValidation(t *testing.T) {
 	checkValidationCredentials(t)
 
