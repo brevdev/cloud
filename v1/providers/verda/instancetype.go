@@ -86,7 +86,7 @@ func verdaInstanceTypeToInstanceType(verdaType verdago.InstanceTypeInfo, locatio
 		MemoryBytes:            memoryBytes,
 		VCPU:                   int32(verdaType.CPU.NumberOfCores), //nolint:gosec // ok
 		SupportedArchitectures: []v1.Architecture{verdaArchitecture(verdaType.Model)},
-		SupportedStorage:       storageDescriptionToStorage(verdaType.Storage.Description),
+		SupportedStorage:       buildSupportedStorage(),
 		ElasticRootVolume:      true,
 		SupportedUsageClasses:  usageClasses,
 		Stoppable:              true,
@@ -113,6 +113,28 @@ func verdaInstanceTypeToInstanceType(verdaType verdago.InstanceTypeInfo, locatio
 
 	instanceType.ID = v1.MakeGenericInstanceTypeID(instanceType)
 	return instanceType, nil
+}
+
+func buildSupportedStorage() []v1.Storage {
+	minSize := 50 * units.GiB
+	minSizeBytes := v1.NewBytes(50, v1.Gibibyte)
+	maxSize := 10 * units.TiB
+	maxSizeBytes := v1.NewBytes(10, v1.Tebibyte)
+
+	pricePerGBHr, _ := currency.NewAmount("0.0002740", "USD")
+
+	return []v1.Storage{
+		{
+			Type:         "nvme",
+			Count:        1,
+			MinSize:      &minSize,
+			MaxSize:      &maxSize,
+			MinSizeBytes: &minSizeBytes,
+			MaxSizeBytes: &maxSizeBytes,
+			IsElastic:    true,
+			PricePerGBHr: &pricePerGBHr,
+		},
+	}
 }
 
 func verdaGPUName(model string) string {
