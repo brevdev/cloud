@@ -29,7 +29,7 @@ const (
 
 var resourceNameInvalidCharacters = regexp.MustCompile(`[^a-z0-9-]+`)
 
-func (c *VerdaClient) CreateInstance(ctx context.Context, attrs v1.CreateInstanceAttrs) (*v1.Instance, error) { //nolint:gocyclo // complexity is acceptable for a single func
+func (c *VerdaClient) CreateInstance(ctx context.Context, attrs v1.CreateInstanceAttrs) (*v1.Instance, error) { //nolint:gocyclo,funlen // complexity is acceptable for a single func
 	location := attrs.Location
 	if location == "" {
 		location = c.location
