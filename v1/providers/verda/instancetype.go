@@ -91,8 +91,6 @@ func verdaInstanceTypeToInstanceType(verdaType verdago.InstanceTypeInfo, locatio
 		SupportedUsageClasses:  usageClasses,
 		Stoppable:              true,
 		Rebootable:             false,
-		Preemptible:            verdaType.SpotPrice > 0,
-		VariablePrice:          verdaType.DynamicPrice > 0,
 		IsAvailable:            true,
 		BasePrice:              &basePrice,
 		Provider:               CloudProviderID,

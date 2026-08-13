@@ -163,7 +163,6 @@ func TestGetInstanceTypesAndLocations(t *testing.T) { //nolint:funlen // One cat
 	assert.Equal(t, "H100 80GB", h100.SupportedGPUs[0].Type)
 	assert.Equal(t, "NVMe", h100.SupportedStorage[0].Type)
 	assert.Equal(t, v1.Tebibyte, h100.SupportedStorage[0].SizeBytes.Unit())
-	assert.True(t, h100.Preemptible)
 	assert.True(t, h100.ElasticRootVolume)
 	assert.Equal(t, CloudProviderID, h100.Provider)
 	assert.Equal(t, []v1.Architecture{v1.ArchitectureX86_64}, h100.SupportedArchitectures)
