@@ -94,7 +94,9 @@ func verdaInstanceTypeToInstanceType(verdaType verdago.InstanceTypeInfo, locatio
 	}
 
 	if verdaType.GPU.NumberOfGPUs > 0 {
-		gpuMemory, gpuMemoryBytes := byteSizes(int64(verdaType.GPUMemory.SizeInGigabytes), v1.Gigabyte)
+		// The Verda API does not expose the GPU memory per GPU, so we need to calculate it
+		gpuMemoryGB := int64(verdaType.GPUMemory.SizeInGigabytes) / int64(verdaType.GPU.NumberOfGPUs)
+		gpuMemory, gpuMemoryBytes := byteSizes(gpuMemoryGB, v1.Gigabyte)
 		gpuModel := strings.ToUpper(strings.TrimSpace(verdaType.Model))
 		instanceType.SupportedGPUs = []v1.GPU{{
 			Count:          int32(verdaType.GPU.NumberOfGPUs), //nolint:gosec // ok

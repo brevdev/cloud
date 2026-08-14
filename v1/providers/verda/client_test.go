@@ -56,6 +56,27 @@ func TestWrapVerdaInsufficientResourcesError(t *testing.T) {
 	assert.False(t, errors.Is(err, v1.ErrServiceUnavailable))
 }
 
+func TestVerdaInstanceTypeUsesPerGPUMemory(t *testing.T) {
+	instanceType, err := verdaInstanceTypeToInstanceType(verdago.InstanceTypeInfo{
+		InstanceType: "8V100.128G",
+		Model:        "V100 16GB",
+		GPU: verdago.InstanceGPU{
+			NumberOfGPUs: 8,
+		},
+		GPUMemory: verdago.InstanceMemory{
+			SizeInGigabytes: 128,
+		},
+		PricePerHour: 1,
+		Currency:     "usd",
+	}, "FIN-01")
+	require.NoError(t, err)
+	require.Len(t, instanceType.SupportedGPUs, 1)
+
+	gpu := instanceType.SupportedGPUs[0]
+	assert.Equal(t, int32(8), gpu.Count)
+	assert.Equal(t, v1.NewBytes(16, v1.Gigabyte), gpu.MemoryBytes)
+}
+
 func TestGetInstanceTypesAndLocations(t *testing.T) { //nolint:funlen // One catalog fixture exercises all shared validations.
 	server := newVerdaTestServer(t, func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
