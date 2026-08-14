@@ -6,6 +6,7 @@ BINARY_NAME=compute
 MODULE_NAME=github.com/brevdev/cloud
 BUILD_DIR=build
 COVERAGE_DIR=coverage
+VALIDATION_REF?=$(shell git branch --show-current)
 
 # Load environment variables from .env file if it exists
 ifneq (,$(wildcard .env))
@@ -78,6 +79,23 @@ test:
 test-validation:
 	@echo "Running validation tests..."
 	$(GOTEST) -v -short=false ./...
+
+# Trigger a provider validation workflow in GitHub Actions
+.PHONY: trigger-validation
+trigger-validation:
+	@if [ -z "$(PROVIDER)" ]; then \
+		echo "Usage: make trigger-validation PROVIDER=<aws|nebius|shadeform|verda> [VALIDATION_REF=<branch>]"; \
+		exit 1; \
+	fi
+	@case "$(PROVIDER)" in \
+		aws|nebius|shadeform|verda) ;; \
+		*) echo "Unsupported provider: $(PROVIDER). Expected aws, nebius, shadeform, or verda."; exit 1 ;; \
+	esac
+	@if [ -z "$(VALIDATION_REF)" ]; then \
+		echo "VALIDATION_REF is required when Git is in a detached HEAD state."; \
+		exit 1; \
+	fi
+	gh workflow run validation-$(PROVIDER).yml --ref "$(VALIDATION_REF)"
 
 # Run all tests including validation
 .PHONY: test-all
@@ -201,24 +219,25 @@ install-tools:
 .PHONY: help
 help:
 	@echo "Available targets:"
-	@echo "  build          - Build the project"
-	@echo "  build-all      - Build for Linux, macOS, and Windows"
-	@echo "  test           - Run tests (with -short flag)"
-	@echo "  test-validation - Run validation tests (without -short flag)"
-	@echo "  test-all       - Run all tests including validation"
-	@echo "  test-coverage  - Run tests with coverage report"
-	@echo "  test-race      - Run tests with race detection"
-	@echo "  bench          - Run benchmarks"
-	@echo "  lint           - Run linter (golangci-lint)"
-	@echo "  vet            - Run go vet"
-	@echo "  fmt            - Format code"
-	@echo "  fmt-check      - Check if code is formatted"
-	@echo "  security       - Run security scan (gosec)"
-	@echo "  clean          - Clean build artifacts"
-	@echo "  deps           - Install dependencies"
-	@echo "  deps-update    - Update dependencies"
-	@echo "  deps-verify    - Verify dependencies"
-	@echo "  docs           - Generate documentation"
-	@echo "  check          - Run all checks (lint, vet, fmt-check, test)"
-	@echo "  install-tools  - Install development tools"
-	@echo "  help           - Show this help message"  
+	@echo "  build              - Build the project"
+	@echo "  build-all          - Build for Linux, macOS, and Windows"
+	@echo "  test               - Run tests (with -short flag)"
+	@echo "  test-validation    - Run validation tests (without -short flag)"
+	@echo "  trigger-validation - Trigger one provider validation workflow in GitHub Actions"
+	@echo "  test-all           - Run all tests including validation"
+	@echo "  test-coverage      - Run tests with coverage report"
+	@echo "  test-race          - Run tests with race detection"
+	@echo "  bench              - Run benchmarks"
+	@echo "  lint               - Run linter (golangci-lint)"
+	@echo "  vet                - Run go vet"
+	@echo "  fmt                - Format code"
+	@echo "  fmt-check          - Check if code is formatted"
+	@echo "  security           - Run security scan (gosec)"
+	@echo "  clean              - Clean build artifacts"
+	@echo "  deps               - Install dependencies"
+	@echo "  deps-update        - Update dependencies"
+	@echo "  deps-verify        - Verify dependencies"
+	@echo "  docs               - Generate documentation"
+	@echo "  check              - Run all checks (lint, vet, fmt-check, test)"
+	@echo "  install-tools      - Install development tools"
+	@echo "  help               - Show this help message"

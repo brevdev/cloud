@@ -1,23 +1,13 @@
 name: AWS Validation Tests
 
 on:
-    schedule:
-        # Run daily at 2 AM UTC
-        - cron: "0 2 * * *"
     workflow_dispatch:
-        # Allow manual triggering
-    pull_request:
-        paths:
-            - "v1/providers/aws/**"
-            - "internal/validation/**"
-            - "v1/**"
-        branches: [main]
+        # Run explicitly from the Actions UI, GitHub CLI, or API.
 
 jobs:
     aws-validation:
         name: AWS Provider Validation
         runs-on: ubuntu-latest
-        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request'
 
         steps:
             - uses: actions/checkout@v4

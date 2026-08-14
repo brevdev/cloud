@@ -1,12 +1,12 @@
-name: Shadeform Validation Tests
+name: Verda Validation Tests
 
 on:
   workflow_dispatch:
     # Run explicitly from the Actions UI, GitHub CLI, or API.
 
 jobs:
-  shadeform-validation:
-    name: Shadeform Provider Validation
+  verda-validation:
+    name: Verda Provider Validation
     runs-on: ubuntu-latest
 
     steps:
@@ -30,20 +30,21 @@ jobs:
       - name: Install dependencies
         run: make deps
 
-      - name: Run Shadeform validation tests
+      - name: Run Verda validation tests
         env:
-          SHADEFORM_API_KEY: ${{ secrets.SHADEFORM_API_KEY }}
+          VERDA_CLIENT_ID: ${{ secrets.VERDA_CLIENT_ID }}
+          VERDA_CLIENT_SECRET: ${{ secrets.VERDA_CLIENT_SECRET }}
           TEST_PRIVATE_KEY_BASE64: ${{ secrets.TEST_PRIVATE_KEY_BASE64 }}
           TEST_PUBLIC_KEY_BASE64: ${{ secrets.TEST_PUBLIC_KEY_BASE64 }}
           VALIDATION_TEST: true
         run: |
-          cd v1/providers/shadeform
+          cd v1/providers/verda
           go test -v -short=false -timeout=30m ./...
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: shadeform-validation-results
+          name: verda-validation-results
           path: |
-            v1/providers/shadeform/coverage.out
+            v1/providers/verda/coverage.out
