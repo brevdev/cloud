@@ -209,7 +209,7 @@ func (c *NebiusClient) getInstanceTypesForLocation(ctx context.Context, platform
 					Name:         gpuName,
 					Manufacturer: v1.ManufacturerNVIDIA, // Nebius currently only supports NVIDIA GPUs
 					Memory:       memory,                // Populate VRAM based on GPU type
-					MemoryBytes:  v1.NewBytes(v1.BytesValue(int64(memory)/int64(units.Gibibyte)), v1.Gibibyte),
+					MemoryBytes:  gpuMemoryBytes(memory),
 				}
 				instanceType.SupportedGPUs = []v1.GPU{gpu}
 			}
@@ -613,6 +613,10 @@ func parseBlackwellGPUType(platformName string) string {
 	default:
 		return ""
 	}
+}
+
+func gpuMemoryBytes(memory units.Base2Bytes) v1.Bytes {
+	return v1.NewBytes(v1.BytesValue(int64(memory)/int64(units.Gibibyte)), v1.Gigabyte)
 }
 
 // getGPUMemory returns the VRAM for a given GPU type in GiB

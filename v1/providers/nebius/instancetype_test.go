@@ -18,6 +18,14 @@ func TestNebiusPlatformArchitecture(t *testing.T) {
 	require.Equal(t, cloudv1.ArchitectureUnknown, nebiusPlatformArchitecture("future-platform"))
 }
 
+func TestNebiusGPUMemoryUsesNominalGB(t *testing.T) {
+	t.Parallel()
+
+	memory := getGPUMemory("L40S")
+
+	require.Equal(t, cloudv1.NewBytes(48, cloudv1.Gigabyte), gpuMemoryBytes(memory))
+}
+
 func TestApplyInstanceTypeFiltersUsesArchitectureMetadata(t *testing.T) {
 	t.Parallel()
 
