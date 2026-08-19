@@ -242,7 +242,7 @@ func launchpadGpusToGpus(lpGpus []openapi.InstanceTypeGpu) []v1.GPU {
 			Manufacturer:   v1.GetManufacturer(gp.Manufacturer),
 			Count:          gp.Count,
 			Memory:         gbToBytes(gp.MemoryGb),
-			MemoryBytes:    v1.NewBytes(v1.BytesValue(int64(gp.MemoryGb)), v1.Gigabyte),
+			MemoryBytes:    launchpadGPUMemoryBytes(gp.MemoryGb),
 			NetworkDetails: string(gp.InterconnectionType),
 			Type:           strings.ToUpper(gp.Model),
 		}
@@ -347,7 +347,7 @@ func launchpadGputoGpu(node openapi.Node) *v1.GPU {
 	var lpGpuMemoryBytes v1.Bytes
 	if lpGpu.Memory != nil {
 		lpGpuMemory = gbToBytes(*lpGpu.Memory)
-		lpGpuMemoryBytes = v1.NewBytes(v1.BytesValue(*lpGpu.Memory), v1.Gigabyte)
+		lpGpuMemoryBytes = launchpadGPUMemoryBytes(*lpGpu.Memory)
 	}
 
 	gpu := &v1.GPU{
@@ -359,6 +359,11 @@ func launchpadGputoGpu(node openapi.Node) *v1.GPU {
 		Manufacturer:   "NVIDIA", // The only supported manufacturer for Launchpad
 	}
 	return gpu
+}
+
+// Launchpad's GPU memory values are nominal decimal-GB capacities.
+func launchpadGPUMemoryBytes(memoryGB int32) v1.Bytes {
+	return v1.NewBytes(v1.BytesValue(memoryGB), v1.Gigabyte)
 }
 
 func launchpadNodeToSupportedStorage(node openapi.Node) []v1.Storage {

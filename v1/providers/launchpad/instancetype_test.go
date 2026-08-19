@@ -8,6 +8,7 @@ import (
 
 	"github.com/brevdev/cloud/internal/validation"
 	v1 "github.com/brevdev/cloud/v1"
+	openapi "github.com/brevdev/cloud/v1/providers/launchpad/gen/launchpad"
 )
 
 func TestGetInstanceTypes(t *testing.T) {
@@ -83,6 +84,15 @@ func TestInstanceTypeInfo(t *testing.T) {
 			require.Equal(t, tt.instanceType, instanceTypeValue)
 		})
 	}
+}
+
+func TestLaunchpadGpusToGpusUsesNominalGB(t *testing.T) {
+	t.Parallel()
+
+	gpus := launchpadGpusToGpus([]openapi.InstanceTypeGpu{{MemoryGb: 48}})
+
+	require.Len(t, gpus, 1)
+	require.Equal(t, v1.NewBytes(48, v1.Gigabyte), gpus[0].MemoryBytes)
 }
 
 func TestMakeGenericInstanceTypeID(t *testing.T) {
