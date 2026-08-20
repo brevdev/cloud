@@ -35,14 +35,14 @@ type sfcInstanceTypeMetadata struct {
 }
 
 var h100InstanceTypeMetadata = func() sfcInstanceTypeMetadata {
-	price, err := currency.NewAmount("24.99", "USD")
+	price, err := currency.NewAmount("23.325", "USD")
 	if err != nil {
 		panic(err)
 	}
 	m := sfcInstanceTypeMetadata{
 		diskBytes:       v1.NewBytes(1500, v1.Gigabyte),
 		memoryBytes:     v1.NewBytes(960, v1.Gigabyte),
-		gpuVRAM:         v1.NewBytes(80, v1.Gibibyte),
+		gpuVRAM:         v1.NewBytes(80, v1.Gigabyte),
 		vcpu:            sfcVCPU,
 		gpuCount:        sfcGPUCount,
 		gpuManufacturer: v1.ManufacturerNVIDIA,
