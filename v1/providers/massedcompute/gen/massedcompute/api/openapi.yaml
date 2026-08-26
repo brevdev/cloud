@@ -1,0 +1,1333 @@
+openapi: 3.0.0
+info:
+  description: |
+    **API documentation for our direct on-demand offering**
+
+    *If you are a marketplace looking to leverage our GPU inventory please contact us at techadmin@massedcompute.com*
+    # Authentication
+    Authentication of every endpoint provided requres a API token. We leverage Bearer token authentication on our endpoints.
+
+    | Header | Value |
+    | --- | --- |
+    | Authorization | Bearer {{api_token}} |
+
+    To provision an API key, please see our [API Settings documentation](/docs/settings/api-settings).
+  title: Massed Compute VM API
+  version: 1.0.0
+servers:
+- url: https://vm.massedcompute.com/api/v1
+paths:
+  /gpu-inventory:
+    get:
+      description: "An comprehensive list of all GPU types, configurations, and available\
+        \ inventory."
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GPUInventoryV1'
+          description: A list of available GPUs
+      summary: Retrieve a list of avaialable GPU configurations.
+  /images:
+    get:
+      description: An Image is a preconfigured operating system and software stack.
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImagesV1'
+          description: A list of available images
+      summary: Retrieve list of available images.
+  /instance:
+    get:
+      description: An instance is a virtual machine that is currently running.
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RetrieveAllRunningInstancesV1'
+          description: A list of all running instances
+      summary: Retrieve list of all running instances.
+      tags:
+      - Instances
+  /instance/{uuid}:
+    get:
+      description: An instance is a virtual machine that is currently running.
+      parameters:
+      - explode: false
+        in: path
+        name: uuid
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RetrieveAllRunningInstancesV1'
+          description: A list of all running instances
+      summary: Retrieve single running instances.
+      tags:
+      - Instances
+  /instance/launch:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/_instance_launch_post_request'
+        required: true
+      responses:
+        "202":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/_instance_launch_post_202_response'
+          description: Success deploying instance
+      summary: Deploy new instances.
+      tags:
+      - Instances
+  /instance/restart:
+    post:
+      requestBody:
+        content:
+          application/json:
+            example:
+              instanceUuids:
+              - string1
+              - string2
+            schema:
+              $ref: '#/components/schemas/_instance_restart_post_request'
+        required: true
+      responses:
+        "202":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestartInstanceV1'
+          description: Success restarting instance
+      summary: Restart an instances.
+      tags:
+      - Instances
+  /instance/terminate:
+    post:
+      description: Termination completely removes the instance from the system and
+        destroys all data.
+      requestBody:
+        content:
+          application/json:
+            example:
+              instanceUuids:
+              - string1
+              - string2
+            schema:
+              $ref: '#/components/schemas/_instance_restart_post_request'
+        required: true
+      responses:
+        "202":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TerminateInstanceV1'
+          description: Success restarting instance
+      summary: Terminate an instances.
+      tags:
+      - Instances
+  /coupon/information:
+    post:
+      description: A coupon is a discount code that can be applied to an instance
+        when deployed.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/_coupon_information_post_request'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RetrieveCouponInformationV1'
+          description: Success retrieving coupon information
+      summary: Retrieve information about a coupon.
+      tags:
+      - Coupon
+  /coupon/accepted-products:
+    post:
+      description: A coupon is a discount code that can be applied to an instance
+        when deployed.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/_coupon_information_post_request'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RetrieveAcceptProductsV1'
+          description: Success retrieving coupon information
+      summary: Retrieve products that a coupon is valid for.
+      tags:
+      - Coupon
+  /account/token/validation:
+    post:
+      description: An API token is required to access the API.
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/_account_token_validation_post_200_response'
+          description: Success validating token
+      summary: Validate an API token.
+      tags:
+      - Account
+  /account/billing:
+    get:
+      description: Billing information for the account.
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RetrieveBillingInformationV1'
+          description: Success retrieving billing information
+      summary: Retrieve billing information.
+      tags:
+      - Account
+  /ssh-keys:
+    get:
+      description: An SSH key is a secure access credential used to connect to instances.
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SSHKey'
+          description: Success retrieving SSH keys
+      summary: Retrieve SSH keys associated with the account.
+      tags:
+      - SSH Keys
+    post:
+      description: An SSH key is a secure access credential used to connect to instances.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/_ssh_keys_post_request'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/POSTSSHKey'
+          description: Success adding SSH key
+      summary: Add an SSH key to the account.
+      tags:
+      - SSH Keys
+  /ssh-keys/{id}:
+    delete:
+      description: An SSH key is a secure access credential used to connect to instances.
+      parameters:
+      - description: The unique identifier for the SSH key to be removed
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/_ssh_keys__id__delete_200_response'
+          description: Success removing SSH key
+      summary: Remove an SSH key from the account.
+      tags:
+      - SSH Keys
+components:
+  schemas:
+    GPUInventoryV1:
+      example:
+        gpu_inventory:
+          key:
+            regions_with_capacity_available:
+            - name: name
+              description: description
+            - name: name
+              description: description
+            capacity_available: 5
+            instance_type:
+              specs:
+                vcpu_count: 6
+                memory_gib: 1
+                storage_gb: 5
+              name: name
+              description: description
+              price_cents_per_hour: 0
+      properties:
+        gpu_inventory:
+          additionalProperties:
+            $ref: '#/components/schemas/GPUInventoryV1_gpu_inventory_value'
+          type: object
+      type: object
+    ImagesV1:
+      example:
+        images:
+        - vm_image_description: vm_image_description
+          vm_image_name: vm_image_name
+          vm_image_id: 0
+        - vm_image_description: vm_image_description
+          vm_image_name: vm_image_name
+          vm_image_id: 0
+      properties:
+        images:
+          items:
+            $ref: '#/components/schemas/ImagesV1_images_inner'
+          type: array
+      type: object
+    RetrieveAllRunningInstancesV1:
+      example:
+        runningInstances:
+        - image:
+            name: Art
+            description: "AI-powered tools specifically designed for artists and creatives,\
+              \ providing you with the ability to easily incorporate AI-generated\
+              \ content into your work. By harnessing the power of these advanced\
+              \ technologies, you can take your art to new heights and explore uncharted\
+              \ territories in the creative world. Leverage the full potential of\
+              \ AI and transform your artistic process today."
+            id: 7
+          password: "123456"
+          os_booted: 1
+          product:
+            gpu_count: 1
+            vcpu: 26
+            name: gpu_1x_l40
+            description: 1x L40
+            price_hr: "0.99"
+            final_price_hr: "0"
+            storage: 625
+            ram: 128
+          created: 2024-08-07T16:41:43.000Z
+          ip: 1.1.1.1
+          command_startup: ""
+          name: Halloween Test
+          active: 1
+          uuid: 8b52a46b-a892-4fde-925c-6d13226908f7
+          username: Ubuntu
+          status: rented
+        - image:
+            name: Art
+            description: "AI-powered tools specifically designed for artists and creatives,\
+              \ providing you with the ability to easily incorporate AI-generated\
+              \ content into your work. By harnessing the power of these advanced\
+              \ technologies, you can take your art to new heights and explore uncharted\
+              \ territories in the creative world. Leverage the full potential of\
+              \ AI and transform your artistic process today."
+            id: 7
+          password: "123456"
+          os_booted: 1
+          product:
+            gpu_count: 1
+            vcpu: 26
+            name: gpu_1x_l40
+            description: 1x L40
+            price_hr: "0.99"
+            final_price_hr: "0"
+            storage: 625
+            ram: 128
+          created: 2024-08-07T16:41:43.000Z
+          ip: 1.1.1.1
+          command_startup: ""
+          name: Halloween Test
+          active: 1
+          uuid: 8b52a46b-a892-4fde-925c-6d13226908f7
+          username: Ubuntu
+          status: rented
+      properties:
+        runningInstances:
+          items:
+            $ref: '#/components/schemas/RetrieveAllRunningInstancesV1_runningInstances_inner'
+          type: array
+      type: object
+    RetrieveSingleRunningInstanceV1:
+      properties:
+        runningInstance:
+          $ref: '#/components/schemas/RetrieveSingleRunningInstanceV1_runningInstance'
+      type: object
+    RestartInstanceV1:
+      example:
+        response:
+        - file_system_names:
+          - file_system_names
+          - file_system_names
+          ip: 1.1.1.1
+          name: test api deploy1
+          id: 2c56cd01-5f0b-4bc2-bb72-3c8e486505e2
+          region:
+            name: us-central-3
+            description: "Des Moines, IA"
+          jupyter_url: jupyter_url
+          instance_type:
+            specs:
+              memory_gib: 48
+              storage_gb: 256
+              vcpus: 6
+            name: gpu_1x_a6000
+            description: 1x RTX A6000
+            price_cents_per_hour: 0
+          status: booting
+          ssh_key_names:
+          - ssh_key_names
+          - ssh_key_names
+          jupyter_token: jupyter_token
+        - file_system_names:
+          - file_system_names
+          - file_system_names
+          ip: 1.1.1.1
+          name: test api deploy1
+          id: 2c56cd01-5f0b-4bc2-bb72-3c8e486505e2
+          region:
+            name: us-central-3
+            description: "Des Moines, IA"
+          jupyter_url: jupyter_url
+          instance_type:
+            specs:
+              memory_gib: 48
+              storage_gb: 256
+              vcpus: 6
+            name: gpu_1x_a6000
+            description: 1x RTX A6000
+            price_cents_per_hour: 0
+          status: booting
+          ssh_key_names:
+          - ssh_key_names
+          - ssh_key_names
+          jupyter_token: jupyter_token
+      properties:
+        response:
+          items:
+            $ref: '#/components/schemas/RestartInstanceV1_response_inner'
+          type: array
+      type: object
+    TerminateInstanceV1:
+      example:
+        response:
+          data:
+            terminated_instances:
+            - file_system_names:
+              - file_system_names
+              - file_system_names
+              ip: 1.1.1.1
+              name: test api deploy1
+              id: 2c56cd01-5f0b-4bc2-bb72-3c8e486505e2
+              region:
+                name: us-central-3
+                description: "Des Moines, IA"
+              jupyter_url: ""
+              instance_type:
+                specs:
+                  memory_gib: 48
+                  storage_gb: 256
+                  vcpus: 6
+                name: gpu_1x_a6000
+                description: 1x RTX A6000
+                price_cents_per_hour: 0
+              status: terminated
+              ssh_key_names:
+              - ssh_key_names
+              - ssh_key_names
+              jupyter_token: ""
+            - file_system_names:
+              - file_system_names
+              - file_system_names
+              ip: 1.1.1.1
+              name: test api deploy1
+              id: 2c56cd01-5f0b-4bc2-bb72-3c8e486505e2
+              region:
+                name: us-central-3
+                description: "Des Moines, IA"
+              jupyter_url: ""
+              instance_type:
+                specs:
+                  memory_gib: 48
+                  storage_gb: 256
+                  vcpus: 6
+                name: gpu_1x_a6000
+                description: 1x RTX A6000
+                price_cents_per_hour: 0
+              status: terminated
+              ssh_key_names:
+              - ssh_key_names
+              - ssh_key_names
+              jupyter_token: ""
+      properties:
+        response:
+          $ref: '#/components/schemas/TerminateInstanceV1_response'
+      type: object
+    RetrieveCouponInformationV1:
+      example:
+        coupon:
+          deactivationDate: 2024-08-07T16:41:43.000Z
+          code: TestCoupon
+          discountPercent: "0.1"
+      properties:
+        coupon:
+          $ref: '#/components/schemas/RetrieveCouponInformationV1_coupon'
+      type: object
+    RetrieveAcceptProductsV1:
+      example:
+        couponValidation:
+          coupon:
+            deactivationDate: 2024-08-07T16:41:43.000Z
+            code: TestCoupon
+            discountPercent: "0.1"
+          productDetails:
+          - - name: gpu_1x_a6000
+              description: 1x RTX A6000
+              pricePerHour: "0.625000"
+              inventoryAvailable: true
+            - name: gpu_2x_a6000
+              description: 2x RTX A6000
+              pricePerHour: "1.250000"
+              inventoryAvailable: true
+            - name: gpu_4x_a6000
+              description: 4x RTX A6000
+              pricePerHour: "2.500000"
+              inventoryAvailable: true
+            - name: gpu_8x_a6000
+              description: 8x RTX A6000
+              pricePerHour: "5.000000"
+              inventoryAvailable: false
+          - - name: gpu_1x_a6000
+              description: 1x RTX A6000
+              pricePerHour: "0.625000"
+              inventoryAvailable: true
+            - name: gpu_2x_a6000
+              description: 2x RTX A6000
+              pricePerHour: "1.250000"
+              inventoryAvailable: true
+            - name: gpu_4x_a6000
+              description: 4x RTX A6000
+              pricePerHour: "2.500000"
+              inventoryAvailable: true
+            - name: gpu_8x_a6000
+              description: 8x RTX A6000
+              pricePerHour: "5.000000"
+              inventoryAvailable: false
+      properties:
+        couponValidation:
+          $ref: '#/components/schemas/RetrieveAcceptProductsV1_couponValidation'
+      type: object
+    RetrieveBillingInformationV1:
+      example:
+        rechargeAmount: "20"
+        billingMethod: creditcard
+        rechargeThreshold: "10"
+        rechargeAmountCents: 2000
+        rechargeThresholdCents: 1000
+      properties:
+        billingMethod:
+          example: creditcard
+          type: string
+        rechargeThresholdCents:
+          example: 1000
+          type: integer
+        rechargeThreshold:
+          example: "10"
+          type: string
+        rechargeAmountCents:
+          example: 2000
+          type: integer
+        rechargeAmount:
+          example: "20"
+          type: string
+      type: object
+    SSHKeyItem:
+      example:
+        public_key: public_key
+        name: name
+        id: id
+      properties:
+        id:
+          description: The unique identifier for the SSH key
+          type: string
+        name:
+          description: The name of the SSH key
+          type: string
+        public_key:
+          description: The public key associated with the SSH key
+          type: string
+      type: object
+    SSHKey:
+      example:
+        sshKeys:
+        - public_key: public_key
+          name: name
+          id: id
+        - public_key: public_key
+          name: name
+          id: id
+      properties:
+        sshKeys:
+          items:
+            $ref: '#/components/schemas/SSHKeyItem'
+          type: array
+      type: object
+    POSTSSHKey:
+      example:
+        sshKey:
+          name: name
+          id: id
+      properties:
+        sshKey:
+          $ref: '#/components/schemas/POSTSSHKey_sshKey'
+      type: object
+    _instance_launch_post_request:
+      properties:
+        imageId:
+          description: The ID of the image to deploy
+          type: integer
+        productName:
+          description: The product name of the GPU instance you want to deploy. Example
+            = 'gpu_1x_l40'
+          type: string
+        regionName:
+          description: Set value equal to 'any'
+          type: string
+        instanceName:
+          description: The name of the instance you want to deploy
+          type: string
+        coupon:
+          description: The coupon code you want to apply to the instance
+          type: string
+        command:
+          description: The command you want to run on startup
+          type: string
+        sshKeys:
+          description: The SSH key you want to use to connect to the instance
+          items:
+            type: string
+          type: array
+      required:
+      - imageId
+      - productName
+      - regionName
+      type: object
+    _instance_launch_post_202_response:
+      example:
+        response: 8b52a46b-uuid-4fde-xxxx-6d13226908f7
+      properties:
+        response:
+          example: 8b52a46b-uuid-4fde-xxxx-6d13226908f7
+          type: string
+      type: object
+    _instance_restart_post_request:
+      properties:
+        instanceUuids:
+          description: The ID or IDs of instances to restart
+          items:
+            type: string
+          type: array
+      required:
+      - instanceUuids
+      type: object
+    _coupon_information_post_request:
+      properties:
+        coupon:
+          description: The coupon code you want to retrieve information about
+          type: string
+      required:
+      - couponCode
+      type: object
+    _account_token_validation_post_200_response:
+      example:
+        message: Valid Token
+      properties:
+        message:
+          example: Valid Token
+          type: string
+      type: object
+    _ssh_keys_post_request:
+      properties:
+        name:
+          description: The name of the SSH key
+          type: string
+        publicKey:
+          description: The public key associated with the SSH key
+          type: string
+      required:
+      - name
+      - publicKey
+      type: object
+    _ssh_keys__id__delete_200_response:
+      example:
+        result: "{}"
+      properties:
+        result:
+          type: object
+      type: object
+    GPUInventoryV1_gpu_inventory_value_instance_type_specs:
+      example:
+        vcpu_count: 6
+        memory_gib: 1
+        storage_gb: 5
+      properties:
+        vcpu_count:
+          type: integer
+        memory_gib:
+          type: integer
+        storage_gb:
+          type: integer
+      type: object
+    GPUInventoryV1_gpu_inventory_value_instance_type:
+      example:
+        specs:
+          vcpu_count: 6
+          memory_gib: 1
+          storage_gb: 5
+        name: name
+        description: description
+        price_cents_per_hour: 0
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        price_cents_per_hour:
+          type: integer
+        specs:
+          $ref: '#/components/schemas/GPUInventoryV1_gpu_inventory_value_instance_type_specs'
+      type: object
+    GPUInventoryV1_gpu_inventory_value_regions_with_capacity_available_inner:
+      example:
+        name: name
+        description: description
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+      type: object
+    GPUInventoryV1_gpu_inventory_value:
+      example:
+        regions_with_capacity_available:
+        - name: name
+          description: description
+        - name: name
+          description: description
+        capacity_available: 5
+        instance_type:
+          specs:
+            vcpu_count: 6
+            memory_gib: 1
+            storage_gb: 5
+          name: name
+          description: description
+          price_cents_per_hour: 0
+      properties:
+        instance_type:
+          $ref: '#/components/schemas/GPUInventoryV1_gpu_inventory_value_instance_type'
+        regions_with_capacity_available:
+          items:
+            $ref: '#/components/schemas/GPUInventoryV1_gpu_inventory_value_regions_with_capacity_available_inner'
+          type: array
+        capacity_available:
+          type: integer
+      type: object
+    ImagesV1_images_inner:
+      example:
+        vm_image_description: vm_image_description
+        vm_image_name: vm_image_name
+        vm_image_id: 0
+      properties:
+        vm_image_id:
+          type: integer
+        vm_image_name:
+          type: string
+        vm_image_description:
+          type: string
+      type: object
+    RetrieveAllRunningInstancesV1_runningInstances_inner_image:
+      example:
+        name: Art
+        description: "AI-powered tools specifically designed for artists and creatives,\
+          \ providing you with the ability to easily incorporate AI-generated content\
+          \ into your work. By harnessing the power of these advanced technologies,\
+          \ you can take your art to new heights and explore uncharted territories\
+          \ in the creative world. Leverage the full potential of AI and transform\
+          \ your artistic process today."
+        id: 7
+      properties:
+        id:
+          example: 7
+          type: integer
+        name:
+          example: Art
+          type: string
+        description:
+          example: "AI-powered tools specifically designed for artists and creatives,\
+            \ providing you with the ability to easily incorporate AI-generated content\
+            \ into your work. By harnessing the power of these advanced technologies,\
+            \ you can take your art to new heights and explore uncharted territories\
+            \ in the creative world. Leverage the full potential of AI and transform\
+            \ your artistic process today."
+          type: string
+      type: object
+    RetrieveAllRunningInstancesV1_runningInstances_inner_product:
+      example:
+        gpu_count: 1
+        vcpu: 26
+        name: gpu_1x_l40
+        description: 1x L40
+        price_hr: "0.99"
+        final_price_hr: "0"
+        storage: 625
+        ram: 128
+      properties:
+        name:
+          example: gpu_1x_l40
+          type: string
+        description:
+          example: 1x L40
+          type: string
+        gpu_count:
+          example: 1
+          type: integer
+        vcpu:
+          example: 26
+          type: integer
+        ram:
+          example: 128
+          type: integer
+        storage:
+          example: 625
+          type: integer
+        price_hr:
+          example: "0.99"
+          type: string
+        final_price_hr:
+          example: "0"
+          type: string
+      type: object
+    RetrieveAllRunningInstancesV1_runningInstances_inner:
+      example:
+        image:
+          name: Art
+          description: "AI-powered tools specifically designed for artists and creatives,\
+            \ providing you with the ability to easily incorporate AI-generated content\
+            \ into your work. By harnessing the power of these advanced technologies,\
+            \ you can take your art to new heights and explore uncharted territories\
+            \ in the creative world. Leverage the full potential of AI and transform\
+            \ your artistic process today."
+          id: 7
+        password: "123456"
+        os_booted: 1
+        product:
+          gpu_count: 1
+          vcpu: 26
+          name: gpu_1x_l40
+          description: 1x L40
+          price_hr: "0.99"
+          final_price_hr: "0"
+          storage: 625
+          ram: 128
+        created: 2024-08-07T16:41:43.000Z
+        ip: 1.1.1.1
+        command_startup: ""
+        name: Halloween Test
+        active: 1
+        uuid: 8b52a46b-a892-4fde-925c-6d13226908f7
+        username: Ubuntu
+        status: rented
+      properties:
+        uuid:
+          example: 8b52a46b-a892-4fde-925c-6d13226908f7
+          type: string
+        name:
+          example: Halloween Test
+          type: string
+        ip:
+          example: 1.1.1.1
+          type: string
+        username:
+          example: Ubuntu
+          type: string
+        password:
+          example: "123456"
+          type: string
+        status:
+          example: rented
+          type: string
+        os_booted:
+          example: 1
+          type: integer
+        command_startup:
+          example: ""
+          type: string
+        created:
+          example: 2024-08-07T16:41:43.000Z
+          type: string
+        active:
+          example: 1
+          type: integer
+        image:
+          $ref: '#/components/schemas/RetrieveAllRunningInstancesV1_runningInstances_inner_image'
+        product:
+          $ref: '#/components/schemas/RetrieveAllRunningInstancesV1_runningInstances_inner_product'
+      type: object
+    RetrieveSingleRunningInstanceV1_runningInstance_product:
+      properties:
+        name:
+          example: gpu_1x_l40
+          type: string
+        description:
+          example: 1x L40
+          type: string
+        gpu_count:
+          example: 1
+          type: integer
+        vcpu:
+          example: 26
+          type: integer
+        ram:
+          example: 128
+          type: integer
+        storage:
+          example: 625
+          type: integer
+        price_hr:
+          example: "0.990000"
+          type: string
+        final_price_hr:
+          example: "0.000000"
+          type: string
+      type: object
+    RetrieveSingleRunningInstanceV1_runningInstance:
+      properties:
+        uuid:
+          example: 8b52a46b-a892-4fde-925c-6d13226908f7
+          type: string
+        name:
+          example: Halloween Test
+          type: string
+        ip:
+          example: 1.1.1.1
+          type: string
+        username:
+          example: Ubuntu
+          type: string
+        password:
+          example: "123456"
+          type: string
+        status:
+          example: rented
+          type: string
+        os_booted:
+          example: 1
+          type: integer
+        command_startup:
+          example: ""
+          type: string
+        created:
+          example: 2024-08-07T16:41:43.000Z
+          type: string
+        active:
+          example: 1
+          type: integer
+        image:
+          $ref: '#/components/schemas/RetrieveAllRunningInstancesV1_runningInstances_inner_image'
+        product:
+          $ref: '#/components/schemas/RetrieveSingleRunningInstanceV1_runningInstance_product'
+      type: object
+    RestartInstanceV1_response_inner_region:
+      example:
+        name: us-central-3
+        description: "Des Moines, IA"
+      properties:
+        name:
+          example: us-central-3
+          type: string
+        description:
+          example: "Des Moines, IA"
+          type: string
+      type: object
+    RestartInstanceV1_response_inner_instance_type_specs:
+      example:
+        memory_gib: 48
+        storage_gb: 256
+        vcpus: 6
+      properties:
+        vcpus:
+          example: 6
+          type: integer
+        memory_gib:
+          example: 48
+          type: integer
+        storage_gb:
+          example: 256
+          type: integer
+      type: object
+    RestartInstanceV1_response_inner_instance_type:
+      example:
+        specs:
+          memory_gib: 48
+          storage_gb: 256
+          vcpus: 6
+        name: gpu_1x_a6000
+        description: 1x RTX A6000
+        price_cents_per_hour: 0
+      properties:
+        name:
+          example: gpu_1x_a6000
+          type: string
+        description:
+          example: 1x RTX A6000
+          type: string
+        price_cents_per_hour:
+          example: 0
+          type: integer
+        specs:
+          $ref: '#/components/schemas/RestartInstanceV1_response_inner_instance_type_specs'
+      type: object
+    RestartInstanceV1_response_inner:
+      example:
+        file_system_names:
+        - file_system_names
+        - file_system_names
+        ip: 1.1.1.1
+        name: test api deploy1
+        id: 2c56cd01-5f0b-4bc2-bb72-3c8e486505e2
+        region:
+          name: us-central-3
+          description: "Des Moines, IA"
+        jupyter_url: jupyter_url
+        instance_type:
+          specs:
+            memory_gib: 48
+            storage_gb: 256
+            vcpus: 6
+          name: gpu_1x_a6000
+          description: 1x RTX A6000
+          price_cents_per_hour: 0
+        status: booting
+        ssh_key_names:
+        - ssh_key_names
+        - ssh_key_names
+        jupyter_token: jupyter_token
+      properties:
+        id:
+          example: 2c56cd01-5f0b-4bc2-bb72-3c8e486505e2
+          type: string
+        name:
+          example: test api deploy1
+          type: string
+        ip:
+          example: 1.1.1.1
+          type: string
+        status:
+          example: booting
+          type: string
+        ssh_key_names:
+          items:
+            type: string
+          type: array
+        file_system_names:
+          items:
+            type: string
+          type: array
+        region:
+          $ref: '#/components/schemas/RestartInstanceV1_response_inner_region'
+        instance_type:
+          $ref: '#/components/schemas/RestartInstanceV1_response_inner_instance_type'
+        jupyter_token:
+          type: string
+        jupyter_url:
+          type: string
+      type: object
+    TerminateInstanceV1_response_data_terminated_instances_inner:
+      example:
+        file_system_names:
+        - file_system_names
+        - file_system_names
+        ip: 1.1.1.1
+        name: test api deploy1
+        id: 2c56cd01-5f0b-4bc2-bb72-3c8e486505e2
+        region:
+          name: us-central-3
+          description: "Des Moines, IA"
+        jupyter_url: ""
+        instance_type:
+          specs:
+            memory_gib: 48
+            storage_gb: 256
+            vcpus: 6
+          name: gpu_1x_a6000
+          description: 1x RTX A6000
+          price_cents_per_hour: 0
+        status: terminated
+        ssh_key_names:
+        - ssh_key_names
+        - ssh_key_names
+        jupyter_token: ""
+      properties:
+        id:
+          example: 2c56cd01-5f0b-4bc2-bb72-3c8e486505e2
+          type: string
+        name:
+          example: test api deploy1
+          type: string
+        ip:
+          example: 1.1.1.1
+          type: string
+        status:
+          example: terminated
+          type: string
+        ssh_key_names:
+          items:
+            type: string
+          type: array
+        file_system_names:
+          items:
+            type: string
+          type: array
+        region:
+          $ref: '#/components/schemas/RestartInstanceV1_response_inner_region'
+        instance_type:
+          $ref: '#/components/schemas/RestartInstanceV1_response_inner_instance_type'
+        jupyter_token:
+          example: ""
+          type: string
+        jupyter_url:
+          example: ""
+          type: string
+      type: object
+    TerminateInstanceV1_response_data:
+      example:
+        terminated_instances:
+        - file_system_names:
+          - file_system_names
+          - file_system_names
+          ip: 1.1.1.1
+          name: test api deploy1
+          id: 2c56cd01-5f0b-4bc2-bb72-3c8e486505e2
+          region:
+            name: us-central-3
+            description: "Des Moines, IA"
+          jupyter_url: ""
+          instance_type:
+            specs:
+              memory_gib: 48
+              storage_gb: 256
+              vcpus: 6
+            name: gpu_1x_a6000
+            description: 1x RTX A6000
+            price_cents_per_hour: 0
+          status: terminated
+          ssh_key_names:
+          - ssh_key_names
+          - ssh_key_names
+          jupyter_token: ""
+        - file_system_names:
+          - file_system_names
+          - file_system_names
+          ip: 1.1.1.1
+          name: test api deploy1
+          id: 2c56cd01-5f0b-4bc2-bb72-3c8e486505e2
+          region:
+            name: us-central-3
+            description: "Des Moines, IA"
+          jupyter_url: ""
+          instance_type:
+            specs:
+              memory_gib: 48
+              storage_gb: 256
+              vcpus: 6
+            name: gpu_1x_a6000
+            description: 1x RTX A6000
+            price_cents_per_hour: 0
+          status: terminated
+          ssh_key_names:
+          - ssh_key_names
+          - ssh_key_names
+          jupyter_token: ""
+      properties:
+        terminated_instances:
+          items:
+            $ref: '#/components/schemas/TerminateInstanceV1_response_data_terminated_instances_inner'
+          type: array
+      type: object
+    TerminateInstanceV1_response:
+      example:
+        data:
+          terminated_instances:
+          - file_system_names:
+            - file_system_names
+            - file_system_names
+            ip: 1.1.1.1
+            name: test api deploy1
+            id: 2c56cd01-5f0b-4bc2-bb72-3c8e486505e2
+            region:
+              name: us-central-3
+              description: "Des Moines, IA"
+            jupyter_url: ""
+            instance_type:
+              specs:
+                memory_gib: 48
+                storage_gb: 256
+                vcpus: 6
+              name: gpu_1x_a6000
+              description: 1x RTX A6000
+              price_cents_per_hour: 0
+            status: terminated
+            ssh_key_names:
+            - ssh_key_names
+            - ssh_key_names
+            jupyter_token: ""
+          - file_system_names:
+            - file_system_names
+            - file_system_names
+            ip: 1.1.1.1
+            name: test api deploy1
+            id: 2c56cd01-5f0b-4bc2-bb72-3c8e486505e2
+            region:
+              name: us-central-3
+              description: "Des Moines, IA"
+            jupyter_url: ""
+            instance_type:
+              specs:
+                memory_gib: 48
+                storage_gb: 256
+                vcpus: 6
+              name: gpu_1x_a6000
+              description: 1x RTX A6000
+              price_cents_per_hour: 0
+            status: terminated
+            ssh_key_names:
+            - ssh_key_names
+            - ssh_key_names
+            jupyter_token: ""
+      properties:
+        data:
+          $ref: '#/components/schemas/TerminateInstanceV1_response_data'
+      type: object
+    RetrieveCouponInformationV1_coupon:
+      example:
+        deactivationDate: 2024-08-07T16:41:43.000Z
+        code: TestCoupon
+        discountPercent: "0.1"
+      properties:
+        code:
+          example: TestCoupon
+          type: string
+        discountPercent:
+          example: "0.1"
+          type: string
+        deactivationDate:
+          example: 2024-08-07T16:41:43.000Z
+          type: string
+      type: object
+    RetrieveAcceptProductsV1_couponValidation_productDetails_inner:
+      example:
+      - name: gpu_1x_a6000
+        description: 1x RTX A6000
+        pricePerHour: "0.625000"
+        inventoryAvailable: true
+      - name: gpu_2x_a6000
+        description: 2x RTX A6000
+        pricePerHour: "1.250000"
+        inventoryAvailable: true
+      - name: gpu_4x_a6000
+        description: 4x RTX A6000
+        pricePerHour: "2.500000"
+        inventoryAvailable: true
+      - name: gpu_8x_a6000
+        description: 8x RTX A6000
+        pricePerHour: "5.000000"
+        inventoryAvailable: false
+      properties:
+        name:
+          example: gpu_1x_a6000
+          type: string
+        description:
+          example: 1x RTX A6000
+          type: string
+        pricePerHour:
+          example: "0.625000"
+          type: string
+        inventoryAvailable:
+          example: true
+          type: boolean
+      type: object
+    RetrieveAcceptProductsV1_couponValidation:
+      example:
+        coupon:
+          deactivationDate: 2024-08-07T16:41:43.000Z
+          code: TestCoupon
+          discountPercent: "0.1"
+        productDetails:
+        - - name: gpu_1x_a6000
+            description: 1x RTX A6000
+            pricePerHour: "0.625000"
+            inventoryAvailable: true
+          - name: gpu_2x_a6000
+            description: 2x RTX A6000
+            pricePerHour: "1.250000"
+            inventoryAvailable: true
+          - name: gpu_4x_a6000
+            description: 4x RTX A6000
+            pricePerHour: "2.500000"
+            inventoryAvailable: true
+          - name: gpu_8x_a6000
+            description: 8x RTX A6000
+            pricePerHour: "5.000000"
+            inventoryAvailable: false
+        - - name: gpu_1x_a6000
+            description: 1x RTX A6000
+            pricePerHour: "0.625000"
+            inventoryAvailable: true
+          - name: gpu_2x_a6000
+            description: 2x RTX A6000
+            pricePerHour: "1.250000"
+            inventoryAvailable: true
+          - name: gpu_4x_a6000
+            description: 4x RTX A6000
+            pricePerHour: "2.500000"
+            inventoryAvailable: true
+          - name: gpu_8x_a6000
+            description: 8x RTX A6000
+            pricePerHour: "5.000000"
+            inventoryAvailable: false
+      properties:
+        coupon:
+          $ref: '#/components/schemas/RetrieveCouponInformationV1_coupon'
+        productDetails:
+          items:
+            $ref: '#/components/schemas/RetrieveAcceptProductsV1_couponValidation_productDetails_inner'
+          type: array
+      type: object
+    POSTSSHKey_sshKey:
+      example:
+        name: name
+        id: id
+      properties:
+        id:
+          description: The unique identifier for the SSH key
+          type: string
+        name:
+          description: The name of the SSH key
+          type: string
+      type: object

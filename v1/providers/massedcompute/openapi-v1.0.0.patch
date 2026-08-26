@@ -1,0 +1,107 @@
+--- openapi-v1.0.0.yaml
++++ openapi-v1.0.0.final.yaml
+@@ -77,6 +77,12 @@
+             application/json:
+               schema:
+-                $ref: '#/components/schemas/RetrieveSingleRunningInstanceV1'
++                $ref: '#/components/schemas/RetrieveAllRunningInstancesV1'
++    parameters:
++      - name: uuid
++        in: path
++        required: true
++        schema:
++          type: string
+   /instance/launch:
+     post:
+       summary: Deploy new instances.
+@@ -89,24 +95,21 @@
+             schema:
+               type: object
+               required:
+-                - image_id
++                - imageId
+                 - productName
+                 - regionName
+               properties:
+                 imageId:
+                   type: integer
+                   description: The ID of the image to deploy
+-                  required: true
+                 productName:
+                   type: string
+                   description: >-
+                     The product name of the GPU instance you want to deploy.
+                     Example = 'gpu_1x_l40'
+-                  required: true
+                 regionName:
+                   type: string
+                   description: Set value equal to 'any'
+-                  required: true
+                 instanceName:
+                   type: string
+                   description: The name of the instance you want to deploy
+@@ -151,10 +154,10 @@
+                   description: The ID or IDs of instances to restart
+               required:
+                 - instanceUuids
+-      example:
+-        instanceUuids:
+-          - string1
+-          - string2
++            example:
++              instanceUuids:
++                - string1
++                - string2
+       responses:
+         '202':
+           description: Success restarting instance
+@@ -184,10 +187,10 @@
+                   description: The ID or IDs of instances to restart
+               required:
+                 - instanceUuids
+-        example:
+-          instanceUuids:
+-            - string1
+-            - string2
++            example:
++              instanceUuids:
++                - string1
++                - string2
+       responses:
+         '202':
+           description: Success restarting instance
+@@ -679,19 +682,21 @@
+                           description:
+                             type: string
+                             example: 1x RTX A6000
+-                            price_cents_per_hour: 0
+-                            specs:
+-                              type: object
+-                              properties:
+-                                vcpus:
+-                                  type: integer
+-                                  example: 6
+-                                memory_gib:
+-                                  type: integer
+-                                  example: 48
+-                                storage_gb:
+-                                  type: integer
+-                                  example: 256
++                          price_cents_per_hour:
++                            type: integer
++                            example: 0
++                          specs:
++                            type: object
++                            properties:
++                              vcpus:
++                                type: integer
++                                example: 6
++                              memory_gib:
++                                type: integer
++                                example: 48
++                              storage_gb:
++                                type: integer
++                                example: 256
+                       jupyter_token:
+                         type: string
+                         example: ''

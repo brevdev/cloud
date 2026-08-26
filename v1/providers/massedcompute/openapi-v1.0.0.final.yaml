@@ -1,0 +1,821 @@
+openapi: 3.0.0
+info:
+  title: Massed Compute VM API
+  description: >
+    **API documentation for our direct on-demand offering**
+
+
+    *If you are a marketplace looking to leverage our GPU inventory please
+    contact us at techadmin@massedcompute.com*
+
+    # Authentication
+
+    Authentication of every endpoint provided requres a API token. We leverage
+    Bearer token authentication on our endpoints.
+
+
+    | Header | Value |
+
+    | --- | --- |
+
+    | Authorization | Bearer {{api_token}} |
+
+
+    To provision an API key, please see our [API Settings
+    documentation](/docs/settings/api-settings).
+  version: 1.0.0
+servers:
+  - url: https://vm.massedcompute.com/api/v1
+paths:
+  /gpu-inventory:
+    get:
+      summary: Retrieve a list of avaialable GPU configurations.
+      description: >-
+        An comprehensive list of all GPU types, configurations, and available
+        inventory.
+      responses:
+        '200':
+          description: A list of available GPUs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GPUInventoryV1'
+  /images:
+    get:
+      summary: Retrieve list of available images.
+      description: An Image is a preconfigured operating system and software stack.
+      responses:
+        '200':
+          description: A list of available images
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImagesV1'
+  /instance:
+    get:
+      summary: Retrieve list of all running instances.
+      description: An instance is a virtual machine that is currently running.
+      tags:
+        - Instances
+      responses:
+        '200':
+          description: A list of all running instances
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RetrieveAllRunningInstancesV1'
+  /instance/{uuid}:
+    get:
+      summary: Retrieve single running instances.
+      description: An instance is a virtual machine that is currently running.
+      tags:
+        - Instances
+      responses:
+        '200':
+          description: A list of all running instances
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RetrieveAllRunningInstancesV1'
+    parameters:
+      - name: uuid
+        in: path
+        required: true
+        schema:
+          type: string
+  /instance/launch:
+    post:
+      summary: Deploy new instances.
+      tags:
+        - Instances
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - imageId
+                - productName
+                - regionName
+              properties:
+                imageId:
+                  type: integer
+                  description: The ID of the image to deploy
+                productName:
+                  type: string
+                  description: >-
+                    The product name of the GPU instance you want to deploy.
+                    Example = 'gpu_1x_l40'
+                regionName:
+                  type: string
+                  description: Set value equal to 'any'
+                instanceName:
+                  type: string
+                  description: The name of the instance you want to deploy
+                coupon:
+                  type: string
+                  description: The coupon code you want to apply to the instance
+                command:
+                  type: string
+                  description: The command you want to run on startup
+                sshKeys:
+                  type: array
+                  items:
+                    type: string
+                  description: The SSH key you want to use to connect to the instance
+      responses:
+        '202':
+          description: Success deploying instance
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  response:
+                    type: string
+                    example: 8b52a46b-uuid-4fde-xxxx-6d13226908f7
+  /instance/restart:
+    post:
+      summary: Restart an instances.
+      tags:
+        - Instances
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                instanceUuids:
+                  type: array
+                  items:
+                    type: string
+                  description: The ID or IDs of instances to restart
+              required:
+                - instanceUuids
+            example:
+              instanceUuids:
+                - string1
+                - string2
+      responses:
+        '202':
+          description: Success restarting instance
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestartInstanceV1'
+  /instance/terminate:
+    post:
+      summary: Terminate an instances.
+      description: >-
+        Termination completely removes the instance from the system and destroys
+        all data.
+      tags:
+        - Instances
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                instanceUuids:
+                  type: array
+                  items:
+                    type: string
+                  description: The ID or IDs of instances to restart
+              required:
+                - instanceUuids
+            example:
+              instanceUuids:
+                - string1
+                - string2
+      responses:
+        '202':
+          description: Success restarting instance
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TerminateInstanceV1'
+  /coupon/information:
+    post:
+      summary: Retrieve information about a coupon.
+      description: >-
+        A coupon is a discount code that can be applied to an instance when
+        deployed.
+      tags:
+        - Coupon
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                coupon:
+                  type: string
+                  description: The coupon code you want to retrieve information about
+              required:
+                - couponCode
+      responses:
+        '200':
+          description: Success retrieving coupon information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RetrieveCouponInformationV1'
+  /coupon/accepted-products:
+    post:
+      summary: Retrieve products that a coupon is valid for.
+      description: >-
+        A coupon is a discount code that can be applied to an instance when
+        deployed.
+      tags:
+        - Coupon
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                coupon:
+                  type: string
+                  description: The coupon code you want to retrieve information about
+              required:
+                - couponCode
+      responses:
+        '200':
+          description: Success retrieving coupon information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RetrieveAcceptProductsV1'
+  /account/token/validation:
+    post:
+      summary: Validate an API token.
+      description: An API token is required to access the API.
+      tags:
+        - Account
+      responses:
+        '200':
+          description: Success validating token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Valid Token
+  /account/billing:
+    get:
+      summary: Retrieve billing information.
+      description: Billing information for the account.
+      tags:
+        - Account
+      responses:
+        '200':
+          description: Success retrieving billing information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RetrieveBillingInformationV1'
+  /ssh-keys:
+    get:
+      summary: Retrieve SSH keys associated with the account.
+      description: An SSH key is a secure access credential used to connect to instances.
+      tags:
+        - SSH Keys
+      responses:
+        '200':
+          description: Success retrieving SSH keys
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SSHKey'
+    post:
+      summary: Add an SSH key to the account.
+      description: An SSH key is a secure access credential used to connect to instances.
+      tags:
+        - SSH Keys
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: The name of the SSH key
+                publicKey:
+                  type: string
+                  description: The public key associated with the SSH key
+              required:
+                - name
+                - publicKey
+      responses:
+        '200':
+          description: Success adding SSH key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/POSTSSHKey'
+  /ssh-keys/{id}:
+    delete:
+      summary: Remove an SSH key from the account.
+      description: An SSH key is a secure access credential used to connect to instances.
+      tags:
+        - SSH Keys
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The unique identifier for the SSH key to be removed
+      responses:
+        '200':
+          description: Success removing SSH key
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    type: object
+components:
+  schemas:
+    GPUInventoryV1:
+      type: object
+      properties:
+        gpu_inventory:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              instance_type:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  description:
+                    type: string
+                  price_cents_per_hour:
+                    type: integer
+                  specs:
+                    type: object
+                    properties:
+                      vcpu_count:
+                        type: integer
+                      memory_gib:
+                        type: integer
+                      storage_gb:
+                        type: integer
+              regions_with_capacity_available:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    description:
+                      type: string
+              capacity_available:
+                type: integer
+    ImagesV1:
+      type: object
+      properties:
+        images:
+          type: array
+          items:
+            type: object
+            properties:
+              vm_image_id:
+                type: integer
+              vm_image_name:
+                type: string
+              vm_image_description:
+                type: string
+    RetrieveAllRunningInstancesV1:
+      type: object
+      properties:
+        runningInstances:
+          type: array
+          items:
+            type: object
+            properties:
+              uuid:
+                type: string
+                example: 8b52a46b-a892-4fde-925c-6d13226908f7
+              name:
+                type: string
+                example: Halloween Test
+              ip:
+                type: string
+                example: 1.1.1.1
+              username:
+                type: string
+                example: Ubuntu
+              password:
+                type: string
+                example: 123456
+              status:
+                type: string
+                example: rented
+              os_booted:
+                type: integer
+                example: 1
+              command_startup:
+                type: string
+                example: ''
+              created:
+                type: string
+                example: '2024-08-07T16:41:43.000Z'
+              active:
+                type: integer
+                example: 1
+              image:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    example: 7
+                  name:
+                    type: string
+                    example: Art
+                  description:
+                    type: string
+                    example: >-
+                      AI-powered tools specifically designed for artists and
+                      creatives, providing you with the ability to easily
+                      incorporate AI-generated content into your work. By
+                      harnessing the power of these advanced technologies, you
+                      can take your art to new heights and explore uncharted
+                      territories in the creative world. Leverage the full
+                      potential of AI and transform your artistic process today.
+              product:
+                type: object
+                properties:
+                  name:
+                    type: string
+                    example: gpu_1x_l40
+                  description:
+                    type: string
+                    example: 1x L40
+                  gpu_count:
+                    type: integer
+                    example: 1
+                  vcpu:
+                    type: integer
+                    example: 26
+                  ram:
+                    type: integer
+                    example: 128
+                  storage:
+                    type: integer
+                    example: 625
+                  price_hr:
+                    type: string
+                    example: 0.99
+                  final_price_hr:
+                    type: string
+                    example: 0
+    RetrieveSingleRunningInstanceV1:
+      type: object
+      properties:
+        runningInstance:
+          type: object
+          properties:
+            uuid:
+              type: string
+              example: 8b52a46b-a892-4fde-925c-6d13226908f7
+            name:
+              type: string
+              example: Halloween Test
+            ip:
+              type: string
+              example: 1.1.1.1
+            username:
+              type: string
+              example: Ubuntu
+            password:
+              type: string
+              example: 123456
+            status:
+              type: string
+              example: rented
+            os_booted:
+              type: integer
+              example: 1
+            command_startup:
+              type: string
+              example: ''
+            created:
+              type: string
+              example: '2024-08-07T16:41:43.000Z'
+            active:
+              type: integer
+              example: 1
+            image:
+              type: object
+              properties:
+                id:
+                  type: integer
+                  example: 7
+                name:
+                  type: string
+                  example: Art
+                description:
+                  type: string
+                  example: >-
+                    AI-powered tools specifically designed for artists and
+                    creatives, providing you with the ability to easily
+                    incorporate AI-generated content into your work. By
+                    harnessing the power of these advanced technologies, you can
+                    take your art to new heights and explore uncharted
+                    territories in the creative world. Leverage the full
+                    potential of AI and transform your artistic process today.
+            product:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: gpu_1x_l40
+                description:
+                  type: string
+                  example: 1x L40
+                gpu_count:
+                  type: integer
+                  example: 1
+                vcpu:
+                  type: integer
+                  example: 26
+                ram:
+                  type: integer
+                  example: 128
+                storage:
+                  type: integer
+                  example: 625
+                price_hr:
+                  type: string
+                  example: '0.990000'
+                final_price_hr:
+                  type: string
+                  example: '0.000000'
+    RestartInstanceV1:
+      type: object
+      properties:
+        response:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                example: 2c56cd01-5f0b-4bc2-bb72-3c8e486505e2
+              name:
+                type: string
+                example: test api deploy1
+              ip:
+                type: string
+                example: 1.1.1.1
+              status:
+                type: string
+                example: booting
+              ssh_key_names:
+                type: array
+                items:
+                  type: string
+              file_system_names:
+                type: array
+                items:
+                  type: string
+              region:
+                type: object
+                properties:
+                  name:
+                    type: string
+                    example: us-central-3
+                  description:
+                    type: string
+                    example: Des Moines, IA
+              instance_type:
+                type: object
+                properties:
+                  name:
+                    type: string
+                    example: gpu_1x_a6000
+                  description:
+                    type: string
+                    example: 1x RTX A6000
+                  price_cents_per_hour:
+                    type: integer
+                    example: 0
+                  specs:
+                    type: object
+                    properties:
+                      vcpus:
+                        type: integer
+                        example: 6
+                      memory_gib:
+                        type: integer
+                        example: 48
+                      storage_gb:
+                        type: integer
+                        example: 256
+              jupyter_token:
+                type: string
+              jupyter_url:
+                type: string
+    TerminateInstanceV1:
+      type: object
+      properties:
+        response:
+          type: object
+          properties:
+            data:
+              type: object
+              properties:
+                terminated_instances:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        example: 2c56cd01-5f0b-4bc2-bb72-3c8e486505e2
+                      name:
+                        type: string
+                        example: test api deploy1
+                      ip:
+                        type: string
+                        example: 1.1.1.1
+                      status:
+                        type: string
+                        example: terminated
+                      ssh_key_names:
+                        type: array
+                        items:
+                          type: string
+                      file_system_names:
+                        type: array
+                        items:
+                          type: string
+                      region:
+                        type: object
+                        properties:
+                          name:
+                            type: string
+                            example: us-central-3
+                          description:
+                            type: string
+                            example: Des Moines, IA
+                      instance_type:
+                        type: object
+                        properties:
+                          name:
+                            type: string
+                            example: gpu_1x_a6000
+                          description:
+                            type: string
+                            example: 1x RTX A6000
+                          price_cents_per_hour:
+                            type: integer
+                            example: 0
+                          specs:
+                            type: object
+                            properties:
+                              vcpus:
+                                type: integer
+                                example: 6
+                              memory_gib:
+                                type: integer
+                                example: 48
+                              storage_gb:
+                                type: integer
+                                example: 256
+                      jupyter_token:
+                        type: string
+                        example: ''
+                      jupyter_url:
+                        type: string
+                        example: ''
+    RetrieveCouponInformationV1:
+      type: object
+      properties:
+        coupon:
+          type: object
+          properties:
+            code:
+              type: string
+              example: TestCoupon
+            discountPercent:
+              type: string
+              example: 0.1
+            deactivationDate:
+              type: string
+              example: '2024-08-07T16:41:43.000Z'
+    RetrieveAcceptProductsV1:
+      type: object
+      properties:
+        couponValidation:
+          type: object
+          properties:
+            coupon:
+              type: object
+              properties:
+                code:
+                  type: string
+                  example: TestCoupon
+                discountPercent:
+                  type: string
+                  example: 0.1
+                deactivationDate:
+                  type: string
+                  example: '2024-08-07T16:41:43.000Z'
+            productDetails:
+              type: array
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                    example: gpu_1x_a6000
+                  description:
+                    type: string
+                    example: 1x RTX A6000
+                  pricePerHour:
+                    type: string
+                    example: '0.625000'
+                  inventoryAvailable:
+                    type: boolean
+                    example: true
+                example:
+                  - name: gpu_1x_a6000
+                    description: 1x RTX A6000
+                    pricePerHour: '0.625000'
+                    inventoryAvailable: true
+                  - name: gpu_2x_a6000
+                    description: 2x RTX A6000
+                    pricePerHour: '1.250000'
+                    inventoryAvailable: true
+                  - name: gpu_4x_a6000
+                    description: 4x RTX A6000
+                    pricePerHour: '2.500000'
+                    inventoryAvailable: true
+                  - name: gpu_8x_a6000
+                    description: 8x RTX A6000
+                    pricePerHour: '5.000000'
+                    inventoryAvailable: false
+    RetrieveBillingInformationV1:
+      type: object
+      properties:
+        billingMethod:
+          type: string
+          example: creditcard
+        rechargeThresholdCents:
+          type: integer
+          example: 1000
+        rechargeThreshold:
+          type: string
+          example: 10
+        rechargeAmountCents:
+          type: integer
+          example: 2000
+        rechargeAmount:
+          type: string
+          example: 20
+    SSHKeyItem:
+      type: object
+      properties:
+        id:
+          type: string
+          description: The unique identifier for the SSH key
+        name:
+          type: string
+          description: The name of the SSH key
+        public_key:
+          type: string
+          description: The public key associated with the SSH key
+    SSHKey:
+      type: object
+      properties:
+        sshKeys:
+          type: array
+          items:
+            $ref: '#/components/schemas/SSHKeyItem'
+    POSTSSHKey:
+      type: object
+      properties:
+        sshKey:
+          type: object
+          properties:
+            id:
+              type: string
+              description: The unique identifier for the SSH key
+            name:
+              type: string
+              description: The name of the SSH key
