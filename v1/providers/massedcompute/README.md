@@ -2,15 +2,6 @@
 
 This package implements the minimal Brev Cloud v1 surface for Massed Compute.
 
-Supported operations:
-
-- Discover on-demand instance types and their available regions.
-- Create, get, list, and terminate instances.
-- Create or reuse SSH keys required at launch.
-- Resolve image names through the API, defaulting to `Ubuntu Server 22.04 w/ drivers`.
-
-The provider intentionally does not advertise stop/start, reboot, spot/preemptible instances, firewall mutation, tags, or storage resizing. Spot inventory entries are omitted and spot creation requests are rejected. GPU count, model, and network details are parsed from the product description; bracketed annotations are discarded after spot detection. Marketed VRAM is parsed when present and otherwise filled from a small model lookup table. System RAM, storage, and vCPU count come directly from the inventory specs.
-
 ## Generated API client
 
 The generated client is committed under `gen/massedcompute`. Regenerate it from the version-pinned Massed Compute OpenAPI specification with:
