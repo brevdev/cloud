@@ -30,11 +30,7 @@ const (
 var resourceNameInvalidCharacters = regexp.MustCompile(`[^a-zA-Z0-9_-]+`)
 
 func (c *MassedComputeClient) CreateInstance(ctx context.Context, attrs v1.CreateInstanceAttrs) (*v1.Instance, error) {
-	location := attrs.Location
-	if location == "" {
-		location = c.location
-	}
-	if err := validateCreateInstanceAttrs(attrs, location); err != nil {
+	if err := validateCreateInstanceAttrs(attrs); err != nil {
 		return nil, err
 	}
 
@@ -70,7 +66,7 @@ func (c *MassedComputeClient) CreateInstance(ctx context.Context, attrs v1.Creat
 	instanceID, err := c.launchInstance(ctx, openapi.InstanceLaunchPostRequest{
 		ImageId:      imageID,
 		ProductName:  attrs.InstanceType,
-		RegionName:   location,
+		RegionName:   massedComputeLocation,
 		InstanceName: &providerName,
 		Command:      &startupCommand,
 		SshKeys:      []string{keyName},
@@ -87,14 +83,12 @@ func (c *MassedComputeClient) CreateInstance(ctx context.Context, attrs v1.Creat
 	return instance, nil
 }
 
-func validateCreateInstanceAttrs(attrs v1.CreateInstanceAttrs, location string) error {
+func validateCreateInstanceAttrs(attrs v1.CreateInstanceAttrs) error {
 	switch {
 	case attrs.RefID == "":
 		return errors.New("massed compute instance RefID is required")
 	case attrs.InstanceType == "":
 		return errors.New("massed compute instance type is required")
-	case location == "":
-		return errors.New("massed compute instance location is required")
 	case strings.TrimSpace(attrs.PublicKey) == "":
 		return errors.New("massed compute instance public key is required")
 	case attrs.UserDataBase64 != "":
@@ -183,7 +177,7 @@ func (c *MassedComputeClient) ListInstances(ctx context.Context, args v1.ListIns
 		if len(args.InstanceIDs) > 0 && !slices.Contains(args.InstanceIDs, instance.CloudID) {
 			continue
 		}
-		if len(args.Locations) > 0 && !args.Locations.IsAllowed(instance.Location) {
+		if len(args.Locations) > 0 && !args.Locations.IsAllowed(massedComputeLocation) && !args.Locations.IsAllowed(instance.Location) {
 			continue
 		}
 		instances = append(instances, *instance)
@@ -383,7 +377,10 @@ func (c *MassedComputeClient) convertInstanceToV1Instance(ctx context.Context, p
 	if createdAt, err := time.Parse(time.RFC3339Nano, stringValue(providerInstance.Created)); err == nil {
 		instance.CreatedAt = createdAt
 	}
-	instance.InstanceTypeID = v1.MakeGenericInstanceTypeIDFromInstance(*instance)
+	instance.InstanceTypeID = v1.MakeGenericInstanceTypeID(v1.InstanceType{
+		Type:     instance.InstanceType,
+		Location: massedComputeLocation,
+	})
 	return instance, nil
 }
 
@@ -393,7 +390,7 @@ func (c *MassedComputeClient) instanceLocation(additionalProperties map[string]a
 			return strings.TrimSpace(location)
 		}
 	}
-	return c.location
+	return massedComputeLocation
 }
 
 func massedComputeLifecycleStatus(status string) v1.LifecycleStatus {

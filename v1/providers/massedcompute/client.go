@@ -14,8 +14,9 @@ import (
 )
 
 const (
-	CloudProviderID = "massedcompute"
-	DefaultAPIURL   = "https://vm.massedcompute.com/api/v1"
+	CloudProviderID       = "massedcompute"
+	DefaultAPIURL         = "https://vm.massedcompute.com/api/v1"
+	massedComputeLocation = "any"
 )
 
 type MassedComputeCredential struct {
@@ -95,7 +96,6 @@ type MassedComputeClient struct {
 
 	refID      string
 	apiToken   string
-	location   string
 	client     *openapi.APIClient
 	httpClient *http.Client
 }
@@ -110,7 +110,7 @@ func WithHTTPClient(httpClient *http.Client) MassedComputeClientOption {
 	}
 }
 
-func NewMassedComputeClient(credential MassedComputeCredential, location string, opts ...MassedComputeClientOption) (*MassedComputeClient, error) {
+func NewMassedComputeClient(credential MassedComputeCredential, _ string, opts ...MassedComputeClientOption) (*MassedComputeClient, error) {
 	if err := credential.Validate(); err != nil {
 		return nil, err
 	}
@@ -118,7 +118,6 @@ func NewMassedComputeClient(credential MassedComputeCredential, location string,
 	client := &MassedComputeClient{
 		refID:      credential.RefID,
 		apiToken:   credential.APIToken,
-		location:   location,
 		httpClient: http.DefaultClient,
 	}
 	for _, opt := range opts {
@@ -151,8 +150,6 @@ func (c *MassedComputeClient) GetTenantID() (string, error) {
 	return makeTenantID(c.apiToken)
 }
 
-func (c *MassedComputeClient) MakeClient(_ context.Context, location string) (v1.CloudClient, error) {
-	clientCopy := *c
-	clientCopy.location = location
-	return &clientCopy, nil
+func (c *MassedComputeClient) MakeClient(_ context.Context, _ string) (v1.CloudClient, error) {
+	return c, nil
 }

@@ -49,18 +49,12 @@ func (c *MassedComputeClient) GetInstanceTypes(ctx context.Context, args v1.GetI
 		if typeName == "" || isSpotDescription(stringValue(item.InstanceType.Description)) {
 			continue
 		}
-		for _, region := range item.RegionsWithCapacityAvailable {
-			location := stringValue(region.Name)
-			if location == "" {
-				continue
-			}
-			instanceType, err := massedComputeInstanceType(item, location)
-			if err != nil {
-				return nil, err
-			}
-			if instanceType.IsAvailable && v1.IsSelectedByArgs(instanceType, args) {
-				instanceTypes = append(instanceTypes, instanceType)
-			}
+		instanceType, err := massedComputeInstanceType(item)
+		if err != nil {
+			return nil, err
+		}
+		if v1.IsSelectedByArgs(instanceType, args) {
+			instanceTypes = append(instanceTypes, instanceType)
 		}
 	}
 
@@ -80,7 +74,7 @@ func (c *MassedComputeClient) getInventory(ctx context.Context) (map[string]open
 	return *result.GpuInventory, nil
 }
 
-func massedComputeInstanceType(item openapi.GPUInventoryV1GpuInventoryValue, location string) (v1.InstanceType, error) {
+func massedComputeInstanceType(item openapi.GPUInventoryV1GpuInventoryValue) (v1.InstanceType, error) {
 	providerType := item.InstanceType
 	specs := providerType.Specs
 	typeName := stringValue(providerType.Name)
@@ -98,7 +92,7 @@ func massedComputeInstanceType(item openapi.GPUInventoryV1GpuInventoryValue, loc
 
 	instanceType := v1.InstanceType{
 		Type:                   typeName,
-		Location:               location,
+		Location:               massedComputeLocation,
 		Memory:                 legacyBytes(memoryBytes),
 		MemoryBytes:            memoryBytes,
 		VCPU:                   int32Value(specs.VcpuCount),

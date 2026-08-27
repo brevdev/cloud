@@ -2,6 +2,7 @@ package massedcompute
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -30,6 +31,20 @@ func TestInstanceLifecycleValidation(t *testing.T) {
 		Credential: credential,
 		StableIDs:  getStableInstanceTypeIDs(t, credential),
 	})
+}
+
+func TestGetLocations(t *testing.T) {
+	checkValidationCredential(t)
+	credential := validationCredential()
+
+	client, err := credential.MakeClient(context.Background(), "")
+	require.NoError(t, err)
+	locations, err := client.GetLocations(context.Background(), v1.GetLocationsArgs{})
+	require.NoError(t, err)
+	require.NotEmpty(t, locations)
+	for _, location := range locations {
+		fmt.Println(location.Name)
+	}
 }
 
 func checkValidationCredential(t *testing.T) {

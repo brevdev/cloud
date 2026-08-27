@@ -141,6 +141,15 @@ func TestGetInstanceTypesAndLocations(t *testing.T) { //nolint:funlen // test ok
 					},
 					"regions_with_capacity_available": []map[string]any{{"name": "us-central-1"}},
 				},
+				"gpu_1x_a5000": map[string]any{
+					"instance_type": map[string]any{
+						"name":        "gpu_1x_a5000",
+						"description": "1x RTX A5000 (24GB)",
+						"specs":       map[string]any{},
+					},
+					"regions_with_capacity_available": []map[string]any{},
+					"capacity_available":              0,
+				},
 			},
 		})
 	})
@@ -150,7 +159,7 @@ func TestGetInstanceTypesAndLocations(t *testing.T) { //nolint:funlen // test ok
 	ctx := context.Background()
 	instanceTypes, err := client.GetInstanceTypes(ctx, v1.GetInstanceTypeArgs{})
 	require.NoError(t, err)
-	require.Len(t, instanceTypes, 8)
+	require.Len(t, instanceTypes, 9)
 	instanceTypesByName := make(map[string]v1.InstanceType, len(instanceTypes))
 	for _, instanceType := range instanceTypes {
 		instanceTypesByName[instanceType.Type] = instanceType
@@ -159,7 +168,7 @@ func TestGetInstanceTypesAndLocations(t *testing.T) { //nolint:funlen // test ok
 	instanceType, ok := instanceTypesByName["gpu_1x_l40"]
 	require.True(t, ok)
 	assert.Equal(t, "gpu_1x_l40", instanceType.Type)
-	assert.Equal(t, "us-central-1", instanceType.Location)
+	assert.Equal(t, massedComputeLocation, instanceType.Location)
 	assert.Equal(t, v1.NewBytes(72, v1.Gibibyte), instanceType.MemoryBytes)
 	assertLegacyBytesMatch(t, instanceType.Memory, instanceType.MemoryBytes)
 	require.Len(t, instanceType.SupportedStorage, 1)
@@ -228,11 +237,16 @@ func TestGetInstanceTypesAndLocations(t *testing.T) { //nolint:funlen // test ok
 	assert.Equal(t, "RTX A6000", nvlinkInstanceType.SupportedGPUs[0].Name)
 	assert.Equal(t, "NVLink", nvlinkInstanceType.SupportedGPUs[0].NetworkDetails)
 
+	unavailableInstanceType, ok := instanceTypesByName["gpu_1x_a5000"]
+	require.True(t, ok)
+	assert.False(t, unavailableInstanceType.IsAvailable)
+	assert.Equal(t, massedComputeLocation, unavailableInstanceType.Location)
+
 	locations, err := client.GetLocations(ctx, v1.GetLocationsArgs{})
 	require.NoError(t, err)
 	require.Len(t, locations, 1)
-	assert.Equal(t, "us-central-1", locations[0].Name)
-	assert.Equal(t, "Wichita, KS", locations[0].Description)
+	assert.Equal(t, massedComputeLocation, locations[0].Name)
+	assert.Equal(t, "Massed Compute automatically selects a region", locations[0].Description)
 	assert.True(t, locations[0].Available)
 
 	require.NoError(t, v1.ValidateGetLocations(ctx, client))
@@ -266,7 +280,7 @@ func TestGPUVRAMFallback(t *testing.T) {
 	assert.Empty(t, massedComputeGPUs("CPU-only instance"))
 }
 
-func TestCreateInstanceHonorsRequestedLocation(t *testing.T) {
+func TestCreateInstanceUsesAutomaticLocation(t *testing.T) {
 	var createdKey openapi.SshKeysPostRequest
 	var launchRequest openapi.InstanceLaunchPostRequest
 	server := newMassedComputeTestServer(t, func(w http.ResponseWriter, r *http.Request) {
@@ -292,7 +306,7 @@ func TestCreateInstanceHonorsRequestedLocation(t *testing.T) {
 				"name":     "dev_tagged-credential_ref-123",
 				"status":   "rented",
 				"username": "ubuntu",
-				"region":   map[string]any{"name": "requested-region"},
+				"region":   map[string]any{"name": "actual-region"},
 				"image":    map[string]any{"id": 42, "name": "Ubuntu Server 22.04 w/ drivers"},
 				"product":  map[string]any{"name": "gpu_1x_l40"},
 			}}})
@@ -318,7 +332,7 @@ func TestCreateInstanceHonorsRequestedLocation(t *testing.T) {
 
 	assert.Equal(t, "brevkey ref123", createdKey.Name)
 	assert.Equal(t, testSSHPublicKey, createdKey.PublicKey)
-	assert.Equal(t, "requested-region", launchRequest.RegionName)
+	assert.Equal(t, massedComputeLocation, launchRequest.RegionName)
 	assert.Equal(t, "gpu_1x_l40", launchRequest.ProductName)
 	assert.Equal(t, []string{"brevkey ref123"}, launchRequest.SshKeys)
 	assert.Equal(t, int32(42), launchRequest.ImageId)
@@ -328,7 +342,8 @@ func TestCreateInstanceHonorsRequestedLocation(t *testing.T) {
 	assert.Equal(t, "dev_tagged-credential_ref-123", *launchRequest.InstanceName)
 
 	assert.Equal(t, v1.CloudProviderInstanceID("instance-id"), instance.CloudID)
-	assert.Equal(t, "requested-region", instance.Location)
+	assert.Equal(t, "actual-region", instance.Location)
+	assert.Equal(t, v1.InstanceTypeID("any-noSub-gpu_1x_l40"), instance.InstanceTypeID)
 	assert.Equal(t, "Ubuntu Server 22.04 w/ drivers", instance.ImageID)
 	assert.Equal(t, "ref-123", instance.RefID)
 	assert.Equal(t, "ref-123", instance.Name)
@@ -424,7 +439,7 @@ func TestListGetAndTerminateInstance(t *testing.T) {
 	ctx := context.Background()
 	instances, err := client.ListInstances(ctx, v1.ListInstancesArgs{
 		InstanceIDs: []v1.CloudProviderInstanceID{"instance-id"},
-		Locations:   v1.LocationsFilter{"us-central-1"},
+		Locations:   v1.LocationsFilter{massedComputeLocation},
 	})
 	require.NoError(t, err)
 	require.Len(t, instances, 1)
@@ -436,6 +451,7 @@ func TestListGetAndTerminateInstance(t *testing.T) {
 	assert.Equal(t, "ubuntu", instance.SSHUser)
 	assert.Equal(t, "Ubuntu Server 22.04 w/ drivers", instance.ImageID)
 	assert.Equal(t, "us-central-1", instance.Location)
+	assert.Equal(t, v1.InstanceTypeID("any-noSub-gpu_1x_l40"), instance.InstanceTypeID)
 	assert.Equal(t, 22, instance.SSHPort)
 	assert.Equal(t, "ssd", instance.VolumeType)
 	assert.Equal(t, v1.NewBytes(625, v1.Gigabyte), instance.DiskSizeBytes)
