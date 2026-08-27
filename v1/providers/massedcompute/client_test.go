@@ -289,7 +289,7 @@ func TestCreateInstanceHonorsRequestedLocation(t *testing.T) {
 		case r.Method == http.MethodGet && r.URL.Path == "/instance/instance-id":
 			writeMassedComputeJSON(t, w, map[string]any{"runningInstances": []map[string]any{{
 				"uuid":     "instance-id",
-				"name":     "ref-123_dev-environment",
+				"name":     "dev_tagged-credential_ref-123",
 				"status":   "rented",
 				"username": "ubuntu",
 				"region":   map[string]any{"name": "requested-region"},
@@ -309,6 +309,10 @@ func TestCreateInstanceHonorsRequestedLocation(t *testing.T) {
 		InstanceType: "gpu_1x_l40",
 		Location:     "requested-region",
 		PublicKey:    testSSHPublicKey,
+		Tags: v1.Tags{
+			"dev-plane-stage":         "dev",
+			"dev-plane-x-cloudCredId": "tagged-credential",
+		},
 	})
 	require.NoError(t, err)
 
@@ -321,14 +325,28 @@ func TestCreateInstanceHonorsRequestedLocation(t *testing.T) {
 	require.NotNil(t, launchRequest.Command)
 	assert.Contains(t, *launchRequest.Command, "base64 --decode | sudo -n bash")
 	require.NotNil(t, launchRequest.InstanceName)
-	assert.Equal(t, "ref-123_dev-environment", *launchRequest.InstanceName)
+	assert.Equal(t, "dev_tagged-credential_ref-123", *launchRequest.InstanceName)
 
 	assert.Equal(t, v1.CloudProviderInstanceID("instance-id"), instance.CloudID)
 	assert.Equal(t, "requested-region", instance.Location)
 	assert.Equal(t, "Ubuntu Server 22.04 w/ drivers", instance.ImageID)
 	assert.Equal(t, "ref-123", instance.RefID)
-	assert.Equal(t, "dev-environment", instance.Name)
+	assert.Equal(t, "ref-123", instance.Name)
+	assert.Equal(t, "tagged-credential", instance.CloudCredRefID)
+	assert.Equal(t, "dev", instance.Tags["dev-plane-stage"])
+	assert.Equal(t, "tagged-credential", instance.Tags["dev-plane-x-cloudCredId"])
 	assert.False(t, instance.Spot)
+}
+
+func TestProviderInstanceName(t *testing.T) {
+	providerName := makeProviderInstanceName("dev", "credential-ref", "ref-123")
+	assert.Equal(t, "dev_credential-ref_ref-123", providerName)
+
+	stage, cloudCredRefID, refID, err := parseProviderInstanceName(providerName)
+	require.NoError(t, err)
+	assert.Equal(t, "dev", stage)
+	assert.Equal(t, "credential-ref", cloudCredRefID)
+	assert.Equal(t, "ref-123", refID)
 }
 
 func TestResolveImageIDHonorsNumericOverride(t *testing.T) {
@@ -366,7 +384,7 @@ func TestListGetAndTerminateInstance(t *testing.T) {
 		case r.Method == http.MethodGet && r.URL.Path == "/instance":
 			writeMassedComputeJSON(t, w, map[string]any{"runningInstances": []map[string]any{{
 				"uuid":     "instance-id",
-				"name":     "ref-123_dev-environment",
+				"name":     "dev_creator-credential_ref-123",
 				"ip":       "192.0.2.10",
 				"status":   "rented",
 				"username": "ubuntu",
@@ -380,7 +398,7 @@ func TestListGetAndTerminateInstance(t *testing.T) {
 		case r.Method == http.MethodGet && r.URL.Path == "/instance/instance-id":
 			writeMassedComputeJSON(t, w, map[string]any{"runningInstances": []map[string]any{{
 				"uuid":     "instance-id",
-				"name":     "ref-123_dev-environment",
+				"name":     "dev_creator-credential_ref-123",
 				"ip":       "192.0.2.10",
 				"status":   "rented",
 				"username": "ubuntu",
@@ -412,8 +430,8 @@ func TestListGetAndTerminateInstance(t *testing.T) {
 	require.Len(t, instances, 1)
 	instance := instances[0]
 	assert.Equal(t, "ref-123", instance.RefID)
-	assert.Equal(t, "dev-environment", instance.Name)
-	assert.Equal(t, "credential-ref", instance.CloudCredRefID)
+	assert.Equal(t, "ref-123", instance.Name)
+	assert.Equal(t, "creator-credential", instance.CloudCredRefID)
 	assert.Equal(t, v1.LifecycleStatusRunning, instance.Status.LifecycleStatus)
 	assert.Equal(t, "ubuntu", instance.SSHUser)
 	assert.Equal(t, "Ubuntu Server 22.04 w/ drivers", instance.ImageID)

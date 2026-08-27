@@ -23,6 +23,8 @@ const (
 	sshKeyNamePrefix    = "brevkey"
 	instanceNameDivider = "_"
 	defaultImageName    = "Ubuntu Server 22.04 w/ drivers"
+	devPlaneStageTag    = "dev-plane-stage"
+	cloudCredIDTag      = "dev-plane-x-cloudCredId" //nolint:gosec // not a credential
 )
 
 var resourceNameInvalidCharacters = regexp.MustCompile(`[^a-zA-Z0-9_-]+`)
@@ -56,7 +58,15 @@ func (c *MassedComputeClient) CreateInstance(ctx context.Context, attrs v1.Creat
 		return nil, err
 	}
 
-	providerName := makeProviderInstanceName(attrs.RefID, attrs.Name)
+	stage := attrs.Tags[devPlaneStageTag]
+	if stage == "" {
+		stage = "unknown"
+	}
+	cloudCredID := attrs.Tags[cloudCredIDTag]
+	if cloudCredID == "" {
+		cloudCredID = c.refID
+	}
+	providerName := makeProviderInstanceName(stage, cloudCredID, attrs.RefID)
 	instanceID, err := c.launchInstance(ctx, openapi.InstanceLaunchPostRequest{
 		ImageId:      imageID,
 		ProductName:  attrs.InstanceType,
@@ -317,7 +327,10 @@ func (c *MassedComputeClient) createSSHKey(ctx context.Context, req openapi.SshK
 
 func (c *MassedComputeClient) convertInstanceToV1Instance(ctx context.Context, providerInstance openapi.RetrieveAllRunningInstancesV1RunningInstancesInner) (*v1.Instance, error) {
 	providerName := stringValue(providerInstance.Name)
-	refID, name := parseProviderInstanceName(providerName)
+	stage, cloudCredRefID, refID, err := parseProviderInstanceName(providerName)
+	if err != nil {
+		return nil, err
+	}
 	sshUser := stringValue(providerInstance.Username)
 
 	var instanceType string
@@ -342,9 +355,9 @@ func (c *MassedComputeClient) convertInstanceToV1Instance(ctx context.Context, p
 	ip := stringValue(providerInstance.Ip)
 	storageBytes := v1.NewBytes(v1.BytesValue(storageGB), v1.Gigabyte)
 	instance := &v1.Instance{
-		Name:           name,
+		Name:           refID,
 		RefID:          refID,
-		CloudCredRefID: c.refID,
+		CloudCredRefID: cloudCredRefID,
 		CloudID:        v1.CloudProviderInstanceID(stringValue(providerInstance.Uuid)),
 		PublicIP:       ip,
 		PublicDNS:      ip,
@@ -359,6 +372,10 @@ func (c *MassedComputeClient) convertInstanceToV1Instance(ctx context.Context, p
 		Location:      c.instanceLocation(providerInstance.AdditionalProperties),
 		DiskSizeBytes: storageBytes,
 		DiskSize:      legacyBytes(storageBytes),
+		Tags: v1.Tags{
+			devPlaneStageTag: stage,
+			cloudCredIDTag:   cloudCredRefID,
+		},
 	}
 	if storageBytes.Value() > 0 {
 		instance.VolumeType = "ssd"
@@ -412,19 +429,16 @@ func managedResourceName(prefix string, separator string, refID string) string {
 	return name
 }
 
-func makeProviderInstanceName(refID, name string) string {
-	if name == "" {
-		return refID
-	}
-	return refID + instanceNameDivider + name
+func makeProviderInstanceName(stage, cloudCredRefID, refID string) string {
+	return strings.Join([]string{stage, cloudCredRefID, refID}, instanceNameDivider)
 }
 
-func parseProviderInstanceName(providerName string) (string, string) {
-	refID, name, found := strings.Cut(providerName, instanceNameDivider)
-	if !found {
-		return providerName, providerName
+func parseProviderInstanceName(providerName string) (string, string, string, error) {
+	parts := strings.SplitN(providerName, instanceNameDivider, 3)
+	if len(parts) != 3 || slices.Contains(parts, "") {
+		return "", "", "", fmt.Errorf("invalid massed compute instance name %q", providerName)
 	}
-	return refID, name
+	return parts[0], parts[1], parts[2], nil
 }
 
 func closeResponseBody(response *http.Response) {
