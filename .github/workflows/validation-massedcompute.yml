@@ -1,0 +1,49 @@
+name: Massed Compute Validation Tests
+
+on:
+  workflow_dispatch:
+    # Run explicitly from the Actions UI, GitHub CLI, or API.
+
+jobs:
+  massedcompute-validation:
+    name: Massed Compute Provider Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version-file: 'go.mod'
+
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Install dependencies
+        run: make deps
+
+      - name: Run Massed Compute validation tests
+        env:
+          MASSED_COMPUTE_API_TOKEN: ${{ secrets.MASSED_COMPUTE_API_TOKEN }}
+          TEST_PRIVATE_KEY_BASE64: ${{ secrets.TEST_PRIVATE_KEY_BASE64 }}
+          TEST_PUBLIC_KEY_BASE64: ${{ secrets.TEST_PUBLIC_KEY_BASE64 }}
+          VALIDATION_TEST: true
+        run: |
+          cd v1/providers/massedcompute
+          go test -v -short=false -timeout=30m ./...
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: massedcompute-validation-results
+          path: |
+            v1/providers/massedcompute/coverage.out
