@@ -16,7 +16,8 @@ import (
 const (
 	CloudProviderID       = "massedcompute"
 	DefaultAPIURL         = "https://vm.massedcompute.com/api/v1"
-	massedComputeLocation = "any"
+	massedComputeLocation = "massedcompute" // Massed Compute does not support location selection, so report all locations as "massedcompute"
+	massedComputeRegion   = "any"           // The instance creation API expects 'any' as the region
 )
 
 type MassedComputeCredential struct {

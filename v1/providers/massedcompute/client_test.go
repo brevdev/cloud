@@ -246,7 +246,7 @@ func TestGetInstanceTypesAndLocations(t *testing.T) { //nolint:funlen // test ok
 	require.NoError(t, err)
 	require.Len(t, locations, 1)
 	assert.Equal(t, massedComputeLocation, locations[0].Name)
-	assert.Equal(t, "Massed Compute automatically selects a region", locations[0].Description)
+	assert.Equal(t, "Massed Compute", locations[0].Description)
 	assert.True(t, locations[0].Available)
 
 	require.NoError(t, v1.ValidateGetLocations(ctx, client))
@@ -280,7 +280,7 @@ func TestGPUVRAMFallback(t *testing.T) {
 	assert.Empty(t, massedComputeGPUs("CPU-only instance"))
 }
 
-func TestCreateInstanceUsesAutomaticLocation(t *testing.T) {
+func TestCreateInstanceMapsLocationToAutomaticRegion(t *testing.T) {
 	var createdKey openapi.SshKeysPostRequest
 	var launchRequest openapi.InstanceLaunchPostRequest
 	server := newMassedComputeTestServer(t, func(w http.ResponseWriter, r *http.Request) {
@@ -321,7 +321,7 @@ func TestCreateInstanceUsesAutomaticLocation(t *testing.T) {
 		RefID:        "ref-123",
 		Name:         "dev-environment",
 		InstanceType: "gpu_1x_l40",
-		Location:     "requested-region",
+		Location:     massedComputeLocation,
 		PublicKey:    testSSHPublicKey,
 		Tags: v1.Tags{
 			"dev-plane-stage":         "dev",
@@ -332,7 +332,7 @@ func TestCreateInstanceUsesAutomaticLocation(t *testing.T) {
 
 	assert.Equal(t, "brevkey ref123", createdKey.Name)
 	assert.Equal(t, testSSHPublicKey, createdKey.PublicKey)
-	assert.Equal(t, massedComputeLocation, launchRequest.RegionName)
+	assert.Equal(t, massedComputeRegion, launchRequest.RegionName)
 	assert.Equal(t, "gpu_1x_l40", launchRequest.ProductName)
 	assert.Equal(t, []string{"brevkey ref123"}, launchRequest.SshKeys)
 	assert.Equal(t, int32(42), launchRequest.ImageId)
@@ -342,8 +342,8 @@ func TestCreateInstanceUsesAutomaticLocation(t *testing.T) {
 	assert.Equal(t, "dev_tagged-credential_ref-123", *launchRequest.InstanceName)
 
 	assert.Equal(t, v1.CloudProviderInstanceID("instance-id"), instance.CloudID)
-	assert.Equal(t, "actual-region", instance.Location)
-	assert.Equal(t, v1.InstanceTypeID("any-noSub-gpu_1x_l40"), instance.InstanceTypeID)
+	assert.Equal(t, massedComputeLocation, instance.Location)
+	assert.Equal(t, v1.InstanceTypeID("massedcompute-noSub-gpu_1x_l40"), instance.InstanceTypeID)
 	assert.Equal(t, "Ubuntu Server 22.04 w/ drivers", instance.ImageID)
 	assert.Equal(t, "ref-123", instance.RefID)
 	assert.Equal(t, "ref-123", instance.Name)
@@ -450,8 +450,8 @@ func TestListGetAndTerminateInstance(t *testing.T) {
 	assert.Equal(t, v1.LifecycleStatusRunning, instance.Status.LifecycleStatus)
 	assert.Equal(t, "ubuntu", instance.SSHUser)
 	assert.Equal(t, "Ubuntu Server 22.04 w/ drivers", instance.ImageID)
-	assert.Equal(t, "us-central-1", instance.Location)
-	assert.Equal(t, v1.InstanceTypeID("any-noSub-gpu_1x_l40"), instance.InstanceTypeID)
+	assert.Equal(t, massedComputeLocation, instance.Location)
+	assert.Equal(t, v1.InstanceTypeID("massedcompute-noSub-gpu_1x_l40"), instance.InstanceTypeID)
 	assert.Equal(t, 22, instance.SSHPort)
 	assert.Equal(t, "ssd", instance.VolumeType)
 	assert.Equal(t, v1.NewBytes(625, v1.Gigabyte), instance.DiskSizeBytes)

@@ -9,6 +9,7 @@ import (
 func (c *MassedComputeClient) GetLocations(_ context.Context, _ v1.GetLocationsArgs) ([]v1.Location, error) {
 	return []v1.Location{{
 		Name:        massedComputeLocation,
+		Description: "Massed Compute",
 		Available:   true,
 	}}, nil
 }

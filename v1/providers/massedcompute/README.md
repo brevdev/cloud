@@ -2,6 +2,8 @@
 
 This package implements the minimal Brev Cloud v1 surface for Massed Compute.
 
+The SDK exposes and reports a single `massedcompute` location, which maps to the API's `any` launch region.
+
 ## Generated API client
 
 The generated client is committed under `gen/massedcompute`. Regenerate it from the version-pinned Massed Compute OpenAPI specification with:

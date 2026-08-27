@@ -66,7 +66,7 @@ func (c *MassedComputeClient) CreateInstance(ctx context.Context, attrs v1.Creat
 	instanceID, err := c.launchInstance(ctx, openapi.InstanceLaunchPostRequest{
 		ImageId:      imageID,
 		ProductName:  attrs.InstanceType,
-		RegionName:   massedComputeLocation,
+		RegionName:   massedComputeRegion,
 		InstanceName: &providerName,
 		Command:      &startupCommand,
 		SshKeys:      []string{keyName},
@@ -177,7 +177,7 @@ func (c *MassedComputeClient) ListInstances(ctx context.Context, args v1.ListIns
 		if len(args.InstanceIDs) > 0 && !slices.Contains(args.InstanceIDs, instance.CloudID) {
 			continue
 		}
-		if len(args.Locations) > 0 && !args.Locations.IsAllowed(massedComputeLocation) && !args.Locations.IsAllowed(instance.Location) {
+		if len(args.Locations) > 0 && !args.Locations.IsAllowed(instance.Location) {
 			continue
 		}
 		instances = append(instances, *instance)
@@ -363,7 +363,7 @@ func (c *MassedComputeClient) convertInstanceToV1Instance(ctx context.Context, p
 		Status: v1.Status{
 			LifecycleStatus: massedComputeLifecycleStatus(stringValue(providerInstance.Status)),
 		},
-		Location:      c.instanceLocation(providerInstance.AdditionalProperties),
+		Location:      massedComputeLocation,
 		DiskSizeBytes: storageBytes,
 		DiskSize:      legacyBytes(storageBytes),
 		Tags: v1.Tags{
@@ -382,15 +382,6 @@ func (c *MassedComputeClient) convertInstanceToV1Instance(ctx context.Context, p
 		Location: massedComputeLocation,
 	})
 	return instance, nil
-}
-
-func (c *MassedComputeClient) instanceLocation(additionalProperties map[string]any) string {
-	if region, ok := additionalProperties["region"].(map[string]any); ok {
-		if location, ok := region["name"].(string); ok && strings.TrimSpace(location) != "" {
-			return strings.TrimSpace(location)
-		}
-	}
-	return massedComputeLocation
 }
 
 func massedComputeLifecycleStatus(status string) v1.LifecycleStatus {
