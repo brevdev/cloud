@@ -30,7 +30,7 @@ func TestInstanceLifecycleValidation(t *testing.T) {
 
 	config := validation.ProviderConfig{
 		Credential: NewSFCCredential("validation-test", apiKey),
-		Location:   "yerba",
+		Location:   "richmond",
 	}
 
 	validation.RunInstanceLifecycleValidation(t, config)
