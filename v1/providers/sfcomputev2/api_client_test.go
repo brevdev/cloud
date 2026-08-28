@@ -27,7 +27,7 @@ func TestAPIClientUsesBrevContract(t *testing.T) {
 			tags, ok := body["tags"].(map[string]any)
 			require.True(t, ok)
 			require.Equal(t, "brev-ref", tags[tagKeyRefID])
-			require.Equal(t, false, body["_preview_enable_infiniband"])
+			require.NotContains(t, body, "_preview_enable_infiniband")
 			writeJSON(t, writer, instanceResponse{ID: "inst_created", Status: instanceStatusAwaitingAllocation})
 		case "GET /integrations/brev/v1/instances":
 			require.Equal(t, "sfc:workspace:account:workspace", request.URL.Query().Get("workspace"))
