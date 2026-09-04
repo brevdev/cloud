@@ -353,12 +353,18 @@ func TestInstanceLifecycle(t *testing.T) { //nolint:gocyclo,funlen // One fixtur
 		PublicKey:     authorizedKey + " test@example.com",
 		InstanceType:  "1H100.80S.22V",
 		DiskSizeBytes: v1.NewBytes(100, v1.Gibibyte),
+		Tags: v1.Tags{
+			"dev-plane-stage":         "dev",
+			"dev-plane-x-cloudCredId": "tagged-credential",
+		},
 	})
 	require.NoError(t, err)
 	assert.Equal(t, "Brev Validation VM", instance.Name)
 	assert.Equal(t, "Brev Validation VM", instance.Hostname)
 	assert.Equal(t, "ref-123", instance.RefID)
-	assert.Equal(t, "credential-ref", instance.CloudCredRefID)
+	assert.Equal(t, "tagged-credential", instance.CloudCredRefID)
+	assert.Equal(t, "dev", instance.Tags["dev-plane-stage"])
+	assert.Equal(t, "tagged-credential", instance.Tags["dev-plane-x-cloudCredId"])
 	assert.Equal(t, "ubuntu-24.04-cuda-12.8-open-docker", instance.ImageID)
 	assert.Equal(t, "brev", instance.SSHUser)
 	assert.Equal(t, v1.LifecycleStatusPending, instance.Status.LifecycleStatus)
@@ -367,7 +373,7 @@ func TestInstanceLifecycle(t *testing.T) { //nolint:gocyclo,funlen // One fixtur
 	assert.Equal(t, v1.NewBytes(100, v1.Gibibyte), instance.DiskSizeBytes)
 	assertLegacyBytesMatch(t, instance.DiskSize, instance.DiskSizeBytes)
 
-	assert.Equal(t, "ref-123_credential-ref", createdRequest.Description)
+	assert.Equal(t, "dev_tagged-credential_ref-123", createdRequest.Description)
 	assert.LessOrEqual(t, len(createdRequest.Description), maxInstanceDescriptionLength)
 	assert.Equal(t, "brev-key-ref-123", createdSSHKey.Name)
 	assert.Equal(t, authorizedKey, createdSSHKey.PublicKey)
@@ -502,15 +508,17 @@ func TestVerdaGPUName(t *testing.T) {
 }
 
 func TestInstanceDescription(t *testing.T) {
-	description, err := makeInstanceDescription("ref-123", "credential-ref")
+	description, err := makeInstanceDescription("dev", "credential-ref", "ref-123")
 	require.NoError(t, err)
-	assert.Equal(t, "ref-123_credential-ref", description)
+	assert.Equal(t, "dev_credential-ref_ref-123", description)
 
-	refID, cloudCredRefID := parseInstanceDescription(description)
+	stage, cloudCredRefID, refID, err := parseInstanceDescription(description)
+	require.NoError(t, err)
+	assert.Equal(t, "dev", stage)
 	assert.Equal(t, "ref-123", refID)
 	assert.Equal(t, "credential-ref", cloudCredRefID)
 
-	_, err = makeInstanceDescription(strings.Repeat("a", maxInstanceDescriptionLength), "credential-ref")
+	_, err = makeInstanceDescription("dev", "credential-ref", strings.Repeat("a", maxInstanceDescriptionLength))
 	require.Error(t, err)
 }
 
