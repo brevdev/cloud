@@ -123,6 +123,41 @@ func TestInstanceLifecycle(t *testing.T) { //nolint:funlen // ok
 	require.True(t, errors.Is(err, cloudv1.ErrInstanceNotFound))
 }
 
+func TestNodePortInstanceLifecycle(t *testing.T) {
+	ctx := context.Background()
+	client := newTestClient(t)
+
+	instance, err := client.CreateInstance(ctx, cloudv1.CreateInstanceAttrs{
+		RefID:        "nodeport",
+		Name:         "nodeport",
+		InstanceType: InstanceTypeOKCPUARM64NodePort,
+	})
+	require.NoError(t, err)
+
+	service, err := client.k8sClient.CoreV1().Services(client.namespace).Get(ctx, string(instance.CloudID), metav1.GetOptions{})
+	require.NoError(t, err)
+	require.Equal(t, corev1.ServiceTypeNodePort, service.Spec.Type)
+	require.NotContains(t, service.Annotations, annotationAWSLoadBalancerConnectionIdleTimeout)
+	service.Spec.Ports[0].NodePort = 32421
+	_, err = client.k8sClient.CoreV1().Services(client.namespace).Update(ctx, service, metav1.UpdateOptions{})
+	require.NoError(t, err)
+
+	pod, err := client.k8sClient.CoreV1().Pods(client.namespace).Get(ctx, string(instance.CloudID), metav1.GetOptions{})
+	require.NoError(t, err)
+	pod.Status.Phase = corev1.PodRunning
+	pod.Status.HostIP = "192.168.49.2"
+	pod.Status.Conditions = []corev1.PodCondition{{Type: corev1.PodReady, Status: corev1.ConditionTrue}}
+	_, err = client.k8sClient.CoreV1().Pods(client.namespace).UpdateStatus(ctx, pod, metav1.UpdateOptions{})
+	require.NoError(t, err)
+
+	running, err := client.GetInstance(ctx, instance.CloudID)
+	require.NoError(t, err)
+	require.Equal(t, cloudv1.LifecycleStatusRunning, running.Status.LifecycleStatus)
+	require.Equal(t, "192.168.49.2", running.PublicIP)
+	require.Equal(t, "192.168.49.2", running.PublicDNS)
+	require.Equal(t, 32421, running.SSHPort)
+}
+
 func TestScenarioEnvironment(t *testing.T) {
 	ctx := context.Background()
 	client := newTestClient(t)
@@ -255,12 +290,28 @@ func TestPopulateNetworkLoadBalancer(t *testing.T) {
 				},
 			},
 		},
-	}, instance)
+	}, "", instance)
 
 	require.Equal(t, "10.96.119.41", instance.PrivateIP)
 	require.Equal(t, "testkube.example.com", instance.PublicIP)
 	require.Equal(t, "testkube.example.com", instance.PublicDNS)
 	require.Equal(t, 22, instance.SSHPort)
+}
+
+func TestPopulateNetworkNodePort(t *testing.T) {
+	instance := &cloudv1.Instance{}
+	populateNetwork(&corev1.Service{
+		Spec: corev1.ServiceSpec{
+			Type:      corev1.ServiceTypeNodePort,
+			ClusterIP: "10.96.119.41",
+			Ports:     []corev1.ServicePort{{Port: 22, NodePort: 32421}},
+		},
+	}, "192.168.49.2", instance)
+
+	require.Equal(t, "10.96.119.41", instance.PrivateIP)
+	require.Equal(t, "192.168.49.2", instance.PublicIP)
+	require.Equal(t, "192.168.49.2", instance.PublicDNS)
+	require.Equal(t, 32421, instance.SSHPort)
 }
 
 func setPodReady(t *testing.T, client *TestKubeClient, instanceID cloudv1.CloudProviderInstanceID) {

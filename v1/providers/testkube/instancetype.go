@@ -18,11 +18,13 @@ const (
 
 	DefaultPriceCentsPerHour = 1
 
-	InstanceTypeOKCPU        = "test.ok.cpu"
-	InstanceTypeOKCPUARM64   = "test.ok.cpu.arm64"
-	InstanceTypeFailCapacity = "test.fail.capacity"
-	InstanceTypeFailQuota    = "test.fail.quota"
-	InstanceTypeFailBuild    = "test.fail.build" // TODO: trigger build failure, maybe with a process that monitors build?
+	InstanceTypeOKCPU              = "test.ok.cpu"
+	InstanceTypeOKCPUARM64         = "test.ok.cpu.arm64"
+	InstanceTypeOKCPUNodePort      = "test.ok.cpu.nodeport"
+	InstanceTypeOKCPUARM64NodePort = "test.ok.cpu.arm64.nodeport"
+	InstanceTypeFailCapacity       = "test.fail.capacity"
+	InstanceTypeFailQuota          = "test.fail.quota"
+	InstanceTypeFailBuild          = "test.fail.build" // TODO: trigger build failure, maybe with a process that monitors build?
 )
 
 // instanceTypeSpec is used mainly as a tuple of instance type (from devplane) and service type (from k8s). When a request
@@ -38,9 +40,21 @@ type instanceTypeSpec struct {
 var allInstanceTypeSpecs = []instanceTypeSpec{
 	makeInstanceTypeSpec(InstanceTypeOKCPU, cloudv1.ArchitectureX86_64, DefaultImageID),
 	makeInstanceTypeSpec(InstanceTypeOKCPUARM64, cloudv1.ArchitectureARM64, ARM64ImageID),
+	makeNodePortInstanceTypeSpec(InstanceTypeOKCPUNodePort, cloudv1.ArchitectureX86_64, DefaultImageID),
+	makeNodePortInstanceTypeSpec(InstanceTypeOKCPUARM64NodePort, cloudv1.ArchitectureARM64, ARM64ImageID),
 	makeInstanceTypeSpec(InstanceTypeFailCapacity, cloudv1.ArchitectureX86_64, DefaultImageID),
 	makeInstanceTypeSpec(InstanceTypeFailQuota, cloudv1.ArchitectureX86_64, DefaultImageID),
 	makeInstanceTypeSpec(InstanceTypeFailBuild, cloudv1.ArchitectureX86_64, DefaultImageID),
+}
+
+func makeNodePortInstanceTypeSpec(
+	instanceType string,
+	architecture cloudv1.Architecture,
+	imageID string,
+) instanceTypeSpec {
+	spec := makeInstanceTypeSpec(instanceType, architecture, imageID)
+	spec.serviceType = corev1.ServiceTypeNodePort
+	return spec
 }
 
 func makeInstanceTypeSpec(
