@@ -25,6 +25,8 @@ const (
 	sshKeyResourceNamePrefix     = "brev-key"
 	defaultSSHUser               = "brev"
 	defaultSSHPort               = 22
+	devPlaneStageTag             = "dev-plane-stage"
+	cloudCredIDTag               = "dev-plane-x-cloudCredId" //nolint:gosec // not a credential
 )
 
 var resourceNameInvalidCharacters = regexp.MustCompile(`[^a-z0-9-]+`)
@@ -51,7 +53,15 @@ func (c *VerdaClient) CreateInstance(ctx context.Context, attrs v1.CreateInstanc
 	}
 
 	// Verda lacks tags, so we will use the description field to house a small amount of Brev metadata
-	description, err := makeInstanceDescription(attrs.RefID, c.refID)
+	stage := attrs.Tags[devPlaneStageTag]
+	if stage == "" {
+		stage = "unknown"
+	}
+	cloudCredRefID := attrs.Tags[cloudCredIDTag]
+	if cloudCredRefID == "" {
+		cloudCredRefID = c.refID
+	}
+	description, err := makeInstanceDescription(stage, cloudCredRefID, attrs.RefID)
 	if err != nil {
 		return nil, err
 	}
@@ -181,7 +191,10 @@ func (c *VerdaClient) TerminateInstance(ctx context.Context, id v1.CloudProvider
 		return wrapVerdaError(err)
 	}
 
-	refID, _ := parseInstanceDescription(verdaInstance.Description)
+	_, _, refID, err := parseInstanceDescription(verdaInstance.Description)
+	if err != nil {
+		return err
+	}
 	return c.cleanupManagedResources(ctx, refID)
 }
 
@@ -323,9 +336,9 @@ func (c *VerdaClient) cleanupManagedResources(ctx context.Context, refID string)
 }
 
 func (c *VerdaClient) verdaInstanceToInstance(ctx context.Context, verdaInstance *verdago.Instance) (*v1.Instance, error) {
-	refID, cloudCredRefID := parseInstanceDescription(verdaInstance.Description)
-	if cloudCredRefID == "" {
-		cloudCredRefID = c.refID
+	stage, cloudCredRefID, refID, err := parseInstanceDescription(verdaInstance.Description)
+	if err != nil {
+		return nil, err
 	}
 
 	publicIP := ""
@@ -353,6 +366,10 @@ func (c *VerdaClient) verdaInstanceToInstance(ctx context.Context, verdaInstance
 		Spot:       verdaInstance.IsSpot,
 		Stoppable:  true,
 		Rebootable: false,
+		Tags: v1.Tags{
+			devPlaneStageTag: stage,
+			cloudCredIDTag:   cloudCredRefID,
+		},
 	}
 	instance.InstanceTypeID = v1.MakeGenericInstanceTypeIDFromInstance(*instance)
 
@@ -386,8 +403,8 @@ func verdaStatusToLifecycleStatus(status string) v1.LifecycleStatus {
 	}
 }
 
-func makeInstanceDescription(refID string, cloudCredRefID string) (string, error) {
-	description := refID + instanceIdentitySeparator + cloudCredRefID
+func makeInstanceDescription(stage, cloudCredRefID, refID string) (string, error) {
+	description := strings.Join([]string{stage, cloudCredRefID, refID}, instanceIdentitySeparator)
 	if len(description) > maxInstanceDescriptionLength {
 		return "", fmt.Errorf(
 			"verda instance identity is %d characters; maximum description length is %d",
@@ -398,12 +415,12 @@ func makeInstanceDescription(refID string, cloudCredRefID string) (string, error
 	return description, nil
 }
 
-func parseInstanceDescription(description string) (refID, cloudCredRefID string) {
-	refID, cloudCredRefID, found := strings.Cut(description, instanceIdentitySeparator)
-	if !found {
-		return description, ""
+func parseInstanceDescription(description string) (stage, cloudCredRefID, refID string, err error) {
+	parts := strings.SplitN(description, instanceIdentitySeparator, 3)
+	if len(parts) != 3 || slices.Contains(parts, "") {
+		return "", "", "", fmt.Errorf("invalid verda instance description %q", description)
 	}
-	return refID, cloudCredRefID
+	return parts[0], parts[1], parts[2], nil
 }
 
 func managedResourceName(prefix, refID string) string {
