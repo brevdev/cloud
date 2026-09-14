@@ -14,7 +14,7 @@ func TestGetInstanceTypes(t *testing.T) {
 
 	instanceTypes, err := client.GetInstanceTypes(context.Background(), cloudv1.GetInstanceTypeArgs{})
 	require.NoError(t, err)
-	require.Len(t, instanceTypes, 5)
+	require.Len(t, instanceTypes, 7)
 
 	instanceTypeByName := map[string]cloudv1.InstanceType{}
 	for _, instanceType := range instanceTypes {
@@ -23,10 +23,12 @@ func TestGetInstanceTypes(t *testing.T) {
 
 	for _, expected := range []string{
 		InstanceTypeOKCPU,
+		InstanceTypeOKCPUNodePort,
 		InstanceTypeFailCapacity,
 		InstanceTypeFailQuota,
 		InstanceTypeFailBuild,
 		InstanceTypeOKCPUARM64,
+		InstanceTypeOKCPUARM64NodePort,
 	} {
 		instanceType, ok := instanceTypeByName[expected]
 		require.True(t, ok, "missing instance type %s", expected)
@@ -54,6 +56,7 @@ func TestGetInstanceTypesFiltersByArchitecture(t *testing.T) {
 			architecture: cloudv1.ArchitectureX86_64,
 			expected: []string{
 				InstanceTypeOKCPU,
+				InstanceTypeOKCPUNodePort,
 				InstanceTypeFailCapacity,
 				InstanceTypeFailQuota,
 				InstanceTypeFailBuild,
@@ -62,7 +65,7 @@ func TestGetInstanceTypesFiltersByArchitecture(t *testing.T) {
 		{
 			name:         "arm64",
 			architecture: cloudv1.ArchitectureARM64,
-			expected:     []string{InstanceTypeOKCPUARM64},
+			expected:     []string{InstanceTypeOKCPUARM64, InstanceTypeOKCPUARM64NodePort},
 		},
 	}
 
@@ -93,7 +96,7 @@ func TestGetInstanceTypesWithGPUManufacturerFilterIncludesCPU(t *testing.T) {
 		},
 	})
 	require.NoError(t, err)
-	require.Len(t, instanceTypes, 5)
+	require.Len(t, instanceTypes, 7)
 }
 
 func TestCapabilitiesDoNotAdvertiseImages(t *testing.T) {

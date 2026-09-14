@@ -5,6 +5,8 @@ This image backs the architecture-specific TestKube instance types:
 ```text
 test.ok.cpu       -> ghcr.io/brevdev/cloud/testkube-ubuntu-vm:multiarch-v2
 test.ok.cpu.arm64 -> ghcr.io/brevdev/cloud/testkube-ubuntu-vm:multiarch-v2
+test.ok.cpu.nodeport       -> ghcr.io/brevdev/cloud/testkube-ubuntu-vm:multiarch-v2
+test.ok.cpu.arm64.nodeport -> ghcr.io/brevdev/cloud/testkube-ubuntu-vm:multiarch-v2
 ```
 
 ## Publish to GHCR

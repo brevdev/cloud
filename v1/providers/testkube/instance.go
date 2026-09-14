@@ -373,12 +373,12 @@ func (c *TestKubeClient) instanceFromResources(pod *corev1.Pod, service *corev1.
 	}
 	instance.InstanceTypeID = cloudv1.MakeGenericInstanceTypeIDFromInstance(*instance)
 	if service != nil {
-		populateNetwork(service, instance)
+		populateNetwork(service, pod.Status.HostIP, instance)
 	}
 	return instance
 }
 
-func populateNetwork(service *corev1.Service, instance *cloudv1.Instance) {
+func populateNetwork(service *corev1.Service, hostIP string, instance *cloudv1.Instance) {
 	// Default the private IP to the cluster IP.
 	if service.Spec.ClusterIP != "" && service.Spec.ClusterIP != corev1.ClusterIPNone {
 		instance.PrivateIP = service.Spec.ClusterIP
@@ -413,6 +413,10 @@ func populateNetwork(service *corev1.Service, instance *cloudv1.Instance) {
 		}
 		// Set the SSH port to the first node port.
 		instance.SSHPort = int(service.Spec.Ports[0].NodePort)
+		if hostIP != "" {
+			instance.PublicIP = hostIP
+			instance.PublicDNS = hostIP
+		}
 	case corev1.ServiceTypeClusterIP:
 		// Keep the cluster IP as the private IP.
 	}
@@ -441,6 +445,12 @@ func statusFromResources(pod *corev1.Pod, service *corev1.Service) cloudv1.Statu
 				Messages:        append(podMessages(*pod), fmt.Sprintf("service %s waiting for load balancer ingress", service.Name)),
 			}
 		}
+		if service.Spec.Type == corev1.ServiceTypeNodePort && !nodePortReady(pod, service) {
+			return cloudv1.Status{
+				LifecycleStatus: cloudv1.LifecycleStatusPending,
+				Messages:        append(podMessages(*pod), fmt.Sprintf("service %s waiting for node port endpoint", service.Name)),
+			}
+		}
 		return cloudv1.Status{
 			LifecycleStatus: cloudv1.LifecycleStatusRunning,
 			Messages:        podMessages(*pod),
@@ -450,6 +460,10 @@ func statusFromResources(pod *corev1.Pod, service *corev1.Service) cloudv1.Statu
 		LifecycleStatus: cloudv1.LifecycleStatusPending,
 		Messages:        podMessages(*pod),
 	}
+}
+
+func nodePortReady(pod *corev1.Pod, service *corev1.Service) bool {
+	return pod.Status.HostIP != "" && len(service.Spec.Ports) > 0 && service.Spec.Ports[0].NodePort != 0
 }
 
 func loadBalancerReady(service *corev1.Service) bool {
