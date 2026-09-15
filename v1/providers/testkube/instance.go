@@ -75,7 +75,7 @@ func (c *TestKubeClient) CreateInstance(ctx context.Context, attrs cloudv1.Creat
 	return instance, nil
 }
 
-func (c *TestKubeClient) createInstanceAsK8sResources(ctx context.Context, attrs cloudv1.CreateInstanceAttrs, instanceTypeSpec instanceTypeSpec) (*cloudv1.Instance, error) {
+func (c *TestKubeClient) createInstanceAsK8sResources(ctx context.Context, attrs cloudv1.CreateInstanceAttrs, instanceTypeSpec instanceTypeSpec) (*cloudv1.Instance, error) { //nolint:funlen // ok
 	// Create a "cloud ID" to emulate a provider-provided instance ID.
 	cloudID := makeCloudID(c.refID, attrs.RefID)
 
