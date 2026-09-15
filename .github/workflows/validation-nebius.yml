@@ -42,9 +42,25 @@ jobs:
                   TEST_PRIVATE_KEY_BASE64: ${{ secrets.TEST_PRIVATE_KEY_BASE64 }}
                   TEST_PUBLIC_KEY_BASE64: ${{ secrets.TEST_PUBLIC_KEY_BASE64 }}
                   VALIDATION_TEST: true
+                  # Stamps this run's resources for the sweep below. run_id (not run_attempt) so a
+                  # re-run also reaps resources a prior attempt leaked before its cleanup ran.
+                  CI_RUN_ID: ${{ github.run_id }}
               run: |
                   cd v1/providers/nebius
                   go test -v -short=false -timeout=30m ./...
+
+            # Deletes any VM/network/subnet/disk this run left behind. Matches only this run's
+            # ci-run-id label, so it never touches another run's or a production resource.
+            - name: Sweep leaked validation/integration resources
+              if: always()
+              env:
+                  NEBIUS_SERVICE_ACCOUNT_JSON: ${{ secrets.NEBIUS_SERVICE_ACCOUNT_JSON }}
+                  NEBIUS_TENANT_ID: ${{ secrets.NEBIUS_TENANT_ID }}
+                  SWEEP_ORPHANS: "true"
+                  CI_RUN_ID: ${{ github.run_id }}
+              run: |
+                  cd v1/providers/nebius
+                  go test -v -run '^TestSweepOrphans$' -timeout=20m .
 
             - name: Upload test results
               uses: actions/upload-artifact@v4
