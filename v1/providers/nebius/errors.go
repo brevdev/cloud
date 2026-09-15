@@ -27,6 +27,10 @@ func (e *NebiusError) Error() string {
 
 // isNotFoundError checks if an error is a "not found" error
 func isNotFoundError(err error) bool {
+	// Also match the v1 sentinels, for errors already mapped by callers like TerminateInstance.
+	if errors.Is(err, v1.ErrInstanceNotFound) || errors.Is(err, v1.ErrResourceNotFound) {
+		return true
+	}
 	// Check for gRPC NotFound status code
 	if status, ok := status.FromError(err); ok {
 		return status.Code() == codes.NotFound
