@@ -23,6 +23,9 @@ const (
 	servicePortName  = "ssh"
 	servicePort      = int32(22)
 	containerSSHPort = int32(22)
+
+	nestedContainerSSHPortName = "container-ssh"
+	nestedContainerSSHPort     = int32(2222)
 )
 
 type TestKubeAuthMode string
