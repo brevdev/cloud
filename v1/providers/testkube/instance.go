@@ -75,7 +75,7 @@ func (c *TestKubeClient) CreateInstance(ctx context.Context, attrs cloudv1.Creat
 	return instance, nil
 }
 
-func (c *TestKubeClient) createInstanceAsK8sResources(ctx context.Context, attrs cloudv1.CreateInstanceAttrs, instanceTypeSpec instanceTypeSpec) (*cloudv1.Instance, error) {
+func (c *TestKubeClient) createInstanceAsK8sResources(ctx context.Context, attrs cloudv1.CreateInstanceAttrs, instanceTypeSpec instanceTypeSpec) (*cloudv1.Instance, error) { //nolint:funlen // ok
 	// Create a "cloud ID" to emulate a provider-provided instance ID.
 	cloudID := makeCloudID(c.refID, attrs.RefID)
 
@@ -89,6 +89,20 @@ func (c *TestKubeClient) createInstanceAsK8sResources(ctx context.Context, attrs
 		serviceAnnotations[annotationAWSLoadBalancerConnectionIdleTimeout] = awsLoadBalancerConnectionIdleTimeout
 	} else {
 		serviceAnnotations = annotations
+	}
+	servicePorts := []corev1.ServicePort{
+		{
+			Name:       servicePortName,
+			Protocol:   corev1.ProtocolTCP,
+			Port:       servicePort,
+			TargetPort: intstr.FromInt32(containerSSHPort),
+		},
+		{
+			Name:       nestedContainerSSHPortName,
+			Protocol:   corev1.ProtocolTCP,
+			Port:       nestedContainerSSHPort,
+			TargetPort: intstr.FromInt32(nestedContainerSSHPort),
+		},
 	}
 
 	// Create the service.
@@ -105,14 +119,7 @@ func (c *TestKubeClient) createInstanceAsK8sResources(ctx context.Context, attrs
 			Spec: corev1.ServiceSpec{
 				Type:     instanceTypeSpec.serviceType,
 				Selector: selectorLabels(string(cloudID)),
-				Ports: []corev1.ServicePort{
-					{
-						Name:       servicePortName,
-						Protocol:   corev1.ProtocolTCP,
-						Port:       servicePort,
-						TargetPort: intstr.FromInt32(containerSSHPort),
-					},
-				},
+				Ports:    servicePorts,
 			},
 		}, metav1.CreateOptions{})
 	if err != nil {
@@ -413,6 +420,15 @@ func populateNetwork(service *corev1.Service, hostIP string, instance *cloudv1.I
 		}
 		// Set the SSH port to the first node port.
 		instance.SSHPort = int(service.Spec.Ports[0].NodePort)
+		for _, port := range service.Spec.Ports[1:] {
+			if port.NodePort == 0 {
+				continue
+			}
+			instance.InternalPortMappings = append(instance.InternalPortMappings, cloudv1.PortMapping{
+				FromPort: int(port.Port),
+				ToPort:   int(port.NodePort),
+			})
+		}
 		if hostIP != "" {
 			instance.PublicIP = hostIP
 			instance.PublicDNS = hostIP
@@ -463,7 +479,15 @@ func statusFromResources(pod *corev1.Pod, service *corev1.Service) cloudv1.Statu
 }
 
 func nodePortReady(pod *corev1.Pod, service *corev1.Service) bool {
-	return pod.Status.HostIP != "" && len(service.Spec.Ports) > 0 && service.Spec.Ports[0].NodePort != 0
+	if pod.Status.HostIP == "" || len(service.Spec.Ports) == 0 {
+		return false
+	}
+	for _, port := range service.Spec.Ports {
+		if port.NodePort == 0 {
+			return false
+		}
+	}
+	return true
 }
 
 func loadBalancerReady(service *corev1.Service) bool {
