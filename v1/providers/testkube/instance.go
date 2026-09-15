@@ -97,16 +97,12 @@ func (c *TestKubeClient) createInstanceAsK8sResources(ctx context.Context, attrs
 			Port:       servicePort,
 			TargetPort: intstr.FromInt32(containerSSHPort),
 		},
-	}
-	if instanceTypeSpec.serviceType == corev1.ServiceTypeNodePort {
-		// Container-mode environments publish their nested SSH server on the VM's
-		// port 2222. Expose it only for the explicit NodePort test instance types.
-		servicePorts = append(servicePorts, corev1.ServicePort{
+		{
 			Name:       nestedContainerSSHPortName,
 			Protocol:   corev1.ProtocolTCP,
 			Port:       nestedContainerSSHPort,
 			TargetPort: intstr.FromInt32(nestedContainerSSHPort),
-		})
+		},
 	}
 
 	// Create the service.

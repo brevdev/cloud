@@ -76,7 +76,7 @@ func TestInstanceLifecycle(t *testing.T) { //nolint:funlen // ok
 	service, err := client.k8sClient.CoreV1().Services(client.namespace).Get(ctx, string(instance.CloudID), metav1.GetOptions{})
 	require.NoError(t, err)
 	require.Equal(t, awsLoadBalancerConnectionIdleTimeout, service.Annotations[annotationAWSLoadBalancerConnectionIdleTimeout])
-	require.Len(t, service.Spec.Ports, 1)
+	require.Len(t, service.Spec.Ports, 2)
 	pod, err := client.k8sClient.CoreV1().Pods(client.namespace).Get(ctx, string(instance.CloudID), metav1.GetOptions{})
 	require.NoError(t, err)
 	require.NotContains(t, pod.Annotations, annotationAWSLoadBalancerConnectionIdleTimeout)
