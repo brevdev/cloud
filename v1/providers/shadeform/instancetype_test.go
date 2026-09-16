@@ -1,12 +1,15 @@
 package v1
 
 import (
+	"encoding/json"
+	"fmt"
 	"testing"
 	"time"
 
 	v1 "github.com/brevdev/cloud/v1"
 	openapi "github.com/brevdev/cloud/v1/providers/shadeform/gen/shadeform"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestIsSelectedByArgs(t *testing.T) {
@@ -94,6 +97,96 @@ func TestIsSelectedByArgs(t *testing.T) {
 				}
 			}
 			assert.ElementsMatch(t, tt.want, selectedInstanceTypes)
+		})
+	}
+}
+
+func TestConvertShadeformInstanceTypeToV1InstanceTypeRentalType(t *testing.T) {
+	t.Parallel()
+
+	client := &ShadeformClient{}
+
+	// Built from JSON (not a struct literal) so rental_type lands in
+	// Availability.AdditionalProperties - the path isSpotAvailability reads. If the client
+	// is regenerated with a typed rental_type field, the spot cases below will fail.
+	newInstanceType := func(t *testing.T, availabilityJSON string) openapi.InstanceType {
+		t.Helper()
+		raw := fmt.Sprintf(`{
+			"cloud": "excesssupply",
+			"shade_instance_type": "B300_sxm6x8",
+			"cloud_instance_type": "8x-b300-sxm6-ac",
+			"hourly_price": 3600,
+			"deployment_type": "vm",
+			"configuration": {
+				"memory_in_gb": 2790,
+				"storage_in_gb": 27997,
+				"vcpus": 120,
+				"num_gpus": 8,
+				"gpu_type": "B300",
+				"interconnect": "sxm6",
+				"vram_per_gpu_in_gb": 288,
+				"os_options": ["ubuntu24.04_cuda13.0_shade_os"],
+				"gpu_manufacturer": "nvidia"
+			},
+			"availability": %s
+		}`, availabilityJSON)
+
+		var it openapi.InstanceType
+		require.NoError(t, json.Unmarshal([]byte(raw), &it))
+		return it
+	}
+
+	cases := []struct {
+		name             string
+		availabilityJSON string
+		wantLen          int
+		wantIsAvailable  bool // only checked when wantLen == 1
+		wantLocation     string
+	}{
+		{
+			name: "spot availability does not make instance type bookable",
+			availabilityJSON: `[
+				{"region": "us-west-1", "available": false, "display_name": "us-west-1", "rental_type": "on_demand"},
+				{"region": "us-west-1", "available": true, "display_name": "us-west-1", "rental_type": "spot", "hourly_price": "36"}
+			]`,
+			wantLen:         1,
+			wantIsAvailable: false,
+			wantLocation:    "us-west-1",
+		},
+		{
+			name:             "on_demand availability is preserved",
+			availabilityJSON: `[{"region": "warsaw-poland-1", "available": true, "display_name": "PL, Warsaw", "rental_type": "on_demand"}]`,
+			wantLen:          1,
+			wantIsAvailable:  true,
+			wantLocation:     "warsaw-poland-1",
+		},
+		{
+			name:             "missing rental type is treated as on_demand",
+			availabilityJSON: `[{"region": "paris-france-1", "available": true, "display_name": "FR, Paris"}]`,
+			wantLen:          1,
+			wantIsAvailable:  true,
+			wantLocation:     "paris-france-1",
+		},
+		{
+			name:             "spot-only region is dropped",
+			availabilityJSON: `[{"region": "us-west-1", "available": true, "display_name": "us-west-1", "rental_type": "spot", "hourly_price": "36"}]`,
+			wantLen:          0,
+		},
+	}
+
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, err := client.convertShadeformInstanceTypeToV1InstanceType(newInstanceType(t, tt.availabilityJSON))
+			assert.NoError(t, err)
+			assert.Len(t, got, tt.wantLen)
+			if tt.wantLen == 1 {
+				assert.Equal(t, tt.wantIsAvailable, got[0].IsAvailable)
+				assert.Equal(t, tt.wantLocation, got[0].Location)
+				assert.Equal(t, "excesssupply_B300_sxm6x8", got[0].Type)
+				assert.Equal(t, CloudProviderID, got[0].Cloud)
+			}
 		})
 	}
 }
