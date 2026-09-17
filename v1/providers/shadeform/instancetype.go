@@ -17,6 +17,8 @@ import (
 const (
 	UsdCurrentCode = "USD"
 	AllRegions     = "all"
+	rentalTypeSpot = "spot"
+	rentalTypeKey  = "rental_type"
 )
 
 // TODO: We need to apply a filter to specifically limit the integration and api to selected clouds and shade instance types
@@ -218,6 +220,11 @@ func (c *ShadeformClient) convertShadeformInstanceTypeToV1InstanceType(shadeform
 	estimatedDeployTime := c.getEstimatedDeployTime(shadeformInstanceType)
 
 	for _, region := range shadeformInstanceType.Availability {
+		// Shadeform lists a region once per rental type; skip spot so it never marks a
+		// SKU available. Untagged entries are treated as on-demand.
+		if isSpotAvailability(region) {
+			continue
+		}
 		instanceTypes = append(instanceTypes, v1.InstanceType{
 			ID:          v1.InstanceTypeID(c.getInstanceTypeID(instanceType, region.Region)),
 			Type:        instanceType,
@@ -255,6 +262,14 @@ func (c *ShadeformClient) convertShadeformInstanceTypeToV1InstanceType(shadeform
 	}
 
 	return instanceTypes, nil
+}
+
+func isSpotAvailability(availability openapi.Availability) bool {
+	rentalType, ok := availability.AdditionalProperties[rentalTypeKey].(string)
+	if !ok {
+		return false
+	}
+	return strings.EqualFold(rentalType, rentalTypeSpot)
 }
 
 func convertHourlyPriceToAmount(hourlyPrice int32) (*currency.Amount, error) {
