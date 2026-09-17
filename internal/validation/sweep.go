@@ -7,7 +7,6 @@ import (
 	"time"
 
 	v1 "github.com/brevdev/cloud/v1"
-	"github.com/cenkalti/backoff/v4"
 )
 
 // CIRunIDLabel re-exports v1.CIRunIDLabel so the sweeper and create paths share one value.
@@ -63,7 +62,7 @@ func SweepOrphanedInstances(ctx context.Context, client v1.CloudClient, opts Swe
 		inst := res.Matched[i]
 		logf("[sweep] terminating cloudID=%s name=%q owner=%s location=%s",
 			inst.CloudID, inst.Name, inst.CloudCredRefID, inst.Location)
-		if err := terminateWithRetry(ctx, client, inst.CloudID); err != nil {
+		if err := terminateWithTimeout(ctx, client, inst.CloudID); err != nil {
 			res.Failed[inst.CloudID] = err
 			logf("[sweep] FAILED to terminate cloudID=%s: %v", inst.CloudID, err)
 			continue
@@ -73,17 +72,14 @@ func SweepOrphanedInstances(ctx context.Context, client v1.CloudClient, opts Swe
 	return res, nil
 }
 
-// terminateWithRetry terminates an instance with a bounded exponential backoff, treating a
+// terminateWithTimeout terminates an instance in a single attempt on an 8-min context, treating a
 // not-found result as success (the instance is already gone).
-func terminateWithRetry(ctx context.Context, client v1.CloudCreateTerminateInstance, id v1.CloudProviderInstanceID) error {
-	op := func() error {
-		termCtx, cancel := context.WithTimeout(ctx, 10*time.Minute)
-		defer cancel()
-		err := client.TerminateInstance(termCtx, id)
-		if err == nil || errors.Is(err, v1.ErrInstanceNotFound) || errors.Is(err, v1.ErrResourceNotFound) {
-			return nil
-		}
-		return err
+func terminateWithTimeout(ctx context.Context, client v1.CloudCreateTerminateInstance, id v1.CloudProviderInstanceID) error {
+	termCtx, cancel := context.WithTimeout(ctx, 8*time.Minute)
+	defer cancel()
+	err := client.TerminateInstance(termCtx, id)
+	if err == nil || errors.Is(err, v1.ErrInstanceNotFound) || errors.Is(err, v1.ErrResourceNotFound) {
+		return nil
 	}
-	return backoff.Retry(op, backoff.WithMaxRetries(backoff.NewExponentialBackOff(), 4))
+	return err
 }

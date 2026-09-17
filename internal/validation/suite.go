@@ -8,7 +8,6 @@ import (
 
 	"github.com/brevdev/cloud/internal/ssh"
 	v1 "github.com/brevdev/cloud/v1"
-	"github.com/cenkalti/backoff/v4"
 	"github.com/stretchr/testify/require"
 )
 
@@ -22,7 +21,7 @@ type ProviderConfig struct {
 }
 
 // registerInstanceCleanup schedules termination via t.Cleanup so it runs even after a t.Fatalf,
-// on a fresh context with retry. Not-found counts as success; a terminal failure fails the test.
+// on a fresh 8-min context. Not-found counts as success; a terminal failure fails the test.
 // Returns markTerminated, which the caller invokes once it has terminated the instance itself to
 // skip the redundant delete. Call this right after a create, before any assertion.
 func registerInstanceCleanup(t *testing.T, client v1.CloudCreateTerminateInstance, cloudID v1.CloudProviderInstanceID) (markTerminated func()) {
@@ -36,17 +35,13 @@ func registerInstanceCleanup(t *testing.T, client v1.CloudCreateTerminateInstanc
 		if terminated {
 			return
 		}
-		op := func() error {
-			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
-			defer cancel()
-			err := client.TerminateInstance(ctx, cloudID)
-			if err == nil || errors.Is(err, v1.ErrInstanceNotFound) || errors.Is(err, v1.ErrResourceNotFound) {
-				return nil
-			}
-			return err
-		}
-		if err := backoff.Retry(op, backoff.WithMaxRetries(backoff.NewExponentialBackOff(), 4)); err != nil {
-			t.Errorf("LEAKED INSTANCE %s: cleanup failed after retries: %v", cloudID, err)
+		// Single 8-min attempt on a fresh context (real terminates ~1 min; internal wait caps at
+		// 5 minutes).
+		ctx, cancel := context.WithTimeout(context.Background(), 8*time.Minute)
+		defer cancel()
+		err := client.TerminateInstance(ctx, cloudID)
+		if err != nil && !errors.Is(err, v1.ErrInstanceNotFound) && !errors.Is(err, v1.ErrResourceNotFound) {
+			t.Errorf("LEAKED INSTANCE %s: cleanup terminate failed: %v", cloudID, err)
 		}
 	})
 	return markTerminated
