@@ -92,10 +92,18 @@ func TestGetInstanceTypesAndLocations(t *testing.T) {
 	assert.Equal(t, v1.NewBytes(80, v1.Gigabyte), gpuType.SupportedGPUs[0].MemoryBytes)
 	assert.Equal(t, "H100", gpuType.SupportedGPUs[0].Name)
 	assert.Equal(t, "PCIe", gpuType.SupportedGPUs[0].NetworkDetails)
+	require.Len(t, gpuType.SupportedStorage, 1)
+	assert.Equal(t, "ephemeral", gpuType.SupportedStorage[0].Type)
+	assert.Equal(t, v1.NewBytes(1500, v1.Gigabyte), gpuType.SupportedStorage[0].SizeBytes)
+	assert.True(t, gpuType.SupportedStorage[0].IsEphemeral)
 
 	cpuType := instanceTypes[1]
 	assert.Equal(t, "0.220", cpuType.BasePrice.Number())
 	assert.False(t, cpuType.IsAvailable)
+	require.Len(t, cpuType.SupportedStorage, 1)
+	assert.Equal(t, "ssd", cpuType.SupportedStorage[0].Type)
+	assert.Equal(t, v1.NewBytes(100, v1.Gigabyte), cpuType.SupportedStorage[0].SizeBytes)
+	assert.False(t, cpuType.SupportedStorage[0].IsEphemeral)
 
 	filteredTypes, err := client.GetInstanceTypes(context.Background(), v1.GetInstanceTypeArgs{
 		Locations:     v1.LocationsFilter{"NORWAY-1"},

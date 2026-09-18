@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	virtualmachine "github.com/NexGenCloud/hyperstack-sdk-go/lib/virtual_machine"
+	"github.com/alecthomas/units"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -124,12 +125,14 @@ func TestInstanceLifecycleRequests(t *testing.T) { //nolint:funlen // one statef
 
 	client := newTestClient(t, server.URL+"/v1")
 	instance, err := client.CreateInstance(context.Background(), v1.CreateInstanceAttrs{
-		Location:     "CANADA-1",
-		Name:         "test-vm",
-		RefID:        "ref-123",
-		PublicKey:    testSSHPublicKey,
-		InstanceType: "n3-H100x1",
-		Tags:         v1.Tags{"team": "compute"},
+		Location:      "CANADA-1",
+		Name:          "test-vm",
+		RefID:         "ref-123",
+		PublicKey:     testSSHPublicKey,
+		InstanceType:  "n3-H100x1",
+		DiskSize:      256 * units.Gibibyte,
+		DiskSizeBytes: v1.NewBytes(256, v1.Gibibyte),
+		Tags:          v1.Tags{"team": "compute"},
 		FirewallRules: v1.FirewallRules{IngressRules: []v1.FirewallRule{{
 			FromPort: 8080,
 			ToPort:   8080,

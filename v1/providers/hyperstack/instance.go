@@ -67,6 +67,8 @@ func (c *HyperstackClient) CreateInstance(ctx context.Context, attrs v1.CreateIn
 	enhancedMonitoringEnabled := false
 	userData := readinessCloudConfig
 
+	// Hyperstack root disk sizes are fixed by flavor. Intentionally do not map
+	// attrs.DiskSize or attrs.DiskSizeBytes into the provider request.
 	response, err := c.virtualMachines.CreateVMsWithResponse(ctx, virtualmachine.CreateInstancesPayload{
 		Name:                      managedResourceName(attrs.Name, attrs.RefID),
 		EnvironmentName:           environmentName,
@@ -115,8 +117,6 @@ func validateCreateInstanceAttrs(attrs v1.CreateInstanceAttrs, location string) 
 		return errors.New("hyperstack instance public key or key pair name is required")
 	case attrs.UserDataBase64 != "":
 		return errors.New("hyperstack provider does not support instance user data")
-	case attrs.DiskSize != 0 || attrs.DiskSizeBytes.Value() != 0:
-		return errors.New("hyperstack provider does not support custom root disk sizes")
 	case len(attrs.AdditionalDisks) > 0:
 		return errors.New("hyperstack provider does not support additional disks")
 	case attrs.UseSpot != isSpotFlavor(attrs.InstanceType, attrs.InstanceType):
