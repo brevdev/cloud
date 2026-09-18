@@ -132,7 +132,10 @@ func TestInstanceLifecycleRequests(t *testing.T) { //nolint:funlen // one statef
 		InstanceType:  "n3-H100x1",
 		DiskSize:      256 * units.Gibibyte,
 		DiskSizeBytes: v1.NewBytes(256, v1.Gibibyte),
-		Tags:          v1.Tags{"team": "compute"},
+		Tags: v1.Tags{
+			"dev-plane-x-instanceId": "instance-123",
+			"team":                   "compute",
+		},
 		FirewallRules: v1.FirewallRules{IngressRules: []v1.FirewallRule{{
 			FromPort: 8080,
 			ToPort:   8080,
@@ -143,7 +146,8 @@ func TestInstanceLifecycleRequests(t *testing.T) { //nolint:funlen // one statef
 	assert.Equal(t, v1.CloudProviderInstanceID("42"), instance.CloudID)
 	assert.Equal(t, "ref-123", instance.RefID)
 	assert.Equal(t, "credential-ref", instance.CloudCredRefID)
-	assert.Equal(t, "compute", instance.Tags["team"])
+	assert.Equal(t, "instance-123", instance.Tags["dev-plane-x-instanceId"])
+	assert.NotContains(t, instance.Tags, "team")
 	assert.Equal(t, v1.LifecycleStatusRunning, instance.Status.LifecycleStatus)
 	assert.Equal(t, "203.0.113.42", instance.PublicIP)
 	assert.Equal(t, v1.InstanceTypeID("CANADA-1-noSub-n3-H100x1"), instance.InstanceTypeID)
@@ -151,7 +155,7 @@ func TestInstanceLifecycleRequests(t *testing.T) { //nolint:funlen // one statef
 	instances, err := client.ListInstances(context.Background(), v1.ListInstancesArgs{
 		InstanceIDs: []v1.CloudProviderInstanceID{"42"},
 		Locations:   v1.LocationsFilter{"CANADA-1"},
-		TagFilters:  map[string][]string{"team": {"compute"}},
+		TagFilters:  map[string][]string{"dev-plane-x-instanceId": {"instance-123"}},
 	})
 	require.NoError(t, err)
 	require.Len(t, instances, 1)
@@ -210,16 +214,30 @@ func TestResolveKeyPairSearchesEveryPage(t *testing.T) {
 
 func TestLabelsRoundTripPlainValues(t *testing.T) {
 	const refID = "82d299a7-dfd9-40e6-8707-3c477374b2a6"
-	labels := makeLabels(refID, "credential-ref", v1.Tags{"team": "gpu-workers"})
+	tags := v1.Tags{
+		"dev-plane-x-instanceId":    "instance-id",
+		"dev-plane-x-environmentId": "environment-id",
+		"dev-plane-x-userId":        "user-id",
+		"dev-plane-x-launchableId":  "launchable-id",
+		"dev-plane-x-cloudCredId":   "cloud-cred-id",
+		"dev-plane-stage":           "dev",
+		"team":                      "gpu-workers",
+	}
+	labels := makeLabels(refID, "credential-ref", tags)
 	labels = append(labels, managedKeyIDLabelPrefix+"7")
 	labels = append(labels, readinessLabel)
+	require.Len(t, labels, 10)
 	assert.Contains(t, labels, refIDLabelPrefix+refID)
 	assert.Contains(t, labels, cloudRefLabelPrefix+"credential-ref")
+	assert.NotContains(t, labels, tagLabelPrefix+"team=gpu-workers")
 
-	parsedRefID, cloudRefID, tags := parseLabels(&labels)
+	parsedRefID, cloudRefID, parsedTags := parseLabels(&labels)
 	assert.Equal(t, refID, parsedRefID)
 	assert.Equal(t, "credential-ref", cloudRefID)
-	assert.Equal(t, "gpu-workers", tags["team"])
+	for _, key := range instanceTagLabelKeys {
+		assert.Equal(t, tags[key], parsedTags[key])
+	}
+	assert.NotContains(t, parsedTags, "team")
 }
 
 func TestCallerKeyPairIsNotManaged(t *testing.T) {

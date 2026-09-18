@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"regexp"
 	"slices"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -30,6 +29,16 @@ const (
 )
 
 var resourceNameInvalidCharacters = regexp.MustCompile(`[^a-zA-Z0-9-]+`)
+
+var instanceTagLabelKeys = []string{
+	"dev-plane-x-instanceId",
+	"dev-plane-x-environmentId",
+	"dev-plane-x-userId",
+	"dev-plane-x-launchableId",
+	"dev-plane-x-cloudCredId",
+	"dev-plane-stage",
+	"cloudCredRefID",
+}
 
 func (c *HyperstackClient) CreateInstance(ctx context.Context, attrs v1.CreateInstanceAttrs) (*v1.Instance, error) {
 	location := strings.TrimSpace(attrs.Location)
@@ -407,13 +416,10 @@ func makeLabels(refID, cloudCredRefID string, tags v1.Tags) []string {
 		refIDLabelPrefix + refID,
 		cloudRefLabelPrefix + cloudCredRefID,
 	}
-	keys := make([]string, 0, len(tags))
-	for key := range tags {
-		keys = append(keys, key)
-	}
-	sort.Strings(keys)
-	for _, key := range keys {
-		labels = append(labels, tagLabelPrefix+key+"="+tags[key])
+	for _, key := range instanceTagLabelKeys {
+		if value, ok := tags[key]; ok {
+			labels = append(labels, tagLabelPrefix+key+"="+value)
+		}
 	}
 	return labels
 }
