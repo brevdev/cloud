@@ -34,3 +34,26 @@ func TestNormalizeTerminateInstanceErrorPreservesRetryableFailure(t *testing.T) 
 
 	require.ErrorIs(t, err, providerErr)
 }
+
+func TestMakeSFCNameIsDeterministic(t *testing.T) {
+	t.Parallel()
+
+	tags := v1.Tags{"dev-plane-x-environmentId": "p82qfn5qs"}
+
+	first := makeSFCName("inst-2toqsvHXfalevkjPXY2QNJZL9HF", tags)
+	second := makeSFCName("inst-2toqsvHXfalevkjPXY2QNJZL9HF", tags)
+
+	require.Equal(t, first, second)
+}
+
+func TestMakeSFCNameIsUniquePerInstance(t *testing.T) {
+	t.Parallel()
+
+	// Same environment, two instances: re-provisioning must not reuse the previous name.
+	tags := v1.Tags{"dev-plane-x-environmentId": "p82qfn5qs"}
+
+	first := makeSFCName("inst-2toqsvHXfalevkjPXY2QNJZL9HF", tags)
+	second := makeSFCName("inst-2gAgPPd3QC1nmSjaWg8kc7UfyDx", tags)
+
+	require.NotEqual(t, first, second)
+}
