@@ -51,6 +51,20 @@ func setupIntegrationTest(t *testing.T) *NebiusClient {
 	return client
 }
 
+// integrationTestTags returns the integration test's tags, adding the CI run ID when CI_RUN_ID is
+// set so the post-run sweep can find this run's resources.
+func integrationTestTags() map[string]string {
+	tags := map[string]string{
+		"test":        "integration",
+		"created-by":  "nebius-integration-test",
+		"auto-delete": "true",
+	}
+	if id := os.Getenv("CI_RUN_ID"); id != "" {
+		tags[CIRunIDLabel] = id
+	}
+	return tags
+}
+
 // generateTestSSHKeyPair generates an RSA SSH key pair for testing
 // Returns private key (PEM format) and public key (OpenSSH format)
 func generateTestSSHKeyPair(t *testing.T) (privateKey, publicKey string) {
@@ -275,11 +289,7 @@ func TestIntegration_InstanceLifecycle(t *testing.T) {
 		DiskSize:     50 * 1024 * 1024 * 1024,       // 50 GiB in bytes
 		Location:     selectedInstanceType.Location, // Use the instance type's location
 		PublicKey:    publicKey,                     // SSH public key for access (like Shadeform)
-		Tags: map[string]string{
-			"test":        "integration",
-			"created-by":  "nebius-integration-test",
-			"auto-delete": "true",
-		},
+		Tags:         integrationTestTags(),
 	}
 
 	t.Logf("Creating instance with RefID: %s", instanceRefID)
