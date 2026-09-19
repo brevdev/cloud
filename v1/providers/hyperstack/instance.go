@@ -236,6 +236,14 @@ func (c *HyperstackClient) StartInstance(ctx context.Context, instanceID v1.Clou
 	if err != nil {
 		return err
 	}
+	providerInstance, err := c.getProviderInstance(ctx, numericID)
+	if err != nil {
+		return err
+	}
+	switch strings.ToLower(strings.TrimSpace(stringValue(providerInstance.Status))) {
+	case "active", "running", "starting", "powering-on":
+		return nil
+	}
 	response, err := c.virtualMachines.StartVMWithResponse(ctx, numericID)
 	if err != nil {
 		return wrapTransportError("start virtual machine", err)

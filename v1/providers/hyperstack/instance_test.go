@@ -24,6 +24,7 @@ func TestInstanceLifecycleRequests(t *testing.T) { //nolint:funlen // one statef
 	keyPairDeleteCount := 0
 	stopCount := 0
 	startCount := 0
+	providerStatus := "ACTIVE"
 	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		assert.Equal(t, "api-key", request.Header.Get("api_key"))
 		switch {
@@ -87,7 +88,7 @@ func TestInstanceLifecycleRequests(t *testing.T) { //nolint:funlen // one statef
 				"instance": map[string]any{
 					"id":          42,
 					"name":        "ref-123",
-					"status":      "ACTIVE",
+					"status":      providerStatus,
 					"created_at":  "2026-09-04T12:00:00",
 					"floating_ip": "203.0.113.42",
 					"fixed_ip":    "10.0.0.42",
@@ -121,9 +122,11 @@ func TestInstanceLifecycleRequests(t *testing.T) { //nolint:funlen // one statef
 			writeJSON(t, writer, map[string]any{"status": true})
 		case request.URL.Path == "/v1/core/virtual-machines/42/stop" && request.Method == http.MethodGet:
 			stopCount++
+			providerStatus = "SHUTOFF"
 			writeJSON(t, writer, map[string]any{"status": true})
 		case request.URL.Path == "/v1/core/virtual-machines/42/start" && request.Method == http.MethodGet:
 			startCount++
+			providerStatus = "ACTIVE"
 			writeJSON(t, writer, map[string]any{"status": true})
 		default:
 			http.NotFound(writer, request)
@@ -173,6 +176,7 @@ func TestInstanceLifecycleRequests(t *testing.T) { //nolint:funlen // one statef
 	require.Len(t, instances, 1)
 	assert.Equal(t, instance.RefID, instances[0].RefID)
 	require.NoError(t, client.StopInstance(context.Background(), "42"))
+	require.NoError(t, client.StartInstance(context.Background(), "42"))
 	require.NoError(t, client.StartInstance(context.Background(), "42"))
 	assert.Equal(t, 1, stopCount)
 	assert.Equal(t, 1, startCount)

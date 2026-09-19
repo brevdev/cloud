@@ -22,11 +22,12 @@ write_files:
     content: |
       [Unit]
       Description=Brev cloud instance readiness signal
-      After=cloud-final.service
+      Wants=network-online.target
+      After=network-online.target
 
       [Service]
       Type=oneshot
-      ExecStart=/bin/sh -c 'while systemctl list-jobs --no-legend --no-pager | grep -v brev-cloud-ready.service | grep -q .; do sleep 2; done; printf "BREV_CLOUD_READY_V1\n" > /dev/ttyS0'
+      ExecStart=/bin/sh -c 'printf "BREV_CLOUD_READY_V1\n" > /dev/ttyS0'
 
       [Install]
       WantedBy=multi-user.target
