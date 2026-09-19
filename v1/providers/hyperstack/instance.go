@@ -22,7 +22,6 @@ const (
 	defaultSSHUser          = "ubuntu"
 	defaultPageSize         = 100
 	refIDLabelPrefix        = "brev-ref-"
-	cloudRefLabelPrefix     = "brev-cloud-ref-"
 	tagLabelPrefix          = "brev-tag-"
 	tagLabelSeparator       = "_"
 	managedKeyIDLabelPrefix = "brev-managed-key-id-"
@@ -32,7 +31,7 @@ const (
 var resourceNameInvalidCharacters = regexp.MustCompile(`[^a-zA-Z0-9-]+`)
 
 // Hyperstack permits at most 10 labels. These seven caller tags plus the
-// canonical ref ID, readiness marker, and managed-key ID fill that budget.
+// canonical ref ID and optional managed-key ID use at most nine labels.
 var instanceTagLabelKeys = []string{
 	"dev-plane-managedBy",
 	"dev-plane-x-instanceId",
@@ -73,7 +72,6 @@ func (c *HyperstackClient) CreateInstance(ctx context.Context, attrs v1.CreateIn
 	if keyPair.managedID != 0 {
 		labels = append(labels, managedKeyIDLabelPrefix+strconv.Itoa(keyPair.managedID))
 	}
-	labels = append(labels, readinessLabel)
 	assignFloatingIP := true
 	enablePortRandomization := false
 	enhancedMonitoringEnabled := false
@@ -230,6 +228,7 @@ func (c *HyperstackClient) StopInstance(ctx context.Context, instanceID v1.Cloud
 	if response.StatusCode() != http.StatusOK {
 		return responseError("stop virtual machine", response.StatusCode(), response.Body, v1.ErrInstanceNotFound)
 	}
+	c.resetReadiness(numericID)
 	return nil
 }
 
@@ -238,6 +237,7 @@ func (c *HyperstackClient) StartInstance(ctx context.Context, instanceID v1.Clou
 	if err != nil {
 		return err
 	}
+	c.resetReadiness(numericID)
 	response, err := c.virtualMachines.StartVMWithResponse(ctx, numericID)
 	if err != nil {
 		return wrapTransportError("start virtual machine", err)
@@ -275,8 +275,7 @@ func (c *HyperstackClient) convertProviderInstance(
 	providerInstance virtualmachine.InstanceFields,
 ) (v1.Instance, error) {
 	consoleReady := false
-	if requiresConsoleReadiness(providerInstance.Labels) &&
-		hyperstackLifecycleStatus(stringValue(providerInstance.Status)) == v1.LifecycleStatusRunning &&
+	if hyperstackLifecycleStatus(stringValue(providerInstance.Status)) == v1.LifecycleStatusRunning &&
 		hyperstackAPIReady(providerInstance, strings.TrimSpace(stringValue(providerInstance.FloatingIp))) {
 		instanceID := intValue(providerInstance.Id)
 		if instanceID <= 0 {
@@ -297,12 +296,9 @@ func (c *HyperstackClient) convertInstance(
 ) v1.Instance {
 	cloudID := strconv.Itoa(intValue(providerInstance.Id))
 	name := strings.TrimSpace(stringValue(providerInstance.Name))
-	refID, cloudCredRefID, tags := parseLabels(providerInstance.Labels)
+	refID, tags := parseLabels(providerInstance.Labels)
 	if refID == "" {
 		refID = name
-	}
-	if cloudCredRefID == "" {
-		cloudCredRefID = c.refID
 	}
 
 	location := ""
@@ -328,7 +324,7 @@ func (c *HyperstackClient) convertInstance(
 	instance := v1.Instance{
 		Name:           name,
 		RefID:          refID,
-		CloudCredRefID: cloudCredRefID,
+		CloudCredRefID: c.refID,
 		CloudID:        v1.CloudProviderInstanceID(cloudID),
 		PublicIP:       publicIP,
 		PublicDNS:      publicIP,
@@ -368,7 +364,7 @@ func hyperstackInstanceReady(
 	if !hyperstackAPIReady(providerInstance, publicIP) {
 		return false
 	}
-	return !requiresConsoleReadiness(providerInstance.Labels) || consoleReady
+	return consoleReady
 }
 
 func hyperstackAPIReady(providerInstance virtualmachine.InstanceFields, publicIP string) bool {
@@ -455,13 +451,12 @@ func makeLabels(refID string, tags v1.Tags) []string {
 	return labels
 }
 
-func parseLabels(providerLabels *[]string) (string, string, v1.Tags) {
+func parseLabels(providerLabels *[]string) (string, v1.Tags) {
 	tags := make(v1.Tags)
 	if providerLabels == nil {
-		return "", "", tags
+		return "", tags
 	}
 	var refID string
-	var cloudCredRefID string
 	for _, label := range *providerLabels {
 		if key, value, ok := parseTagLabel(label); ok {
 			tags[key] = value
@@ -470,15 +465,13 @@ func parseLabels(providerLabels *[]string) (string, string, v1.Tags) {
 		switch {
 		case strings.HasPrefix(label, refIDLabelPrefix):
 			refID = strings.TrimPrefix(label, refIDLabelPrefix)
-		case strings.HasPrefix(label, cloudRefLabelPrefix):
-			cloudCredRefID = strings.TrimPrefix(label, cloudRefLabelPrefix)
-		case strings.HasPrefix(label, managedKeyIDLabelPrefix), label == readinessLabel:
+		case strings.HasPrefix(label, managedKeyIDLabelPrefix):
 			continue
 		default:
 			tags[label] = ""
 		}
 	}
-	return refID, cloudCredRefID, tags
+	return refID, tags
 }
 
 func providerTagLabelPrefix(key string) string {

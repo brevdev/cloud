@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"sync"
 
 	pricebook "github.com/NexGenCloud/hyperstack-sdk-go/lib/Pricebook"
 	"github.com/NexGenCloud/hyperstack-sdk-go/lib/environment"
@@ -105,7 +104,6 @@ type HyperstackClient struct {
 	keypairs        *keypair.ClientWithResponses
 	regions         *region.ClientWithResponses
 	pricebook       *pricebook.Client
-	readinessMu     *sync.Mutex
 	logRequests     map[int]int
 	readyInstances  map[int]struct{}
 }
@@ -130,7 +128,6 @@ func NewHyperstackClient(credential HyperstackCredential, location string, opts 
 		apiKey:         credential.APIKey,
 		location:       location,
 		httpClient:     http.DefaultClient,
-		readinessMu:    &sync.Mutex{},
 		logRequests:    make(map[int]int),
 		readyInstances: make(map[int]struct{}),
 	}

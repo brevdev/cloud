@@ -10,7 +10,6 @@ import (
 )
 
 const (
-	readinessLabel       = "brev-readiness-v1"
 	readinessMarker      = "BREV_CLOUD_READY_V1"
 	consoleLogLineCount  = 200
 	readinessCloudConfig = `#cloud-config
@@ -25,30 +24,21 @@ write_files:
       [Service]
       Type=oneshot
       ExecStart=/bin/sh -c 'while systemctl list-jobs --no-legend --no-pager | grep -v brev-cloud-ready.service | grep -q .; do sleep 2; done; printf "BREV_CLOUD_READY_V1\n" > /dev/ttyS0'
+
+      [Install]
+      WantedBy=multi-user.target
 runcmd:
   - [systemctl, daemon-reload]
+  - [systemctl, enable, brev-cloud-ready.service]
   - [systemctl, start, --no-block, brev-cloud-ready.service]
 `
 )
 
-func requiresConsoleReadiness(labels *[]string) bool {
-	return labels != nil && containsString(*labels, readinessLabel)
-}
-
-func containsString(values []string, expected string) bool {
-	for _, value := range values {
-		if value == expected {
-			return true
-		}
-	}
-	return false
-}
-
 func (c *HyperstackClient) consoleReady(ctx context.Context, instanceID int) (bool, error) {
-	requestID, ready := c.readinessState(instanceID)
-	if ready {
+	if _, ok := c.readyInstances[instanceID]; ok {
 		return true, nil
 	}
+	requestID := c.logRequests[instanceID]
 	if requestID == 0 {
 		var err error
 		requestID, err = c.requestConsoleLogs(ctx, instanceID)
@@ -58,7 +48,7 @@ func (c *HyperstackClient) consoleReady(ctx context.Context, instanceID int) (bo
 		if requestID == 0 {
 			return false, nil
 		}
-		c.setLogRequest(instanceID, requestID)
+		c.logRequests[instanceID] = requestID
 	}
 
 	response, err := c.virtualMachines.GetVMLogsWithResponse(ctx, instanceID, &virtualmachine.GetVMLogsParams{
@@ -82,16 +72,16 @@ func (c *HyperstackClient) consoleReady(ctx context.Context, instanceID int) (bo
 			// request instead of starting over indefinitely.
 			return false, nil
 		}
-		c.clearLogRequest(instanceID)
+		delete(c.logRequests, instanceID)
 		if !strings.Contains(*response.JSON200.Logs, readinessMarker) {
 			return false, nil
 		}
-		c.setReady(instanceID)
+		c.readyInstances[instanceID] = struct{}{}
 		return true, nil
 	case http.StatusUnauthorized, http.StatusForbidden:
 		return false, responseError("get virtual machine console logs", response.StatusCode(), response.Body, nil)
 	default:
-		c.clearLogRequest(instanceID)
+		delete(c.logRequests, instanceID)
 		return false, nil
 	}
 }
@@ -126,34 +116,7 @@ func (c *HyperstackClient) requestConsoleLogs(ctx context.Context, instanceID in
 	return payload.RequestID, nil
 }
 
-func (c *HyperstackClient) readinessState(instanceID int) (requestID int, ready bool) {
-	c.readinessMu.Lock()
-	defer c.readinessMu.Unlock()
-	_, ready = c.readyInstances[instanceID]
-	return c.logRequests[instanceID], ready
-}
-
-func (c *HyperstackClient) setLogRequest(instanceID, requestID int) {
-	c.readinessMu.Lock()
-	defer c.readinessMu.Unlock()
-	if c.logRequests == nil {
-		c.logRequests = make(map[int]int)
-	}
-	c.logRequests[instanceID] = requestID
-}
-
-func (c *HyperstackClient) clearLogRequest(instanceID int) {
-	c.readinessMu.Lock()
-	defer c.readinessMu.Unlock()
+func (c *HyperstackClient) resetReadiness(instanceID int) {
 	delete(c.logRequests, instanceID)
-}
-
-func (c *HyperstackClient) setReady(instanceID int) {
-	c.readinessMu.Lock()
-	defer c.readinessMu.Unlock()
-	if c.readyInstances == nil {
-		c.readyInstances = make(map[int]struct{})
-	}
-	delete(c.logRequests, instanceID)
-	c.readyInstances[instanceID] = struct{}{}
+	delete(c.readyInstances, instanceID)
 }

@@ -22,6 +22,8 @@ func TestInstanceLifecycleRequests(t *testing.T) { //nolint:funlen // one statef
 	var labels []string
 	deleted := false
 	keyPairDeleteCount := 0
+	stopCount := 0
+	startCount := 0
 	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		assert.Equal(t, "api-key", request.Header.Get("api_key"))
 		switch {
@@ -60,9 +62,10 @@ func TestInstanceLifecycleRequests(t *testing.T) { //nolint:funlen // one statef
 			assertSecurityRule(t, (*payload.SecurityRules)[0], "10.0.0.0/8", 8080, 8080)
 			require.NotNil(t, payload.Labels)
 			labels = *payload.Labels
-			assert.Contains(t, labels, readinessLabel)
 			require.NotNil(t, payload.UserData)
 			assert.Contains(t, *payload.UserData, readinessMarker)
+			assert.Contains(t, *payload.UserData, "WantedBy=multi-user.target")
+			assert.Contains(t, *payload.UserData, "systemctl, enable, brev-cloud-ready.service")
 			writeJSON(t, writer, map[string]any{"status": true, "instances": []map[string]any{{"id": 42}}})
 		case request.URL.Path == "/v1/core/virtual-machines/42/logs" && request.Method == http.MethodPost:
 			var payload virtualmachine.RequestInstanceLogsPayload
@@ -117,8 +120,10 @@ func TestInstanceLifecycleRequests(t *testing.T) { //nolint:funlen // one statef
 			deleted = true
 			writeJSON(t, writer, map[string]any{"status": true})
 		case request.URL.Path == "/v1/core/virtual-machines/42/stop" && request.Method == http.MethodGet:
+			stopCount++
 			writeJSON(t, writer, map[string]any{"status": true})
 		case request.URL.Path == "/v1/core/virtual-machines/42/start" && request.Method == http.MethodGet:
+			startCount++
 			writeJSON(t, writer, map[string]any{"status": true})
 		default:
 			http.NotFound(writer, request)
@@ -169,6 +174,8 @@ func TestInstanceLifecycleRequests(t *testing.T) { //nolint:funlen // one statef
 	assert.Equal(t, instance.RefID, instances[0].RefID)
 	require.NoError(t, client.StopInstance(context.Background(), "42"))
 	require.NoError(t, client.StartInstance(context.Background(), "42"))
+	assert.Equal(t, 1, stopCount)
+	assert.Equal(t, 1, startCount)
 
 	require.NoError(t, client.TerminateInstance(context.Background(), "42"))
 	require.NoError(t, client.TerminateInstance(context.Background(), "42"))
@@ -235,29 +242,17 @@ func TestLabelsRoundTripPlainValues(t *testing.T) {
 	}
 	labels := makeLabels(refID, tags)
 	labels = append(labels, managedKeyIDLabelPrefix+"7")
-	labels = append(labels, readinessLabel)
-	require.Len(t, labels, 10)
 	assert.Contains(t, labels, refIDLabelPrefix+refID)
 	assert.Contains(t, labels, "brev-tag-dev-plane-managedby_dev-plane")
 	assert.Contains(t, labels, "brev-tag-dev-plane-x-instanceid_instance-id")
-	assert.NotContains(t, labels, cloudRefLabelPrefix+"credential-ref")
 	assert.NotContains(t, labels, tagLabelPrefix+"team=gpu-workers")
 
-	parsedRefID, cloudRefID, parsedTags := parseLabels(&labels)
+	parsedRefID, parsedTags := parseLabels(&labels)
 	assert.Equal(t, refID, parsedRefID)
-	assert.Empty(t, cloudRefID)
 	for _, key := range instanceTagLabelKeys {
 		assert.Equal(t, tags[key], parsedTags[key])
 	}
 	assert.NotContains(t, parsedTags, "team")
-}
-
-func TestParseLabelsSupportsLegacyCloudRefLabel(t *testing.T) {
-	labels := []string{cloudRefLabelPrefix + "credential-ref"}
-
-	_, cloudRefID, _ := parseLabels(&labels)
-
-	assert.Equal(t, "credential-ref", cloudRefID)
 }
 
 func TestParseLabelsOnlyDecodesKnownTagPrefixes(t *testing.T) {
@@ -266,7 +261,7 @@ func TestParseLabelsOnlyDecodesKnownTagPrefixes(t *testing.T) {
 		"brev-tag-dev-plane-x-instanceid_instance-123",
 	}
 
-	_, _, tags := parseLabels(&labels)
+	_, tags := parseLabels(&labels)
 
 	assert.Equal(t, "instance-123", tags["dev-plane-x-instanceId"])
 	assert.Equal(t, "", tags["brev-tag-team_gpu-workers"])
@@ -296,14 +291,6 @@ func TestActiveInstanceWaitsForFloatingIP(t *testing.T) {
 		Status: &status, FloatingIp: &publicIP, FloatingIpStatus: &attaching,
 	}, false)
 	assert.Equal(t, v1.LifecycleStatusPending, withAttachingIP.Status.LifecycleStatus)
-
-	attached := "ATTACHED"
-	running := "RUNNING"
-	ready := client.convertInstance(virtualmachine.InstanceFields{
-		Status: &status, FloatingIp: &publicIP, FloatingIpStatus: &attached,
-		VmState: &status, PowerState: &running,
-	}, false)
-	assert.Equal(t, v1.LifecycleStatusRunning, ready.Status.LifecycleStatus)
 }
 
 func TestActiveInstanceWaitsForGuestBoot(t *testing.T) {
@@ -311,10 +298,9 @@ func TestActiveInstanceWaitsForGuestBoot(t *testing.T) {
 	publicIP := "203.0.113.42"
 	attached := "ATTACHED"
 	running := "RUNNING"
-	labels := []string{readinessLabel}
 	providerInstance := virtualmachine.InstanceFields{
 		Status: &status, FloatingIp: &publicIP, FloatingIpStatus: &attached,
-		VmState: &status, PowerState: &running, Labels: &labels,
+		VmState: &status, PowerState: &running,
 	}
 
 	assert.False(t, hyperstackInstanceReady(providerInstance, publicIP, false))

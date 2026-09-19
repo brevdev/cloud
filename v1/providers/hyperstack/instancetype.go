@@ -116,16 +116,6 @@ func hyperstackInstanceType(providerType flavor.FlavorFields, fallbackLocation s
 	memory, memoryBytes := byteSizes(memoryGB, v1.Gigabyte)
 
 	storageGB := int64(intValue(providerType.Disk))
-	storageType := "ssd"
-	isEphemeral := false
-	if ephemeralGB := int64(intValue(providerType.Ephemeral)); ephemeralGB > 0 {
-		// Hyperstack exposes flavor-local ephemeral storage as a separate disk
-		// from the root disk. Present that capacity when available so consumers
-		// do not mistake the fixed root disk for workload storage.
-		storageGB = ephemeralGB
-		storageType = "ephemeral"
-		isEphemeral = true
-	}
 	storage, storageBytes := byteSizes(storageGB, v1.Gigabyte)
 
 	gpuType := strings.TrimSpace(stringValue(providerType.Gpu))
@@ -157,12 +147,23 @@ func hyperstackInstanceType(providerType flavor.FlavorFields, fallbackLocation s
 	}
 	if storageGB > 0 {
 		instanceType.SupportedStorage = []v1.Storage{{
-			Type:        storageType,
-			Count:       1,
-			Size:        storage,
-			SizeBytes:   storageBytes,
-			IsEphemeral: isEphemeral,
+			Type:      "ssd",
+			Count:     1,
+			Size:      storage,
+			SizeBytes: storageBytes,
 		}}
+	}
+	if ephemeralGB := int64(intValue(providerType.Ephemeral)); ephemeralGB > 0 {
+		ephemeral, ephemeralBytes := byteSizes(ephemeralGB, v1.Gigabyte)
+		instanceType.SupportedStorage = append(instanceType.SupportedStorage, v1.Storage{
+			Type:                    "ephemeral",
+			Count:                   1,
+			Size:                    ephemeral,
+			SizeBytes:               ephemeralBytes,
+			IsEphemeral:             true,
+			IsAdditionalDisk:        true,
+			RequiresVolumeMountPath: true,
+		})
 	}
 	if gpuCount > 0 && gpuType != "" {
 		instanceType.SupportedGPUs = []v1.GPU{hyperstackGPU(gpuType, gpuCount)}
