@@ -42,8 +42,7 @@ jobs:
                   TEST_PRIVATE_KEY_BASE64: ${{ secrets.TEST_PRIVATE_KEY_BASE64 }}
                   TEST_PUBLIC_KEY_BASE64: ${{ secrets.TEST_PUBLIC_KEY_BASE64 }}
                   VALIDATION_TEST: true
-                  # Stamps this run's resources for the sweep below. run_id (not run_attempt) so a
-                  # re-run also reaps resources a prior attempt leaked before its cleanup ran.
+                  # Stamps this run's resources for the sweep below.
                   CI_RUN_ID: ${{ github.run_id }}
               run: |
                   cd v1/providers/nebius
@@ -60,7 +59,7 @@ jobs:
                   CI_RUN_ID: ${{ github.run_id }}
               run: |
                   cd v1/providers/nebius
-                  go test -v -run '^TestSweepOrphans$' -timeout=20m .
+                  go test -v -run '^TestSweepOrphans$' -count=1 -timeout=20m .
 
             - name: Upload test results
               uses: actions/upload-artifact@v4
