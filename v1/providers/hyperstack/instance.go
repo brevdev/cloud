@@ -24,6 +24,7 @@ const (
 	refIDLabelPrefix        = "brev-ref-"
 	cloudRefLabelPrefix     = "brev-cloud-ref-"
 	tagLabelPrefix          = "brev-tag-"
+	tagLabelSeparator       = "_"
 	managedKeyIDLabelPrefix = "brev-managed-key-id-"
 	defaultEnvironmentTag   = "default-"
 )
@@ -417,7 +418,7 @@ func makeLabels(refID string, tags v1.Tags) []string {
 	labels := []string{refIDLabelPrefix + refID}
 	for _, key := range instanceTagLabelKeys {
 		if value, ok := tags[key]; ok {
-			labels = append(labels, tagLabelPrefix+key+"="+value)
+			labels = append(labels, providerTagLabelPrefix(key)+value)
 		}
 	}
 	return labels
@@ -431,17 +432,15 @@ func parseLabels(providerLabels *[]string) (string, string, v1.Tags) {
 	var refID string
 	var cloudCredRefID string
 	for _, label := range *providerLabels {
+		if key, value, ok := parseTagLabel(label); ok {
+			tags[key] = value
+			continue
+		}
 		switch {
 		case strings.HasPrefix(label, refIDLabelPrefix):
 			refID = strings.TrimPrefix(label, refIDLabelPrefix)
 		case strings.HasPrefix(label, cloudRefLabelPrefix):
 			cloudCredRefID = strings.TrimPrefix(label, cloudRefLabelPrefix)
-		case strings.HasPrefix(label, tagLabelPrefix):
-			parts := strings.SplitN(strings.TrimPrefix(label, tagLabelPrefix), "=", 2)
-			if len(parts) != 2 {
-				continue
-			}
-			tags[parts[0]] = parts[1]
 		case strings.HasPrefix(label, managedKeyIDLabelPrefix), label == readinessLabel:
 			continue
 		default:
@@ -449,6 +448,20 @@ func parseLabels(providerLabels *[]string) (string, string, v1.Tags) {
 		}
 	}
 	return refID, cloudCredRefID, tags
+}
+
+func providerTagLabelPrefix(key string) string {
+	return tagLabelPrefix + strings.ToLower(key) + tagLabelSeparator
+}
+
+func parseTagLabel(label string) (string, string, bool) {
+	for _, key := range instanceTagLabelKeys {
+		prefix := providerTagLabelPrefix(key)
+		if strings.HasPrefix(label, prefix) {
+			return key, strings.TrimPrefix(label, prefix), true
+		}
+	}
+	return "", "", false
 }
 
 func managedKeyPairID(providerLabels *[]string) (int, error) {

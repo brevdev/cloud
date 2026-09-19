@@ -232,6 +232,8 @@ func TestLabelsRoundTripPlainValues(t *testing.T) {
 	labels = append(labels, readinessLabel)
 	require.Len(t, labels, 10)
 	assert.Contains(t, labels, refIDLabelPrefix+refID)
+	assert.Contains(t, labels, "brev-tag-dev-plane-managedby_dev-plane")
+	assert.Contains(t, labels, "brev-tag-dev-plane-x-instanceid_instance-id")
 	assert.NotContains(t, labels, cloudRefLabelPrefix+"credential-ref")
 	assert.NotContains(t, labels, tagLabelPrefix+"team=gpu-workers")
 
@@ -250,6 +252,19 @@ func TestParseLabelsSupportsLegacyCloudRefLabel(t *testing.T) {
 	_, cloudRefID, _ := parseLabels(&labels)
 
 	assert.Equal(t, "credential-ref", cloudRefID)
+}
+
+func TestParseLabelsOnlyDecodesKnownTagPrefixes(t *testing.T) {
+	labels := []string{
+		"brev-tag-team_gpu-workers",
+		"brev-tag-dev-plane-x-instanceid_instance-123",
+	}
+
+	_, _, tags := parseLabels(&labels)
+
+	assert.Equal(t, "instance-123", tags["dev-plane-x-instanceId"])
+	assert.Equal(t, "", tags["brev-tag-team_gpu-workers"])
+	assert.NotContains(t, tags, "team")
 }
 
 func TestCallerKeyPairIsNotManaged(t *testing.T) {
