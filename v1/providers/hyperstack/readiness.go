@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
+	"time"
 
 	virtualmachine "github.com/NexGenCloud/hyperstack-sdk-go/lib/virtual_machine"
 )
@@ -12,6 +13,8 @@ import (
 const (
 	readinessMarker      = "BREV_CLOUD_READY_V1"
 	consoleLogLineCount  = 200
+	consoleLogPolls      = 5
+	consoleLogPollPeriod = 500 * time.Millisecond
 	readinessCloudConfig = `#cloud-config
 write_files:
   - path: /etc/systemd/system/brev-cloud-ready.service
@@ -35,55 +38,44 @@ runcmd:
 )
 
 func (c *HyperstackClient) consoleReady(ctx context.Context, instanceID int) (bool, error) {
-	if _, ok := c.readyInstances[instanceID]; ok {
-		return true, nil
-	}
-	requestID := c.logRequests[instanceID]
-	if requestID == 0 {
-		var err error
-		requestID, err = c.requestConsoleLogs(ctx, instanceID)
-		if err != nil {
-			return false, err
-		}
-		if requestID == 0 {
-			return false, nil
-		}
-		c.logRequests[instanceID] = requestID
+	requestID, err := c.requestConsoleLogs(ctx, instanceID)
+	if err != nil || requestID == 0 {
+		return false, err
 	}
 
-	response, err := c.virtualMachines.GetVMLogsWithResponse(ctx, instanceID, &virtualmachine.GetVMLogsParams{
-		RequestId: requestID,
-	})
-	if err != nil {
-		if ctx.Err() != nil {
-			return false, ctx.Err()
-		}
-		return false, nil
-	}
-	switch response.StatusCode() {
-	case http.StatusAccepted, http.StatusBadRequest:
-		// The request endpoint is asynchronous. The retrieval endpoint documents
-		// 400, rather than 202, while a valid request is not ready to read yet.
-		return false, nil
-	case http.StatusOK:
-		if response.JSON200 == nil || response.JSON200.Logs == nil {
-			// Hyperstack returns 200 while the asynchronous log request is still
-			// processing. Keep its request ID so the next poll retrieves the same
-			// request instead of starting over indefinitely.
+	for poll := 0; poll < consoleLogPolls; poll++ {
+		response, err := c.virtualMachines.GetVMLogsWithResponse(ctx, instanceID, &virtualmachine.GetVMLogsParams{
+			RequestId: requestID,
+		})
+		if err != nil {
+			if ctx.Err() != nil {
+				return false, ctx.Err()
+			}
 			return false, nil
 		}
-		delete(c.logRequests, instanceID)
-		if !strings.Contains(*response.JSON200.Logs, readinessMarker) {
+
+		switch response.StatusCode() {
+		case http.StatusOK:
+			if response.JSON200 != nil && response.JSON200.Logs != nil {
+				return strings.Contains(*response.JSON200.Logs, readinessMarker), nil
+			}
+		case http.StatusAccepted, http.StatusBadRequest:
+			// Hyperstack returns either status while the asynchronous request is processing.
+		case http.StatusUnauthorized, http.StatusForbidden:
+			return false, responseError("get virtual machine console logs", response.StatusCode(), response.Body, nil)
+		default:
 			return false, nil
 		}
-		c.readyInstances[instanceID] = struct{}{}
-		return true, nil
-	case http.StatusUnauthorized, http.StatusForbidden:
-		return false, responseError("get virtual machine console logs", response.StatusCode(), response.Body, nil)
-	default:
-		delete(c.logRequests, instanceID)
-		return false, nil
+
+		if poll < consoleLogPolls-1 {
+			select {
+			case <-ctx.Done():
+				return false, ctx.Err()
+			case <-time.After(consoleLogPollPeriod):
+			}
+		}
 	}
+	return false, nil
 }
 
 func (c *HyperstackClient) requestConsoleLogs(ctx context.Context, instanceID int) (int, error) {
@@ -114,9 +106,4 @@ func (c *HyperstackClient) requestConsoleLogs(ctx context.Context, instanceID in
 		return 0, nil
 	}
 	return payload.RequestID, nil
-}
-
-func (c *HyperstackClient) resetReadiness(instanceID int) {
-	delete(c.logRequests, instanceID)
-	delete(c.readyInstances, instanceID)
 }

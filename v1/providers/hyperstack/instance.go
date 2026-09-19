@@ -228,7 +228,6 @@ func (c *HyperstackClient) StopInstance(ctx context.Context, instanceID v1.Cloud
 	if response.StatusCode() != http.StatusOK {
 		return responseError("stop virtual machine", response.StatusCode(), response.Body, v1.ErrInstanceNotFound)
 	}
-	c.resetReadiness(numericID)
 	return nil
 }
 
@@ -237,7 +236,6 @@ func (c *HyperstackClient) StartInstance(ctx context.Context, instanceID v1.Clou
 	if err != nil {
 		return err
 	}
-	c.resetReadiness(numericID)
 	response, err := c.virtualMachines.StartVMWithResponse(ctx, numericID)
 	if err != nil {
 		return wrapTransportError("start virtual machine", err)

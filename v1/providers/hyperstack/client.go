@@ -104,8 +104,6 @@ type HyperstackClient struct {
 	keypairs        *keypair.ClientWithResponses
 	regions         *region.ClientWithResponses
 	pricebook       *pricebook.Client
-	logRequests     map[int]int
-	readyInstances  map[int]struct{}
 }
 
 var _ v1.CloudClient = &HyperstackClient{}
@@ -124,12 +122,10 @@ func NewHyperstackClient(credential HyperstackCredential, location string, opts 
 	}
 
 	client := &HyperstackClient{
-		refID:          credential.RefID,
-		apiKey:         credential.APIKey,
-		location:       location,
-		httpClient:     http.DefaultClient,
-		logRequests:    make(map[int]int),
-		readyInstances: make(map[int]struct{}),
+		refID:      credential.RefID,
+		apiKey:     credential.APIKey,
+		location:   location,
+		httpClient: http.DefaultClient,
 	}
 	for _, opt := range opts {
 		opt(client)
