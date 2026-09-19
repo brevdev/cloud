@@ -350,17 +350,20 @@ func TestConsoleReadyPollsAsyncLogRequest(t *testing.T) {
 	assert.Equal(t, 2, getCalls)
 }
 
-func TestConsoleReadyRetriesWhenLogsAreUnavailable(t *testing.T) {
+func TestConsoleReadyRetainsRequestWhileLogsAreProcessing(t *testing.T) {
 	requestCalls := 0
+	getCalls := 0
 	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		switch request.Method {
 		case http.MethodPost:
 			requestCalls++
-			writeJSON(t, writer, map[string]any{"request_id": requestCalls})
+			writeJSON(t, writer, map[string]any{"request_id": 17})
 		case http.MethodGet:
-			if requestCalls == 1 {
+			getCalls++
+			assert.Equal(t, "17", request.URL.Query().Get("request_id"))
+			if getCalls == 1 {
 				writeJSON(t, writer, map[string]any{
-					"status": true, "message": "console logs are not available yet",
+					"status": true, "message": "request is still processing",
 				})
 				return
 			}
@@ -378,7 +381,8 @@ func TestConsoleReadyRetriesWhenLogsAreUnavailable(t *testing.T) {
 	ready, err = client.consoleReady(context.Background(), 42)
 	require.NoError(t, err)
 	assert.True(t, ready)
-	assert.Equal(t, 2, requestCalls)
+	assert.Equal(t, 1, requestCalls)
+	assert.Equal(t, 2, getCalls)
 }
 
 func assertSecurityRule(t *testing.T, rule virtualmachine.CreateSecurityRulePayload, cidr string, fromPort, toPort int) {

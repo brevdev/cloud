@@ -76,10 +76,13 @@ func (c *HyperstackClient) consoleReady(ctx context.Context, instanceID int) (bo
 		// 400, rather than 202, while a valid request is not ready to read yet.
 		return false, nil
 	case http.StatusOK:
-		c.clearLogRequest(instanceID)
 		if response.JSON200 == nil || response.JSON200.Logs == nil {
+			// Hyperstack returns 200 while the asynchronous log request is still
+			// processing. Keep its request ID so the next poll retrieves the same
+			// request instead of starting over indefinitely.
 			return false, nil
 		}
+		c.clearLogRequest(instanceID)
 		if !strings.Contains(*response.JSON200.Logs, readinessMarker) {
 			return false, nil
 		}
