@@ -45,7 +45,7 @@ func TestInstanceLifecycleRequests(t *testing.T) { //nolint:funlen // one statef
 		case request.URL.Path == "/v1/core/virtual-machines" && request.Method == http.MethodPost:
 			var payload virtualmachine.CreateInstancesPayload
 			require.NoError(t, json.NewDecoder(request.Body).Decode(&payload))
-			assert.Equal(t, "test-vm", payload.Name)
+			assert.Equal(t, "ref-123", payload.Name)
 			assert.Equal(t, "default-CANADA-1", payload.EnvironmentName)
 			assert.Equal(t, "n3-H100x1", payload.FlavorName)
 			assert.Equal(t, defaultImageName, stringValue(payload.ImageName))
@@ -84,7 +84,7 @@ func TestInstanceLifecycleRequests(t *testing.T) { //nolint:funlen // one statef
 				"status": true,
 				"instance": map[string]any{
 					"id":          42,
-					"name":        "test-vm",
+					"name":        "ref-123",
 					"status":      "ACTIVE",
 					"created_at":  "2026-09-04T12:00:00",
 					"floating_ip": "203.0.113.42",
@@ -103,7 +103,7 @@ func TestInstanceLifecycleRequests(t *testing.T) { //nolint:funlen // one statef
 			writeJSON(t, writer, map[string]any{
 				"status": true,
 				"instances": []map[string]any{{
-					"id": 42, "name": "test-vm", "status": "ACTIVE", "created_at": "2026-09-04T12:00:00",
+					"id": 42, "name": "ref-123", "status": "ACTIVE", "created_at": "2026-09-04T12:00:00",
 					"environment": map[string]any{"region": "CANADA-1"},
 					"flavor":      map[string]any{"name": "n3-H100x1", "disk": 100}, "image": map[string]any{"name": defaultImageName},
 					"labels": labels,
@@ -126,13 +126,14 @@ func TestInstanceLifecycleRequests(t *testing.T) { //nolint:funlen // one statef
 	client := newTestClient(t, server.URL+"/v1")
 	instance, err := client.CreateInstance(context.Background(), v1.CreateInstanceAttrs{
 		Location:      "CANADA-1",
-		Name:          "test-vm",
+		Name:          "display-name",
 		RefID:         "ref-123",
 		PublicKey:     testSSHPublicKey,
 		InstanceType:  "n3-H100x1",
 		DiskSize:      256 * units.Gibibyte,
 		DiskSizeBytes: v1.NewBytes(256, v1.Gibibyte),
 		Tags: v1.Tags{
+			"dev-plane-managedBy":    "dev-plane",
 			"dev-plane-x-instanceId": "instance-123",
 			"team":                   "compute",
 		},
@@ -144,8 +145,10 @@ func TestInstanceLifecycleRequests(t *testing.T) { //nolint:funlen // one statef
 	})
 	require.NoError(t, err)
 	assert.Equal(t, v1.CloudProviderInstanceID("42"), instance.CloudID)
+	assert.Equal(t, "ref-123", instance.Name)
 	assert.Equal(t, "ref-123", instance.RefID)
 	assert.Equal(t, "credential-ref", instance.CloudCredRefID)
+	assert.Equal(t, "dev-plane", instance.Tags["dev-plane-managedBy"])
 	assert.Equal(t, "instance-123", instance.Tags["dev-plane-x-instanceId"])
 	assert.NotContains(t, instance.Tags, "team")
 	assert.Equal(t, v1.LifecycleStatusRunning, instance.Status.LifecycleStatus)
@@ -155,7 +158,7 @@ func TestInstanceLifecycleRequests(t *testing.T) { //nolint:funlen // one statef
 	instances, err := client.ListInstances(context.Background(), v1.ListInstancesArgs{
 		InstanceIDs: []v1.CloudProviderInstanceID{"42"},
 		Locations:   v1.LocationsFilter{"CANADA-1"},
-		TagFilters:  map[string][]string{"dev-plane-x-instanceId": {"instance-123"}},
+		TagFilters:  map[string][]string{"dev-plane-managedBy": {"dev-plane"}},
 	})
 	require.NoError(t, err)
 	require.Len(t, instances, 1)
@@ -215,6 +218,7 @@ func TestResolveKeyPairSearchesEveryPage(t *testing.T) {
 func TestLabelsRoundTripPlainValues(t *testing.T) {
 	const refID = "82d299a7-dfd9-40e6-8707-3c477374b2a6"
 	tags := v1.Tags{
+		"dev-plane-managedBy":       "dev-plane",
 		"dev-plane-x-instanceId":    "instance-id",
 		"dev-plane-x-environmentId": "environment-id",
 		"dev-plane-x-userId":        "user-id",
@@ -223,21 +227,29 @@ func TestLabelsRoundTripPlainValues(t *testing.T) {
 		"dev-plane-stage":           "dev",
 		"team":                      "gpu-workers",
 	}
-	labels := makeLabels(refID, "credential-ref", tags)
+	labels := makeLabels(refID, tags)
 	labels = append(labels, managedKeyIDLabelPrefix+"7")
 	labels = append(labels, readinessLabel)
 	require.Len(t, labels, 10)
 	assert.Contains(t, labels, refIDLabelPrefix+refID)
-	assert.Contains(t, labels, cloudRefLabelPrefix+"credential-ref")
+	assert.NotContains(t, labels, cloudRefLabelPrefix+"credential-ref")
 	assert.NotContains(t, labels, tagLabelPrefix+"team=gpu-workers")
 
 	parsedRefID, cloudRefID, parsedTags := parseLabels(&labels)
 	assert.Equal(t, refID, parsedRefID)
-	assert.Equal(t, "credential-ref", cloudRefID)
+	assert.Empty(t, cloudRefID)
 	for _, key := range instanceTagLabelKeys {
 		assert.Equal(t, tags[key], parsedTags[key])
 	}
 	assert.NotContains(t, parsedTags, "team")
+}
+
+func TestParseLabelsSupportsLegacyCloudRefLabel(t *testing.T) {
+	labels := []string{cloudRefLabelPrefix + "credential-ref"}
+
+	_, cloudRefID, _ := parseLabels(&labels)
+
+	assert.Equal(t, "credential-ref", cloudRefID)
 }
 
 func TestCallerKeyPairIsNotManaged(t *testing.T) {

@@ -30,14 +30,16 @@ const (
 
 var resourceNameInvalidCharacters = regexp.MustCompile(`[^a-zA-Z0-9-]+`)
 
+// Hyperstack permits at most 10 labels. These seven caller tags plus the
+// canonical ref ID, readiness marker, and managed-key ID fill that budget.
 var instanceTagLabelKeys = []string{
+	"dev-plane-managedBy",
 	"dev-plane-x-instanceId",
 	"dev-plane-x-environmentId",
 	"dev-plane-x-userId",
 	"dev-plane-x-launchableId",
 	"dev-plane-x-cloudCredId",
 	"dev-plane-stage",
-	"cloudCredRefID",
 }
 
 func (c *HyperstackClient) CreateInstance(ctx context.Context, attrs v1.CreateInstanceAttrs) (*v1.Instance, error) {
@@ -66,7 +68,7 @@ func (c *HyperstackClient) CreateInstance(ctx context.Context, attrs v1.CreateIn
 	if err != nil {
 		return nil, err
 	}
-	labels := makeLabels(attrs.RefID, c.refID, attrs.Tags)
+	labels := makeLabels(attrs.RefID, attrs.Tags)
 	if keyPair.managedID != 0 {
 		labels = append(labels, managedKeyIDLabelPrefix+strconv.Itoa(keyPair.managedID))
 	}
@@ -79,7 +81,7 @@ func (c *HyperstackClient) CreateInstance(ctx context.Context, attrs v1.CreateIn
 	// Hyperstack root disk sizes are fixed by flavor. Intentionally do not map
 	// attrs.DiskSize or attrs.DiskSizeBytes into the provider request.
 	response, err := c.virtualMachines.CreateVMsWithResponse(ctx, virtualmachine.CreateInstancesPayload{
-		Name:                      managedResourceName(attrs.Name, attrs.RefID),
+		Name:                      managedResourceName(attrs.RefID, ""),
 		EnvironmentName:           environmentName,
 		KeyName:                   keyPair.name,
 		ImageName:                 &imageName,
@@ -411,11 +413,8 @@ func matchesListArgs(instance v1.Instance, args v1.ListInstancesArgs) bool {
 	return true
 }
 
-func makeLabels(refID, cloudCredRefID string, tags v1.Tags) []string {
-	labels := []string{
-		refIDLabelPrefix + refID,
-		cloudRefLabelPrefix + cloudCredRefID,
-	}
+func makeLabels(refID string, tags v1.Tags) []string {
+	labels := []string{refIDLabelPrefix + refID}
 	for _, key := range instanceTagLabelKeys {
 		if value, ok := tags[key]; ok {
 			labels = append(labels, tagLabelPrefix+key+"="+value)
