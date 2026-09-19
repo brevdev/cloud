@@ -10,7 +10,7 @@ import (
 )
 
 func makeDirectSecurityRules(rules v1.FirewallRules) ([]virtualmachine.CreateSecurityRulePayload, error) {
-	securityRules := make([]virtualmachine.CreateSecurityRulePayload, 0, len(rules.IngressRules)+1)
+	securityRules := make([]virtualmachine.CreateSecurityRulePayload, 0, len(rules.IngressRules))
 	seen := make(map[string]bool)
 
 	addRule := func(ipRange, etherType string, fromPort, toPort int) {
@@ -29,7 +29,6 @@ func makeDirectSecurityRules(rules v1.FirewallRules) ([]virtualmachine.CreateSec
 		})
 	}
 
-	addRule("0.0.0.0/0", "IPv4", defaultSSHPort, defaultSSHPort)
 	for _, rule := range rules.IngressRules {
 		fromPort := int(rule.FromPort)
 		toPort := int(rule.ToPort)

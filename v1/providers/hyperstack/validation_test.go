@@ -30,6 +30,13 @@ func TestInstanceLifecycleValidation(t *testing.T) {
 	validation.RunInstanceLifecycleValidation(t, validation.ProviderConfig{
 		Credential: credential,
 		StableIDs:  getStableInstanceTypeIDs(t, credential),
+		CreateInstanceAttrs: v1.CreateInstanceAttrs{FirewallRules: v1.FirewallRules{
+			IngressRules: []v1.FirewallRule{{
+				FromPort: 22,
+				ToPort:   22,
+				IPRanges: []string{"0.0.0.0/0"},
+			}},
+		}},
 	})
 }
 

@@ -150,6 +150,7 @@ func hyperstackInstanceType(providerType flavor.FlavorFields, fallbackLocation s
 		SupportedArchitectures: []v1.Architecture{v1.ArchitectureX86_64},
 		SupportedUsageClasses:  []string{usageClass},
 		Preemptible:            preemptible,
+		Stoppable:              true,
 		IsAvailable:            providerType.StockAvailable == nil || *providerType.StockAvailable,
 		BasePrice:              basePrice,
 		Provider:               CloudProviderID,

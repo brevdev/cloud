@@ -27,6 +27,7 @@ func TestHyperstackCredential(t *testing.T) {
 	capabilities, err := credential.GetCapabilities(context.Background())
 	require.NoError(t, err)
 	assert.Equal(t, getCapabilities(), capabilities)
+	assert.True(t, capabilities.IsCapable(v1.CapabilityStopStartInstance))
 
 	invalid := NewHyperstackCredential("credential-ref", "")
 	require.Error(t, invalid.Validate())

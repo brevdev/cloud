@@ -218,6 +218,36 @@ func (c *HyperstackClient) TerminateInstance(ctx context.Context, instanceID v1.
 	return c.deleteManagedKeyPair(ctx, managedKeyPairID)
 }
 
+func (c *HyperstackClient) StopInstance(ctx context.Context, instanceID v1.CloudProviderInstanceID) error {
+	numericID, err := parseInstanceID(instanceID)
+	if err != nil {
+		return err
+	}
+	response, err := c.virtualMachines.StopVMWithResponse(ctx, numericID)
+	if err != nil {
+		return wrapTransportError("stop virtual machine", err)
+	}
+	if response.StatusCode() != http.StatusOK {
+		return responseError("stop virtual machine", response.StatusCode(), response.Body, v1.ErrInstanceNotFound)
+	}
+	return nil
+}
+
+func (c *HyperstackClient) StartInstance(ctx context.Context, instanceID v1.CloudProviderInstanceID) error {
+	numericID, err := parseInstanceID(instanceID)
+	if err != nil {
+		return err
+	}
+	response, err := c.virtualMachines.StartVMWithResponse(ctx, numericID)
+	if err != nil {
+		return wrapTransportError("start virtual machine", err)
+	}
+	if response.StatusCode() != http.StatusOK {
+		return responseError("start virtual machine", response.StatusCode(), response.Body, v1.ErrInstanceNotFound)
+	}
+	return nil
+}
+
 func (c *HyperstackClient) getProviderInstance(ctx context.Context, instanceID int) (virtualmachine.InstanceFields, error) {
 	response, err := c.virtualMachines.GetVMWithResponse(ctx, instanceID)
 	if err != nil {
@@ -318,6 +348,7 @@ func (c *HyperstackClient) convertInstance(
 		Location:      location,
 		Tags:          tags,
 		Spot:          isSpotFlavor(instanceType, instanceType),
+		Stoppable:     true,
 	}
 	if providerInstance.CreatedAt != nil {
 		instance.CreatedAt = providerInstance.CreatedAt.Time

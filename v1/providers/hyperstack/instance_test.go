@@ -56,9 +56,8 @@ func TestInstanceLifecycleRequests(t *testing.T) { //nolint:funlen // one statef
 			require.NotNil(t, payload.EnhancedMonitoringEnabled)
 			assert.False(t, *payload.EnhancedMonitoringEnabled)
 			require.NotNil(t, payload.SecurityRules)
-			require.Len(t, *payload.SecurityRules, 2)
-			assertSecurityRule(t, (*payload.SecurityRules)[0], "0.0.0.0/0", 22, 22)
-			assertSecurityRule(t, (*payload.SecurityRules)[1], "10.0.0.0/8", 8080, 8080)
+			require.Len(t, *payload.SecurityRules, 1)
+			assertSecurityRule(t, (*payload.SecurityRules)[0], "10.0.0.0/8", 8080, 8080)
 			require.NotNil(t, payload.Labels)
 			labels = *payload.Labels
 			assert.Contains(t, labels, readinessLabel)
@@ -117,6 +116,10 @@ func TestInstanceLifecycleRequests(t *testing.T) { //nolint:funlen // one statef
 			}
 			deleted = true
 			writeJSON(t, writer, map[string]any{"status": true})
+		case request.URL.Path == "/v1/core/virtual-machines/42/stop" && request.Method == http.MethodGet:
+			writeJSON(t, writer, map[string]any{"status": true})
+		case request.URL.Path == "/v1/core/virtual-machines/42/start" && request.Method == http.MethodGet:
+			writeJSON(t, writer, map[string]any{"status": true})
 		default:
 			http.NotFound(writer, request)
 		}
@@ -154,6 +157,7 @@ func TestInstanceLifecycleRequests(t *testing.T) { //nolint:funlen // one statef
 	assert.Equal(t, v1.LifecycleStatusRunning, instance.Status.LifecycleStatus)
 	assert.Equal(t, "203.0.113.42", instance.PublicIP)
 	assert.Equal(t, v1.InstanceTypeID("CANADA-1-noSub-n3-H100x1"), instance.InstanceTypeID)
+	assert.True(t, instance.Stoppable)
 
 	instances, err := client.ListInstances(context.Background(), v1.ListInstancesArgs{
 		InstanceIDs: []v1.CloudProviderInstanceID{"42"},
@@ -163,6 +167,8 @@ func TestInstanceLifecycleRequests(t *testing.T) { //nolint:funlen // one statef
 	require.NoError(t, err)
 	require.Len(t, instances, 1)
 	assert.Equal(t, instance.RefID, instances[0].RefID)
+	require.NoError(t, client.StopInstance(context.Background(), "42"))
+	require.NoError(t, client.StartInstance(context.Background(), "42"))
 
 	require.NoError(t, client.TerminateInstance(context.Background(), "42"))
 	require.NoError(t, client.TerminateInstance(context.Background(), "42"))
@@ -395,6 +401,27 @@ func assertSecurityRule(t *testing.T, rule virtualmachine.CreateSecurityRulePayl
 	require.NotNil(t, rule.PortRangeMax)
 	assert.Equal(t, fromPort, *rule.PortRangeMin)
 	assert.Equal(t, toPort, *rule.PortRangeMax)
+}
+
+func TestMakeDirectSecurityRulesDoesNotWidenCallerSSHIngress(t *testing.T) {
+	rules, err := makeDirectSecurityRules(v1.FirewallRules{IngressRules: []v1.FirewallRule{{
+		FromPort: defaultSSHPort,
+		ToPort:   defaultSSHPort,
+		IPRanges: []string{"52.9.0.116/32", "52.52.248.36/32"},
+	}}})
+	require.NoError(t, err)
+	require.Len(t, rules, 2)
+	assertSecurityRule(t, rules[0], "52.9.0.116/32", defaultSSHPort, defaultSSHPort)
+	assertSecurityRule(t, rules[1], "52.52.248.36/32", defaultSSHPort, defaultSSHPort)
+	for _, rule := range rules {
+		assert.NotEqual(t, "0.0.0.0/0", rule.RemoteIpPrefix)
+	}
+}
+
+func TestMakeDirectSecurityRulesDoesNotInventSSHIngress(t *testing.T) {
+	rules, err := makeDirectSecurityRules(v1.FirewallRules{})
+	require.NoError(t, err)
+	assert.Empty(t, rules)
 }
 
 func TestValidateCreateInstanceAttrs(t *testing.T) {
