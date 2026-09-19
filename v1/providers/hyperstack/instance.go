@@ -64,7 +64,7 @@ func (c *HyperstackClient) CreateInstance(ctx context.Context, attrs v1.CreateIn
 	if imageName == "" {
 		imageName = defaultImageName
 	}
-	securityRules, err := makeDirectSecurityRules(attrs.FirewallRules)
+	securityRules, err := makeSecurityRules(attrs.FirewallRules)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +80,7 @@ func (c *HyperstackClient) CreateInstance(ctx context.Context, attrs v1.CreateIn
 	// Hyperstack root disk sizes are fixed by flavor. Intentionally do not map
 	// attrs.DiskSize or attrs.DiskSizeBytes into the provider request.
 	response, err := c.virtualMachines.CreateVMsWithResponse(ctx, virtualmachine.CreateInstancesPayload{
-		Name:                      managedResourceName(attrs.RefID, ""),
+		Name:                      managedResourceName(attrs.RefID),
 		EnvironmentName:           environmentName,
 		KeyName:                   keyPair.name,
 		ImageName:                 &imageName,
@@ -317,7 +317,7 @@ func (c *HyperstackClient) convertInstance(
 	}
 	publicIP := strings.TrimSpace(stringValue(providerInstance.FloatingIp))
 	lifecycleStatus := hyperstackLifecycleStatus(stringValue(providerInstance.Status))
-	if lifecycleStatus == v1.LifecycleStatusRunning && !hyperstackInstanceReady(providerInstance, publicIP, consoleReady) {
+	if lifecycleStatus == v1.LifecycleStatusRunning && (!hyperstackAPIReady(providerInstance, publicIP) || !consoleReady) {
 		lifecycleStatus = v1.LifecycleStatusPending
 	}
 
@@ -354,17 +354,6 @@ func (c *HyperstackClient) convertInstance(
 		Location: instance.Location,
 	})
 	return instance
-}
-
-func hyperstackInstanceReady(
-	providerInstance virtualmachine.InstanceFields,
-	publicIP string,
-	consoleReady bool,
-) bool {
-	if !hyperstackAPIReady(providerInstance, publicIP) {
-		return false
-	}
-	return consoleReady
 }
 
 func hyperstackAPIReady(providerInstance virtualmachine.InstanceFields, publicIP string) bool {
@@ -505,11 +494,8 @@ func managedKeyPairID(providerLabels *[]string) (int, error) {
 	return 0, nil
 }
 
-func managedResourceName(name, fallback string) string {
+func managedResourceName(name string) string {
 	name = strings.TrimSpace(name)
-	if name == "" {
-		name = fallback
-	}
 	name = resourceNameInvalidCharacters.ReplaceAllString(name, "-")
 	name = strings.Trim(name, "-")
 	if len(name) > 63 {

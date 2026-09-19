@@ -9,7 +9,7 @@ import (
 	v1 "github.com/brevdev/cloud/v1"
 )
 
-func makeDirectSecurityRules(rules v1.FirewallRules) ([]virtualmachine.CreateSecurityRulePayload, error) {
+func makeSecurityRules(rules v1.FirewallRules) ([]virtualmachine.CreateSecurityRulePayload, error) {
 	securityRules := make([]virtualmachine.CreateSecurityRulePayload, 0, len(rules.IngressRules))
 	seen := make(map[string]bool)
 

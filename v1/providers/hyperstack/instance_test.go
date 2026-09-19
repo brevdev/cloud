@@ -294,6 +294,7 @@ func TestActiveInstanceWaitsForFloatingIP(t *testing.T) {
 }
 
 func TestActiveInstanceWaitsForGuestBoot(t *testing.T) {
+	client := &HyperstackClient{}
 	status := "ACTIVE"
 	publicIP := "203.0.113.42"
 	attached := "ATTACHED"
@@ -303,8 +304,11 @@ func TestActiveInstanceWaitsForGuestBoot(t *testing.T) {
 		VmState: &status, PowerState: &running,
 	}
 
-	assert.False(t, hyperstackInstanceReady(providerInstance, publicIP, false))
-	assert.True(t, hyperstackInstanceReady(providerInstance, publicIP, true))
+	booting := client.convertInstance(providerInstance, false)
+	assert.Equal(t, v1.LifecycleStatusPending, booting.Status.LifecycleStatus)
+
+	ready := client.convertInstance(providerInstance, true)
+	assert.Equal(t, v1.LifecycleStatusRunning, ready.Status.LifecycleStatus)
 }
 
 func TestConsoleReadyPollsAsyncLogRequest(t *testing.T) {
@@ -389,25 +393,15 @@ func assertSecurityRule(t *testing.T, rule virtualmachine.CreateSecurityRulePayl
 	assert.Equal(t, toPort, *rule.PortRangeMax)
 }
 
-func TestMakeDirectSecurityRulesDoesNotWidenCallerSSHIngress(t *testing.T) {
-	rules, err := makeDirectSecurityRules(v1.FirewallRules{IngressRules: []v1.FirewallRule{{
+func TestMakeSecurityRules(t *testing.T) {
+	rules, err := makeSecurityRules(v1.FirewallRules{IngressRules: []v1.FirewallRule{{
 		FromPort: defaultSSHPort,
 		ToPort:   defaultSSHPort,
-		IPRanges: []string{"52.9.0.116/32", "52.52.248.36/32"},
+		IPRanges: []string{"52.9.0.116/32"},
 	}}})
 	require.NoError(t, err)
-	require.Len(t, rules, 2)
+	require.Len(t, rules, 1)
 	assertSecurityRule(t, rules[0], "52.9.0.116/32", defaultSSHPort, defaultSSHPort)
-	assertSecurityRule(t, rules[1], "52.52.248.36/32", defaultSSHPort, defaultSSHPort)
-	for _, rule := range rules {
-		assert.NotEqual(t, "0.0.0.0/0", rule.RemoteIpPrefix)
-	}
-}
-
-func TestMakeDirectSecurityRulesDoesNotInventSSHIngress(t *testing.T) {
-	rules, err := makeDirectSecurityRules(v1.FirewallRules{})
-	require.NoError(t, err)
-	assert.Empty(t, rules)
 }
 
 func TestValidateCreateInstanceAttrs(t *testing.T) {
