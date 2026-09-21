@@ -38,9 +38,18 @@ func TestInstanceLifecycleValidation(t *testing.T) {
 	config := validation.ProviderConfig{
 		Credential: newNebiusCredential(t),
 		Location:   "eu-north1",
+		Tags:       ciRunTags(),
 	}
 
 	validation.RunInstanceLifecycleValidation(t, config)
+}
+
+// ciRunTags returns the CI run label when CI_RUN_ID is set (nil on local runs).
+func ciRunTags() map[string]string {
+	if id := os.Getenv("CI_RUN_ID"); id != "" {
+		return map[string]string{CIRunIDLabel: id}
+	}
+	return nil
 }
 
 func newNebiusCredential(t *testing.T) *NebiusCredential {

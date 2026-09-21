@@ -70,7 +70,7 @@ func (c *NebiusClient) CreateInstance(ctx context.Context, attrs v1.CreateInstan
 	// Create isolated networking infrastructure for this instance
 	// Use RefID (environmentId) for resource correlation
 	var err error
-	networkID, subnetID, err = c.createIsolatedNetwork(ctx, attrs.RefID)
+	networkID, subnetID, err = c.createIsolatedNetwork(ctx, attrs.RefID, ciRunLabels(attrs.Tags))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create isolated network: %w", err)
 	}
@@ -607,6 +607,11 @@ func (c *NebiusClient) TerminateInstance(ctx context.Context, instanceID v1.Clou
 		Id: string(instanceID),
 	})
 	if err != nil {
+		// Already gone: wrap both the v1 sentinel (for errors.Is) and the gRPC error (keeps its
+		// status code and message). Two %w verbs preserve both.
+		if isNotFoundError(err) {
+			return fmt.Errorf("instance %s already terminated: %w: %w", instanceID, v1.ErrInstanceNotFound, err)
+		}
 		return fmt.Errorf("failed to get instance details: %w", err)
 	}
 
@@ -1009,10 +1014,31 @@ func (c *NebiusClient) MergeInstanceForUpdate(currInst v1.Instance, newInst v1.I
 	return merged
 }
 
+// labelsWithTags merges the given tags into a base label set; base (reserved) keys always win.
+func labelsWithTags(tags, base map[string]string) map[string]string {
+	out := make(map[string]string, len(tags)+len(base))
+	for k, v := range tags {
+		out[k] = v
+	}
+	for k, v := range base {
+		out[k] = v
+	}
+	return out
+}
+
+// ciRunLabels returns only the CI run-ID label from tags. That is the sole label propagated to the
+// network/subnet/disk (the sweep matches on it); the full tag set stays on the instance alone.
+func ciRunLabels(tags map[string]string) map[string]string {
+	if id, ok := tags[v1.CIRunIDLabel]; ok && id != "" {
+		return map[string]string{v1.CIRunIDLabel: id}
+	}
+	return nil
+}
+
 // createIsolatedNetwork creates a dedicated VPC and subnet for a single instance
 // This ensures complete network isolation between instances
 // Uses refID (environmentId) for resource correlation
-func (c *NebiusClient) createIsolatedNetwork(ctx context.Context, refID string) (networkID, subnetID string, err error) {
+func (c *NebiusClient) createIsolatedNetwork(ctx context.Context, refID string, tags map[string]string) (networkID, subnetID string, err error) {
 	// Create VPC network (unique per instance, named with refID for correlation)
 	networkName := fmt.Sprintf("%s-vpc", refID)
 
@@ -1020,11 +1046,11 @@ func (c *NebiusClient) createIsolatedNetwork(ctx context.Context, refID string) 
 		Metadata: &common.ResourceMetadata{
 			ParentId: c.projectID,
 			Name:     networkName,
-			Labels: map[string]string{
+			Labels: labelsWithTags(tags, map[string]string{
 				"created-by":     "brev-cloud-sdk",
 				"brev-user":      c.refID,
 				"environment-id": refID,
-			},
+			}),
 		},
 		Spec: &vpc.NetworkSpec{
 			// Use default network pools
@@ -1058,12 +1084,12 @@ func (c *NebiusClient) createIsolatedNetwork(ctx context.Context, refID string) 
 		Metadata: &common.ResourceMetadata{
 			ParentId: c.projectID,
 			Name:     subnetName,
-			Labels: map[string]string{
+			Labels: labelsWithTags(tags, map[string]string{
 				"created-by":     "brev-cloud-sdk",
 				"brev-user":      c.refID,
 				"environment-id": refID,
 				"network-id":     networkID,
-			},
+			}),
 		},
 		Spec: &vpc.SubnetSpec{
 			NetworkId: networkID,
@@ -1217,12 +1243,12 @@ func (c *NebiusClient) buildDiskCreateRequest(_ context.Context, diskName string
 		Metadata: &common.ResourceMetadata{
 			ParentId: c.projectID,
 			Name:     diskName,
-			Labels: map[string]string{
+			Labels: labelsWithTags(ciRunLabels(attrs.Tags), map[string]string{
 				"created-by":     "brev-cloud-sdk",
 				"brev-user":      c.refID,
 				"environment-id": attrs.RefID,
 				"image-family":   imageFamily,
-			},
+			}),
 		},
 		Spec: &compute.DiskSpec{
 			Size: &compute.DiskSpec_SizeGibibytes{
