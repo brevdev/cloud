@@ -38,7 +38,12 @@ runcmd:
 `
 )
 
-func (c *HyperstackClient) consoleReady(ctx context.Context, instanceID int) (bool, error) {
+// Hyperstack is somewhat silly with its statuses. The VM instance itself can achieve "readiness," with the API indicating as such,
+// but the operating system itself may not have fully booted yet. In order to get around this, at VM provision time we create a oneshot
+// systemd service that write a "BREV_CLOUD_READY_V1" marker to the serial console. We then poll the console for this marker, and if it's found,
+// we consider the VM ready. The 'vmOperatingSystemReportsReady' therefore returns true if the marker is found in the console logs.
+// See: https://docs.hyperstack.cloud/docs/virtual-machines/virtual-machine-features/#managing-virtual-machines
+func (c *HyperstackClient) vmOperatingSystemReportsReady(ctx context.Context, instanceID int) (bool, error) {
 	requestID, err := c.requestConsoleLogs(ctx, instanceID)
 	if err != nil || requestID == 0 {
 		return false, err

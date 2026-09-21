@@ -10,27 +10,24 @@ import (
 	"github.com/NexGenCloud/hyperstack-sdk-go/lib/environment"
 )
 
+const (
+	defaultEnvironmentTag    = "default-"
+	listEnvironmentsPageSize = 100
+)
+
 func (c *HyperstackClient) getDefaultEnvironment(ctx context.Context, location string) (environment.EnvironmentFields, error) {
 	environmentName := defaultEnvironmentTag + location
-	pageSize := strconv.Itoa(defaultPageSize)
+
 	for page := 1; ; page++ {
-		pageNumber := strconv.Itoa(page)
-		response, err := c.environments.ListEnvironmentsWithResponse(ctx, &environment.ListEnvironmentsParams{
-			Page:     &pageNumber,
-			PageSize: &pageSize,
-			Search:   &environmentName,
+		providerEnvironments, err := c.listEnvironmentPage(ctx, listEnvironmentPageArgs{
+			Page:     page,
+			PageSize: listEnvironmentsPageSize,
+			Search:   environmentName,
 		})
 		if err != nil {
-			return environment.EnvironmentFields{}, wrapTransportError("list environments", err)
-		}
-		if response.StatusCode() != http.StatusOK {
-			return environment.EnvironmentFields{}, responseError("list environments", response.StatusCode(), response.Body, nil)
-		}
-		if response.JSON200 == nil || response.JSON200.Environments == nil {
-			return environment.EnvironmentFields{}, errors.New("hyperstack list environments response did not contain data")
+			return environment.EnvironmentFields{}, err
 		}
 
-		providerEnvironments := *response.JSON200.Environments
 		for _, providerEnvironment := range providerEnvironments {
 			if stringValue(providerEnvironment.Name) != environmentName || stringValue(providerEnvironment.Region) != location {
 				continue
@@ -40,8 +37,35 @@ func (c *HyperstackClient) getDefaultEnvironment(ctx context.Context, location s
 			}
 			return providerEnvironment, nil
 		}
-		if len(providerEnvironments) < defaultPageSize {
+
+		if len(providerEnvironments) < listEnvironmentsPageSize {
 			return environment.EnvironmentFields{}, fmt.Errorf("hyperstack environment %q was not found in location %q", environmentName, location)
 		}
 	}
+}
+
+type listEnvironmentPageArgs struct {
+	Page     int
+	PageSize int
+	Search   string
+}
+
+func (c *HyperstackClient) listEnvironmentPage(ctx context.Context, args listEnvironmentPageArgs) ([]environment.EnvironmentFields, error) {
+	pageNumber := strconv.Itoa(args.Page)
+	pageSizeStr := strconv.Itoa(args.PageSize)
+	response, err := c.environments.ListEnvironmentsWithResponse(ctx, &environment.ListEnvironmentsParams{
+		Page:     &pageNumber,
+		PageSize: &pageSizeStr,
+		Search:   &args.Search,
+	})
+	if err != nil {
+		return nil, wrapTransportError("list environments", err)
+	}
+	if response.StatusCode() != http.StatusOK {
+		return nil, responseError("list environments", response.StatusCode(), response.Body, nil)
+	}
+	if response.JSON200 == nil || response.JSON200.Environments == nil {
+		return nil, errors.New("hyperstack list environments response did not contain data")
+	}
+	return *response.JSON200.Environments, nil
 }

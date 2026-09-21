@@ -25,7 +25,6 @@ const (
 	tagLabelPrefix          = "brev-tag-"
 	tagLabelSeparator       = "_"
 	managedKeyIDLabelPrefix = "brev-managed-key-id-"
-	defaultEnvironmentTag   = "default-"
 )
 
 var resourceNameInvalidCharacters = regexp.MustCompile(`[^a-zA-Z0-9-]+`)
@@ -288,7 +287,7 @@ func (c *HyperstackClient) convertProviderInstance(
 			return v1.Instance{}, errors.New("hyperstack virtual machine response did not contain an instance ID")
 		}
 		var err error
-		consoleReady, err = c.consoleReady(ctx, instanceID)
+		consoleReady, err = c.vmOperatingSystemReportsReady(ctx, instanceID)
 		if err != nil {
 			return v1.Instance{}, err
 		}

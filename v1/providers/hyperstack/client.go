@@ -94,10 +94,11 @@ func (c *HyperstackCredential) MakeClientWithOptions(_ context.Context, location
 type HyperstackClient struct {
 	v1.NotImplCloudClient
 
-	refID           string
-	apiKey          string
-	location        string
-	httpClient      *http.Client
+	refID      string
+	apiKey     string
+	location   string
+	httpClient *http.Client
+
 	virtualMachines *virtualmachine.ClientWithResponses
 	environments    *environment.ClientWithResponses
 	flavors         *flavor.ClientWithResponses

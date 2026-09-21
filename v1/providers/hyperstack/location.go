@@ -23,16 +23,17 @@ func (c *HyperstackClient) GetLocations(ctx context.Context, args v1.GetLocation
 	if response.JSON200 == nil || response.JSON200.Regions == nil {
 		return nil, fmt.Errorf("hyperstack list regions response did not contain data")
 	}
+	regions := *response.JSON200.Regions
 
-	flavorGroups, err := c.listFlavors(ctx)
+	allFlavors, err := c.listFlavors(ctx)
 	if err != nil {
 		return nil, err
 	}
-	available := availableFlavorLocations(flavorGroups)
+	regionsWithAvailability := availableFlavorLocations(allFlavors)
 
-	locations := make([]v1.Location, 0, len(*response.JSON200.Regions))
-	for _, providerRegion := range *response.JSON200.Regions {
-		location, ok := hyperstackLocation(providerRegion, available)
+	locations := make([]v1.Location, 0, len(regions))
+	for _, providerRegion := range regions {
+		location, ok := hyperstackLocation(providerRegion, regionsWithAvailability)
 		if !ok {
 			continue
 		}
@@ -66,23 +67,25 @@ func availableFlavorLocations(groups []flavor.FlavorItemGetResponse) map[string]
 	return available
 }
 
-func hyperstackLocation(providerRegion region.RegionFields, available map[string]bool) (v1.Location, bool) {
-	name := strings.TrimSpace(stringValue(providerRegion.Name))
-	if name == "" {
+func hyperstackLocation(providerRegion region.RegionFields, regionsWithAvailability map[string]bool) (v1.Location, bool) {
+	regionName := strings.TrimSpace(stringValue(providerRegion.Name))
+	if regionName == "" {
 		return v1.Location{}, false
 	}
 	description := strings.TrimSpace(stringValue(providerRegion.Description))
 	if description == "" {
-		description = name
+		description = regionName
 	}
 	return v1.Location{
-		Name:        name,
+		Name:        regionName,
 		Description: description,
-		Available:   available[name] && supportsFloatingIP(providerRegion.Features),
+		Available:   regionsWithAvailability[regionName] && supportsFloatingIP(providerRegion.Features),
 		Country:     countryAlpha3(stringValue(providerRegion.Country)),
 	}, true
 }
 
+// SupportsFloatingIP effectively checks if the region supports public IP addresses
+// See: https://docs.hyperstack.cloud/docs/api-reference/floating-ip/
 func supportsFloatingIP(features *map[string]interface{}) bool {
 	if features == nil {
 		return true

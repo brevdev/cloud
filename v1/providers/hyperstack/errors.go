@@ -22,6 +22,7 @@ func wrapTransportError(operation string, err error) error {
 func responseError(operation string, statusCode int, body []byte, notFound error) error {
 	var apiError errorResponse
 	_ = json.Unmarshal(body, &apiError)
+
 	detail := strings.TrimSpace(strings.Join([]string{apiError.Message, apiError.ErrorReason}, ": "))
 	detail = strings.Trim(detail, ": ")
 	if detail == "" {
@@ -30,6 +31,7 @@ func responseError(operation string, statusCode int, body []byte, notFound error
 
 	requestError := fmt.Errorf("HTTP %d: %s", statusCode, detail)
 	lowerDetail := strings.ToLower(detail)
+
 	var sentinel error
 	switch {
 	case statusCode == http.StatusNotFound && notFound != nil:

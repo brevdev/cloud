@@ -340,7 +340,7 @@ func TestConsoleReadyPollsAsyncLogRequest(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(t, server.URL)
-	ready, err := client.consoleReady(context.Background(), 42)
+	ready, err := client.vmOperatingSystemReportsReady(context.Background(), 42)
 	require.NoError(t, err)
 	assert.True(t, ready)
 	assert.Equal(t, 1, requestCalls)
@@ -372,7 +372,7 @@ func TestConsoleReadyRetainsRequestWhileLogsAreProcessing(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(t, server.URL)
-	ready, err := client.consoleReady(context.Background(), 42)
+	ready, err := client.vmOperatingSystemReportsReady(context.Background(), 42)
 	require.NoError(t, err)
 	assert.True(t, ready)
 	assert.Equal(t, 1, requestCalls)
