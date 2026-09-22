@@ -2,6 +2,7 @@ package validation
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -15,6 +16,36 @@ type ProviderConfig struct {
 	StableIDs           []v1.InstanceTypeID
 	Credential          v1.CloudCredential
 	CreateInstanceAttrs v1.CreateInstanceAttrs
+	// Tags are extra labels (e.g. the CI run ID) stamped on every instance and its
+	// network/subnet/disk so a post-run sweep can delete this run's resources.
+	Tags map[string]string
+}
+
+// registerInstanceCleanup schedules termination via t.Cleanup so it runs even after a t.Fatalf,
+// on a fresh 8-min context. Not-found counts as success; a terminal failure fails the test.
+// Returns markTerminated, which the caller invokes once it has terminated the instance itself to
+// skip the redundant delete. Call this right after a create, before any assertion.
+func registerInstanceCleanup(t *testing.T, client v1.CloudCreateTerminateInstance, cloudID v1.CloudProviderInstanceID) (markTerminated func()) {
+	t.Helper()
+	terminated := false
+	markTerminated = func() { terminated = true }
+	if cloudID == "" {
+		return markTerminated
+	}
+	t.Cleanup(func() {
+		if terminated {
+			return
+		}
+		// Single 8-min attempt on a fresh context (real terminates ~1 min; internal wait caps at
+		// 5 minutes).
+		ctx, cancel := context.WithTimeout(context.Background(), 8*time.Minute)
+		defer cancel()
+		err := client.TerminateInstance(ctx, cloudID)
+		if err != nil && !errors.Is(err, v1.ErrInstanceNotFound) && !errors.Is(err, v1.ErrResourceNotFound) {
+			t.Errorf("LEAKED INSTANCE %s: cleanup terminate failed: %v", cloudID, err)
+		}
+	})
+	return markTerminated
 }
 
 func RunValidationSuite(t *testing.T, config ProviderConfig) {
@@ -124,17 +155,18 @@ func RunInstanceLifecycleValidation(t *testing.T, config ProviderConfig) {
 				break
 			}
 		}
+		attrs.Tags = config.Tags
 		instance, err := v1.ValidateCreateInstance(ctx, client, attrs, selectedType)
+		// Register cleanup before the fatal below: create can return a non-nil instance with an
+		// error, and a t.Fatalf would skip a later defer and leak the VM.
+		markTerminated := func() {}
+		if instance != nil {
+			markTerminated = registerInstanceCleanup(t, client, instance.CloudID)
+		}
 		if err != nil {
 			t.Fatalf("ValidateCreateInstance failed: %v", err)
 		}
 		require.NotNil(t, instance)
-
-		defer func() {
-			if instance != nil {
-				_ = client.TerminateInstance(ctx, instance.CloudID)
-			}
-		}()
 
 		t.Run("ValidateListCreatedInstance", func(t *testing.T) {
 			err := v1.ValidateListCreatedInstance(ctx, client, instance)
@@ -166,6 +198,7 @@ func RunInstanceLifecycleValidation(t *testing.T, config ProviderConfig) {
 		t.Run("ValidateTerminateInstance", func(t *testing.T) {
 			err := v1.ValidateTerminateInstance(ctx, client, instance)
 			require.NoError(t, err, "ValidateTerminateInstance should pass")
+			markTerminated() // already terminated; skip redundant delete
 		})
 	})
 }
@@ -313,15 +346,15 @@ func RunFirewallValidation(t *testing.T, config ProviderConfig, opts FirewallVal
 	require.NotEmpty(t, attrs.InstanceType, "Should find available instance type")
 
 	// Create instance for firewall testing
+	attrs.Tags = config.Tags
 	instance, err := v1.ValidateCreateInstance(ctx, client, attrs, selectedType)
+	// Register cleanup before the assertions below so a failed require cannot leak the VM.
+	markTerminated := func() {}
+	if instance != nil {
+		markTerminated = registerInstanceCleanup(t, client, instance.CloudID)
+	}
 	require.NoError(t, err, "ValidateCreateInstance should pass")
 	require.NotNil(t, instance)
-
-	defer func() {
-		if instance != nil {
-			_ = client.TerminateInstance(ctx, instance.CloudID)
-		}
-	}()
 
 	// Wait for instance to be running and SSH accessible
 	t.Run("ValidateSSHAccessible", func(t *testing.T) {
@@ -350,6 +383,7 @@ func RunFirewallValidation(t *testing.T, config ProviderConfig, opts FirewallVal
 	t.Run("ValidateTerminateInstance", func(t *testing.T) {
 		err := v1.ValidateTerminateInstance(ctx, client, instance)
 		require.NoError(t, err, "ValidateTerminateInstance should pass")
+		markTerminated() // already terminated; skip redundant delete
 	})
 }
 

@@ -36,6 +36,10 @@ func sanitizeSFCName(name string) string {
 	return name
 }
 
+func makeSFCName(refID string, tags v1.Tags) string {
+	return sanitizeSFCName(refID + "-" + tags["dev-plane-x-environmentId"])
+}
+
 func (c *SFCClientV2) CreateInstance(ctx context.Context, attrs v1.CreateInstanceAttrs) (*v1.Instance, error) {
 	c.logger.Debug(ctx, "sfcv2: CreateInstance start",
 		v1.LogField("name", attrs.Name),
@@ -61,9 +65,7 @@ func (c *SFCClientV2) CreateInstance(ctx context.Context, attrs v1.CreateInstanc
 		CloudInitUserData: &cloudInit,
 		Tags:              tags,
 	}
-	// name is optional; sanitize the requested name to SFC's format and send it only if
-	// something valid remains. Otherwise omit it — identity is preserved in the tags above.
-	if name := sanitizeSFCName(attrs.Name); sfcNamePattern.MatchString(name) {
+	if name := makeSFCName(attrs.RefID, attrs.Tags); sfcNamePattern.MatchString(name) {
 		req.Name = &name
 	}
 	resp, err := c.client.createInstance(ctx, req)
