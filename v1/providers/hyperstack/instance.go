@@ -404,8 +404,8 @@ func providerFirewallRules(providerRules *[]virtualmachine.SecurityRulesFieldsFo
 		}
 		ingressRules = append(ingressRules, v1.FirewallRule{
 			ID:       strconv.Itoa(intValue(providerRule.Id)),
-			FromPort: int32(intValue(providerRule.PortRangeMin)),
-			ToPort:   int32(intValue(providerRule.PortRangeMax)),
+			FromPort: int32(intValue(providerRule.PortRangeMin)), //nolint:gosec // ok
+			ToPort:   int32(intValue(providerRule.PortRangeMax)), //nolint:gosec // ok
 			IPRanges: []string{stringValue(providerRule.RemoteIpPrefix)},
 		})
 	}

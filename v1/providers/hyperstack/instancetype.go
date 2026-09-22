@@ -136,7 +136,7 @@ func hyperstackInstanceType(providerType flavor.FlavorFields, fallbackLocation s
 		Location:               location,
 		Memory:                 memory,
 		MemoryBytes:            memoryBytes,
-		VCPU:                   int32(intValue(providerType.Cpu)),
+		VCPU:                   int32(intValue(providerType.Cpu)), //nolint:gosec // ok
 		SupportedArchitectures: []v1.Architecture{v1.ArchitectureX86_64},
 		SupportedUsageClasses:  []string{usageClass},
 		Preemptible:            preemptible,

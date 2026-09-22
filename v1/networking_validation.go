@@ -197,7 +197,7 @@ func ValidateDockerFirewallAllowsEgress(ctx context.Context, client CloudInstanc
 	return nil
 }
 
-func ValidateDockerFirewallAllowsContainerToContainerCommunication(ctx context.Context, client CloudInstanceReader, instance *Instance, privateKey string) error {
+func ValidateDockerFirewallAllowsContainerToContainerCommunication(ctx context.Context, client CloudInstanceReader, instance *Instance, privateKey string) error { //nolint:funlen // test ok
 	var err error
 	instance, err = WaitForInstanceLifecycleStatus(ctx, client, instance, LifecycleStatusRunning, PendingToRunningTimeout)
 	if err != nil {
