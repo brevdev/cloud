@@ -140,8 +140,14 @@ func (c *HyperstackClient) updateReadinessLabel(ctx context.Context, providerIns
 		return
 	}
 
+	labels := *providerInstance.Labels
+	if labels == nil {
+		labels = []string{}
+	}
+	labels = append(labels, readinessLabel)
+
 	response, err := c.virtualMachines.AddVMLabelWithResponse(ctx, *providerInstance.Id, virtualmachine.AddVMLabelJSONRequestBody{
-		Labels: &[]string{readinessLabel},
+		Labels: &labels,
 	})
 	if err != nil {
 		c.logger.Warn(ctx, fmt.Sprintf("error adding virtual machine label: %v", err), v1.LogField("instance_id", *providerInstance.Id))
