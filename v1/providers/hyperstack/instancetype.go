@@ -223,7 +223,7 @@ func hyperstackGPU(providerGPU string, count int) v1.GPU {
 	memoryGB := gpuMemoryGB(gpuType)
 	memory, memoryBytes := byteSizes(memoryGB, v1.Gigabyte)
 	return v1.GPU{
-		Count:          int32(count),
+		Count:          int32(count), //nolint:gosec // ok
 		Memory:         memory,
 		MemoryBytes:    memoryBytes,
 		NetworkDetails: gpuNetworkDetails(gpuType),
