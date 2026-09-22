@@ -41,7 +41,7 @@ var instanceTagLabelKeys = []string{
 	"dev-plane-stage",
 }
 
-func (c *HyperstackClient) CreateInstance(ctx context.Context, attrs v1.CreateInstanceAttrs) (*v1.Instance, error) {
+func (c *HyperstackClient) CreateInstance(ctx context.Context, attrs v1.CreateInstanceAttrs) (*v1.Instance, error) { //nolint:gocyclo // error checking in place
 	location := strings.TrimSpace(attrs.Location)
 	if location == "" {
 		location = strings.TrimSpace(c.location)
