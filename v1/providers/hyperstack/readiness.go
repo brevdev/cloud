@@ -140,9 +140,9 @@ func (c *HyperstackClient) updateReadinessLabel(ctx context.Context, providerIns
 		return
 	}
 
-	labels := *providerInstance.Labels
-	if labels == nil {
-		labels = []string{}
+	labels := []string{}
+	if providerInstance.Labels != nil {
+		labels = *providerInstance.Labels
 	}
 	labels = append(labels, readinessLabel)
 
