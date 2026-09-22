@@ -98,6 +98,7 @@ type HyperstackClient struct {
 	apiKey     string
 	location   string
 	httpClient *http.Client
+	logger     v1.Logger
 
 	virtualMachines *virtualmachine.ClientWithResponses
 	environments    *environment.ClientWithResponses
@@ -117,6 +118,12 @@ func WithHTTPClient(httpClient *http.Client) HyperstackClientOption {
 	}
 }
 
+func WithLogger(logger v1.Logger) HyperstackClientOption {
+	return func(c *HyperstackClient) {
+		c.logger = logger
+	}
+}
+
 func NewHyperstackClient(credential HyperstackCredential, location string, opts ...HyperstackClientOption) (*HyperstackClient, error) {
 	if err := credential.Validate(); err != nil {
 		return nil, err
@@ -127,6 +134,7 @@ func NewHyperstackClient(credential HyperstackCredential, location string, opts 
 		apiKey:     credential.APIKey,
 		location:   location,
 		httpClient: http.DefaultClient,
+		logger:     &v1.NoopLogger{},
 	}
 	for _, opt := range opts {
 		opt(client)

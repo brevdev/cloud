@@ -275,19 +275,12 @@ func parseInstanceID(instanceID v1.CloudProviderInstanceID) (int, error) {
 	return numericID, nil
 }
 
-func (c *HyperstackClient) convertProviderInstance(
-	ctx context.Context,
-	providerInstance virtualmachine.InstanceFields,
-) (v1.Instance, error) {
+func (c *HyperstackClient) convertProviderInstance(ctx context.Context, providerInstance virtualmachine.InstanceFields) (v1.Instance, error) {
 	consoleReady := false
 	if hyperstackLifecycleStatus(stringValue(providerInstance.Status)) == v1.LifecycleStatusRunning &&
 		hyperstackAPIReady(providerInstance, strings.TrimSpace(stringValue(providerInstance.FloatingIp))) {
-		instanceID := intValue(providerInstance.Id)
-		if instanceID <= 0 {
-			return v1.Instance{}, errors.New("hyperstack virtual machine response did not contain an instance ID")
-		}
 		var err error
-		consoleReady, err = c.vmOperatingSystemReportsReady(ctx, instanceID)
+		consoleReady, err = c.vmOperatingSystemReportsReady(ctx, providerInstance)
 		if err != nil {
 			return v1.Instance{}, err
 		}
