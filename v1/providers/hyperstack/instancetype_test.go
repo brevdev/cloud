@@ -59,6 +59,23 @@ func TestGetInstanceTypesMapsFlavor(t *testing.T) {
 	assert.Equal(t, "ephemeral", instanceType.SupportedStorage[1].Type)
 }
 
+func TestHyperstackArchitecture(t *testing.T) {
+	tests := []struct {
+		gpuType string
+		want    v1.Architecture
+	}{
+		{gpuType: "GH200", want: v1.ArchitectureARM64},
+		{gpuType: "GB200", want: v1.ArchitectureARM64},
+		{gpuType: "H100", want: v1.ArchitectureX86_64},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.gpuType, func(t *testing.T) {
+			assert.Equal(t, tt.want, hyperstackArchitecture(tt.gpuType))
+		})
+	}
+}
+
 func TestGetLocationsMapsRegions(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
 		switch request.URL.Path {

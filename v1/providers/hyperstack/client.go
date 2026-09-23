@@ -184,7 +184,6 @@ type authenticatedDoer struct {
 func (d *authenticatedDoer) Do(request *http.Request) (*http.Response, error) {
 	request = request.Clone(request.Context())
 	request.Header.Set("api_key", d.apiKey)
-	request.Header.Set("User-Agent", "brev-cloud")
 	request.Header.Set("Accept", "application/json")
 	return d.client.Do(request)
 }

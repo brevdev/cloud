@@ -137,7 +137,7 @@ func hyperstackInstanceType(providerType flavor.FlavorFields, fallbackLocation s
 		Memory:                 memory,
 		MemoryBytes:            memoryBytes,
 		VCPU:                   int32(intValue(providerType.Cpu)), //nolint:gosec // ok
-		SupportedArchitectures: []v1.Architecture{v1.ArchitectureX86_64},
+		SupportedArchitectures: []v1.Architecture{hyperstackArchitecture(gpuType)},
 		SupportedUsageClasses:  []string{usageClass},
 		Preemptible:            preemptible,
 		Stoppable:              true,
@@ -170,6 +170,14 @@ func hyperstackInstanceType(providerType flavor.FlavorFields, fallbackLocation s
 	}
 	instanceType.ID = v1.MakeGenericInstanceTypeID(instanceType)
 	return instanceType, nil
+}
+
+func hyperstackArchitecture(gpuType string) v1.Architecture {
+	gpuType = strings.ToUpper(strings.TrimSpace(gpuType))
+	if strings.HasPrefix(gpuType, "GH") || strings.HasPrefix(gpuType, "GB") {
+		return v1.ArchitectureARM64
+	}
+	return v1.ArchitectureX86_64
 }
 
 func flavorPrice(providerType flavor.FlavorFields, rates map[string]string) (*currency.Amount, error) {
