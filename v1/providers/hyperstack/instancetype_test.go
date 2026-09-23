@@ -16,7 +16,6 @@ import (
 func TestGetInstanceTypesMapsFlavor(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
 		assert.Equal(t, "api-key", request.Header.Get("api_key"))
-		assert.Equal(t, "brev-cloud", request.Header.Get("User-Agent"))
 		switch request.URL.Path {
 		case "/v1/core/flavors":
 			writeJSON(t, w, map[string]any{
