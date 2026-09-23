@@ -46,7 +46,7 @@ func (c *SFCClientV2) CreateInstance(ctx context.Context, attrs v1.CreateInstanc
 		v1.LogField("location", attrs.Location),
 	)
 
-	tags := make(map[string]string, len(attrs.Tags)+2)
+	tags := make(map[string]string, len(attrs.Tags)+3)
 	maps.Copy(tags, attrs.Tags)
 	tags[tagKeyCloudCredRefID] = c.refID
 	tags[tagKeyRefID] = attrs.RefID
@@ -68,12 +68,33 @@ func (c *SFCClientV2) CreateInstance(ctx context.Context, attrs v1.CreateInstanc
 	if name := makeSFCName(attrs.RefID, attrs.Tags); sfcNamePattern.MatchString(name) {
 		req.Name = &name
 	}
+	if c.enableConfigurableFirewall {
+		firewall, err := c.createInstanceFirewall(ctx, attrs.FirewallRules)
+		if err != nil {
+			return nil, errors.WrapAndTrace(err)
+		}
+		req.EnablePublicIPv4 = true
+		req.Firewall = firewall.ID
+		req.Tags[tagKeyFirewallID] = firewall.ID
+	}
 	resp, err := c.client.createInstance(ctx, req)
 	if err != nil {
+		if req.Firewall != "" {
+			err = c.cleanupFirewall(ctx, req.Firewall, err)
+		}
 		return nil, errors.WrapAndTrace(err)
 	}
 	if resp == nil {
 		return nil, errors.WrapAndTrace(fmt.Errorf("no instance returned from create"))
+	}
+	if req.EnablePublicIPv4 && (!resp.EnablePublicIPv4 || resp.Firewall != req.Firewall) {
+		err := fmt.Errorf("SFCompute API did not accept the requested public networking")
+		cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 30*time.Second)
+		defer cancel()
+		if terminateErr := c.client.terminateInstance(cleanupCtx, resp.ID); terminateErr != nil && !isAPIStatus(terminateErr, http.StatusNotFound) {
+			return nil, errors.WrapAndTrace(fmt.Errorf("%w; instance cleanup failed: %w", err, terminateErr))
+		}
+		return nil, errors.WrapAndTrace(c.cleanupFirewall(ctx, req.Firewall, err))
 	}
 
 	instance, err := c.sfcInstanceToBrevInstance(resp, nil)
@@ -107,13 +128,19 @@ func (c *SFCClientV2) GetInstance(ctx context.Context, id v1.CloudProviderInstan
 		return nil, errors.WrapAndTrace(fmt.Errorf("instance %s not found", id))
 	}
 
-	sshInfo, err := c.getSSHInfo(ctx, string(id), resp.Status)
-	if err != nil {
-		return nil, errors.WrapAndTrace(err)
+	var sshInfo *instanceSSHInfo
+	if !resp.EnablePublicIPv4 {
+		sshInfo, err = c.getSSHInfo(ctx, string(id), resp.Status)
+		if err != nil {
+			return nil, errors.WrapAndTrace(err)
+		}
 	}
 
 	instance, err := c.sfcInstanceToBrevInstance(resp, sshInfo)
 	if err != nil {
+		return nil, errors.WrapAndTrace(err)
+	}
+	if err := c.loadInstanceFirewall(ctx, resp, instance); err != nil {
 		return nil, errors.WrapAndTrace(err)
 	}
 
@@ -146,7 +173,11 @@ func (c *SFCClientV2) ListInstances(ctx context.Context, args v1.ListInstancesAr
 			continue
 		}
 
-		sshInfo, err := c.getSSHInfo(ctx, inst.ID, inst.Status)
+		var sshInfo *instanceSSHInfo
+		var err error
+		if !inst.EnablePublicIPv4 {
+			sshInfo, err = c.getSSHInfo(ctx, inst.ID, inst.Status)
+		}
 		if err != nil {
 			c.logger.Error(ctx, err,
 				v1.LogField("msg", "sfcv2: ListInstances skipping instance due to SSH error"),
@@ -163,6 +194,9 @@ func (c *SFCClientV2) ListInstances(ctx context.Context, args v1.ListInstancesAr
 			)
 			continue
 		}
+		if err := c.loadInstanceFirewall(ctx, &inst, brevInst); err != nil {
+			return nil, errors.WrapAndTrace(err)
+		}
 		instances = append(instances, *brevInst)
 	}
 
@@ -178,8 +212,12 @@ func (c *SFCClientV2) TerminateInstance(ctx context.Context, id v1.CloudProvider
 		v1.LogField("instanceID", id),
 	)
 
-	if err := c.client.terminateInstance(ctx, string(id)); err != nil {
+	instance, err := c.client.terminateInstanceWithResponse(ctx, string(id))
+	if err != nil {
 		return normalizeTerminateInstanceError(err)
+	}
+	if instance.EnablePublicIPv4 && instance.Firewall != "" && instance.Tags[tagKeyFirewallID] == instance.Firewall {
+		return c.cleanupFirewall(ctx, instance.Firewall, nil)
 	}
 
 	c.logger.Debug(ctx, "sfcv2: TerminateInstance end",
@@ -226,13 +264,20 @@ func (c *SFCClientV2) sfcInstanceToBrevInstance(inst *instanceResponse, sshInfo 
 	userTags := make(v1.Tags)
 	for k, v := range tags {
 		switch k {
-		case tagKeyCloudCredRefID, tagKeyRefID:
+		case tagKeyCloudCredRefID, tagKeyRefID, tagKeyFirewallID:
 		default:
 			userTags[k] = v
 		}
 	}
 
 	status := sfcStatusToLifecycleStatus(inst.Status)
+	hostname, sshPort := sshInfo.GetHostname(), int(sshInfo.GetPort())
+	if inst.EnablePublicIPv4 {
+		hostname, sshPort = inst.PublicIP, 22
+		if hostname == "" && status == v1.LifecycleStatusRunning {
+			status = v1.LifecycleStatusPending
+		}
+	}
 
 	diskInt64, err := h100InstanceTypeMetadata.diskBytes.ByteCountInUnitInt64(v1.Gibibyte)
 	if err != nil {
@@ -244,10 +289,10 @@ func (c *SFCClientV2) sfcInstanceToBrevInstance(inst *instanceResponse, sshInfo 
 		Name:          inst.Name,
 		CloudID:       v1.CloudProviderInstanceID(inst.ID),
 		RefID:         tags[tagKeyRefID],
-		PublicDNS:     sshInfo.GetHostname(),
-		PublicIP:      sshInfo.GetHostname(),
+		PublicDNS:     hostname,
+		PublicIP:      hostname,
 		SSHUser:       defaultSSHUsername,
-		SSHPort:       int(sshInfo.GetPort()),
+		SSHPort:       sshPort,
 		CreatedAt:     time.Unix(inst.CreatedAt, 0),
 		DiskSize:      diskSize,
 		DiskSizeBytes: h100InstanceTypeMetadata.diskBytes,

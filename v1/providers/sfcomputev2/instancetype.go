@@ -3,6 +3,7 @@ package v2
 import (
 	"context"
 	"fmt"
+	"slices"
 	"sort"
 	"time"
 
@@ -118,6 +119,7 @@ func (c *SFCClientV2) GetInstanceTypes(ctx context.Context, args v1.GetInstanceT
 	}
 
 	instanceType := buildInstanceType(h100InstanceTypeMetadata, true)
+	instanceType.CanModifyFirewallRules = c.enableConfigurableFirewall
 
 	if !v1.IsSelectedByArgs(instanceType, args) {
 		return []v1.InstanceType{}, nil
@@ -145,10 +147,16 @@ func (c *SFCClientV2) skuFreeCapacity(ctx context.Context) (map[string]int, erro
 	if poolResp == nil {
 		return map[string]int{}, nil
 	}
+	if c.enableConfigurableFirewall && poolResp.PublicIPv4SKUs == nil {
+		return nil, fmt.Errorf("configurable firewall is not enabled by the SFCompute API")
+	}
 
 	now := time.Now().Unix()
 	free := make(map[string]int)
 	for skuID, schedule := range poolResp.AllocationSchedule.ByInstanceSKU {
+		if c.enableConfigurableFirewall && !slices.Contains(*poolResp.PublicIPv4SKUs, skuID) {
+			continue
+		}
 		free[skuID] = currentScheduleAllocation(schedule, now)
 	}
 
