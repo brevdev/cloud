@@ -197,7 +197,7 @@ func ValidateDockerFirewallAllowsEgress(ctx context.Context, client CloudInstanc
 	return nil
 }
 
-func ValidateDockerFirewallAllowsContainerToContainerCommunication(ctx context.Context, client CloudInstanceReader, instance *Instance, privateKey string) error {
+func ValidateDockerFirewallAllowsContainerToContainerCommunication(ctx context.Context, client CloudInstanceReader, instance *Instance, privateKey string) error { //nolint:funlen // test ok
 	var err error
 	instance, err = WaitForInstanceLifecycleStatus(ctx, client, instance, LifecycleStatusRunning, PendingToRunningTimeout)
 	if err != nil {
@@ -267,9 +267,13 @@ func ValidateDockerFirewallAllowsContainerToContainerCommunication(ctx context.C
 	}
 
 	// Start a second Docker container to connect to the first container
+	wgetScript := fmt.Sprintf(
+		"for i in $(seq 1 10); do wget -q -O- http://%s && exit 0; sleep 3; done; exit 1",
+		containerName,
+	)
 	cmd = fmt.Sprintf(
-		"%s run --network %s --rm alpine wget -q -O- http://%s",
-		dockerCmd, networkName, containerName,
+		"%s run --network %s --rm alpine sh -c '%s'",
+		dockerCmd, networkName, wgetScript,
 	)
 	stdout, stderr, err := sshClient.RunCommand(ctx, cmd)
 	if err != nil {

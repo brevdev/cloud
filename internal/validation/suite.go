@@ -12,9 +12,10 @@ import (
 )
 
 type ProviderConfig struct {
-	Location   string
-	StableIDs  []v1.InstanceTypeID
-	Credential v1.CloudCredential
+	Location            string
+	StableIDs           []v1.InstanceTypeID
+	Credential          v1.CloudCredential
+	CreateInstanceAttrs v1.CreateInstanceAttrs
 	// Tags are extra labels (e.g. the CI run ID) stamped on every instance and its
 	// network/subnet/disk so a post-run sweep can delete this run's resources.
 	Tags map[string]string
@@ -143,7 +144,7 @@ func RunInstanceLifecycleValidation(t *testing.T, config ProviderConfig) {
 	require.NotEmpty(t, locations, "Should have locations")
 
 	t.Run("ValidateCreateInstance", func(t *testing.T) {
-		attrs := v1.CreateInstanceAttrs{}
+		attrs := config.CreateInstanceAttrs
 		selectedType := v1.InstanceType{}
 		for _, typ := range types {
 			if typ.IsAvailable {
@@ -331,7 +332,7 @@ func RunFirewallValidation(t *testing.T, config ProviderConfig, opts FirewallVal
 	require.NotEmpty(t, types, "Should have instance types")
 
 	// Find an available instance type
-	attrs := v1.CreateInstanceAttrs{}
+	attrs := config.CreateInstanceAttrs
 	selectedType := v1.InstanceType{}
 	for _, typ := range types {
 		if typ.IsAvailable {
