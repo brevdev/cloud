@@ -31,6 +31,8 @@ type createInstanceRequest struct {
 	CloudInitUserData       *string           `json:"cloud_init_user_data,omitempty"`
 	Tags                    map[string]string `json:"tags,omitempty"`
 	PreviewEnableInfiniband bool              `json:"_preview_enable_infiniband"`
+	EnablePublicIPv4        bool              `json:"enable_public_ipv4,omitempty"`
+	Firewall                string            `json:"firewall,omitempty"`
 }
 
 type instanceStatus string
@@ -47,12 +49,15 @@ type instanceSKUSummary struct {
 }
 
 type instanceResponse struct {
-	ID          string              `json:"id"`
-	Name        string              `json:"name"`
-	Status      instanceStatus      `json:"status"`
-	InstanceSKU *instanceSKUSummary `json:"instance_sku"`
-	CreatedAt   int64               `json:"created_at"`
-	Tags        map[string]string   `json:"tags"`
+	ID               string              `json:"id"`
+	Name             string              `json:"name"`
+	Status           instanceStatus      `json:"status"`
+	InstanceSKU      *instanceSKUSummary `json:"instance_sku"`
+	CreatedAt        int64               `json:"created_at"`
+	Tags             map[string]string   `json:"tags"`
+	EnablePublicIPv4 bool                `json:"enable_public_ipv4"`
+	Firewall         string              `json:"firewall"`
+	PublicIP         string              `json:"public_ip"`
 }
 
 type listInstancesResponse struct {
@@ -92,6 +97,7 @@ type allocationSchedule struct {
 
 type poolResponse struct {
 	AllocationSchedule allocationSchedule `json:"allocation_schedule"`
+	PublicIPv4SKUs     *[]string          `json:"public_ipv4_skus,omitempty"`
 }
 
 type apiError struct {
@@ -153,8 +159,16 @@ func (c *apiClient) listInstances(ctx context.Context, workspace, pool string) (
 }
 
 func (c *apiClient) terminateInstance(ctx context.Context, id string) error {
+	_, err := c.terminateInstanceWithResponse(ctx, id)
+	return err
+}
+
+func (c *apiClient) terminateInstanceWithResponse(ctx context.Context, id string) (*instanceResponse, error) {
 	var response instanceResponse
-	return c.do(ctx, http.MethodPost, "/instances/"+url.PathEscape(id)+"/terminate", nil, nil, &response)
+	if err := c.do(ctx, http.MethodPost, "/instances/"+url.PathEscape(id)+"/terminate", nil, nil, &response); err != nil {
+		return nil, err
+	}
+	return &response, nil
 }
 
 func (c *apiClient) getSSHInfo(ctx context.Context, id string) (*instanceSSHInfo, error) {
@@ -181,11 +195,19 @@ func (c *apiClient) do(
 	requestBody any,
 	responseBody any,
 ) error {
+	_, err := c.doRequest(ctx, method, brevAPIPath+path, query, requestBody, responseBody, nil)
+	return err
+}
+
+func (c *apiClient) doRequest(
+	ctx context.Context, method, path string, query url.Values,
+	requestBody, responseBody any, headers http.Header,
+) (http.Header, error) {
 	var body io.Reader
 	if requestBody != nil {
 		encoded, err := json.Marshal(requestBody)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		body = bytes.NewReader(encoded)
 	}
@@ -193,34 +215,37 @@ func (c *apiClient) do(
 	request, err := http.NewRequestWithContext(
 		ctx,
 		method,
-		strings.TrimRight(c.baseURL, "/")+brevAPIPath+path,
+		strings.TrimRight(c.baseURL, "/")+path,
 		body,
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	request.URL.RawQuery = query.Encode()
 	request.Header.Set("Accept", "application/json")
 	request.Header.Set("Authorization", "Bearer "+c.apiKey)
+	for key, values := range headers {
+		request.Header[key] = values
+	}
 	if requestBody != nil {
 		request.Header.Set("Content-Type", "application/json")
 	}
 
 	response, err := c.httpClient.Do(request)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer func() { _ = response.Body.Close() }()
 
 	responseBytes, err := io.ReadAll(response.Body)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if response.StatusCode < http.StatusOK || response.StatusCode >= http.StatusMultipleChoices {
-		return &apiError{statusCode: response.StatusCode, body: string(responseBytes)}
+		return response.Header, &apiError{statusCode: response.StatusCode, body: string(responseBytes)}
 	}
 	if responseBody == nil || len(responseBytes) == 0 {
-		return nil
+		return response.Header, nil
 	}
-	return json.Unmarshal(responseBytes, responseBody)
+	return response.Header, json.Unmarshal(responseBytes, responseBody)
 }

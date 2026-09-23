@@ -17,7 +17,7 @@ func TestAPIClientUsesBrevContract(t *testing.T) {
 		require.Equal(t, "Bearer api-key", request.Header.Get("Authorization"))
 
 		switch request.Method + " " + request.URL.Path {
-		case "POST /integrations/brev/v1/instances":
+		case createInstanceRoute:
 			var body map[string]any
 			require.NoError(t, json.NewDecoder(request.Body).Decode(&body))
 			require.Equal(t, "sfc:pool:account:workspace:default", body["pool"])
@@ -29,7 +29,7 @@ func TestAPIClientUsesBrevContract(t *testing.T) {
 			require.Equal(t, "brev-ref", tags[tagKeyRefID])
 			require.Equal(t, false, body["_preview_enable_infiniband"])
 			writeJSON(t, writer, instanceResponse{ID: "inst_created", Status: instanceStatusAwaitingAllocation})
-		case "GET /integrations/brev/v1/instances":
+		case listInstancesRoute:
 			require.Equal(t, "sfc:workspace:account:workspace", request.URL.Query().Get("workspace"))
 			require.Equal(t, []string{"sfc:pool:account:workspace:default"}, request.URL.Query()["pool"])
 			require.Equal(t, "200", request.URL.Query().Get("limit"))
@@ -43,13 +43,13 @@ func TestAPIClientUsesBrevContract(t *testing.T) {
 			}
 			require.Equal(t, "next-page", request.URL.Query().Get("starting_after"))
 			writeJSON(t, writer, listInstancesResponse{Data: []instanceResponse{{ID: "inst_listed_2"}}})
-		case "GET /integrations/brev/v1/instances/inst_test":
+		case getTestInstanceRoute:
 			writeJSON(t, writer, instanceResponse{ID: "inst_test", Status: instanceStatusRunning})
 		case "GET /integrations/brev/v1/instances/inst_test/ssh":
 			writeJSON(t, writer, instanceSSHInfo{Hostname: "192.0.2.1", Port: 22})
-		case "POST /integrations/brev/v1/instances/inst_test/terminate":
+		case terminateTestInstanceRoute:
 			writeJSON(t, writer, instanceResponse{ID: "inst_test", Status: instanceStatusTerminated})
-		case "GET /integrations/brev/v1/pools/sfc:pool:account:workspace:default":
+		case getTestPoolRoute:
 			writeJSON(t, writer, poolResponse{AllocationSchedule: allocationSchedule{
 				ByInstanceSKU: map[string][]scheduleEntry{"is_sku": {{StartAt: 0, NodeCount: 1}}},
 			}})
