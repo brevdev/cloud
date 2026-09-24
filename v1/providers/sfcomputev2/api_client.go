@@ -24,13 +24,12 @@ type apiClient struct {
 }
 
 type createInstanceRequest struct {
-	Name                    *string           `json:"name,omitempty"`
-	Pool                    string            `json:"pool"`
-	Image                   string            `json:"image"`
-	InstanceSKU             string            `json:"instance_sku"`
-	CloudInitUserData       *string           `json:"cloud_init_user_data,omitempty"`
-	Tags                    map[string]string `json:"tags,omitempty"`
-	PreviewEnableInfiniband bool              `json:"_preview_enable_infiniband"`
+	Name              *string           `json:"name,omitempty"`
+	Pool              string            `json:"pool"`
+	Image             string            `json:"image"`
+	InstanceSKU       string            `json:"instance_sku"`
+	CloudInitUserData *string           `json:"cloud_init_user_data,omitempty"`
+	Tags              map[string]string `json:"tags,omitempty"`
 }
 
 type instanceStatus string
