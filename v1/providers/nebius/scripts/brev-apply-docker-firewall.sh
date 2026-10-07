@@ -13,6 +13,7 @@ iptables -A DOCKER-USER -i cni+    -o cni+    -j ACCEPT
 iptables -A DOCKER-USER -i cali+   -o cali+   -j ACCEPT
 iptables -A DOCKER-USER -i lo                 -j ACCEPT
 iptables -A DOCKER-USER -i wt0                -j ACCEPT
+iptables -A DOCKER-USER -p tcp --dport 22 -j ACCEPT
 iptables -A DOCKER-USER -j DROP
 iptables -A DOCKER-USER -j RETURN
 
