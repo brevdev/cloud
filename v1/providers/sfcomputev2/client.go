@@ -10,10 +10,11 @@ const CloudProviderID = "sfcompute"
 
 // SFCCredentialV2 holds authentication details for a Brev-managed SFCompute V2 account.
 type SFCCredentialV2 struct {
-	RefID        string
-	APIKey       string `json:"api_key"`
-	Organization string `json:"organization"`
-	Workspace    string `json:"workspace"`
+	RefID                      string
+	APIKey                     string `json:"api_key"`
+	Organization               string `json:"organization"`
+	Workspace                  string `json:"workspace"`
+	EnableConfigurableFirewall bool   `json:"enable_configurable_firewall,omitempty"`
 }
 
 var _ v1.CloudCredential = &SFCCredentialV2{}
@@ -45,12 +46,13 @@ func (c *SFCCredentialV2) GetTenantID() (string, error) {
 
 type SFCClientV2 struct {
 	v1.NotImplCloudClient
-	refID        string
-	organization string
-	workspace    string
-	location     string
-	client       *apiClient
-	logger       v1.Logger
+	refID                      string
+	organization               string
+	workspace                  string
+	location                   string
+	client                     *apiClient
+	logger                     v1.Logger
+	enableConfigurableFirewall bool
 }
 
 var _ v1.CloudClient = &SFCClientV2{}
@@ -65,12 +67,13 @@ func WithLogger(logger v1.Logger) SFCClientV2Option {
 
 func (c *SFCCredentialV2) MakeClientWithOptions(_ context.Context, location string, opts ...SFCClientV2Option) (v1.CloudClient, error) {
 	sfcClient := &SFCClientV2{
-		refID:        c.RefID,
-		organization: c.Organization,
-		workspace:    c.Workspace,
-		location:     location,
-		client:       newAPIClient(c.APIKey),
-		logger:       &v1.NoopLogger{},
+		refID:                      c.RefID,
+		organization:               c.Organization,
+		workspace:                  c.Workspace,
+		location:                   location,
+		client:                     newAPIClient(c.APIKey),
+		logger:                     &v1.NoopLogger{},
+		enableConfigurableFirewall: c.EnableConfigurableFirewall,
 	}
 
 	for _, opt := range opts {
