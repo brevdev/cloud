@@ -38,6 +38,19 @@ func isNotFoundError(err error) bool {
 	return false
 }
 
+// isRetryableDeleteError reports whether a delete failed on a condition that clears on its own.
+func isRetryableDeleteError(err error) bool {
+	// Async failures arrive as *operations.Error, which has no GRPCStatus method.
+	var opErr *operations.Error
+	if errors.As(err, &opErr) {
+		return opErr.Code == codes.FailedPrecondition || opErr.Code == codes.Unavailable
+	}
+	if status, ok := status.FromError(err); ok {
+		return status.Code() == codes.FailedPrecondition || status.Code() == codes.Unavailable
+	}
+	return false
+}
+
 func handleErrToCloudErr(e error) error {
 	if e == nil {
 		return nil

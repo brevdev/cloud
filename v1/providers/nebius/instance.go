@@ -24,6 +24,18 @@ const (
 	nebiusCPUImageFamily                      = "ubuntu24.04-driverless"
 	nebiusListInstancesBackoffInitialInterval = 500 * time.Millisecond
 	nebiusListInstancesBackoffMaxElapsedTime  = 30 * time.Second
+	nebiusDeleteBackoffInitialInterval        = 2 * time.Second
+	nebiusDeleteBackoffMaxInterval            = 8 * time.Second
+	nebiusDeleteBackoffMaxElapsedTime         = 30 * time.Second
+	nebiusDiskCleanupTimeout                  = 15 * time.Second
+	// nebiusCleanupTimeout caps detached cleanup, which only runs once the VM is confirmed gone.
+	nebiusCleanupTimeout = 3 * time.Minute
+	// nebiusCleanupWaitTimeout is the create path's share of nebiusCleanupTimeout: waiting for
+	// the VM may take at most this long, leaving the remainder for the three deletes.
+	nebiusCleanupWaitTimeout = 90 * time.Second
+	// nebiusInstanceDeleteWaitTimeout is a ceiling, not a reservation. The terminate activity
+	// allows 5 minutes total, so the caller's context usually expires before this does.
+	nebiusInstanceDeleteWaitTimeout = 5 * time.Minute
 )
 
 //go:embed scripts/brev-apply-docker-firewall.sh
@@ -32,37 +44,29 @@ var dockerFirewallScript string
 //go:embed scripts/10-brev-firewall.conf
 var dockerFirewallDropIn string
 
-//nolint:gocyclo,funlen // Complex instance creation with resource management
+//nolint:funlen // Complex instance creation with resource management
 func (c *NebiusClient) CreateInstance(ctx context.Context, attrs v1.CreateInstanceAttrs) (*v1.Instance, error) {
 	// Track created resources for automatic cleanup on failure
 	var networkID, subnetID, bootDiskID, instanceID string
+	var instanceCreateAttempted bool
 	cleanupOnError := true
 	defer func() {
 		if cleanupOnError {
-			c.logger.Debug(ctx, "cleaning up resources after instance creation failure",
-				v1.LogField("refID", attrs.RefID),
-				v1.LogField("instanceID", instanceID),
-				v1.LogField("networkID", networkID),
-				v1.LogField("subnetID", subnetID),
-				v1.LogField("bootDiskID", bootDiskID))
-
-			// Clean up instance if it was created
-			if instanceID != "" {
-				if err := c.deleteInstanceIfExists(ctx, v1.CloudProviderInstanceID(instanceID)); err != nil {
-					c.logger.Error(ctx, err, v1.LogField("instanceID", instanceID))
-				}
-			}
-
-			// Clean up boot disk
-			if bootDiskID != "" {
-				if err := c.deleteBootDiskIfExists(ctx, bootDiskID); err != nil {
-					c.logger.Error(ctx, err, v1.LogField("bootDiskID", bootDiskID))
-				}
-			}
-
-			// Clean up network resources
-			if err := c.cleanupNetworkResources(ctx, networkID, subnetID); err != nil {
-				c.logger.Error(ctx, err, v1.LogField("networkID", networkID), v1.LogField("subnetID", subnetID))
+			// Detached: a canceled ctx would abort every delete on its first attempt.
+			cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), nebiusCleanupTimeout)
+			defer cancel()
+			// Log but don't fail - cleanup must not replace the real create error.
+			err := c.cleanupInstanceResources(
+				cleanupCtx,
+				attrs.RefID,
+				instanceCreateAttempted,
+				instanceID,
+				bootDiskID,
+				networkID,
+				subnetID,
+			)
+			if err != nil {
+				c.logger.Error(cleanupCtx, err, v1.LogField("refID", attrs.RefID))
 			}
 		}
 	}()
@@ -155,13 +159,18 @@ func (c *NebiusClient) CreateInstance(ctx context.Context, attrs v1.CreateInstan
 	// Store full instance type ID for later retrieval (dot format: "gpu-h100-sxm.8gpu-128vcpu-1600gb")
 	createReq.Metadata.Labels["instance-type-id"] = attrs.InstanceType
 
+	instanceCreateAttempted = true
 	operation, err := c.sdk.Services().Compute().V1().Instance().Create(ctx, createReq)
 	if err != nil {
 		return nil, errors.WrapAndTrace(handleErrToCloudErr(err))
 	}
+	instanceID = operation.ResourceID()
 
 	// Wait for the operation to complete and get the actual instance ID
 	finalOp, err := operation.Wait(ctx)
+	if operation.ResourceID() != "" {
+		instanceID = operation.ResourceID()
+	}
 	if err != nil {
 		return nil, errors.WrapAndTrace(handleErrToCloudErr(err))
 	}
@@ -173,7 +182,9 @@ func (c *NebiusClient) CreateInstance(ctx context.Context, attrs v1.CreateInstan
 
 	// Get the actual instance ID from the completed operation
 	// Assign to the outer variable for cleanup tracking
-	instanceID = finalOp.ResourceID()
+	if finalOp.ResourceID() != "" {
+		instanceID = finalOp.ResourceID()
+	}
 	if instanceID == "" {
 		return nil, fmt.Errorf("failed to get instance ID from operation")
 	}
@@ -616,87 +627,87 @@ func (c *NebiusClient) TerminateInstance(ctx context.Context, instanceID v1.Clou
 	}
 
 	// Extract resource IDs from labels
-	var networkID, subnetID, bootDiskID string
+	var refID, networkID, subnetID, bootDiskID string
 	if instance.Metadata != nil && instance.Metadata.Labels != nil {
+		refID = instance.Metadata.Labels["environment-id"]
 		networkID = instance.Metadata.Labels["network-id"]
 		subnetID = instance.Metadata.Labels["subnet-id"]
 		bootDiskID = instance.Metadata.Labels["boot-disk-id"]
 	}
 
-	// Step 1: Delete the instance
-	operation, err := c.sdk.Services().Compute().V1().Instance().Delete(ctx, &compute.DeleteInstanceRequest{
-		Id: string(instanceID),
-	})
-	if err != nil {
-		return fmt.Errorf("failed to initiate instance termination: %w", err)
-	}
+	// First try the VM deletion on the caller's budget. Detached cleanup retries this exact VM
+	// when needed and still gates every dependent delete on confirmed VM absence.
+	deleteErr := c.deleteInstanceAndWait(ctx, instanceID, nebiusInstanceDeleteWaitTimeout)
 
-	// Wait for the deletion operation to complete
-	finalOp, err := operation.Wait(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to wait for instance termination: %w", err)
-	}
-
-	if !finalOp.Successful() {
-		return fmt.Errorf("instance termination failed: %v", finalOp.Status())
-	}
-
-	c.logger.Debug(ctx, "delete operation completed, waiting for instance to be fully deleted",
-		v1.LogField("instanceID", instanceID))
-
-	// Step 2: Wait for instance to be actually deleted (not just "DELETING")
-	// We MUST wait because we need to clean up boot disk, subnet, and VPC
-	// These resources cannot be deleted while still attached to the instance
-	if err := c.waitForInstanceDeleted(ctx, instanceID, 5*time.Minute); err != nil {
-		return fmt.Errorf("instance failed to complete deletion: %w", err)
-	}
-
-	c.logger.Debug(ctx, "instance fully deleted, proceeding with resource cleanup",
-		v1.LogField("instanceID", instanceID))
-
-	// Step 3: Delete boot disk if it exists and wasn't auto-deleted
-	if bootDiskID != "" {
-		if err := c.deleteBootDiskIfExists(ctx, bootDiskID); err != nil {
-			// Log but don't fail - disk may have been auto-deleted with instance
-			c.logger.Error(ctx, fmt.Errorf("failed to delete boot disk: %w", err),
-				v1.LogField("bootDiskID", bootDiskID))
+	// Detached: the wait above can leave the caller's budget spent, which would otherwise
+	// abort every delete below on its first attempt.
+	cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), nebiusCleanupTimeout)
+	defer cancel()
+	cleanupErr := c.cleanupInstanceResources(
+		cleanupCtx,
+		refID,
+		deleteErr != nil,
+		string(instanceID),
+		bootDiskID,
+		networkID,
+		subnetID,
+	)
+	if deleteErr != nil {
+		if cleanupErr == nil {
+			c.logger.Info(cleanupCtx, "instance termination recovered during detached cleanup",
+				v1.LogField("instanceID", instanceID))
+			return nil
 		}
+		return errors.WrapAndTrace(errors.Join(deleteErr, cleanupErr))
+	}
+	if cleanupErr != nil {
+		// Log but don't fail - the VM is what costs money, and it is already gone.
+		c.logger.Error(cleanupCtx, cleanupErr, v1.LogField("instanceID", instanceID))
 	}
 
-	// Step 4: Delete network resources (subnet, then VPC)
-	if err := c.cleanupNetworkResources(ctx, networkID, subnetID); err != nil {
-		// Log but don't fail - cleanup is best-effort
-		c.logger.Error(ctx, fmt.Errorf("failed to cleanup network resources: %w", err),
-			v1.LogField("networkID", networkID),
-			v1.LogField("subnetID", subnetID))
-	}
-
-	c.logger.Debug(ctx, "instance successfully terminated and cleaned up",
+	c.logger.Debug(ctx, "instance successfully terminated",
 		v1.LogField("instanceID", instanceID))
 
 	return nil
 }
 
-// deleteInstanceIfExists deletes an instance and ignores NotFound errors
-// Used during cleanup to handle cases where the instance may have already been deleted
-func (c *NebiusClient) deleteInstanceIfExists(ctx context.Context, instanceID v1.CloudProviderInstanceID) error {
-	if instanceID == "" {
+// deleteInstanceAndWait blocks until the instance is gone, which releases its boot disk and subnet.
+// waitTimeout bounds the whole VM deletion phase, including the Delete RPC and both waits.
+func (c *NebiusClient) deleteInstanceAndWait(ctx context.Context, instanceID v1.CloudProviderInstanceID, waitTimeout time.Duration) error {
+	waitCtx, cancelWait := context.WithTimeout(ctx, waitTimeout)
+	defer cancelWait()
+
+	operation, err := c.sdk.Services().Compute().V1().Instance().Delete(waitCtx, &compute.DeleteInstanceRequest{
+		Id: string(instanceID),
+	})
+	if err != nil {
+		if isNotFoundError(err) {
+			return nil
+		}
+		if isRetryableDeleteError(err) {
+			confirmErr := c.waitForInstanceDeleted(waitCtx, instanceID, waitTimeout)
+			if confirmErr == nil {
+				return nil
+			}
+			err = errors.Join(err, confirmErr)
+		}
+		return fmt.Errorf("failed to initiate instance termination: %w", err)
+	}
+
+	// NotFound here can mean the operation record is gone, not the instance.
+	if _, err := operation.Wait(waitCtx); err != nil {
+		if confirmErr := c.waitForInstanceDeleted(waitCtx, instanceID, waitTimeout); confirmErr != nil {
+			return fmt.Errorf("failed to wait for instance termination: %w", errors.Join(err, confirmErr))
+		}
 		return nil
 	}
 
-	// Try to delete the instance - TerminateInstance handles all cleanup
-	err := c.TerminateInstance(ctx, instanceID)
-	if err != nil {
-		// Ignore NotFound errors - instance may have already been deleted
-		if isNotFoundError(err) {
-			c.logger.Debug(ctx, "instance already deleted or not found",
-				v1.LogField("instanceID", instanceID))
-			return nil
-		}
-		return fmt.Errorf("failed to delete instance: %w", err)
+	// The boot disk, subnet and VPC cannot be deleted while the instance holds them.
+	if err := c.waitForInstanceDeleted(waitCtx, instanceID, waitTimeout); err != nil {
+		return fmt.Errorf("instance failed to complete deletion: %w", err)
 	}
 
-	c.logger.Debug(ctx, "successfully deleted instance",
+	c.logger.Debug(ctx, "instance fully deleted, proceeding with resource cleanup",
 		v1.LogField("instanceID", instanceID))
 	return nil
 }
@@ -1061,18 +1072,24 @@ func (c *NebiusClient) createIsolatedNetwork(ctx context.Context, refID string, 
 	if err != nil {
 		return "", "", fmt.Errorf("failed to create isolated VPC network: %w", err)
 	}
+	networkID = networkOp.ResourceID()
 
 	// Wait for network creation
 	finalNetworkOp, err := networkOp.Wait(ctx)
+	if networkOp.ResourceID() != "" {
+		networkID = networkOp.ResourceID()
+	}
 	if err != nil {
-		return "", "", fmt.Errorf("failed to wait for VPC network creation: %w", err)
+		return networkID, "", fmt.Errorf("failed to wait for VPC network creation: %w", err)
 	}
 
 	if !finalNetworkOp.Successful() {
-		return "", "", fmt.Errorf("VPC network creation failed: %v", finalNetworkOp.Status())
+		return networkID, "", fmt.Errorf("VPC network creation failed: %v", finalNetworkOp.Status())
 	}
 
-	networkID = finalNetworkOp.ResourceID()
+	if finalNetworkOp.ResourceID() != "" {
+		networkID = finalNetworkOp.ResourceID()
+	}
 	if networkID == "" {
 		return "", "", fmt.Errorf("failed to get network ID from operation")
 	}
@@ -1099,51 +1116,120 @@ func (c *NebiusClient) createIsolatedNetwork(ctx context.Context, refID string, 
 
 	subnetOp, err := c.sdk.Services().VPC().V1().Subnet().Create(ctx, createSubnetReq)
 	if err != nil {
-		// Cleanup network if subnet creation fails
-		_ = c.deleteNetworkIfExists(ctx, networkID)
-		return "", "", fmt.Errorf("failed to create subnet: %w", err)
+		return networkID, "", fmt.Errorf("failed to create subnet: %w", err)
 	}
+	subnetID = subnetOp.ResourceID()
 
 	// Wait for subnet creation
 	finalSubnetOp, err := subnetOp.Wait(ctx)
+	if subnetOp.ResourceID() != "" {
+		subnetID = subnetOp.ResourceID()
+	}
 	if err != nil {
-		// Cleanup network if subnet wait fails
-		_ = c.deleteNetworkIfExists(ctx, networkID)
-		return "", "", fmt.Errorf("failed to wait for subnet creation: %w", err)
+		return networkID, subnetID, fmt.Errorf("failed to wait for subnet creation: %w", err)
 	}
 
 	if !finalSubnetOp.Successful() {
-		// Cleanup network if subnet creation fails
-		_ = c.deleteNetworkIfExists(ctx, networkID)
-		return "", "", fmt.Errorf("subnet creation failed: %v", finalSubnetOp.Status())
+		return networkID, subnetID, fmt.Errorf("subnet creation failed: %v", finalSubnetOp.Status())
 	}
 
-	subnetID = finalSubnetOp.ResourceID()
+	if finalSubnetOp.ResourceID() != "" {
+		subnetID = finalSubnetOp.ResourceID()
+	}
 	if subnetID == "" {
-		// Cleanup network if we can't get subnet ID
-		_ = c.deleteNetworkIfExists(ctx, networkID)
-		return "", "", fmt.Errorf("failed to get subnet ID from operation")
+		return networkID, "", fmt.Errorf("failed to get subnet ID from operation")
 	}
 
 	return networkID, subnetID, nil
 }
 
+// cleanupInstanceResources deletes whatever CreateInstance managed to create before it failed.
+// The caller owns the detached context.
+func (c *NebiusClient) cleanupInstanceResources(
+	ctx context.Context,
+	refID string,
+	instanceMayExist bool,
+	instanceID, bootDiskID, networkID, subnetID string,
+) error {
+	c.logger.Info(ctx, "cleaning up instance resources",
+		v1.LogField("refID", refID),
+		v1.LogField("instanceMayExist", instanceMayExist),
+		v1.LogField("instanceID", instanceID),
+		v1.LogField("bootDiskID", bootDiskID),
+		v1.LogField("networkID", networkID),
+		v1.LogField("subnetID", subnetID))
+
+	if instanceMayExist {
+		if instanceID == "" {
+			return fmt.Errorf("skipping dependent cleanup because instance creation was attempted but its ID is unknown")
+		}
+		instanceCtx, cancel := context.WithTimeout(ctx, nebiusCleanupWaitTimeout)
+		err := c.deleteInstanceAndWait(instanceCtx, v1.CloudProviderInstanceID(instanceID), nebiusCleanupWaitTimeout)
+		cancel()
+		if err != nil {
+			return fmt.Errorf("failed to confirm instance deletion before dependent cleanup: %w", err)
+		}
+	}
+
+	var cleanupErrors []error
+	cleanupErrors = append(cleanupErrors, c.cleanupNetworkResources(ctx, networkID, subnetID))
+	if bootDiskID != "" {
+		diskCtx, cancel := context.WithTimeout(ctx, nebiusDiskCleanupTimeout)
+		cleanupErrors = append(cleanupErrors, c.deleteWithRetry(diskCtx, func() error {
+			return c.deleteBootDiskIfExists(diskCtx, bootDiskID)
+		}))
+		cancel()
+	}
+	return errors.Join(cleanupErrors...)
+}
+
 // cleanupNetworkResources deletes subnet and VPC network
 func (c *NebiusClient) cleanupNetworkResources(ctx context.Context, networkID, subnetID string) error {
+	var cleanupErrors []error
 	// Delete subnet first (must be deleted before VPC)
 	if subnetID != "" {
-		if err := c.deleteSubnetIfExists(ctx, subnetID); err != nil {
-			return fmt.Errorf("failed to delete subnet: %w", err)
+		subnetCtx, cancel := context.WithTimeout(ctx, nebiusDeleteBackoffMaxElapsedTime)
+		err := c.deleteWithRetry(subnetCtx, func() error {
+			return c.deleteSubnetIfExists(subnetCtx, subnetID)
+		})
+		cancel()
+		if err != nil {
+			cleanupErrors = append(cleanupErrors, fmt.Errorf("failed to delete subnet: %w", err))
 		}
 	}
 
 	// Then delete VPC network
 	if networkID != "" {
-		if err := c.deleteNetworkIfExists(ctx, networkID); err != nil {
-			return fmt.Errorf("failed to delete network: %w", err)
+		networkCtx, cancel := context.WithTimeout(ctx, nebiusDeleteBackoffMaxElapsedTime)
+		err := c.deleteWithRetry(networkCtx, func() error {
+			return c.deleteNetworkIfExists(networkCtx, networkID)
+		})
+		cancel()
+		if err != nil {
+			cleanupErrors = append(cleanupErrors, fmt.Errorf("failed to delete network: %w", err))
 		}
 	}
 
+	return errors.Join(cleanupErrors...)
+}
+
+// deleteWithRetry retries only while the provider is still releasing a dependency.
+func (c *NebiusClient) deleteWithRetry(ctx context.Context, deleteFn func() error) error {
+	deleteBackoff := backoff.NewExponentialBackOff()
+	deleteBackoff.InitialInterval = nebiusDeleteBackoffInitialInterval
+	deleteBackoff.MaxInterval = nebiusDeleteBackoffMaxInterval
+	deleteBackoff.MaxElapsedTime = nebiusDeleteBackoffMaxElapsedTime
+
+	_, err := collections.RetryWithDataAndAttemptCount(func() (struct{}, error) {
+		err := deleteFn()
+		if err != nil && !isRetryableDeleteError(err) {
+			return struct{}{}, backoff.Permanent(err)
+		}
+		return struct{}{}, err
+	}, backoff.WithContext(deleteBackoff, ctx))
+	if err != nil {
+		return errors.WrapAndTrace(err)
+	}
 	return nil
 }
 
@@ -1160,16 +1246,13 @@ func (c *NebiusClient) deleteSubnetIfExists(ctx context.Context, subnetID string
 		return fmt.Errorf("failed to delete subnet: %w", err)
 	}
 
-	// Wait for deletion to complete
 	finalOp, err := operation.Wait(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to wait for subnet deletion: %w", err)
 	}
-
 	if !finalOp.Successful() {
 		return fmt.Errorf("subnet deletion failed: %v", finalOp.Status())
 	}
-
 	return nil
 }
 
@@ -1186,16 +1269,13 @@ func (c *NebiusClient) deleteNetworkIfExists(ctx context.Context, networkID stri
 		return fmt.Errorf("failed to delete network: %w", err)
 	}
 
-	// Wait for deletion to complete
 	finalOp, err := operation.Wait(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to wait for network deletion: %w", err)
 	}
-
 	if !finalOp.Successful() {
 		return fmt.Errorf("network deletion failed: %v", finalOp.Status())
 	}
-
 	return nil
 }
 
@@ -1211,19 +1291,24 @@ func (c *NebiusClient) createBootDisk(ctx context.Context, attrs v1.CreateInstan
 	if err != nil {
 		return "", fmt.Errorf("failed to create boot disk: %w", err)
 	}
+	diskID := operation.ResourceID()
 
 	// Wait for disk creation to complete
 	finalOp, err := operation.Wait(ctx)
+	if operation.ResourceID() != "" {
+		diskID = operation.ResourceID()
+	}
 	if err != nil {
-		return "", fmt.Errorf("failed to wait for boot disk creation: %w", err)
+		return diskID, fmt.Errorf("failed to wait for boot disk creation: %w", err)
 	}
 
 	if !finalOp.Successful() {
-		return "", fmt.Errorf("boot disk creation failed: %v", finalOp.Status())
+		return diskID, fmt.Errorf("boot disk creation failed: %v", finalOp.Status())
 	}
 
-	// Get the resource ID directly
-	diskID := finalOp.ResourceID()
+	if finalOp.ResourceID() != "" {
+		diskID = finalOp.ResourceID()
+	}
 	if diskID == "" {
 		return "", fmt.Errorf("failed to get disk ID from operation")
 	}
@@ -1534,16 +1619,13 @@ func (c *NebiusClient) deleteBootDisk(ctx context.Context, diskID string) error 
 		return fmt.Errorf("failed to delete boot disk: %w", err)
 	}
 
-	// Wait for disk deletion to complete
 	finalOp, err := operation.Wait(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to wait for boot disk deletion: %w", err)
 	}
-
 	if !finalOp.Successful() {
 		return fmt.Errorf("boot disk deletion failed: %v", finalOp.Status())
 	}
-
 	return nil
 }
 
@@ -1582,16 +1664,13 @@ func (c *NebiusClient) deleteBootDiskIfExists(ctx context.Context, diskID string
 		return fmt.Errorf("failed to delete boot disk: %w", err)
 	}
 
-	// Wait for disk deletion to complete
 	finalOp, err := operation.Wait(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to wait for boot disk deletion: %w", err)
 	}
-
 	if !finalOp.Successful() {
 		return fmt.Errorf("boot disk deletion failed: %v", finalOp.Status())
 	}
-
 	return nil
 }
 
