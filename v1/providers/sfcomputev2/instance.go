@@ -25,6 +25,8 @@ var (
 	sfcNameLeading    = regexp.MustCompile(`^[^a-zA-Z0-9]+`)
 )
 
+const sshDetailsPendingWindow = 45 * time.Minute
+
 // sanitizeSFCName coerces a requested instance name into SFC's required format:
 // disallowed characters are replaced with '-', leading non-alphanumeric characters are
 // dropped (SFC requires an alphanumeric first character), and the result is truncated to
@@ -118,7 +120,7 @@ func (c *SFCClientV2) GetInstance(ctx context.Context, id v1.CloudProviderInstan
 		return nil, errors.WrapAndTrace(fmt.Errorf("instance %s not found", id))
 	}
 
-	sshInfo, err := c.getSSHInfo(ctx, string(id), resp.Status)
+	sshInfo, err := c.getSSHInfo(ctx, resp)
 	if err != nil {
 		return nil, errors.WrapAndTrace(err)
 	}
@@ -157,7 +159,7 @@ func (c *SFCClientV2) ListInstances(ctx context.Context, args v1.ListInstancesAr
 			continue
 		}
 
-		sshInfo, err := c.getSSHInfo(ctx, inst.ID, inst.Status)
+		sshInfo, err := c.getSSHInfo(ctx, &inst)
 		if err != nil {
 			c.logger.Error(ctx, err,
 				v1.LogField("msg", "sfcv2: ListInstances skipping instance due to SSH error"),
@@ -210,13 +212,19 @@ func normalizeTerminateInstanceError(err error) error {
 	return errors.WrapAndTrace(err)
 }
 
-func (c *SFCClientV2) getSSHInfo(ctx context.Context, id string, status instanceStatus) (*instanceSSHInfo, error) {
-	if status != instanceStatusRunning {
+func (c *SFCClientV2) getSSHInfo(ctx context.Context, inst *instanceResponse) (*instanceSSHInfo, error) {
+	if inst.Status != instanceStatusRunning {
 		return nil, nil
 	}
 
-	resp, err := c.client.getSSHInfo(ctx, id)
+	resp, err := c.client.getSSHInfo(ctx, inst.ID)
 	if err != nil {
+		if isSSHDetailsPending(err, inst.CreatedAt, time.Now()) {
+			c.logger.Info(ctx, "sfcv2: SSH details not available yet, reporting instance as pending",
+				v1.LogField("instanceID", inst.ID),
+			)
+			return nil, nil
+		}
 		return nil, errors.WrapAndTrace(err)
 	}
 	if resp == nil {
@@ -224,6 +232,14 @@ func (c *SFCClientV2) getSSHInfo(ctx context.Context, id string, status instance
 	}
 
 	return resp, nil
+}
+
+func isSSHDetailsPending(err error, createdAt int64, now time.Time) bool {
+	var responseErr *apiError
+	if !errors.As(err, &responseErr) || responseErr.statusCode != http.StatusNotFound {
+		return false
+	}
+	return now.Sub(time.Unix(createdAt, 0)) < sshDetailsPendingWindow
 }
 
 func (c *SFCClientV2) sfcInstanceToBrevInstance(inst *instanceResponse, sshInfo *instanceSSHInfo) (*v1.Instance, error) {
@@ -244,6 +260,10 @@ func (c *SFCClientV2) sfcInstanceToBrevInstance(inst *instanceResponse, sshInfo 
 	}
 
 	status := sfcStatusToLifecycleStatus(inst.Status)
+	if status == v1.LifecycleStatusRunning && sshInfo.GetHostname() == "" {
+		// Brev can't reach the instance until SFC returns its SSH details.
+		status = v1.LifecycleStatusPending
+	}
 
 	diskInt64, err := h100InstanceTypeMetadata.diskBytes.ByteCountInUnitInt64(v1.Gibibyte)
 	if err != nil {
