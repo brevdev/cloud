@@ -6,10 +6,10 @@ import "fmt"
 const (
 	defaultSSHUsername = "ubuntu"
 
-	// Internal tag keys written to every SFCompute V2 instance. These are stripped from
-	// v1.Instance.Tags on read so they don't surface as user-facing tags.
+	// Provider metadata is stripped from v1.Instance.Tags on read.
 	tagKeyCloudCredRefID = "brev-cloud-cred-ref-id" //nolint:gosec // not a secret
 	tagKeyRefID          = "brev-ref-id"
+	tagKeyFirewallID     = "brev-firewall-id"
 
 	// Brev environment config for SFCompute V2.
 	brevDefaultImageResourcePath = "sfc:image:sfcompute:public:ubuntu-24.04.4-cuda-12.8"
