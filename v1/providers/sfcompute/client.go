@@ -9,8 +9,10 @@ import (
 	sfcnodes "github.com/sfcompute/nodes-go"
 )
 
+// CloudProviderID deprecated: Use sfcomputev2.CloudProviderID instead.
 const CloudProviderID = "sfcompute"
 
+// Deprecated: Use sfcomputev2.SFCCredentialV2 instead.
 type SFCCredential struct {
 	RefID  string
 	APIKey string `json:"api_key"`
@@ -18,6 +20,7 @@ type SFCCredential struct {
 
 var _ v1.CloudCredential = &SFCCredential{}
 
+// Deprecated: Use sfcomputev2.NewSFCCredentialV2 instead.
 func NewSFCCredential(refID string, apiKey string) *SFCCredential {
 	return &SFCCredential{
 		RefID:  refID,
@@ -42,6 +45,7 @@ func (c *SFCCredential) GetTenantID() (string, error) {
 	return "", nil
 }
 
+// Deprecated: Use sfcomputev2.SFCClientV2 instead.
 type SFCClient struct {
 	v1.NotImplCloudClient
 	refID    string
@@ -53,8 +57,10 @@ type SFCClient struct {
 
 var _ v1.CloudClient = &SFCClient{}
 
+// Deprecated: Use sfcomputev2.SFCClientV2Option instead.
 type SFCClientOption func(c *SFCClient)
 
+// Deprecated: Use sfcomputev2.WithLogger instead.
 func WithLogger(logger v1.Logger) SFCClientOption {
 	return func(c *SFCClient) {
 		c.logger = logger

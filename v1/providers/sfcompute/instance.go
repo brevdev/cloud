@@ -13,6 +13,7 @@ import (
 	v1 "github.com/brevdev/cloud/v1"
 	sfcnodes "github.com/sfcompute/nodes-go"
 	"github.com/sfcompute/nodes-go/packages/param"
+	"golang.org/x/crypto/ssh"
 )
 
 const (
@@ -23,6 +24,11 @@ const (
 )
 
 func (c *SFCClient) CreateInstance(ctx context.Context, attrs v1.CreateInstanceAttrs) (*v1.Instance, error) {
+	cloudInit, err := sshKeyCloudInit(attrs.PublicKey)
+	if err != nil {
+		return nil, errors.WrapAndTrace(err)
+	}
+
 	// Get the zone for the location (do not include unavailable zones)
 	zone, err := c.getZone(ctx, attrs.Location, false)
 	if err != nil {
@@ -41,7 +47,7 @@ func (c *SFCClient) CreateInstance(ctx context.Context, attrs v1.CreateInstanceA
 			MaxPricePerNodeHour: maxPricePerNodeHour,
 			Zone:                zone.Name,
 			Names:               []string{name},
-			CloudInitUserData:   param.Opt[string]{Value: sshKeyCloudInit(attrs.PublicKey)},
+			CloudInitUserData:   param.Opt[string]{Value: cloudInit},
 		},
 	})
 	if err != nil {
@@ -61,9 +67,14 @@ func (c *SFCClient) CreateInstance(ctx context.Context, attrs v1.CreateInstanceA
 	return instance, nil
 }
 
-func sshKeyCloudInit(sshKey string) string {
+func sshKeyCloudInit(sshKey string) (string, error) {
+	key, _, _, _, err := ssh.ParseAuthorizedKey([]byte(sshKey))
+	if err != nil {
+		return "", fmt.Errorf("invalid SSH public key: %w", err)
+	}
+	sshKey = strings.TrimSpace(string(ssh.MarshalAuthorizedKey(key)))
 	script := fmt.Sprintf("#cloud-config\nssh_authorized_keys:\n  - %s", sshKey)
-	return base64.StdEncoding.EncodeToString([]byte(script))
+	return base64.StdEncoding.EncodeToString([]byte(script)), nil
 }
 
 func (c *SFCClient) GetInstance(ctx context.Context, id v1.CloudProviderInstanceID) (*v1.Instance, error) {
