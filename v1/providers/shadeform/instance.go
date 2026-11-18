@@ -12,7 +12,6 @@ import (
 	"github.com/brevdev/cloud/internal/errors"
 	v1 "github.com/brevdev/cloud/v1"
 	openapi "github.com/brevdev/cloud/v1/providers/shadeform/gen/shadeform"
-	"github.com/google/uuid"
 )
 
 const (
@@ -29,7 +28,7 @@ type DefaultErrorResponse struct {
 	Error     string `json:"error"`
 }
 
-func (c *ShadeformClient) CreateInstance(ctx context.Context, attrs v1.CreateInstanceAttrs) (*v1.Instance, error) { //nolint:gocyclo,funlen // ok
+func (c *ShadeformClient) CreateInstance(ctx context.Context, attrs v1.CreateInstanceAttrs) (*v1.Instance, error) { //nolint:funlen // ok
 	authCtx := c.makeAuthContext(ctx)
 
 	c.logger.Debug(ctx, "Creating instance", v1.LogField("instanceAttrs", attrs))
@@ -39,24 +38,13 @@ func (c *ShadeformClient) CreateInstance(ctx context.Context, attrs v1.CreateIns
 		return nil, errors.WrapAndTrace(fmt.Errorf("instance type: %v is not deployable", attrs.InstanceType))
 	}
 
-	sshKeyID := ""
-
-	keyPairName := attrs.RefID
-	if attrs.KeyPairName != nil {
-		keyPairName = *attrs.KeyPairName
+	base64Script, err := c.instanceLaunchScript(attrs)
+	if err != nil {
+		return nil, errors.WrapAndTrace(err)
 	}
-
-	if keyPairName == "" {
-		keyPairName = uuid.New().String()
-		c.logger.Debug(ctx, "No key pair name provided, generating new one", v1.LogField("keyPairName", keyPairName))
-	}
-
-	if attrs.PublicKey != "" {
-		var err error
-		sshKeyID, err = c.addSSHKey(ctx, keyPairName, attrs.PublicKey)
-		if err != nil && !strings.Contains(err.Error(), "name must be unique") {
-			return nil, errors.WrapAndTrace(fmt.Errorf("failed to add SSH key: %w", err))
-		}
+	sshKeyID, err := c.getSSHBootstrapKey(ctx, attrs)
+	if err != nil {
+		return nil, errors.WrapAndTrace(err)
 	}
 
 	region := attrs.Location
@@ -85,11 +73,6 @@ func (c *ShadeformClient) CreateInstance(ctx context.Context, attrs v1.CreateIns
 			return nil, errors.WrapAndTrace(err)
 		}
 		tags = append(tags, createdTag)
-	}
-
-	base64Script, err := c.GenerateFirewallScript(attrs.FirewallRules)
-	if err != nil {
-		return nil, errors.WrapAndTrace(err)
 	}
 
 	req := openapi.CreateRequest{
@@ -126,6 +109,7 @@ func (c *ShadeformClient) CreateInstance(ctx context.Context, attrs v1.CreateIns
 		return nil, errors.WrapAndTrace(err)
 	}
 
+	createdInstance.SSHCertificateBootstrap = attrs.SSHCertificateAuthority != nil
 	return createdInstance, nil
 }
 
@@ -185,6 +169,9 @@ func (c *ShadeformClient) addSSHKey(ctx context.Context, keyPairName string, pub
 		defer func() { _ = httpResp.Body.Close() }()
 	}
 	if err != nil {
+		if httpResp == nil {
+			return "", errors.WrapAndTrace(err)
+		}
 		httpMessage, _ := io.ReadAll(httpResp.Body)
 		return "", errors.WrapAndTrace(fmt.Errorf("failed to add SSH Key: %w, %s", err, string(httpMessage)))
 	}
