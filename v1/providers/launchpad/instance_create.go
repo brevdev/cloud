@@ -7,6 +7,7 @@ import (
 
 	"github.com/brevdev/cloud/internal/collections"
 	"github.com/brevdev/cloud/internal/errors"
+	"github.com/brevdev/cloud/internal/sshbootstrap"
 
 	v1 "github.com/brevdev/cloud/v1"
 	openapi "github.com/brevdev/cloud/v1/providers/launchpad/gen/launchpad"
@@ -21,7 +22,11 @@ const (
 
 func (c *LaunchpadClient) CreateInstance(ctx context.Context, attrs v1.CreateInstanceAttrs) (*v1.Instance, error) {
 	createAttrs := launchpadCreateAttrs(attrs)
-	err := createAttrs.validate()
+	startupScript, err := createAttrs.prepareSSHBootstrap()
+	if err != nil {
+		return nil, errors.WrapAndTrace(err)
+	}
+	err = createAttrs.validate()
 	if err != nil {
 		return nil, errors.WrapAndTrace(err)
 	}
@@ -38,7 +43,7 @@ func (c *LaunchpadClient) CreateInstance(ctx context.Context, attrs v1.CreateIns
 		region = *openapi.NewNullableString(nil)
 	}
 
-	publicKey := openapi.NewNullableString(collections.Ptr(attrs.PublicKey))
+	publicKey := openapi.NewNullableString(collections.Ptr(createAttrs.PublicKey))
 	createAttrs.Tags = createAttrs.generateTags(c.GetReferenceID())
 
 	deployment := openapi.Deployment{
@@ -55,6 +60,10 @@ func (c *LaunchpadClient) CreateInstance(ctx context.Context, attrs v1.CreateIns
 		RequesterName:  "brev.dev",        // TODO: use user name
 		Tags:           createAttrs.Tags,
 		Region:         region,
+	}
+	if startupScript != "" {
+		// Launchpad 2.72.1 supports this field; our pinned schema predates it.
+		deployment.AdditionalProperties = map[string]interface{}{"startup_script": startupScript}
 	}
 
 	// The workshop ID should only be set if it was determined to be not empty
@@ -94,6 +103,7 @@ func (c *LaunchpadClient) CreateInstance(ctx context.Context, attrs v1.CreateIns
 	if err != nil {
 		return nil, errors.WrapAndTrace(err)
 	}
+	inst.SSHCertificateBootstrap = attrs.SSHCertificateAuthority != nil
 	return inst, nil
 }
 
@@ -114,6 +124,18 @@ func matchesGH200Experience(info instanceTypeInfo) bool {
 }
 
 type launchpadCreateAttrs v1.CreateInstanceAttrs
+
+func (l *launchpadCreateAttrs) prepareSSHBootstrap() (string, error) {
+	if l.SSHCertificateAuthority == nil {
+		return "", nil
+	}
+	publicKey, err := sshbootstrap.CanonicalPublicKey(l.SSHCertificateAuthority.PublicKey)
+	if err != nil {
+		return "", err
+	}
+	l.PublicKey = publicKey
+	return sshbootstrap.InstallForKeyOwners(*l.SSHCertificateAuthority)
+}
 
 func (l launchpadCreateAttrs) validate() error {
 	err := validation.ValidateStruct(
