@@ -8,13 +8,12 @@ import (
 	"net/http"
 	"regexp"
 	"slices"
-	"strings"
 	"time"
 
 	"github.com/alecthomas/units"
 	"github.com/brevdev/cloud/internal/errors"
+	"github.com/brevdev/cloud/internal/sshbootstrap"
 	v1 "github.com/brevdev/cloud/v1"
-	"golang.org/x/crypto/ssh"
 )
 
 // SFC instance names must match `[a-zA-Z0-9][a-zA-Z0-9._-]{0,254}`: start with an
@@ -45,7 +44,7 @@ func makeSFCName(refID string, tags v1.Tags) string {
 }
 
 func (c *SFCClientV2) CreateInstance(ctx context.Context, attrs v1.CreateInstanceAttrs) (*v1.Instance, error) {
-	cloudInit, err := sshKeyCloudInit(attrs.PublicKey)
+	cloudInit, err := sshCloudInit(attrs)
 	if err != nil {
 		return nil, errors.WrapAndTrace(err)
 	}
@@ -94,16 +93,22 @@ func (c *SFCClientV2) CreateInstance(ctx context.Context, attrs v1.CreateInstanc
 		v1.LogField("instanceSku", sku),
 	)
 
+	instance.SSHCertificateBootstrap = attrs.SSHCertificateAuthority != nil
 	return instance, nil
 }
 
-func sshKeyCloudInit(sshKey string) (string, error) {
-	key, _, _, _, err := ssh.ParseAuthorizedKey([]byte(sshKey))
-	if err != nil {
-		return "", fmt.Errorf("invalid SSH public key: %w", err)
+func sshCloudInit(attrs v1.CreateInstanceAttrs) (string, error) {
+	var key string
+	var err error
+	if attrs.SSHCertificateAuthority != nil {
+		key, err = sshbootstrap.AuthorizedKey(*attrs.SSHCertificateAuthority, defaultSSHUsername)
+	} else {
+		key, err = sshbootstrap.CanonicalPublicKey(attrs.PublicKey)
 	}
-	sshKey = strings.TrimSpace(string(ssh.MarshalAuthorizedKey(key)))
-	script := fmt.Sprintf("#cloud-config\nssh_authorized_keys:\n  - %s", sshKey)
+	if err != nil {
+		return "", fmt.Errorf("invalid SSH bootstrap key: %w", err)
+	}
+	script := fmt.Sprintf("#cloud-config\nssh_authorized_keys:\n  - %q", key)
 	return base64.StdEncoding.EncodeToString([]byte(script)), nil
 }
 
