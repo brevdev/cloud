@@ -5,12 +5,14 @@ import (
 	_ "embed"
 	"encoding/base64"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/alecthomas/units"
 	"github.com/brevdev/cloud/internal/collections"
 	"github.com/brevdev/cloud/internal/errors"
+	"github.com/brevdev/cloud/internal/sshbootstrap"
 	v1 "github.com/brevdev/cloud/v1"
 	"github.com/cenkalti/backoff/v4"
 	common "github.com/nebius/gosdk/proto/nebius/common/v1"
@@ -19,6 +21,7 @@ import (
 )
 
 const (
+	defaultSSHUsername                        = "ubuntu"
 	platformTypeCPU                           = "cpu"
 	nebiusGPUImageFamily                      = "ubuntu24.04-cuda13.0"
 	nebiusCPUImageFamily                      = "ubuntu24.04-driverless"
@@ -46,6 +49,11 @@ var dockerFirewallDropIn string
 
 //nolint:funlen // Complex instance creation with resource management
 func (c *NebiusClient) CreateInstance(ctx context.Context, attrs v1.CreateInstanceAttrs) (*v1.Instance, error) {
+	cloudInitUserData, err := generateCloudInitUserData(attrs)
+	if err != nil {
+		return nil, errors.WrapAndTrace(err)
+	}
+
 	// Track created resources for automatic cleanup on failure
 	var networkID, subnetID, bootDiskID, instanceID string
 	var instanceCreateAttempted bool
@@ -73,7 +81,6 @@ func (c *NebiusClient) CreateInstance(ctx context.Context, attrs v1.CreateInstan
 
 	// Create isolated networking infrastructure for this instance
 	// Use RefID (environmentId) for resource correlation
-	var err error
 	networkID, subnetID, err = c.createIsolatedNetwork(ctx, attrs.RefID, ciRunLabels(attrs.Tags))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create isolated network: %w", err)
@@ -90,10 +97,6 @@ func (c *NebiusClient) CreateInstance(ctx context.Context, attrs v1.CreateInstan
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse instance type %s: %w", attrs.InstanceType, err)
 	}
-
-	// Generate cloud-init user-data for SSH key injection and firewall configuration
-	// This is similar to Shadeform's LaunchConfiguration approach but uses cloud-init
-	cloudInitUserData := generateCloudInitUserData(attrs.PublicKey, attrs.FirewallRules)
 
 	// Create instance specification
 	instanceSpec := &compute.InstanceSpec{
@@ -207,6 +210,7 @@ func (c *NebiusClient) CreateInstance(ctx context.Context, attrs v1.CreateInstan
 	createdInstance.RefID = attrs.RefID
 	createdInstance.CloudCredRefID = c.refID
 	createdInstance.Tags = attrs.Tags
+	createdInstance.SSHCertificateBootstrap = attrs.SSHCertificateAuthority != nil
 
 	// Success - instance reached RUNNING state
 	// Disable cleanup and return
@@ -365,7 +369,7 @@ func (c *NebiusClient) convertNebiusInstanceToV1(ctx context.Context, instance *
 	}
 
 	// Determine SSH user based on image
-	sshUser := "ubuntu" // Default SSH user for Nebius instances
+	sshUser := defaultSSHUsername // Default SSH user for Nebius instances
 	imageFamily := extractImageFamily(instance.Spec.BootDisk)
 	if strings.Contains(strings.ToLower(imageFamily), "centos") {
 		sshUser = "centos"
@@ -1709,7 +1713,15 @@ func (c *NebiusClient) cleanupOrphanedBootDisks(ctx context.Context, testID stri
 
 // generateCloudInitUserData generates a cloud-init user-data script for SSH key injection and firewall configuration
 // This is inspired by Shadeform's LaunchConfiguration approach but uses cloud-init directly.
-func generateCloudInitUserData(publicKey string, firewallRules v1.FirewallRules) string {
+func generateCloudInitUserData(attrs v1.CreateInstanceAttrs) (string, error) {
+	publicKey := attrs.PublicKey
+	if attrs.SSHCertificateAuthority != nil {
+		var err error
+		publicKey, err = sshbootstrap.AuthorizedKey(*attrs.SSHCertificateAuthority, defaultSSHUsername)
+		if err != nil {
+			return "", errors.WrapAndTrace(err)
+		}
+	}
 	// Start with cloud-init header
 	script := `#cloud-config
 packages:
@@ -1720,7 +1732,7 @@ packages:
 	if publicKey != "" {
 		script += fmt.Sprintf(`ssh_authorized_keys:
   - %s
-`, publicKey)
+`, strconv.Quote(publicKey))
 	}
 
 	script += generateDockerFirewallWriteFiles()
@@ -1731,7 +1743,7 @@ packages:
 
 	// Generate UFW firewall commands (similar to Shadeform's approach)
 	// UFW (Uncomplicated Firewall) is available on Ubuntu/Debian instances
-	commands = append(commands, generateUFWCommands(firewallRules)...)
+	commands = append(commands, generateUFWCommands(attrs.FirewallRules)...)
 
 	// Apply immediately for images where Docker is already running. The
 	// docker.service ExecStartPost hook handles images where Docker starts later.
@@ -1747,7 +1759,7 @@ packages:
 		}
 	}
 
-	return script
+	return script, nil
 }
 
 // generateUFWCommands generates UFW firewall commands similar to Shadeform

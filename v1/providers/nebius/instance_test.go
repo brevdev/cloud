@@ -85,7 +85,8 @@ func TestNebiusClient_MergeInstanceForUpdate(t *testing.T) {
 }
 
 func TestGenerateCloudInitUserDataInstallsDockerFirewallHook(t *testing.T) {
-	script := generateCloudInitUserData("ssh-rsa test", v1.FirewallRules{})
+	script, err := generateCloudInitUserData(v1.CreateInstanceAttrs{PublicKey: "ssh-rsa test"})
+	assert.NoError(t, err)
 
 	assert.NotContains(t, script, "iptables-persistent")
 	assert.NotContains(t, script, "netfilter-persistent")
