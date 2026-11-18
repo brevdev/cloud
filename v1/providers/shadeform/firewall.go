@@ -105,7 +105,7 @@ EOF
   DEV="/dev/$CAND"
   echo "brev: formatting + mounting $DEV at $MOUNT_DIR"
   mkdir -p "$MOUNT_DIR"
-  mkfs.ext4 -F "$DEV" || { echo "brev: mkfs failed on $DEV"; return 0; }
+  mkfs.ext4 -F -m 1 "$DEV" || { echo "brev: mkfs failed on $DEV"; return 0; }
   mount "$DEV" "$MOUNT_DIR" || { echo "brev: mount failed on $DEV"; return 0; }
   chmod 777 "$MOUNT_DIR"
 

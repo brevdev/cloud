@@ -38,7 +38,7 @@ func TestShadeformBootstrapScriptMountsDataDiskForDenvr(t *testing.T) {
 	assert.Contains(t, script, "ufw --force enable")
 	// Denvr also gets the data-disk mount logic.
 	assert.Contains(t, script, "brev_mount_data_disk")
-	assert.Contains(t, script, "mkfs.ext4 -F")
+	assert.Contains(t, script, "mkfs.ext4 -F -m 1")
 	assert.Contains(t, script, "/data")
 	assert.Contains(t, script, "mountpoint -q")
 }
