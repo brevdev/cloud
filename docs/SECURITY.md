@@ -21,6 +21,8 @@ This document outlines the security requirements and best practices for implemen
 - Public keys must be injectable during instance provisioning
 - SSH access must be available through the configured firewall rules
 
+Providers supporting `CreateInstanceAttrs.SSHCertificateAuthority` install resource-scoped CA trust instead of the user's public key and report `Instance.SSHCertificateBootstrap` on creation. Providers that do not support CA bootstrap retain their existing key setup and leave that result false. CA private keys remain in the caller's secret store; the SDK receives only public trust material.
+
 ## 🌐 Network Security Requirements
 
 ### Network Requirements

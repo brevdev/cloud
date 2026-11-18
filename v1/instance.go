@@ -49,6 +49,9 @@ type UpdateHandler interface {
 }
 
 type Instance struct {
+	// CreateInstance only: the provider configured certificate-only SSH bootstrap.
+	SSHCertificateBootstrap bool
+
 	Name                            string
 	RefID                           string
 	CloudCredRefID                  string // cloudCred used to create the Instance
@@ -129,7 +132,18 @@ type ListInstancesArgs struct {
 	Locations   LocationsFilter
 }
 
+// SSHCertificateAuthority contains public trust material for one resource.
+// Providers append their actual SSH login username to PrincipalPrefix.
+type SSHCertificateAuthority struct {
+	PublicKey       string
+	PrincipalPrefix string
+}
+
 type CreateInstanceAttrs struct {
+	// When set, supporting providers install CA trust instead of the user's PublicKey.
+	// Other providers retain their existing bootstrap and report SSHCertificateBootstrap=false.
+	SSHCertificateAuthority *SSHCertificateAuthority
+
 	Location             string
 	SubLocation          string
 	Name                 string
