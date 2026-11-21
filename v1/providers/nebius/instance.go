@@ -46,6 +46,12 @@ var dockerFirewallDropIn string
 
 //nolint:funlen // Complex instance creation with resource management
 func (c *NebiusClient) CreateInstance(ctx context.Context, attrs v1.CreateInstanceAttrs) (*v1.Instance, error) {
+	// Validate the requested resources before creating any billable infrastructure.
+	platform, preset, err := c.parseInstanceType(ctx, attrs.InstanceType)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse instance type %s: %w", attrs.InstanceType, err)
+	}
+
 	// Track created resources for automatic cleanup on failure
 	var networkID, subnetID, bootDiskID, instanceID string
 	var instanceCreateAttempted bool
@@ -73,7 +79,6 @@ func (c *NebiusClient) CreateInstance(ctx context.Context, attrs v1.CreateInstan
 
 	// Create isolated networking infrastructure for this instance
 	// Use RefID (environmentId) for resource correlation
-	var err error
 	networkID, subnetID, err = c.createIsolatedNetwork(ctx, attrs.RefID, ciRunLabels(attrs.Tags))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create isolated network: %w", err)
@@ -83,12 +88,6 @@ func (c *NebiusClient) CreateInstance(ctx context.Context, attrs v1.CreateInstan
 	bootDiskID, err = c.createBootDisk(ctx, attrs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create boot disk: %w", err)
-	}
-
-	// Parse platform and preset from instance type
-	platform, preset, err := c.parseInstanceType(ctx, attrs.InstanceType)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse instance type %s: %w", attrs.InstanceType, err)
 	}
 
 	// Generate cloud-init user-data for SSH key injection and firewall configuration
@@ -1390,224 +1389,50 @@ func (c *NebiusClient) getPublicImagesParent() string {
 	return "project-e00public-images" // Default to e00 region
 }
 
-// parseInstanceType parses an instance type ID to extract platform and preset
-// NEW Format: nebius-{region}-{gpu-type}-{preset} or nebius-{region}-cpu-{preset}
-// Examples:
-//
-//	nebius-eu-north1-l40s-4gpu-96vcpu-768gb
-//	nebius-eu-north1-cpu-4vcpu-16gb
-//
-//nolint:gocognit,gocyclo,funlen // Complex function with multiple fallback strategies for parsing instance types
-func (c *NebiusClient) parseInstanceType(ctx context.Context, instanceTypeID string) (platform string, preset string, err error) {
-	c.logger.Debug(ctx, "parsing instance type",
-		v1.LogField("instanceTypeID", instanceTypeID),
-		v1.LogField("projectID", c.projectID))
-
-	// Get the compute platforms to find the correct platform and preset
-	platformsResp, err := c.sdk.Services().Compute().V1().Platform().List(ctx, &compute.ListPlatformsRequest{
+// parseInstanceType resolves the requested type without substituting another platform or preset.
+func (c *NebiusClient) parseInstanceType(ctx context.Context, instanceTypeID string) (string, string, error) {
+	var platforms []*compute.Platform
+	request := &compute.ListPlatformsRequest{
 		ParentId: c.projectID,
-	})
+	}
+	for {
+		response, err := c.sdk.Services().Compute().V1().Platform().List(ctx, request)
+		if err != nil {
+			return "", "", errors.WrapAndTrace(err)
+		}
+		platforms = append(platforms, response.GetItems()...)
+		if response.GetNextPageToken() == "" {
+			break
+		}
+		request.PageToken = response.GetNextPageToken()
+	}
+	platform, preset, err := resolveInstanceType(instanceTypeID, platforms)
 	if err != nil {
-		return "", "", errors.WrapAndTrace(err)
+		return "", "", err
 	}
+	c.logger.Debug(ctx, "resolved requested instance type",
+		v1.LogField("instanceTypeID", instanceTypeID),
+		v1.LogField("platform", platform),
+		v1.LogField("preset", preset))
+	return platform, preset, nil
+}
 
-	c.logger.Debug(ctx, "listed platforms",
-		v1.LogField("platformCount", len(platformsResp.GetItems())))
-
-	// DOT Format: {platform-name}.{preset-name}
-	// Example: "gpu-h100-sxm.8gpu-128vcpu-1600gb"
-	if strings.Contains(instanceTypeID, ".") {
-		dotParts := strings.SplitN(instanceTypeID, ".", 2)
-		if len(dotParts) == 2 {
-			platformName := dotParts[0]
-			presetName := dotParts[1]
-
-			c.logger.Debug(ctx, "parsed DOT format instance type",
-				v1.LogField("platformName", platformName),
-				v1.LogField("presetName", presetName))
-
-			// Find matching platform by name
-			for _, p := range platformsResp.GetItems() {
-				if p.Metadata == nil || p.Spec == nil {
-					continue
-				}
-
-				if p.Metadata.Name == platformName {
-					// Verify the preset exists
-					for _, preset := range p.Spec.Presets {
-						if preset != nil && preset.Name == presetName {
-							c.logger.Debug(ctx, "DOT format EXACT MATCH",
-								v1.LogField("platformName", p.Metadata.Name),
-								v1.LogField("presetName", preset.Name))
-							return p.Metadata.Name, preset.Name, nil
-						}
-					}
-
-					// If preset not found but platform matches, use first preset
-					if len(p.Spec.Presets) > 0 && p.Spec.Presets[0] != nil {
-						c.logger.Warn(ctx, "DOT format - preset not found, using first preset",
-							v1.LogField("requestedPreset", presetName),
-							v1.LogField("fallbackPreset", p.Spec.Presets[0].Name))
-						return p.Metadata.Name, p.Spec.Presets[0].Name, nil
-					}
-				}
-			}
-		}
-	}
-
-	// Parse the NEW instance type ID format: nebius-{region}-{gpu-type}-{preset}
-	// Split by "-" and extract components
-	parts := strings.Split(instanceTypeID, "-")
-	if len(parts) >= 4 && parts[0] == "nebius" {
-		// Format: nebius-{region}-{gpu-type}-{preset-parts...}
-		// Example: nebius-eu-north1-l40s-4gpu-96vcpu-768gb
-		//          parts[0]=nebius, parts[1]=eu, parts[2]=north1, parts[3]=l40s, parts[4+]=preset
-
-		// Find where the preset starts (after region and gpu-type)
-		// Region could be multi-part (eu-north1) so we need to find the GPU type or platformTypeCPU
-		var gpuType string
-		var presetStartIdx int
-
-		// Look for GPU type indicators or platformTypeCPU
-		for i := 1; i < len(parts); i++ {
-			partLower := strings.ToLower(parts[i])
-			// Check if this part is a known GPU type or platformTypeCPU
-			if partLower == platformTypeCPU || partLower == "l40s" || partLower == "h100" ||
-				partLower == "h200" || partLower == "a100" || partLower == "v100" ||
-				partLower == "b200" || partLower == "a10" || partLower == "t4" || partLower == "l4" {
-				gpuType = partLower
-				presetStartIdx = i + 1
-				break
-			}
-		}
-
-		if presetStartIdx > 0 && presetStartIdx < len(parts) {
-			// Reconstruct the preset name from remaining parts
-			presetName := strings.Join(parts[presetStartIdx:], "-")
-
-			c.logger.Debug(ctx, "parsed NEW format instance type",
-				v1.LogField("gpuType", gpuType),
-				v1.LogField("presetName", presetName),
-				v1.LogField("presetStartIdx", presetStartIdx))
-
-			// Now find the matching platform based on GPU type
-			for _, p := range platformsResp.GetItems() {
-				if p.Metadata == nil || p.Spec == nil {
-					continue
-				}
-
-				platformNameLower := strings.ToLower(p.Metadata.Name)
-
-				// Match platform by GPU type
-				if (gpuType == platformTypeCPU && strings.Contains(platformNameLower, platformTypeCPU)) ||
-					(gpuType != platformTypeCPU && strings.Contains(platformNameLower, gpuType)) {
-					// Log ALL available presets for this platform for debugging
-					availablePresets := make([]string, 0, len(p.Spec.Presets))
-					for _, preset := range p.Spec.Presets {
-						if preset != nil {
-							availablePresets = append(availablePresets, preset.Name)
-						}
-					}
-
-					c.logger.Debug(ctx, "found matching platform",
-						v1.LogField("platformName", p.Metadata.Name),
-						v1.LogField("platformID", p.Metadata.Id),
-						v1.LogField("presetCount", len(p.Spec.Presets)),
-						v1.LogField("requestedPreset", presetName),
-						v1.LogField("availablePresets", strings.Join(availablePresets, ", ")))
-
-					// Verify the preset exists in this platform
-					for _, preset := range p.Spec.Presets {
-						if preset != nil && preset.Name == presetName {
-							c.logger.Debug(ctx, "EXACT MATCH - using requested preset",
-								v1.LogField("platformName", p.Metadata.Name),
-								v1.LogField("presetName", preset.Name))
-							return p.Metadata.Name, preset.Name, nil
-						}
-					}
-
-					// If preset not found, use first preset as fallback
-					if len(p.Spec.Presets) > 0 && p.Spec.Presets[0] != nil {
-						c.logger.Warn(ctx, "MISMATCH - preset not found, using FIRST preset as fallback",
-							v1.LogField("requestedPreset", presetName),
-							v1.LogField("fallbackPreset", p.Spec.Presets[0].Name),
-							v1.LogField("platformName", p.Metadata.Name),
-							v1.LogField("availablePresets", strings.Join(availablePresets, ", ")))
-						return p.Metadata.Name, p.Spec.Presets[0].Name, nil
-					}
-				}
-			}
-		}
-	}
-
-	// OLD Format fallback: {platform-id}-{preset}
-	// This handles any legacy instance type IDs that might still exist
-	for _, platform := range platformsResp.GetItems() {
-		if platform.Metadata == nil || platform.Spec == nil {
+// resolveInstanceType matches the same platform.preset ID emitted by GetInstanceTypes.
+func resolveInstanceType(instanceTypeID string, platforms []*compute.Platform) (string, string, error) {
+	for _, platform := range platforms {
+		if platform == nil || platform.Metadata == nil || platform.Spec == nil || platform.Metadata.Name == "" {
 			continue
 		}
-
-		platformID := platform.Metadata.Id
-
-		// Check if the instance type starts with this platform ID
-		if strings.HasPrefix(instanceTypeID, platformID+"-") {
-			// Extract the preset part (everything after platform ID + "-")
-			presetPart := instanceTypeID[len(platformID)+1:] // +1 for the "-"
-
-			// Find the matching preset in this platform
-			for _, preset := range platform.Spec.Presets {
-				if preset != nil && preset.Name == presetPart {
-					// Return platform NAME (not ID) for ResourcesSpec
-					return platform.Metadata.Name, preset.Name, nil
-				}
-			}
-
-			// If preset not found but platform matches, use the first preset as fallback
-			if len(platform.Spec.Presets) > 0 && platform.Spec.Presets[0] != nil {
-				return platform.Metadata.Name, platform.Spec.Presets[0].Name, nil
-			}
-		}
-	}
-
-	// Fallback: try to find any platform that contains parts of the instance type
-	legacyParts := strings.Split(instanceTypeID, "-")
-	if len(legacyParts) >= 3 { // computeplatform-xxx-preset
-		for _, platform := range platformsResp.GetItems() {
-			if platform.Metadata == nil || platform.Spec == nil {
+		for _, preset := range platform.Spec.Presets {
+			if preset == nil || preset.Name == "" {
 				continue
 			}
-
-			// Check if any part of the instance type matches this platform
-			platformID := platform.Metadata.Id
-			for _, part := range legacyParts {
-				if strings.Contains(platformID, part) {
-					// Use first available preset
-					if len(platform.Spec.Presets) > 0 && platform.Spec.Presets[0] != nil {
-						return platform.Metadata.Name, platform.Spec.Presets[0].Name, nil
-					}
-				}
+			if instanceTypeID == platform.Metadata.Name+"."+preset.Name {
+				return platform.Metadata.Name, preset.Name, nil
 			}
 		}
 	}
-
-	// Final fallback: use first available platform and preset
-	if len(platformsResp.GetItems()) > 0 {
-		platform := platformsResp.GetItems()[0]
-		if platform.Metadata != nil && platform.Spec != nil && len(platform.Spec.Presets) > 0 {
-			firstPreset := platform.Spec.Presets[0]
-			if firstPreset != nil {
-				c.logger.Warn(ctx, "using final fallback - first available platform/preset",
-					v1.LogField("requestedInstanceType", instanceTypeID),
-					v1.LogField("fallbackPlatform", platform.Metadata.Name),
-					v1.LogField("fallbackPreset", firstPreset.Name))
-				return platform.Metadata.Name, firstPreset.Name, nil
-			}
-		}
-	}
-
-	c.logger.Error(ctx, fmt.Errorf("no platforms available"),
-		v1.LogField("instanceTypeID", instanceTypeID))
-	return "", "", fmt.Errorf("could not parse instance type %s or find suitable platform/preset", instanceTypeID)
+	return "", "", fmt.Errorf("%w: requested Nebius instance type %q is unavailable; no exact platform/preset match", v1.ErrInsufficientResources, instanceTypeID)
 }
 
 // deleteBootDisk deletes a boot disk by ID
