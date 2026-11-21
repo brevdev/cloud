@@ -46,7 +46,7 @@ var dockerFirewallDropIn string
 
 //nolint:funlen // Complex instance creation with resource management
 func (c *NebiusClient) CreateInstance(ctx context.Context, attrs v1.CreateInstanceAttrs) (*v1.Instance, error) {
-	// Validate the requested resources before creating any billable infrastructure.
+	// Parse platform and preset from instance type
 	platform, preset, err := c.parseInstanceType(ctx, attrs.InstanceType)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse instance type %s: %w", attrs.InstanceType, err)
@@ -1389,7 +1389,7 @@ func (c *NebiusClient) getPublicImagesParent() string {
 	return "project-e00public-images" // Default to e00 region
 }
 
-// parseInstanceType resolves the requested type without substituting another platform or preset.
+// parseInstanceType parses an instance type ID to extract platform and preset
 func (c *NebiusClient) parseInstanceType(ctx context.Context, instanceTypeID string) (string, string, error) {
 	var platforms []*compute.Platform
 	request := &compute.ListPlatformsRequest{
