@@ -3,6 +3,7 @@ package v1
 import (
 	"encoding/base64"
 	"fmt"
+	"strings"
 
 	v1 "github.com/brevdev/cloud/v1"
 )
@@ -51,10 +52,13 @@ const (
 	ipTablesReturnDockerUser      = "iptables -A DOCKER-USER -j RETURN"
 )
 
-func (c *ShadeformClient) GenerateFirewallScript(firewallRules v1.FirewallRules) (string, error) {
+func (c *ShadeformClient) GenerateBootstrapScript(cloud string, firewallRules v1.FirewallRules) (string, error) {
 	var commands []string
 	commands = append(commands, c.getUFWCommands(firewallRules)...)
 	commands = append(commands, c.getIPTablesCommands()...)
+	if shouldMountDataDisk(cloud) {
+		commands = append(commands, mountDataDiskScript)
+	}
 
 	script := ""
 	for _, command := range commands {
@@ -63,6 +67,59 @@ func (c *ShadeformClient) GenerateFirewallScript(firewallRules v1.FirewallRules)
 
 	encoded := base64.StdEncoding.EncodeToString([]byte(script))
 	return encoded, nil
+}
+
+const cloudDenvr = "denvr"
+
+const mountDataDiskScript = `
+# --- Brev: mount extra data disk if a blank one is present ---
+brev_mount_data_disk() {
+  set -u
+  MOUNT_DIR="/data"
+  MIN_BYTES=$((100 * 1024 * 1024 * 1024))   # ignore disks < 100GiB
+
+  if mountpoint -q "$MOUNT_DIR"; then
+    echo "brev: $MOUNT_DIR already mounted; skipping"
+    return 0
+  fi
+
+  ROOT_SRC="$(findmnt -no SOURCE / 2>/dev/null || true)"
+  ROOT_DISK="$(lsblk -no PKNAME "$ROOT_SRC" 2>/dev/null | head -n1)"
+
+  CAND=""; CAND_SIZE=0
+  while read -r NAME SIZE TYPE FSTYPE; do
+    [ "$TYPE" = "disk" ] || continue
+    [ -n "$NAME" ] || continue
+    [ "$NAME" = "$ROOT_DISK" ] && continue
+    [ -n "$FSTYPE" ] && continue
+    [ -n "$(lsblk -no NAME "/dev/$NAME" | tail -n +2)" ] && continue
+    blkid "/dev/$NAME" >/dev/null 2>&1 && continue
+    [ "$SIZE" -lt "$MIN_BYTES" ] && continue
+    if [ "$SIZE" -gt "$CAND_SIZE" ]; then CAND="$NAME"; CAND_SIZE="$SIZE"; fi
+  done <<EOF
+$(lsblk -bdno NAME,SIZE,TYPE,FSTYPE)
+EOF
+
+  [ -n "$CAND" ] || { echo "brev: no blank data disk found; skipping"; return 0; }
+
+  DEV="/dev/$CAND"
+  echo "brev: formatting + mounting $DEV at $MOUNT_DIR"
+  mkdir -p "$MOUNT_DIR"
+  mkfs.ext4 -F -m 1 "$DEV" || { echo "brev: mkfs failed on $DEV"; return 0; }
+  mount "$DEV" "$MOUNT_DIR" || { echo "brev: mount failed on $DEV"; return 0; }
+  chmod 777 "$MOUNT_DIR"
+
+  UUID="$(blkid -s UUID -o value "$DEV")"
+  if [ -n "$UUID" ] && ! grep -q "$UUID" /etc/fstab; then
+    echo "UUID=$UUID $MOUNT_DIR ext4 defaults,nofail,x-systemd.device-timeout=5 0 2" >> /etc/fstab
+  fi
+  echo "brev: mounted $DEV ($MOUNT_DIR)"
+}
+brev_mount_data_disk || true
+`
+
+func shouldMountDataDisk(cloud string) bool {
+	return strings.EqualFold(strings.TrimSpace(cloud), cloudDenvr)
 }
 
 func (c *ShadeformClient) getUFWCommands(firewallRules v1.FirewallRules) []string {
